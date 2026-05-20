@@ -40,7 +40,7 @@ services:
       - "8080"
     volumes:
       - gmaos_data:/data
-    command: ["python", "-m", "runtime.sovereign_core"]
+    command: ["uvicorn", "runtime.api:app", "--host", "0.0.0.0", "--port", "8080"]
 
   postgres:
     image: postgres:16-alpine

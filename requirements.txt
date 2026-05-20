@@ -1,3 +1,6 @@
+fastapi==0.124.0
+httpx==0.28.1
+uvicorn[standard]==0.38.0
 PyYAML==6.0.2
 jsonschema==4.23.0
 pytest==8.3.4

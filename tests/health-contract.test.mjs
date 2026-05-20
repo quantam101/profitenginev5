@@ -4,8 +4,10 @@ import { join } from 'node:path';
 import { buildHealthPayload } from '../lib/health.mjs';
 
 const payload = buildHealthPayload();
+const cachedPayload = buildHealthPayload();
 
 assert.equal(payload.ok, true);
+assert.equal(cachedPayload.cached, true);
 assert.equal(payload.healthScore, 100);
 assert.equal(payload.staleSourcePresent, false);
 assert.deepEqual(payload.deploymentBlockers, []);

@@ -31,6 +31,8 @@ class ConnectorPolicy:
 
 
 class RuntimeRegistry:
+    ALLOWED_CONNECTOR_STATES = {"free_core", "free_external"}
+
     def __init__(
         self,
         agents_path: str | Path = "agents/registry.yaml",
@@ -94,8 +96,8 @@ class RuntimeRegistry:
             raise RegistryError(f"agent {agent_id} cannot use connector {connector_id}")
         if not connector.enabled:
             raise RegistryError(f"connector {connector_id} is disabled")
-        if "paid" in connector.state:
-            raise RegistryError(f"connector {connector_id} is paid/disabled by policy")
+        if connector.state not in self.ALLOWED_CONNECTOR_STATES:
+            raise RegistryError(f"connector {connector_id} has disallowed state {connector.state}")
 
     def status(self) -> Dict[str, Any]:
         return {

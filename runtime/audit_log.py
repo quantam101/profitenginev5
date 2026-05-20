@@ -27,7 +27,6 @@ class AuditLog:
 
     def write(self, event: AuditEvent) -> None:
         payload = asdict(event)
-        payload["timestamp"] = time.time()
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n")
 

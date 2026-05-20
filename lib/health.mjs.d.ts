@@ -12,6 +12,7 @@ export interface HealthPayload {
   deploymentBlockers: string[];
   checks: Record<string, HealthStatus>;
   timestamp: string;
+  cached: boolean;
 }
 
-export function buildHealthPayload(options?: { root?: string }): HealthPayload;
+export function buildHealthPayload(options?: { root?: string; cacheTtlMs?: number }): HealthPayload;
