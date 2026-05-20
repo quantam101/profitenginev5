@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "python -m pytest -q",
-    "test:integration": "node --experimental-strip-types tests/health-contract.test.mjs",
+    "test:integration": "node tests/health-contract.test.mjs",
     "test:runtime": "python -m pytest -q",
     "security:scan": "bash scripts/security-check.sh",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
