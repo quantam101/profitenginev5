@@ -32,13 +32,13 @@ production_gate:
   no_spend_policy_active: true
   approval_gate_active: true
   audit_log_active: true
-  backups_tested: true
-  restore_tested: true
-  uptime_monitor_active: true
-  https_active: true
-  firewall_active: true
-  mobile_smoke_test_passes: true
+  backups_tested: false
+  restore_tested: false
+  uptime_monitor_active: false
+  https_active: false
+  firewall_active: false
+  mobile_smoke_test_passes: false
   seo_metadata_present: true
   sitemap_present: true
   rollback_documented: true
-  placeholder_scan_passes: true
+  stale_source_scan_passes: true

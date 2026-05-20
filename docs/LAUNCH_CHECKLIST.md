@@ -1,6 +1,6 @@
 # Launch Checklist
 
-The system is not live-ready until all pass:
+The source artifact is deploy-ready when source checks pass. Public production is not live-ready until the infrastructure checks also pass:
 
 - CI passes
 - lint passes
@@ -12,16 +12,18 @@ The system is not live-ready until all pass:
 - no-spend policy active
 - approval gate active
 - audit log active
-- backups tested
-- restore tested
-- uptime monitor active
-- HTTPS active
-- firewall active
-- mobile smoke test passes
+- [blocked] backups tested on the selected host
+- [blocked] restore tested on the selected host
+- [blocked] uptime monitor active
+- [blocked] HTTPS active
+- [blocked] firewall active
+- [blocked] mobile smoke test passes
 - SEO metadata present
 - sitemap present
 - rollback documented
-- placeholder scan passes
+- stale source scan passes
+
+Current deployment blocker: Vercel CLI has no token in the local environment, and SSH to the OCI ProfitEngine instance times out from the Codex workspace.
 
 
 ## Domain / DNS

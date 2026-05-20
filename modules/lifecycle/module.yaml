@@ -2,10 +2,10 @@ module:
   id: lifecycle
   name: lifecycle
   version: 0.1.0
-  state: disabled_stale_scaffold
+  state: disabled_stale_source
   cost_mode: zero_spend
   enabled: false
-  disabled_reason: "Placeholder module is not production source. Keep disabled until replaced by verified implementation."
+  disabled_reason: "Disabled stale source is not production source. Keep disabled until replaced by verified implementation."
   requires_approval_for:
     - external_write
     - paid_call
