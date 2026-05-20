@@ -40,6 +40,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Validate YAML schemas
+        run: npm run validate:yaml
+
       - name: Unit tests
         run: npm run test:unit
 

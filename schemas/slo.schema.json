@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["slos"],
+  "additionalProperties": false,
+  "properties": {
+    "slos": {
+      "type": "object",
+      "required": ["approval_bypass_count", "cost_guard_blocks_recorded", "deterministic_route_p95_ms", "health_endpoint_p95_ms"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["target", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "target": { "type": ["number", "string"] },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

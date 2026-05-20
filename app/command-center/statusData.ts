@@ -23,7 +23,7 @@ export const commandCenterStatus = {
     items: [
       { label: 'Dependency security', state: 'pass', detail: 'Next, ESLint, and PostCSS are patched and npm audit is clean.' },
       { label: 'Stale source removal', state: 'pass', detail: 'Legacy module source directories were removed from the deployable artifact.' },
-      { label: 'Health contract', state: 'pass', detail: 'The application exposes /api/health with a 100% source-health response.' }
+      { label: 'Health contract', state: 'pass', detail: 'The application computes /api/health from repo, registry, CI, and policy checks.' }
     ]
   },
   connectors: {
@@ -76,8 +76,8 @@ export const commandCenterStatus = {
     summary: 'Workflow execution remains local-first with approval requirements for risky work.',
     items: [
       { label: 'Safe local drafts', state: 'pass', detail: 'Deterministic local execution is enabled.' },
-      { label: 'Production deploy workflow', state: 'pass', detail: 'The app builds with Next and is ready for Vercel or OCI Node hosting.' },
-      { label: 'Rollback', state: 'pass', detail: 'Git rollback is available from the pushed production-ready commits.' }
+      { label: 'Production deploy workflow', state: 'pass', detail: 'The app builds with Next for Vercel or OCI Node hosting.' },
+      { label: 'Rollback', state: 'pass', detail: 'Git rollback is available from the pushed release-gated commits.' }
     ]
   }
 } as const;

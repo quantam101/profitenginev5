@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+
+from runtime.registry import RegistryError, RuntimeRegistry
 from runtime.sovereign_core import SovereignAutomationCore
 
 
@@ -12,6 +15,7 @@ def test_core_smoke(tmp_path, monkeypatch):
     result = core.execute("system", "context", "Create a local draft", [0.1, 0.1, 0.1, 0.1])
     assert result.status == "ok"
     assert result.route_tier == "DETERMINISTIC_LOCAL"
+    assert result.details["connector_id"] == "local_files"
 
 
 def test_complex_work_requires_approval(tmp_path, monkeypatch):
@@ -27,3 +31,28 @@ def test_complex_work_requires_approval(tmp_path, monkeypatch):
 def test_stale_module_source_removed():
     modules_dir = Path("modules")
     assert not modules_dir.exists()
+
+
+def test_local_research_agent_dispatches_end_to_end(tmp_path, monkeypatch):
+    monkeypatch.setenv("GMAOS_AUDIT_LOG", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
+    monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
+    monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
+    core = SovereignAutomationCore()
+    result = core.execute(
+        "system",
+        "source note one\nsource note two",
+        "Draft a local research summary",
+        [0.3, 0.3, 0.3, 0.3],
+        agent_id="local-research",
+    )
+    assert result.status == "ok"
+    assert result.route_tier == "DETERMINISTIC_LOCAL"
+    assert "LOCAL_RESEARCH_RESULT" in result.output
+    assert result.details["agent_metrics"]["evidence_notes"] >= 1
+
+
+def test_registry_blocks_unapproved_connector():
+    registry = RuntimeRegistry()
+    with pytest.raises(RegistryError):
+        registry.assert_connector_allowed("local-research", "openai_api")

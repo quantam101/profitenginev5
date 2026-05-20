@@ -2,7 +2,7 @@
 
 ## Security posture
 
-GMAOS uses military-style hardening patterns without claiming formal military certification.
+GMAOS uses fail-closed controls, least privilege, and explicit approval gates. It does not claim formal government or military certification.
 
 ## Rules
 

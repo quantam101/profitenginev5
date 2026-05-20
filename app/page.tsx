@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 const cards = [
-  ['Agents', '/command-center/agents', 'Inspect the active declarative agent registry.'],
+  ['Agents', '/command-center/agents', 'Inspect the active registry-driven agent policy.'],
   ['Modules', '/command-center/modules', 'Verify stale module entries are disabled until production source is approved.'],
   ['Workflows', '/command-center/workflows', 'Launch safe local workflows and queue risky work.'],
   ['Approvals', '/command-center/approvals', 'Review pending approvals before any risky action.'],

@@ -20,11 +20,17 @@ class RouteDecision:
 
 class CostGuard:
     def __init__(self) -> None:
+        self.mode = "strict_zero_spend"
+        self.paid_enabled = False
+        self.max_cost = 0.0
+
+    def _refresh(self) -> None:
         self.mode = os.getenv("GMAOS_MODE", "strict_zero_spend")
         self.paid_enabled = os.getenv("GMAOS_PAID_ADAPTERS_ENABLED", "false").lower() == "true"
         self.max_cost = float(os.getenv("GMAOS_MAX_COST_USD", "0"))
 
     def assert_allowed(self, route: RouteDecision) -> None:
+        self._refresh()
         if self.mode == "strict_zero_spend":
             if route.paid or route.estimated_cost_usd > 0:
                 raise CostGuardError(
@@ -38,6 +44,7 @@ class CostGuard:
             raise CostGuardError("Paid adapters are disabled.")
 
     def status(self) -> Dict[str, Any]:
+        self._refresh()
         return {
             "mode": self.mode,
             "paid_adapters_enabled": self.paid_enabled,

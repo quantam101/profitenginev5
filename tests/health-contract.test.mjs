@@ -12,6 +12,7 @@ assert.deepEqual(payload.deploymentBlockers, []);
 assert.equal(payload.checks.source, 'pass');
 assert.equal(payload.checks.ci, 'pass');
 assert.equal(payload.checks.docker, 'pass');
+assert.equal(payload.checks.registry, 'pass');
 assert.equal(payload.checks.security, 'pass');
 assert.equal(payload.checks.runtime, 'pass');
 
@@ -31,6 +32,12 @@ production_gate:
   ci_passes: true
 `);
 await writeFile(join(fixture, '.github/workflows/ci.yml'), 'run: npm run test:unit\n');
+await mkdir(join(fixture, 'agents'), { recursive: true });
+await mkdir(join(fixture, 'connectors'), { recursive: true });
+await mkdir(join(fixture, 'observability'), { recursive: true });
+await writeFile(join(fixture, 'agents/registry.yaml'), 'agents: []\n');
+await writeFile(join(fixture, 'connectors/registry.yaml'), 'connectors: {}\n');
+await writeFile(join(fixture, 'observability/slo.yaml'), 'slos: {}\n');
 await writeFile(join(fixture, 'Dockerfile.web'), 'FROM node:22-alpine\n');
 await writeFile(join(fixture, 'docker-compose.yml'), 'image: n8nio/n8n:latest\n');
 await writeFile(join(fixture, '.env.example'), 'POSTGRES_PASSWORD=change-me-server-side\n');

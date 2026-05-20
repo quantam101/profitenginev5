@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["system", "paths", "runtime", "production_gate"],
+  "additionalProperties": false,
+  "properties": {
+    "system": {
+      "type": "object",
+      "required": ["id", "name", "version", "mode", "default_runtime", "fail_closed"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "mode": { "const": "strict_zero_spend" },
+        "default_runtime": { "type": "string" },
+        "fail_closed": { "const": true }
+      }
+    },
+    "paths": { "type": "object" },
+    "runtime": {
+      "type": "object",
+      "required": ["max_cost_usd", "paid_adapters_enabled", "external_execution_enabled"],
+      "additionalProperties": true,
+      "properties": {
+        "max_cost_usd": { "type": "number", "maximum": 0 },
+        "paid_adapters_enabled": { "const": false },
+        "external_execution_enabled": { "const": false }
+      }
+    },
+    "production_gate": { "type": "object" }
+  }
+}

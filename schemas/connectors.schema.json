@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["connectors"],
+  "additionalProperties": false,
+  "properties": {
+    "connectors": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["state", "enabled", "permissions"],
+        "additionalProperties": false,
+        "properties": {
+          "state": { "type": "string", "minLength": 1 },
+          "enabled": { "type": "boolean" },
+          "permissions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

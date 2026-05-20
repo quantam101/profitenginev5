@@ -1,0 +1,13 @@
+slos:
+  approval_bypass_count:
+    target: 0
+    description: No action marked approval-required may execute without an approval record.
+  cost_guard_blocks_recorded:
+    target: "100%"
+    description: Every blocked paid or external route must be written to the audit log with a correlation ID.
+  deterministic_route_p95_ms:
+    target: 250
+    description: Deterministic local agent dispatch should complete under 250ms at p95 on the OCI host.
+  health_endpoint_p95_ms:
+    target: 500
+    description: Health checks should complete under 500ms at p95 without external network calls.

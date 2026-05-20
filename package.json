@@ -13,6 +13,7 @@
     "test:unit": "python -m pytest -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:runtime": "python -m pytest -q",
+    "validate:yaml": "python scripts/validate_yaml.py",
     "security:scan": "python scripts/security_check.py",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
   },
