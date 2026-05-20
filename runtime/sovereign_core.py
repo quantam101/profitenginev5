@@ -111,7 +111,7 @@ class SovereignAutomationCore:
         if route.decision.tier == "DETERMINISTIC_LOCAL":
             output = self._deterministic_execute(clean_system, clean_context, objective)
         elif route.decision.tier == "LOCAL_MODEL":
-            output = self._local_model_placeholder(clean_system, clean_context, objective)
+            output = self._local_model_unavailable(clean_system, clean_context, objective)
         else:
             output = "Execution queued. No unsafe route executed."
 
@@ -139,8 +139,7 @@ class SovereignAutomationCore:
             "Status: draft_created_no_external_execution"
         )
 
-    def _local_model_placeholder(self, clean_system: str, clean_context: str, objective: str) -> str:
-        # Placeholder is intentionally safe: production implementation must call a local-only model adapter.
+    def _local_model_unavailable(self, clean_system: str, clean_context: str, objective: str) -> str:
         return (
             "LOCAL_MODEL_ROUTE_SELECTED\n"
             f"Objective: {objective}\n"

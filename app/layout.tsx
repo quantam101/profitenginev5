@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './style.css';
 
 export const metadata: Metadata = {
-  title: 'GMAOS Command Center',
-  description: 'Zero-spend, declarative, local-first multi-agent operating system command center.'
+  title: 'ProfitEngine Command Center',
+  description: 'Production-gated ProfitEngine command center with zero-spend controls, disabled stale source, and explicit deployment readiness state.'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

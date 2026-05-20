@@ -27,9 +27,9 @@ def test_complex_work_requires_approval(tmp_path, monkeypatch):
     assert result.status == "approval_required"
 
 
-def test_scaffold_modules_are_not_enabled():
+def test_disabled_stale_modules_are_not_enabled():
     for path in Path("modules").glob("*/module.yaml"):
         data = yaml.safe_load(path.read_text(encoding="utf-8"))["module"]
-        if data["state"] == "scaffold" or data["state"].endswith("_scaffold"):
+        if data["state"].startswith("disabled_stale_"):
             assert data["enabled"] is False
             assert data.get("healthcheck") is None
