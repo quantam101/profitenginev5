@@ -7,8 +7,8 @@ Set it in your `.env` file before deploying:
 
 ```bash
 # .env
-SITE_DOMAIN=yourdomain.com
-ACME_EMAIL=admin@yourdomain.com
+SITE_DOMAIN=profitengine.alreadyherellc.com
+ACME_EMAIL=ops@alreadyherellc.com
 ```
 
 The Caddyfile uses `{$SITE_DOMAIN}` and docker-compose.yml uses `${SITE_DOMAIN}`
@@ -112,8 +112,8 @@ docker-compose.yml       Uses ${SITE_DOMAIN} env var
 [ ] Record OCI public IP
 [ ] Add DNS records (A + CNAMEs)
 [ ] Copy .env.example to .env on server
-[ ] Set SITE_DOMAIN=yourdomain.com in .env
-[ ] Set ACME_EMAIL=admin@yourdomain.com in .env
+[ ] Set SITE_DOMAIN=profitengine.alreadyherellc.com in .env
+[ ] Set ACME_EMAIL=ops@alreadyherellc.com in .env
 [ ] Replace server-side passwords in .env
 [ ] Run docker compose up -d --build
 [ ] Verify https://<your-domain>
