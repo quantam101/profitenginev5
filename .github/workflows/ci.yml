@@ -31,26 +31,5 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Validate YAML schemas
-        run: npm run validate:yaml
-
-      - name: Unit tests
-        run: npm run test:unit
-
-      - name: Integration tests
-        run: npm run test:integration
-
-      - name: Security scan
-        run: npm run security:scan
-
-      - name: Production build
-        run: npm run build
+      - name: Validate
+        run: npm run ci:all

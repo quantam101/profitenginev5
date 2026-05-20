@@ -1,16 +1,11 @@
 # Agent Governance
 
-Every agent must define:
+The source of truth is the registry and policy YAML:
 
-- id
-- name
-- version
-- mission
-- allowed connectors
-- forbidden actions
-- approval-required actions
-- max cost
-- logging policy
-- verification requirement
+- `agents/registry.yaml`
+- `connectors/registry.yaml`
+- `approvals/policy.yaml`
+- `security/no-spend-policy.yaml`
+- `observability/slo.yaml`
 
-Agents prepare work. They do not perform risky execution without approval.
+Do not restate registry values here. Update the YAML and run `npm run validate:yaml`.

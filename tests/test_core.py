@@ -64,15 +64,15 @@ def test_registry_blocks_unapproved_connector():
 
 def test_registry_blocks_enabled_but_non_free_connector_state():
     registry = RuntimeRegistry()
-    connector = registry.connectors["github_write"]
-    registry.connectors["github_write"] = type(connector)(
+    connector = registry.connectors["playwright_local"]
+    registry.connectors["playwright_local"] = type(connector)(
         id=connector.id,
         state="forbidden_without_approval",
         enabled=True,
         permissions=connector.permissions,
     )
     with pytest.raises(RegistryError):
-        registry.assert_connector_allowed("local-engineering", "github_write")
+        registry.assert_connector_allowed("local-research", "playwright_local")
 
 
 def test_runtime_api_serves_health_and_execute(tmp_path, monkeypatch):

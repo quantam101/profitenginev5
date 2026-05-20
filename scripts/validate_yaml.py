@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import yaml
 from jsonschema import Draft202012Validator
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from runtime.agents import implemented_agent_ids
 
 
 CHECKS = [
@@ -45,11 +50,15 @@ def main() -> int:
 
     agents = loaded_yaml.get("agents/registry.yaml", {}).get("agents", [])
     connectors = set(loaded_yaml.get("connectors/registry.yaml", {}).get("connectors", {}))
+    implemented_agents = implemented_agent_ids()
     for agent in agents:
         for connector in agent.get("allowed_connectors", []):
             if connector not in connectors:
                 failed = True
                 print(f"agents/registry.yaml: {agent['id']} references unknown connector {connector}")
+        if agent["id"] not in implemented_agents and agent["id"] != "sovereign-orchestrator":
+            failed = True
+            print(f"agents/registry.yaml: {agent['id']} has no runtime.agent_impls implementation")
     return 1 if failed else 0
 
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -9,7 +8,7 @@ from .approval_gate import ApprovalGate, ApprovalRequired
 from .audit_log import AuditLog
 from .complexity_scorer import ComplexityScorer
 from .cost_guard import CostGuard, CostGuardError
-from .agents import AGENTS
+from .agents import load_agent
 from .local_model_router import LocalModelRouter
 from .memory_commit import MemoryCommit
 from .minifier import ManifestMinifier
@@ -191,10 +190,12 @@ class SovereignAutomationCore:
         objective: str,
         connectors: List[str],
     ) -> tuple[str, Dict[str, Any]]:
-        agent = AGENTS.get(agent_id)
-        if agent is not None:
+        try:
+            agent = load_agent(agent_id)
             result = agent.run(objective, clean_context, connectors)
             return result.output, result.metrics
+        except ModuleNotFoundError:
+            pass
         return (
             "DETERMINISTIC_LOCAL_RESULT\n"
             f"Objective: {objective}\n"
@@ -202,16 +203,3 @@ class SovereignAutomationCore:
             f"Context chars: {len(clean_context)}\n"
             "Status: draft_created_no_external_execution"
         ), {"agent": agent_id, "system_chars": len(clean_system), "context_chars": len(clean_context)}
-
-
-if __name__ == "__main__":
-    dim = int(os.getenv("GMAOS_EMBEDDING_DIM", "384"))
-    core = SovereignAutomationCore()
-    result = core.execute(
-        system_declaration="""You are a no-spend local execution fabric.""",
-        dynamic_context="""Create a safe draft and do not call paid services.""",
-        objective="Create a local-only project status draft.",
-        embedding_vector=[0.001] * dim,
-        namespace="smoke-test",
-    )
-    print(result)

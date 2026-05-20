@@ -30,7 +30,7 @@ runtime:
   max_cost_usd: 0
   paid_adapters_enabled: true
   external_execution_enabled: false
-production_gate:
+production_gate_targets:
   ci_passes: true
 `);
 await writeFile(join(fixture, '.github/workflows/ci.yml'), 'run: npm run test:unit\n');

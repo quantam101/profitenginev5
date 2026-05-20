@@ -21,7 +21,7 @@ runtime:
   semantic_match_floor: 0.96
   embedding_dim: 384
 
-production_gate:
+production_gate_targets:
   ci_passes: true
   lint_passes: true
   typecheck_passes: true

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import import_module
 from typing import Dict, List
 
 
@@ -10,32 +11,24 @@ class AgentExecution:
     metrics: Dict[str, int | str]
 
 
-class LocalResearchAgent:
-    id = "local-research"
-
-    def run(self, objective: str, context: str, connectors: List[str]) -> AgentExecution:
-        notes = [line.strip() for line in context.splitlines() if line.strip()]
-        evidence_count = min(len(notes), 5)
-        output = "\n".join(
-            [
-                "LOCAL_RESEARCH_RESULT",
-                f"Objective: {objective}",
-                f"Connectors: {', '.join(connectors)}",
-                f"Evidence notes reviewed: {evidence_count}",
-                "Source policy: local/approved connectors only; no paid API calls; no public posting.",
-                "Recommendation: keep as draft until a human reviews source quality and risk.",
-            ]
-        )
-        return AgentExecution(
-            output=output,
-            metrics={
-                "agent": self.id,
-                "evidence_notes": evidence_count,
-                "connector_count": len(connectors),
-            },
-        )
+def implementation_module(agent_id: str) -> str:
+    return agent_id.replace("-", "_")
 
 
-AGENTS = {
-    LocalResearchAgent.id: LocalResearchAgent(),
-}
+def load_agent(agent_id: str):
+    module = import_module(f"runtime.agent_impls.{implementation_module(agent_id)}")
+    agent = module.Agent()
+    if getattr(agent, "id", None) != agent_id:
+        raise ValueError(f"agent implementation id mismatch: expected={agent_id}, actual={getattr(agent, 'id', None)}")
+    return agent
+
+
+def implemented_agent_ids() -> set[str]:
+    from pathlib import Path
+
+    impl_dir = Path(__file__).parent / "agent_impls"
+    return {
+        path.stem.replace("_", "-")
+        for path in impl_dir.glob("*.py")
+        if path.name != "__init__.py"
+    }

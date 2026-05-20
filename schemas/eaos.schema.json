@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["system", "paths", "runtime", "production_gate"],
+  "required": ["system", "paths", "runtime", "production_gate_targets"],
   "additionalProperties": false,
   "properties": {
     "system": {
@@ -28,6 +28,6 @@
         "external_execution_enabled": { "const": false }
       }
     },
-    "production_gate": { "type": "object" }
+    "production_gate_targets": { "type": "object" }
   }
 }
