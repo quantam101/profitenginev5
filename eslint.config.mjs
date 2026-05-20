@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ resolvePluginsRelativeTo: __dirname });
 
 const config = [
+  { ignores: ["runtime/**", "scripts/**", "tests/**", "deploy/**", ".next/**", "pytest-tmp-local/**", "node_modules/**"] },
   ...compat.extends("next/core-web-vitals"),
-  { ignores: ["runtime/**", "scripts/**", "tests/**", "deploy/**"] },
 ];
 
 export default config;
