@@ -27,8 +27,10 @@ def load_json(path: str) -> object:
 
 def main() -> int:
     failed = False
+    loaded_yaml = {}
     for yaml_path, schema_path in CHECKS:
         data = load_yaml(yaml_path)
+        loaded_yaml[yaml_path] = data
         schema = load_json(schema_path)
         validator = Draft202012Validator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda err: list(err.path))
@@ -40,6 +42,14 @@ def main() -> int:
                 print(f"  - {location}: {error.message}")
         else:
             print(f"{yaml_path}: schema ok")
+
+    agents = loaded_yaml.get("agents/registry.yaml", {}).get("agents", [])
+    connectors = set(loaded_yaml.get("connectors/registry.yaml", {}).get("connectors", {}))
+    for agent in agents:
+        for connector in agent.get("allowed_connectors", []):
+            if connector not in connectors:
+                failed = True
+                print(f"agents/registry.yaml: {agent['id']} references unknown connector {connector}")
     return 1 if failed else 0
 
 
