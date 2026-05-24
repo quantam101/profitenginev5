@@ -79,6 +79,21 @@ services:
     volumes:
       - uptime_data:/app/data
 
+  # Local inference — runs on OCI A1 ARM (4 OCPUs / 24 GB RAM, CPU-only).
+  # After first `docker compose up -d`, pull a model once:
+  #   docker compose exec ollama ollama pull llama3.1:8b
+  # Recommended models by use-case:
+  #   llama3.1:8b  — best all-round (default)
+  #   qwen2.5:7b   — SEO / multilingual content
+  #   phi3.5:3.8b  — fastest for short structured tasks
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    expose:
+      - "11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   caddy_data:
   caddy_config:
@@ -86,3 +101,4 @@ volumes:
   postgres_data:
   n8n_data:
   uptime_data:
+  ollama_data:

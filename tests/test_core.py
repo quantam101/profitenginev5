@@ -77,6 +77,90 @@ def test_registry_blocks_enabled_but_non_free_connector_state():
 
 # ── New agent tests ───────────────────────────────────────────────────────────
 
+def test_ollama_gateway_disabled_returns_none(monkeypatch):
+    """Ollama gateway returns None when GMAOS_LOCAL_MODEL_ENABLED is false."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "false")
+    from runtime.ollama_gateway import call_ollama
+    assert call_ollama("system", "hello") is None
+
+
+def test_ollama_gateway_unreachable_returns_none(monkeypatch):
+    """Unreachable Ollama endpoint degrades gracefully to None."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "true")
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENDPOINT", "http://127.0.0.1:19999")  # nothing there
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_TIMEOUT", "2")
+    from runtime.ollama_gateway import call_ollama
+    result = call_ollama("system", "hello")
+    assert result is None
+
+
+def test_sovereign_orchestrator_ollama_first(monkeypatch):
+    """Orchestrator uses Ollama when available, bypasses Claude."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "true")
+    import runtime.ollama_gateway as og
+    import runtime.claude_gateway as cg
+    monkeypatch.setattr(og, "call_ollama", lambda s, m, max_tokens=512: "Ollama plan: step A, step B.")
+    monkeypatch.setattr(cg, "call_claude", lambda s, m, max_tokens=512: "Should not be called")
+    import importlib
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Run profit cycle", "", ["local_files"])
+    assert result.metrics["tier"] == "ollama"
+    assert "Ollama plan" in result.output
+
+
+def test_sovereign_orchestrator_claude_fallback_when_ollama_absent(monkeypatch):
+    """Orchestrator falls back to Claude when Ollama returns None."""
+    import runtime.ollama_gateway as og
+    import runtime.claude_gateway as cg
+    monkeypatch.setattr(og, "call_ollama", lambda s, m, max_tokens=512: None)
+    monkeypatch.setattr(cg, "call_claude", lambda s, m, max_tokens=512: "Claude plan: step X.")
+    import importlib
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Run profit cycle", "", ["local_files"])
+    assert result.metrics["tier"] == "claude_api"
+    assert "Claude plan" in result.output
+
+
+def test_router_local_model_tier_when_ollama_enabled(monkeypatch):
+    """Router selects LOCAL_MODEL tier for medium complexity when Ollama is enabled."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "true")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    import importlib
+    import runtime.local_model_router as mod
+    importlib.reload(mod)
+    router = mod.LocalModelRouter()
+    route = router.route(0.45)  # above DETERMINISTIC threshold, below LOCAL_MODEL threshold
+    assert route.decision.tier == "LOCAL_MODEL"
+
+
+def test_router_claude_tier_when_no_ollama_but_key_present(monkeypatch):
+    """Router selects CLAUDE_API tier when Ollama is off but Claude key is set."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "false")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    import importlib
+    import runtime.local_model_router as mod
+    importlib.reload(mod)
+    router = mod.LocalModelRouter()
+    route = router.route(0.45)
+    assert route.decision.tier == "CLAUDE_API"
+
+
+def test_router_human_review_when_no_models_high_complexity(monkeypatch):
+    """Router queues for human review when no models available and complexity is high."""
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "false")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    import importlib
+    import runtime.local_model_router as mod
+    importlib.reload(mod)
+    router = mod.LocalModelRouter()
+    route = router.route(0.95)
+    assert route.decision.tier == "HUMAN_REVIEW_QUEUE"
+
+
 def test_sovereign_orchestrator_fallback_without_key(monkeypatch):
     """Without an API key the orchestrator returns a deterministic fallback."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

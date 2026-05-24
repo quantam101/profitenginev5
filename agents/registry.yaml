@@ -2,9 +2,9 @@ agents:
   - id: sovereign-orchestrator
     name: Sovereign Orchestrator
     version: 0.1.0
-    mission: Convert objectives into executable workflows.
+    mission: Convert objectives into executable workflows using Ollama→Claude→stub cascade.
     max_cost_usd: 0
-    allowed_connectors: [local_files]
+    allowed_connectors: [local_files, ollama_local]
     forbidden_actions: [any_cost, public_post, email_send, production_deploy, repo_merge]
     approval_required_actions: [paid_api_call, repo_write, production_deploy]
     verifier_required: true
@@ -34,7 +34,7 @@ agents:
     version: 0.1.0
     mission: Analyze recent correction history and record one concrete prompt or heuristic improvement per cycle.
     max_cost_usd: 0
-    allowed_connectors: [local_files]
+    allowed_connectors: [local_files, ollama_local]
     forbidden_actions: [paid_api_call, public_post, production_deploy, repo_merge]
     approval_required_actions: [repo_write, external_publish]
     verifier_required: false

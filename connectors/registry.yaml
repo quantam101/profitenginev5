@@ -21,7 +21,7 @@ connectors:
     permissions: [browser_research]
   ollama_local:
     state: free_core
-    enabled: false
+    enabled: true
     permissions: [local_inference]
   openai_api:
     state: optional_paid_disabled

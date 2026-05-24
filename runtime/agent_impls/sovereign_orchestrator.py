@@ -1,9 +1,13 @@
 """
 Sovereign Orchestrator agent implementation.
 
-With ANTHROPIC_API_KEY set: uses Claude to plan and execute the objective.
-Without the key: returns a deterministic queued-for-review response so the
-system degrades gracefully in zero-key deployments.
+Inference cascade (lowest cost first):
+  1. Ollama local model — free forever, runs on OCI A1 ARM
+  2. Claude API        — key-gated, best quality fallback
+  3. Deterministic stub — queued-for-review, works with zero keys
+
+Set GMAOS_LOCAL_MODEL_ENABLED=true + point GMAOS_LOCAL_MODEL_ENDPOINT
+at your Ollama instance for fully free inference.
 """
 from __future__ import annotations
 
@@ -11,15 +15,15 @@ from typing import List
 
 from runtime.agents import AgentExecution
 from runtime.claude_gateway import call_claude
+from runtime.ollama_gateway import call_ollama
 
 _SYSTEM = (
     "You are the ProfitEngine v5 Sovereign Orchestrator. "
-    "Your role is to plan and execute profit-generating tasks in a safe, local-first manner. "
-    "Policy constraints: no paid third-party API calls from the runtime, no public posting "
-    "without explicit human approval, max spend = $0 from the runtime budget. "
-    "The operator has provided the API key for this conversation only. "
-    "Return a concise, structured execution plan or result. "
-    "Format: bullet-point actions taken or recommended, then a brief status summary."
+    "Plan and execute profit-generating tasks using local-first resources. "
+    "Constraints: no paid third-party API calls from the runtime, no public "
+    "posting without explicit human approval, max runtime spend = $0. "
+    "Return a concise structured execution plan: bullet-point actions taken "
+    "or recommended, then a brief status summary."
 )
 
 
@@ -28,27 +32,32 @@ class Agent:
 
     def run(self, objective: str, context: str, connectors: List[str]) -> AgentExecution:
         prompt = objective if not context else f"Context:\n{context}\n\nObjective:\n{objective}"
-        result = call_claude(_SYSTEM, prompt, max_tokens=512)
 
+        # Tier 1 — Ollama (free, local)
+        result = call_ollama(_SYSTEM, prompt, max_tokens=512)
+        if result is not None and not result.startswith("OLLAMA_ERROR"):
+            return AgentExecution(
+                output=f"SOVEREIGN_ORCHESTRATOR_RESULT\nObjective: {objective}\n\n{result}",
+                metrics={"agent": self.id, "tier": "ollama", "connector_count": len(connectors)},
+            )
+
+        # Tier 2 — Claude API (key-gated)
+        result = call_claude(_SYSTEM, prompt, max_tokens=512)
         if result is not None and not result.startswith("CLAUDE_ERROR"):
             return AgentExecution(
-                output=(
-                    "SOVEREIGN_ORCHESTRATOR_RESULT\n"
-                    f"Objective: {objective}\n\n"
-                    f"{result}"
-                ),
+                output=f"SOVEREIGN_ORCHESTRATOR_RESULT\nObjective: {objective}\n\n{result}",
                 metrics={"agent": self.id, "tier": "claude_api", "connector_count": len(connectors)},
             )
 
-        # Graceful fallback — no key or transient error
-        reason = result or "no_api_key"
+        # Tier 3 — deterministic stub (no keys needed)
+        reason = result or "no_model_available"
         return AgentExecution(
             output="\n".join([
                 "SOVEREIGN_ORCHESTRATOR_RESULT",
                 f"Objective: {objective}",
                 f"Connectors: {', '.join(connectors)}",
                 f"Status: queued_for_review ({reason})",
-                "Next step: set ANTHROPIC_API_KEY to enable AI-powered execution.",
+                "Next step: set GMAOS_LOCAL_MODEL_ENABLED=true (Ollama) or ANTHROPIC_API_KEY (Claude).",
             ]),
             metrics={"agent": self.id, "tier": "deterministic_fallback", "connector_count": len(connectors)},
         )

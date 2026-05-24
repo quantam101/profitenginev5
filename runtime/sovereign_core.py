@@ -140,10 +140,10 @@ class SovereignAutomationCore:
                     details={"complexity": complexity.__dict__, "reason": route.reason},
                 )
 
-        if route.decision.tier == "DETERMINISTIC_LOCAL":
+        if route.decision.tier in ("DETERMINISTIC_LOCAL", "LOCAL_MODEL", "CLAUDE_API"):
+            # All executable tiers go through the agent's run() method.
+            # The agent internally cascades: Ollama → Claude → deterministic stub.
             output, agent_metrics = self._deterministic_execute(agent_id, clean_system, clean_context, objective, [connector_id])
-        elif route.decision.tier == "LOCAL_MODEL":
-            raise NotImplementedError("LOCAL_MODEL route selected, but no local model adapter is implemented")
         else:
             output = "Execution queued. No unsafe route executed."
             agent_metrics = {"agent": agent_id}
@@ -176,10 +176,10 @@ class SovereignAutomationCore:
         )
 
     def _connector_for_route(self, tier: str) -> str:
-        if tier == "DETERMINISTIC_LOCAL":
-            return "local_files"
         if tier == "LOCAL_MODEL":
             return "ollama_local"
+        # DETERMINISTIC_LOCAL, CLAUDE_API, and fallback all use local_files
+        # (Claude is called by the agent implementation, not via a registered connector).
         return "local_files"
 
     def _deterministic_execute(
