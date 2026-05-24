@@ -61,7 +61,7 @@ function safeMath(expr) {
   try {
     // Replace ** with ^ then evaluate with Function
     const clean = String(expr).replace(/\^/g, '**');
-    // eslint-disable-next-line no-new-func
+     
     const val = Function(`"use strict"; return (${clean})`)();
     return typeof val === 'number' && isFinite(val) ? val : null;
   } catch { return null; }
