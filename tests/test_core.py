@@ -75,6 +75,103 @@ def test_registry_blocks_enabled_but_non_free_connector_state():
         registry.assert_connector_allowed("local-research", "playwright_local")
 
 
+# ── New agent tests ───────────────────────────────────────────────────────────
+
+def test_sovereign_orchestrator_fallback_without_key(monkeypatch):
+    """Without an API key the orchestrator returns a deterministic fallback."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    # Reload module to pick up env change
+    import importlib
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Run a profit cycle", "", ["local_files"])
+    assert result.metrics["tier"] == "deterministic_fallback"
+    assert "SOVEREIGN_ORCHESTRATOR_RESULT" in result.output
+    assert result.metrics["agent"] == "sovereign-orchestrator"
+
+
+def test_sovereign_orchestrator_with_mocked_claude(monkeypatch):
+    """With a key present and Claude mocked, the orchestrator returns AI output."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    import runtime.claude_gateway as gw
+    monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=1024: "Mocked plan: step 1, step 2.")
+    import importlib
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Run a profit cycle", "context here", ["local_files"])
+    assert result.metrics["tier"] == "claude_api"
+    assert "SOVEREIGN_ORCHESTRATOR_RESULT" in result.output
+    assert "Mocked plan" in result.output
+
+
+def test_lifelong_catch_correct_fallback_without_key(tmp_path, monkeypatch):
+    """Without an API key the LC&C agent skips recording and returns a stub."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("GMAOS_CORRECTIONS_PATH", str(tmp_path / "corrections.jsonl"))
+    import importlib
+    import runtime.agent_impls.lifelong_catch_correct as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Self-improve prompts", "", ["local_files"])
+    assert result.metrics["tier"] == "deterministic_fallback"
+    assert "LC&C_RESULT" in result.output
+    assert not (tmp_path / "corrections.jsonl").exists()
+
+
+def test_lifelong_catch_correct_records_with_mocked_claude(tmp_path, monkeypatch):
+    """With Claude mocked, the LC&C agent records the improvement to disk."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    monkeypatch.setenv("GMAOS_CORRECTIONS_PATH", str(tmp_path / "corrections.jsonl"))
+    import runtime.claude_gateway as gw
+    monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=256: "Rewrite seo_title prompt to include keyword in first 5 words.")
+    import importlib
+    import runtime.agent_impls.lifelong_catch_correct as mod
+    importlib.reload(mod)
+    agent = mod.Agent()
+    result = agent.run("Self-improve", "", ["local_files"])
+    assert result.metrics["tier"] == "claude_api"
+    assert "LC&C_RESULT" in result.output
+    corrections_file = tmp_path / "corrections.jsonl"
+    assert corrections_file.exists()
+    import json
+    record = json.loads(corrections_file.read_text())
+    assert record["category"] == "lcc_self_improve"
+    assert "seo_title" in record["correction"]
+
+
+def test_lifelong_catch_correct_registered_in_registry():
+    """LC&C agent must be registered and allowed to use local_files connector."""
+    registry = RuntimeRegistry()
+    # Should not raise
+    registry.assert_connector_allowed("lifelong-catch-correct", "local_files")
+
+
+def test_sovereign_orchestrator_dispatches_end_to_end(tmp_path, monkeypatch):
+    """Full stack: sovereign-orchestrator routes through core to Claude mock."""
+    monkeypatch.setenv("GMAOS_AUDIT_LOG", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
+    monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
+    monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    import runtime.claude_gateway as gw
+    monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=512: "Cycle plan: scan trends -> draft -> publish.")
+    import importlib
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    importlib.reload(mod)
+    core = SovereignAutomationCore()
+    result = core.execute(
+        "system",
+        "context",
+        "Run the profit cycle",
+        [0.5, 0.5, 0.5, 0.5],
+        agent_id="sovereign-orchestrator",
+    )
+    assert result.status == "ok"
+    assert "SOVEREIGN_ORCHESTRATOR_RESULT" in result.output
+
+
 def test_runtime_api_serves_health_and_execute(tmp_path, monkeypatch):
     monkeypatch.setenv("GMAOS_AUDIT_LOG", str(tmp_path / "audit.jsonl"))
     monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))

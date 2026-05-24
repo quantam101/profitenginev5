@@ -28,3 +28,13 @@ agents:
     forbidden_actions: [paid_api_call, public_post]
     approval_required_actions: [external_account_login]
     verifier_required: true
+
+  - id: lifelong-catch-correct
+    name: Lifelong Catch and Correct Agent
+    version: 0.1.0
+    mission: Analyze recent correction history and record one concrete prompt or heuristic improvement per cycle.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, repo_merge]
+    approval_required_actions: [repo_write, external_publish]
+    verifier_required: false

@@ -4,3 +4,4 @@ uvicorn[standard]==0.38.0
 PyYAML==6.0.2
 jsonschema==4.23.0
 pytest==8.3.4
+anthropic>=0.40.0

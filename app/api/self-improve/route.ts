@@ -10,7 +10,7 @@ export async function POST() {
       body: JSON.stringify({
         objective:
           'Run LC&C self-improvement loop: analyze recent outputs, rewrite underperforming prompts, measure CTR uplift.',
-        agent_id: 'sovereign-orchestrator',
+        agent_id: 'lifelong-catch-correct',
         namespace: 'self-improve',
       }),
       signal: AbortSignal.timeout(15000),
