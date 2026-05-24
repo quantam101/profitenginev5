@@ -1,0 +1,184 @@
+{
+  "name": "ProfitEngine — Daily Content Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24,
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Daily at 7am UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://runtime:8080/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_id",
+              "value": "content-pipeline"
+            },
+            {
+              "name": "objective",
+              "value": "scan trending topics and publish one monetized article"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "run-pipeline",
+      "name": "Run content-pipeline agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Pipeline succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://runtime:8080/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_id",
+              "value": "lifelong-catch-correct"
+            },
+            {
+              "name": "objective",
+              "value": "review yesterday content pipeline run and correct any errors"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "lcc-review",
+      "name": "LC&C: review errors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "success-end",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 220]
+    }
+  ],
+  "connections": {
+    "Daily at 7am UTC": {
+      "main": [
+        [
+          {
+            "node": "Run content-pipeline agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run content-pipeline agent": {
+      "main": [
+        [
+          {
+            "node": "Pipeline succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LC&C: review errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "content-pipeline-daily",
+  "tags": [
+    "content",
+    "automation",
+    "revenue"
+  ]
+}

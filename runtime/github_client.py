@@ -6,7 +6,7 @@ Free forever — uses GitHub's public CDN + Pages.
 
 Set these in your server .env:
   GITHUB_CONTENT_TOKEN  — personal access token (repo scope)
-  GITHUB_CONTENT_OWNER  — GitHub username or org (e.g. alreadyhere-site)
+  GITHUB_CONTENT_OWNER  — GitHub username or org (e.g. quantam101)
   GITHUB_CONTENT_REPO   — repository name (e.g. content)
   GITHUB_CONTENT_BRANCH — branch to commit to (default: main)
   GITHUB_CONTENT_DIR    — directory prefix inside the repo (default: posts)

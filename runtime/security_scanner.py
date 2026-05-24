@@ -46,6 +46,9 @@ _IGNORED_RELATIVE = {
     "tests/test_core.py",
     ".env.example",
     "DEPLOYMENT.md",
+    ".github/workflows/deploy.yml",
+    "scripts/bootstrap-server.sh",
+    "scripts/secrets.env.example",
 }
 
 _IGNORED_DIRS = {".git", "node_modules", ".next", "__pycache__", ".pytest_cache"}

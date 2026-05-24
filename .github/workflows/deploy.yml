@@ -1,0 +1,64 @@
+name: Deploy to OCI Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      fresh_build:
+        description: 'Rebuild images without cache'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # never cancel a running deploy
+
+jobs:
+  deploy:
+    name: Deploy to 129.146.167.73
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy via SSH
+        env:
+          FRESH: ${{ github.event.inputs.fresh_build == 'true' && '--fresh' || '' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          # Inject all secrets into the server .env before deploying
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            ubuntu@129.146.167.73 \
+            "cd /home/ubuntu/profitenginev5 && \
+             git pull --ff-only && \
+             GROQ_API_KEY='${GROQ_API_KEY}' \
+             GEMINI_API_KEY='${GEMINI_API_KEY}' \
+             GITHUB_CONTENT_TOKEN='${GITHUB_CONTENT_TOKEN}' \
+             GMAIL_APP_PASSWORD='${GMAIL_APP_PASSWORD}' \
+             bash scripts/bootstrap-server.sh 2>&1 | tail -50"
+
+      - name: Verify health
+        run: |
+          sleep 10
+          STATUS=$(curl -sf --max-time 15 http://129.146.167.73:3000/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null || echo "unreachable")
+          echo "Health check: $STATUS"
+          if [[ "$STATUS" == "fail" ]]; then
+            echo "::warning::Health check returned ok=false — check server logs"
+          fi
