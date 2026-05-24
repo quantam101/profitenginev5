@@ -1,0 +1,155 @@
+# config/distillation.yaml — ProfitEngine v5.x
+# Data Distillation Engine — Unified Configuration
+# Already Here LLC | alreadyhereillc.com
+#
+# All values are overridable via environment variables (see each key's comment).
+# This file documents the complete distillation strategy in one place.
+# Load with: const cfg = require('./config/distillation.yaml') via js-yaml
+
+distillation:
+  enabled: true                          # env: DISTILL_ENABLED
+  daily_token_limit: 500000             # env: DAILY_TOKEN_LIMIT
+  cache_ttl_hours: 4                    # env: (hardcoded in distillation.js)
+  cache_max_entries: 200                # LRU eviction threshold
+
+# ── Pillar 1: Semantic Compression (RAG) ──────────────────────────────────────
+semantic_compressor:
+  enabled: true                          # env: COMPRESSOR_ENABLED
+  chunk_tokens: 512                     # env: COMPRESSOR_CHUNK_TOKENS
+  overlap_tokens: 64                    # env: COMPRESSOR_OVERLAP_TOKENS
+  top_k: 4                              # env: COMPRESSOR_TOP_K
+  # Trigger RAG when input exceeds this many tokens:
+  rag_threshold_tokens: 600
+  # Similarity algorithm: cosine (TF-IDF sparse vectors, no ML dependency)
+  similarity: cosine
+
+# ── Pillar 2: Prompt Engineering ─────────────────────────────────────────────
+prompt_engineering:
+  # Strip these filler prefixes from user input before LLM call
+  strip_filler_prefixes:
+    - "Please "
+    - "Kindly "
+    - "Could you "
+    - "Would you "
+    - "I want you to "
+  # Strip these suffixes from user input
+  strip_filler_suffixes:
+    - " Please be concise."
+    - " Be brief."
+    - " Be detailed."
+  # Output format constraints injected per tier
+  format_constraints:
+    LOW:  ""
+    MID:  "Respond in YAML only. No prose, no markdown fences. Concise values."
+    HIGH: "Respond in JSON only. No prose, no markdown. Compact keys."
+  # Max few-shot examples to inject
+  max_few_shot_examples: 3
+  # Remove markdown formatting from prompts (bold, headers, code fences)
+  strip_markdown: true
+
+# ── Pillar 3: Structural Data Optimization ───────────────────────────────────
+serialization:
+  # Token savings: YAML ~20% fewer tokens than JSON for typical config objects
+  # Flat arrays → pipe-delimited (fewest tokens of all)
+  formats:
+    LOW:  yaml           # deterministic tasks — smallest representation
+    MID:  yaml           # summarisation/extraction
+    HIGH: json_compact   # complex reasoning — guaranteed parse-safe
+  flat_array_delimiter: "|"
+  # Characters to avoid (each may tokenize as 2+ tokens in common tokenizers)
+  avoid_chars:
+    - "{"
+    - "}"
+    - "\""
+    - "  "              # excess whitespace
+  # Prefer YAML block scalars (|) over quoted strings for multi-line values
+  yaml_multiline: block
+
+# ── Pillar 4: Logic Offloading ────────────────────────────────────────────────
+logic_offloader:
+  # Task types that NEVER reach the LLM (zero token cost)
+  deterministic_tasks:
+    - sort
+    - dedupe
+    - math
+    - format_date
+    - extract_urls
+    - extract_emails
+    - extract_prices
+    - word_count
+    - truncate
+    - summarize_bullets
+    - merge_dedup
+    - normalize_json
+  # Strip these patterns from LLM responses before storing
+  response_filler_strip: true
+  # Always run post-process (cleanResponse) on every LLM output
+  always_post_process: true
+
+# ── Pillar 5: Tiered Processing Model ────────────────────────────────────────
+tier_router:
+  thresholds:
+    LOW:  0.20           # env: TIER_THRESHOLD_LOW  — local scripts, zero LLM
+    MID:  0.55           # env: TIER_THRESHOLD_MID  — fast small model
+    HIGH: 1.00           # full sovereign cloud gateway
+
+  # MID tier model (fast + cheap for summarisation/extraction)
+  mid_model: gemma2-9b-it       # env: TIER_MID_MODEL
+  mid_max_tokens: 512           # env: TIER_MID_MAX_TOKENS
+  mid_temperature: 0.1
+  mid_stop_sequences:
+    - "```"
+    - "\n\n\n"
+
+  # Task-type → complexity mapping
+  task_complexity:
+    sort:       0.05
+    format:     0.10
+    math:       0.15
+    dedupe:     0.10
+    summarize:  0.35
+    extract:    0.40
+    classify:   0.45
+    translate:  0.45
+    reason:     0.70
+    strategy:   0.80
+    generate:   0.75
+    analyze:    0.65
+    configure:  0.60
+
+  # Approximate cost rates USD/1K tokens (for audit tracking)
+  cost_rates_usd_per_1k:
+    LOW:  0.0000
+    MID:  0.0001
+    HIGH: 0.0009
+
+# ── Sovereign Core integration ────────────────────────────────────────────────
+sovereign:
+  redis_host: "127.0.0.1"          # env: ENTERPRISE_REDIS_HOST
+  redis_port: 6379                 # env: ENTERPRISE_REDIS_PORT
+  semantic_match_floor: 0.96      # env: SEMANTIC_MATCH_FLOOR
+  local_complexity_threshold: 0.50 # complexity ≤ this → Ollama local swarm
+  local_swarm_url: "http://localhost:11434/v1/chat/completions"  # env: LOCAL_SWARM_URL
+  # Fallback when Redis unavailable: in-process LRU
+  mem_cache_max: 200
+  mem_cache_ttl_hours: 1
+
+# ── Pipeline input caps ───────────────────────────────────────────────────────
+pipeline:
+  max_input_tokens: 3000           # env: MAX_INPUT_TOKENS — hard cap before LLM
+  qwen_enabled: false              # env: QWEN_ENABLED — wrap in <|im_start|> format
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+monitoring:
+  # These endpoints are already wired in api/routes/status.js
+  expose_stats_at:
+    - /api/status.distillation
+    - /api/status.compressor
+    - /api/status.tierRouter
+    - /api/status.offloader
+    - /api/status.sovereign
+  # Alert thresholds
+  alerts:
+    budget_pct_warn: 80            # warn when daily budget is 80% consumed
+    cache_hit_rate_min: 0.25       # alert if hit rate falls below 25%
+    avg_reduction_pct_min: 30      # alert if reduction drops below 30%
