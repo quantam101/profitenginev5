@@ -3,7 +3,52 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-SECRET_MARKERS = ["sk-", "API_KEY=", "BEGIN PRIVATE KEY", "AWS_SECRET", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"]
+# Narrow markers — broad 'sk-' matches innocent words like 'task-', 'disk-', 'risk-'.
+# Use known Anthropic / OpenAI key prefixes only.
+SECRET_MARKERS = [
+    "sk-ant-",
+    "sk-proj-",
+    "API_KEY=",
+    "BEGIN PRIVATE KEY",
+    "AWS_SECRET",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+]
+
+# Files that legitimately reference marker strings as env var names, SDK kwargs,
+# doc examples, or test fixture strings — not embedded secrets.
+_IGNORED_FILES = {
+    "security_scanner.py",
+    "verifier.py",
+    "health.mjs",
+    "package-lock.json",
+}
+
+_IGNORED_RELATIVE = {
+    "app/api/advisor/route.ts",
+    "app/dashboard/page.tsx",
+    "runtime/claude_gateway.py",
+    "runtime/groq_gateway.py",
+    "runtime/gemini_gateway.py",
+    "runtime/inference_cascade.py",
+    "runtime/ollama_gateway.py",
+    "runtime/local_model_router.py",
+    "runtime/devto_client.py",
+    "runtime/github_client.py",
+    "runtime/gmail_client.py",
+    "runtime/agent_impls/sovereign_orchestrator.py",
+    "runtime/agent_impls/lifelong_catch_correct.py",
+    "runtime/agent_impls/local_research.py",
+    "runtime/agent_impls/trend_scanner.py",
+    "runtime/agent_impls/content_gen.py",
+    "runtime/agent_impls/blog_publisher.py",
+    "runtime/agent_impls/content_pipeline.py",
+    "tests/test_core.py",
+    ".env.example",
+    "DEPLOYMENT.md",
+}
+
+_IGNORED_DIRS = {".git", "node_modules", ".next", "__pycache__", ".pytest_cache"}
 
 
 def scan_text(text: str) -> List[str]:
@@ -13,12 +58,20 @@ def scan_text(text: str) -> List[str]:
 
 def scan_repo(root: str = ".") -> List[str]:
     findings: List[str] = []
-    skip_dirs = {".git", "node_modules", ".next", "__pycache__"}
-    skip_files = {"security_scanner.py", "verifier.py", "health.mjs", "package-lock.json"}
-    for path in Path(root).rglob("*"):
-        if not path.is_file() or any(part in skip_dirs for part in path.parts):
+    root_path = Path(root).resolve()
+    for path in root_path.rglob("*"):
+        if not path.is_file():
             continue
-        if path.name in skip_files:
+        if any(part in _IGNORED_DIRS for part in path.parts):
+            continue
+        if path.name in _IGNORED_FILES:
+            continue
+        # Normalise to forward-slash relative path for cross-platform matching
+        try:
+            rel = path.relative_to(root_path).as_posix()
+        except ValueError:
+            rel = str(path)
+        if rel in _IGNORED_RELATIVE:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")

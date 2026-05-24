@@ -13,8 +13,7 @@ from __future__ import annotations
 from typing import List
 
 from runtime.agents import AgentExecution
-from runtime.claude_gateway import call_claude
-from runtime.ollama_gateway import call_ollama
+from runtime.inference_cascade import infer
 
 _SYSTEM = (
     "You are the ProfitEngine Local Research Agent. "
@@ -36,38 +35,20 @@ class Agent:
                 f"Source notes:\n" + "\n".join(notes[:evidence_count]) +
                 f"\n\nObjective: {objective}"
             )
-
-            # Tier 1 — Ollama (free, local)
-            result = call_ollama(_SYSTEM, prompt, max_tokens=512)
-            if result is not None and not result.startswith("OLLAMA_ERROR"):
+            result, tier = infer(_SYSTEM, prompt, max_tokens=512)
+            if not result.startswith("INFERENCE_STUB"):
                 return AgentExecution(
                     output=(
                         "LOCAL_RESEARCH_RESULT\n"
                         f"Objective: {objective}\n"
                         f"Connectors: {', '.join(connectors)}\n"
                         f"Evidence notes reviewed: {evidence_count}\n"
-                        f"Tier: ollama\n\n"
+                        f"Tier: {tier}\n\n"
                         f"DRAFT:\n{result}"
                     ),
-                    metrics={"agent": self.id, "tier": "ollama", "evidence_notes": evidence_count, "connector_count": len(connectors)},
+                    metrics={"agent": self.id, "tier": tier, "evidence_notes": evidence_count, "connector_count": len(connectors)},
                 )
 
-            # Tier 2 — Claude API (key-gated)
-            result = call_claude(_SYSTEM, prompt, max_tokens=512)
-            if result is not None and not result.startswith("CLAUDE_ERROR"):
-                return AgentExecution(
-                    output=(
-                        "LOCAL_RESEARCH_RESULT\n"
-                        f"Objective: {objective}\n"
-                        f"Connectors: {', '.join(connectors)}\n"
-                        f"Evidence notes reviewed: {evidence_count}\n"
-                        f"Tier: claude_api\n\n"
-                        f"DRAFT:\n{result}"
-                    ),
-                    metrics={"agent": self.id, "tier": "claude_api", "evidence_notes": evidence_count, "connector_count": len(connectors)},
-                )
-
-        # Tier 3 — deterministic stub
         return AgentExecution(
             output="\n".join([
                 "LOCAL_RESEARCH_RESULT",

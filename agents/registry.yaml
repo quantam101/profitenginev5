@@ -1,10 +1,10 @@
 agents:
   - id: sovereign-orchestrator
     name: Sovereign Orchestrator
-    version: 0.1.0
-    mission: Convert objectives into executable workflows using Ollama→Claude→stub cascade.
+    version: 0.2.0
+    mission: Plan and execute profit-generating workflows using Ollama→Groq→Gemini→Claude→stub cascade.
     max_cost_usd: 0
-    allowed_connectors: [local_files, ollama_local]
+    allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
     forbidden_actions: [any_cost, public_post, email_send, production_deploy, repo_merge]
     approval_required_actions: [paid_api_call, repo_write, production_deploy]
     verifier_required: true
@@ -21,20 +21,61 @@ agents:
 
   - id: local-research
     name: Local Research Agent
-    version: 0.1.0
-    mission: Produce source-aware research drafts using browser/local tools.
+    version: 0.2.0
+    mission: Produce source-aware research drafts using the inference cascade and local tools.
     max_cost_usd: 0
-    allowed_connectors: [playwright_local, local_files]
+    allowed_connectors: [playwright_local, local_files, groq_api, gemini_api]
     forbidden_actions: [paid_api_call, public_post]
     approval_required_actions: [external_account_login]
     verifier_required: true
 
   - id: lifelong-catch-correct
     name: Lifelong Catch and Correct Agent
-    version: 0.1.0
+    version: 0.2.0
     mission: Analyze recent correction history and record one concrete prompt or heuristic improvement per cycle.
     max_cost_usd: 0
-    allowed_connectors: [local_files, ollama_local]
+    allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
     forbidden_actions: [paid_api_call, public_post, production_deploy, repo_merge]
     approval_required_actions: [repo_write, external_publish]
+    verifier_required: false
+
+  # ── Content pipeline agents ──────────────────────────────────────────────
+  - id: trend-scanner
+    name: Trend Scanner Agent
+    version: 0.1.0
+    mission: Scan free public sources (HN, Reddit, GitHub trending) and surface the best affiliate content topics.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, groq_api, gemini_api, ollama_local]
+    forbidden_actions: [paid_api_call, production_deploy]
+    approval_required_actions: []
+    verifier_required: false
+
+  - id: content-gen
+    name: Content Generation Agent
+    version: 0.1.0
+    mission: Generate SEO-optimized long-form blog articles with affiliate link placeholders using the inference cascade.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, groq_api, gemini_api, ollama_local]
+    forbidden_actions: [paid_api_call, production_deploy]
+    approval_required_actions: []
+    verifier_required: false
+
+  - id: blog-publisher
+    name: Blog Publisher Agent
+    version: 0.1.0
+    mission: Publish generated articles to Dev.to and GitHub Pages, then send an email digest.
+    max_cost_usd: 0
+    allowed_connectors: [devto_api, github_api, gmail_smtp, local_files]
+    forbidden_actions: [paid_api_call, production_deploy]
+    approval_required_actions: []
+    verifier_required: false
+
+  - id: content-pipeline
+    name: Content Pipeline Agent
+    version: 0.1.0
+    mission: End-to-end automated content loop — trend scan → AI write → affiliate inject → publish → notify.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, groq_api, gemini_api, ollama_local, devto_api, github_api, gmail_smtp]
+    forbidden_actions: [paid_api_call, production_deploy]
+    approval_required_actions: []
     verifier_required: false

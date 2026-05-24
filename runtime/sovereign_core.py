@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +10,7 @@ from .audit_log import AuditLog
 from .complexity_scorer import ComplexityScorer
 from .cost_guard import CostGuard, CostGuardError
 from .agents import load_agent
+from .cycle_log import CycleLog, CycleRecord
 from .local_model_router import LocalModelRouter
 from .memory_commit import MemoryCommit
 from .minifier import ManifestMinifier
@@ -42,6 +44,7 @@ class SovereignAutomationCore:
 
     def __init__(self) -> None:
         self.audit = AuditLog()
+        self.cycle_log = CycleLog()
         self.cost_guard = CostGuard()
         self.approval_gate = ApprovalGate()
         self.minifier = ManifestMinifier()
@@ -62,6 +65,7 @@ class SovereignAutomationCore:
         actor: str = "sovereign-core",
         agent_id: str = "sovereign-orchestrator",
     ) -> ExecutionResult:
+        started_at = time.time()
         correlation_id = hashlib.sha256(f"{objective}|{namespace}".encode("utf-8")).hexdigest()[:16]
         agent_policy = self.registry.agent(agent_id)
         self.audit.info(
@@ -77,13 +81,15 @@ class SovereignAutomationCore:
         cache_hit = self.cache.search(embedding_vector, namespace=namespace)
         if cache_hit:
             self.audit.info(actor, "vector_cache_hit", {"record_id": cache_hit.record_id, "confidence": cache_hit.confidence}, correlation_id)
-            return ExecutionResult(
+            result = ExecutionResult(
                 status="ok",
                 route_tier="VERIFIED_VECTOR_CACHE",
                 output=cache_hit.output,
                 cached=True,
                 details={"confidence": cache_hit.confidence, "record_id": cache_hit.record_id},
             )
+            self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+            return result
 
         complexity = self.scorer.score(objective=objective, context=clean_context)
         route = self.router.route(complexity.score)
@@ -132,13 +138,15 @@ class SovereignAutomationCore:
                 )
             except ApprovalRequired as exc:
                 self.audit.blocked(actor, "approval_required", {"message": str(exc)}, correlation_id)
-                return ExecutionResult(
+                result = ExecutionResult(
                     status="approval_required",
                     route_tier="HUMAN_REVIEW_QUEUE",
                     output=str(exc),
                     cached=False,
                     details={"complexity": complexity.__dict__, "reason": route.reason},
                 )
+                self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+                return result
 
         if route.decision.tier in ("DETERMINISTIC_LOCAL", "LOCAL_MODEL", "CLAUDE_API"):
             # All executable tiers go through the agent's run() method.
@@ -152,7 +160,9 @@ class SovereignAutomationCore:
             verified = self.verifier.verify_text_output(output)
             if not verified.passed:
                 self.audit.blocked(actor, "verification_failed", {"reason": verified.reason}, correlation_id)
-                return ExecutionResult("blocked", route.decision.tier, verified.reason, False, {"verification": verified.__dict__})
+                result = ExecutionResult("blocked", route.decision.tier, verified.reason, False, {"verification": verified.__dict__})
+                self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+                return result
 
         record_id = self.memory.commit_verified(embedding_vector, output, namespace=namespace)
         self.audit.info(
@@ -161,7 +171,7 @@ class SovereignAutomationCore:
             {"record_id": record_id, "route_tier": route.decision.tier, "agent_metrics": agent_metrics},
             correlation_id,
         )
-        return ExecutionResult(
+        result = ExecutionResult(
             status="ok",
             route_tier=route.decision.tier,
             output=output,
@@ -174,6 +184,36 @@ class SovereignAutomationCore:
                 "complexity": complexity.__dict__,
             },
         )
+        self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+        return result
+
+    def _log_cycle(
+        self,
+        cycle_id: str,
+        agent_id: str,
+        result: ExecutionResult,
+        objective: str,
+        started_at: float,
+    ) -> None:
+        import datetime
+        ts = time.time()
+        try:
+            self.cycle_log.record(CycleRecord(
+                cycle_id=cycle_id,
+                timestamp=ts,
+                iso_timestamp=datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                agent_id=agent_id,
+                route_tier=result.route_tier,
+                objective_excerpt=objective[:120],
+                output_excerpt=result.output[:200],
+                status=result.status,
+                duration_ms=int((ts - started_at) * 1000),
+                cached=result.cached,
+                details={k: v for k, v in result.details.items() if k in ("record_id", "agent_metrics", "confidence")},
+            ))
+        except Exception:
+            # Cycle logging must never crash a live execution.
+            pass
 
     def _connector_for_route(self, tier: str) -> str:
         if tier == "LOCAL_MODEL":

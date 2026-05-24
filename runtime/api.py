@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from .cycle_log import CycleLog
 from .registry import RegistryError, RuntimeRegistry
 from .sovereign_core import SovereignAutomationCore
 
@@ -52,6 +53,22 @@ def agents() -> Dict[str, Any]:
 @app.get("/connectors")
 def connectors() -> Dict[str, Any]:
     return {"connectors": [asdict(connector) for connector in registry.connectors.values()]}
+
+
+@app.get("/cycles")
+def cycles(limit: int = 50) -> Dict[str, Any]:
+    """Return the most-recent execution records (proof-of-work ledger)."""
+    limit = max(1, min(limit, 500))
+    log = CycleLog()
+    records = log.tail(limit)
+    return {"cycles": [asdict(r) for r in records], "count": len(records)}
+
+
+@app.get("/metrics")
+def metrics() -> Dict[str, Any]:
+    """Return aggregate execution statistics."""
+    log = CycleLog()
+    return log.metrics()
 
 
 @app.post("/execute")
