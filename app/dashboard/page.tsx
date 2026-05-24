@@ -269,7 +269,7 @@ function Activity({ data }: { data: DashboardData }) {
   );
 }
 function Advisor() {
-  const [messages, setMessages] = useState([{ role: 'assistant' as const, text: 'ProfitEngine v5.0 online. I have full telemetry — 10 agents, 6 streams, VHLL, LC&C 4-loop status, revenue. Ask anything.' }]);
+  const [messages, setMessages] = useState<{role:'assistant'|'user';text:string}[]>([{ role: 'assistant' as const, text: 'ProfitEngine v5.0 online. I have full telemetry — 10 agents, 6 streams, VHLL, LC&C 4-loop status, revenue. Ask anything.' }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
