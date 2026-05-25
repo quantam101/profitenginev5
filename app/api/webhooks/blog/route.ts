@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hasWebhookAccess } from '@/lib/webhookAuth';
+import { hasWebhookAccess } from '../../../../lib/webhookAuth';
 
 const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
 
