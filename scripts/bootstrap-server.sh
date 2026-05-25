@@ -19,12 +19,43 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-/home/ubuntu/profitenginev5}"
+# Default repo dir: opc on Oracle Linux (OCI default), ubuntu on Ubuntu
+_DEFAULT_HOME="$(getent passwd opc 2>/dev/null | cut -d: -f6 || echo /home/ubuntu)"
+REPO_DIR="${REPO_DIR:-${_DEFAULT_HOME}/profitenginev5}"
 ENV_FILE="$REPO_DIR/.env"
 
 log()  { echo -e "\033[32m[bootstrap]\033[0m $*"; }
 warn() { echo -e "\033[33m[bootstrap] WARN:\033[0m $*" >&2; }
 die()  { echo -e "\033[31m[bootstrap] ERROR:\033[0m $*" >&2; exit 1; }
+
+# ── install Docker if missing ───────────────────────────────────────────────
+if ! command -v docker &>/dev/null; then
+  log "Docker not found — installing …"
+  if command -v dnf &>/dev/null; then
+    # Oracle Linux / RHEL / CentOS
+    sudo dnf config-manager --add-repo \
+      https://download.docker.com/linux/centos/docker-ce.repo 2>/dev/null || true
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io \
+      docker-buildx-plugin docker-compose-plugin
+    sudo systemctl enable --now docker
+    sudo usermod -aG docker "$USER" && warn "Re-login or run: newgrp docker"
+  elif command -v apt-get &>/dev/null; then
+    # Ubuntu / Debian
+    sudo apt-get update -qq
+    curl -fsSL https://get.docker.com | sudo bash
+    sudo usermod -aG docker "$USER"
+    sudo systemctl enable --now docker
+  else
+    die "Cannot install Docker — unsupported OS (no dnf or apt-get)"
+  fi
+  # Re-exec with newgrp so docker group takes effect immediately
+  exec sg docker "$0" "$@" 2>/dev/null || true
+fi
+
+# Ensure docker compose (plugin) is available
+if ! docker compose version &>/dev/null; then
+  die "docker compose plugin not found — check your Docker installation"
+fi
 
 # Accept CONTENT_REPO_TOKEN as alias for GITHUB_CONTENT_TOKEN (GitHub blocks GITHUB_ prefix in secrets)
 GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:-${CONTENT_REPO_TOKEN:-}}"
@@ -38,7 +69,7 @@ done
 if [[ ${#missing_secrets[@]} -gt 0 ]]; then
   die "Missing secrets: ${missing_secrets[*]}
 
-Pass them as env vars or source /home/ubuntu/.profitengine-secrets first.
+Pass them as env vars or source ~/.profitengine-secrets first.
 Example:
   GROQ_API_KEY=gsk_xxx GEMINI_API_KEY=AIza_xxx \\
   GITHUB_CONTENT_TOKEN=ghp_xxx GMAIL_APP_PASSWORD=xxx \\

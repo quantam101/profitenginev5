@@ -63,21 +63,22 @@ jobs:
           EOF
 
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            /tmp/deploy_env.sh ubuntu@129.146.167.73:/tmp/deploy_env.sh
+            /tmp/deploy_env.sh opc@129.146.167.73:/tmp/deploy_env.sh
 
           # Clone repo on first deploy if not present, then bootstrap
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=15 \
-            ubuntu@129.146.167.73 \
+            opc@129.146.167.73 \
             "set -e
-             if [ ! -d /home/ubuntu/profitenginev5 ]; then
-               git clone https://github.com/quantam101/profitenginev5.git /home/ubuntu/profitenginev5
+             REPO_DIR=/home/opc/profitenginev5
+             if [ ! -d \$REPO_DIR ]; then
+               git clone https://github.com/quantam101/profitenginev5.git \$REPO_DIR
              fi
-             cd /home/ubuntu/profitenginev5
+             cd \$REPO_DIR
              git pull --ff-only
              source /tmp/deploy_env.sh
-             bash scripts/bootstrap-server.sh 2>&1 | tail -60
+             REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -60
              rm -f /tmp/deploy_env.sh"
 
       - name: Verify health
