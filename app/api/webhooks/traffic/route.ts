@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hasWebhookAccess } from '@/lib/webhookAuth';
-import { getRecentTrafficEvents, saveTrafficEvent } from '@/lib/trafficStore';
+import { getRecentTrafficEvents, saveTrafficEvent } from '../../../../lib/trafficStore';
+import { hasWebhookAccess } from '../../../../lib/webhookAuth';
 
 interface TrafficPayload {
   page: string;
