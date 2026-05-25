@@ -46,6 +46,7 @@ GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
 GH_BRANCH = os.getenv("GITHUB_CONTENT_BRANCH", "main").strip()
 GH_DIR = os.getenv("GITHUB_CONTENT_DIR", "posts").strip()
 DEVTO_KEY = os.getenv("DEVTO_API_KEY", "").strip()
+AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 
 DEFAULT_TOPIC = os.getenv(
     "ARTICLE_TOPIC",
@@ -102,9 +103,27 @@ def generate_article(topic: str) -> Dict[str, Any]:
     # Strip markdown code fences if model wrapped in them
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
-    article = json.loads(raw)
+    # Try strict parse first; fall back to lenient (handles stray control chars)
+    try:
+        article = json.loads(raw)
+    except json.JSONDecodeError:
+        article = json.loads(raw, strict=False)
     print(f"[OK] Article generated: {article['title']}")
     return article
+
+
+# ── Affiliate link injection ────────────────────────────────────────────────────
+def _inject_affiliates(body: str) -> str:
+    """Replace [AFFILIATE:keyword] placeholders with markdown links (or strip them)."""
+    try:
+        affiliate_map: Dict[str, str] = json.loads(AFFILIATE_LINKS_JSON)
+    except json.JSONDecodeError:
+        affiliate_map = {}
+    for keyword, url in affiliate_map.items():
+        body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
+    # Strip any remaining unresolved placeholders
+    body = re.sub(r"\[AFFILIATE:([^\]]+)\]", r"\1", body)
+    return body
 
 
 # ── GitHub Pages publish ───────────────────────────────────────────────────────
@@ -219,6 +238,8 @@ def main() -> None:
     slug = re.sub(r"[^a-z0-9-]", "", slug)[:60].strip("-")
     filename = f"{date_str}-{slug}.md"
 
+    # Inject affiliate links (noop until AFFILIATE_LINKS env var is set)
+    article["body"] = _inject_affiliates(article.get("body", ""))
     jekyll_md = make_jekyll_post(article, date_str)
 
     # Publish to GitHub Pages
