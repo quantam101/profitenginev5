@@ -37,6 +37,16 @@ connectors:
     enabled: true
     permissions: [create_article, read_articles]
 
+  hashnode_api:
+    state: free_external
+    enabled: true
+    permissions: [create_article, read_articles]
+
+  medium_api:
+    state: free_external
+    enabled: true
+    permissions: [create_article]
+
   github_api:
     state: free_external
     enabled: true

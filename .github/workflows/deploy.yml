@@ -35,24 +35,46 @@ jobs:
 
       - name: Deploy via SSH
         env:
-          FRESH: ${{ github.event.inputs.fresh_build == 'true' && '--fresh' || '' }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
         run: |
-          # Inject all secrets into the server .env before deploying
+          # Write secrets to a temp file and scp it to the server
+          cat > /tmp/deploy_env.sh <<EOF
+          export GROQ_API_KEY="${GROQ_API_KEY}"
+          export GEMINI_API_KEY="${GEMINI_API_KEY}"
+          export GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN}"
+          export GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD}"
+          export DEVTO_API_KEY="${DEVTO_API_KEY}"
+          export AFFILIATE_LINKS='${AFFILIATE_LINKS}'
+          export AMAZON_PARTNER_TAG="${AMAZON_PARTNER_TAG}"
+          export HASHNODE_API_KEY="${HASHNODE_API_KEY}"
+          export HASHNODE_PUB_ID="${HASHNODE_PUB_ID}"
+          EOF
+
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            /tmp/deploy_env.sh ubuntu@129.146.167.73:/tmp/deploy_env.sh
+
+          # Clone repo on first deploy if not present, then bootstrap
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=15 \
             ubuntu@129.146.167.73 \
-            "cd /home/ubuntu/profitenginev5 && \
-             git pull --ff-only && \
-             GROQ_API_KEY='${GROQ_API_KEY}' \
-             GEMINI_API_KEY='${GEMINI_API_KEY}' \
-             GITHUB_CONTENT_TOKEN='${GITHUB_CONTENT_TOKEN}' \
-             GMAIL_APP_PASSWORD='${GMAIL_APP_PASSWORD}' \
-             bash scripts/bootstrap-server.sh 2>&1 | tail -50"
+            "set -e
+             if [ ! -d /home/ubuntu/profitenginev5 ]; then
+               git clone https://github.com/quantam101/profitenginev5.git /home/ubuntu/profitenginev5
+             fi
+             cd /home/ubuntu/profitenginev5
+             git pull --ff-only
+             source /tmp/deploy_env.sh
+             bash scripts/bootstrap-server.sh 2>&1 | tail -60
+             rm -f /tmp/deploy_env.sh"
 
       - name: Verify health
         run: |

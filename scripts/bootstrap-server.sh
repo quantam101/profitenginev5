@@ -98,12 +98,25 @@ upsert_env GMAOS_LOCAL_MODEL_ENABLED  "true"
 upsert_env GMAOS_LOCAL_MODEL_ENDPOINT "http://ollama:11434"
 upsert_env GMAOS_LOCAL_MODEL_NAME     "llama3.1:8b"
 upsert_env GMAOS_LOCAL_MODEL_TIMEOUT  "120"
-upsert_env GMAOS_GROQ_MODEL           "llama-3.1-70b-versatile"
+upsert_env GMAOS_GROQ_MODEL           "llama-3.3-70b-versatile"
 upsert_env GMAOS_GROQ_TIMEOUT         "60"
 upsert_env GMAOS_GEMINI_MODEL         "gemini-1.5-flash"
 upsert_env GMAOS_GEMINI_TIMEOUT       "60"
-upsert_env SITE_DOMAIN                "profitengine.alreadyherellc.com"
-upsert_env ACME_EMAIL                 "ops@alreadyherellc.com"
+upsert_env SITE_DOMAIN                "${SITE_DOMAIN:-profitengine.alreadyherellc.com}"
+upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
+
+# Optional keys — injected when available, skipped otherwise
+[[ -n "${DEVTO_API_KEY:-}"        ]] && upsert_env DEVTO_API_KEY         "${DEVTO_API_KEY}"
+[[ -n "${AFFILIATE_LINKS:-}"      ]] && upsert_env AFFILIATE_LINKS        "${AFFILIATE_LINKS}"
+[[ -n "${AMAZON_PARTNER_TAG:-}"   ]] && upsert_env AMAZON_PARTNER_TAG     "${AMAZON_PARTNER_TAG}"
+[[ -n "${HASHNODE_API_KEY:-}"     ]] && upsert_env HASHNODE_API_KEY        "${HASHNODE_API_KEY}"
+[[ -n "${HASHNODE_PUB_ID:-}"      ]] && upsert_env HASHNODE_PUBLICATION_ID "${HASHNODE_PUB_ID}"
+
+# Auto-generate WEBHOOK_SECRET if not set
+if ! grep -qE "^WEBHOOK_SECRET=.+" "$ENV_FILE"; then
+  upsert_env WEBHOOK_SECRET "$(openssl rand -hex 32)"
+  log "Generated new WEBHOOK_SECRET."
+fi
 
 log ".env updated."
 

@@ -22,6 +22,7 @@ _IGNORED_FILES = {
     "verifier.py",
     "health.mjs",
     "package-lock.json",
+    "first-boot.sh",
 }
 
 _IGNORED_RELATIVE = {
@@ -36,6 +37,8 @@ _IGNORED_RELATIVE = {
     "runtime/devto_client.py",
     "runtime/github_client.py",
     "runtime/gmail_client.py",
+    "runtime/hashnode_client.py",
+    "runtime/medium_client.py",
     "runtime/agent_impls/sovereign_orchestrator.py",
     "runtime/agent_impls/lifelong_catch_correct.py",
     "runtime/agent_impls/local_research.py",
