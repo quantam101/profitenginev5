@@ -46,7 +46,12 @@ GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
 GH_BRANCH = os.getenv("GITHUB_CONTENT_BRANCH", "main").strip()
 GH_DIR = os.getenv("GITHUB_CONTENT_DIR", "posts").strip()
 DEVTO_KEY = os.getenv("DEVTO_API_KEY", "").strip()
+HASHNODE_KEY = os.getenv("HASHNODE_API_KEY", "").strip()
+HASHNODE_PUB_ID = os.getenv("HASHNODE_PUBLICATION_ID", "").strip()
+MEDIUM_KEY = os.getenv("MEDIUM_API_KEY", "").strip()
+MEDIUM_AUTHOR_ID = os.getenv("MEDIUM_AUTHOR_ID", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
+AMAZON_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20").strip()
 
 def _default_topic() -> str:
     """Pick today's topic from the rotation list, or use ARTICLE_TOPIC env override."""
@@ -241,6 +246,75 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     return url
 
 
+# ── Hashnode publish ───────────────────────────────────────────────────────────
+def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
+    if not HASHNODE_KEY or not HASHNODE_PUB_ID:
+        print("[SKIP] HASHNODE_API_KEY or HASHNODE_PUBLICATION_ID not set -- skipping Hashnode")
+        return None
+    title = article.get("title", "Untitled")
+    meta = article.get("meta_description", "")
+    body = article.get("body", "")
+    body_markdown = f"> {meta}\n\n{body}" if meta else body
+    payload: Dict[str, Any] = {
+        "title": title,
+        "contentMarkdown": body_markdown,
+        "publicationId": HASHNODE_PUB_ID,
+        "tags": [],
+    }
+    if canonical_url:
+        payload["originalArticleURL"] = canonical_url
+    query = """
+    mutation PublishPost($input: PublishPostInput!) {
+      publishPost(input: $input) { post { url id } }
+    }
+    """
+    r = httpx.post(
+        "https://gql.hashnode.com/",
+        headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
+        json={"query": query, "variables": {"input": payload}},
+        timeout=30,
+    )
+    r.raise_for_status()
+    data = r.json()
+    if data.get("errors"):
+        raise RuntimeError(f"Hashnode errors: {data['errors']}")
+    post = data.get("data", {}).get("publishPost", {}).get("post", {})
+    url = post.get("url", "")
+    print(f"[OK] Published to Hashnode: {url}")
+    return url
+
+
+# ── Medium publish ─────────────────────────────────────────────────────────────
+def publish_medium(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
+    if not MEDIUM_KEY or not MEDIUM_AUTHOR_ID:
+        print("[SKIP] MEDIUM_API_KEY or MEDIUM_AUTHOR_ID not set -- skipping Medium")
+        return None
+    title = article.get("title", "Untitled")
+    meta = article.get("meta_description", "")
+    body = article.get("body", "")
+    tags: List[str] = article.get("tags", [])[:5]
+    body_markdown = f"> {meta}\n\n{body}" if meta else body
+    payload: Dict[str, Any] = {
+        "title": title,
+        "contentFormat": "markdown",
+        "content": body_markdown,
+        "tags": tags,
+        "publishStatus": "public",
+    }
+    if canonical_url:
+        payload["canonicalUrl"] = canonical_url
+    r = httpx.post(
+        f"https://api.medium.com/v1/users/{MEDIUM_AUTHOR_ID}/posts",
+        headers={"Authorization": f"Bearer {MEDIUM_KEY}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=30,
+    )
+    r.raise_for_status()
+    url = r.json().get("data", {}).get("url", "")
+    print(f"[OK] Published to Medium: {url}")
+    return url
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main() -> None:
     topic = DEFAULT_TOPIC
@@ -257,7 +331,7 @@ def main() -> None:
     article["body"] = _inject_affiliates(article.get("body", ""))
     jekyll_md = make_jekyll_post(article, date_str)
 
-    # Publish to GitHub Pages
+    # 1. GitHub Pages (canonical URL)
     canonical_url = ""
     try:
         canonical_url = publish_github(
@@ -268,12 +342,26 @@ def main() -> None:
     except Exception as exc:
         print(f"[FAIL] GitHub publish failed: {exc}")
 
-    # Publish to Dev.to with canonical pointing to GitHub Pages
+    # 2. Dev.to
     devto_url = None
     try:
         devto_url = publish_devto(article, canonical_url)
     except Exception as exc:
         print(f"[FAIL] Dev.to publish failed: {exc}")
+
+    # 3. Hashnode
+    hashnode_url = None
+    try:
+        hashnode_url = publish_hashnode(article, canonical_url)
+    except Exception as exc:
+        print(f"[FAIL] Hashnode publish failed: {exc}")
+
+    # 4. Medium
+    medium_url = None
+    try:
+        medium_url = publish_medium(article, canonical_url)
+    except Exception as exc:
+        print(f"[FAIL] Medium publish failed: {exc}")
 
     print("\n== Summary ==")
     print(f"Title   : {article['title']}")
@@ -282,6 +370,10 @@ def main() -> None:
         print(f"Pages   : {canonical_url}")
     if devto_url:
         print(f"Dev.to  : {devto_url}")
+    if hashnode_url:
+        print(f"Hashnode: {hashnode_url}")
+    if medium_url:
+        print(f"Medium  : {medium_url}")
     print("=" * 50)
 
 

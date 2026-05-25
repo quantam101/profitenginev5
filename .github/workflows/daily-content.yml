@@ -44,8 +44,13 @@ jobs:
           GITHUB_CONTENT_BRANCH: main
           GITHUB_CONTENT_DIR: posts
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           PYTHONUTF8: "1"
         run: python scripts/publish_article.py
 
@@ -55,3 +60,4 @@ jobs:
           echo "### Content Pipeline" >> $GITHUB_STEP_SUMMARY
           echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
           echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
+          echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
