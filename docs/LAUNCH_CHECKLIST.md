@@ -13,18 +13,31 @@
 - [x] Audit log active
 - [x] SEO metadata present
 - [x] Rollback documented
+- [x] `/api/health` returns 100/100 locally
+- [x] Dashboard shows live published-post count + content site link
+- [x] Multi-platform publishing: GitHub Pages → Dev.to → Hashnode → Medium
+- [x] Affiliate link injection ready (Amazon tag `alreadyhere-20` auto-applied)
 
 ---
 
 ## Content Pipeline (live ✅)
 
 - [x] GitHub Pages content site live: https://quantam101.github.io/content
-- [x] 11+ articles published and growing daily (07:05 UTC auto-publish)
+- [x] 15+ articles published and growing daily (07:05 UTC auto-publish)
 - [x] Daily auto-publish cron: 07:05 UTC via GitHub Actions (free tier)
 - [x] 90-topic rotation in `scripts/article_topics.py`
 - [x] Affiliate link injection ready (`AFFILIATE_LINKS` env var)
+- [x] Amazon Associates tag `alreadyhere-20` auto-appended to Amazon URLs
+- [x] FTC disclosure auto-injected in every GitHub Pages post
+- [x] Hashnode + Medium publishing wired in (`scripts/publish_article.py`)
 - [ ] **Dev.to account** — sign up at https://dev.to/enter?state=new-user
       → Settings → Extensions → API Key → add as GitHub Secret `DEVTO_API_KEY`
+- [ ] **Hashnode account** — sign up at https://hashnode.com
+      → Settings → Developer → Personal Access Token → add as `HASHNODE_API_KEY`
+      → Publication Settings → find Publication ID → add as `HASHNODE_PUB_ID`
+- [ ] **Medium account** — sign up at https://medium.com
+      → Settings → Security → Integration tokens → add as `MEDIUM_API_KEY`
+      → find User ID via API → add as `MEDIUM_AUTHOR_ID`
 - [ ] **Affiliate programs** — see `docs/AFFILIATE_SETUP.md`
       → add URLs as GitHub Secret `AFFILIATE_LINKS` (JSON string)
 
@@ -83,7 +96,12 @@ Keys are in your Bitwarden vault and in the GitHub Actions secrets.
 | `GMAIL_APP_PASSWORD` | ✅ Set | Gmail digest alerts |
 | `CONTENT_REPO_TOKEN` | ✅ Set | GitHub PAT for content repo |
 | `DEVTO_API_KEY` | ⬜ Missing | Create Dev.to account first |
+| `HASHNODE_API_KEY` | ⬜ Missing | Create Hashnode account first |
+| `HASHNODE_PUB_ID` | ⬜ Missing | Get from Hashnode publication settings |
+| `MEDIUM_API_KEY` | ⬜ Missing | Create Medium account first |
+| `MEDIUM_AUTHOR_ID` | ⬜ Missing | Get from Medium API |
 | `AFFILIATE_LINKS` | ⬜ Missing | Add after affiliate approval |
+| `AMAZON_PARTNER_TAG` | ⬜ Optional | Set to `alreadyhere-20` (already in code default) |
 
 To add a secret: GitHub → repo → Settings → Secrets → Actions → New secret
 
