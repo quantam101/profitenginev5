@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasWebhookAccess } from '@/lib/webhookAuth';
+import { getRecentTrafficEvents, saveTrafficEvent } from '@/lib/trafficStore';
 
 interface TrafficPayload {
   page: string;
@@ -9,9 +10,6 @@ interface TrafficPayload {
   source: string;
   sessionId: string;
 }
-
-const buffer: Array<Record<string, string>> = [];
-const MAX_BUFFER = 500;
 
 export async function POST(req: NextRequest) {
   if (!hasWebhookAccess(req)) {
@@ -39,10 +37,9 @@ export async function POST(req: NextRequest) {
       sessionId: body.sessionId ?? '',
     };
 
-    if (buffer.length >= MAX_BUFFER) buffer.shift();
-    buffer.push(record);
+    await saveTrafficEvent(record);
 
-    return NextResponse.json({ ok: true, buffered: buffer.length }, { status: 201 });
+    return NextResponse.json({ ok: true, stored: true }, { status: 201 });
   } catch {
     return NextResponse.json(
       { ok: false, error: 'invalid_payload' },
@@ -56,9 +53,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
+  const recent = await getRecentTrafficEvents(20);
+
   return NextResponse.json({
     ok: true,
-    count: buffer.length,
-    recent: buffer.slice(-20),
+    count: recent.length,
+    recent,
   });
 }
