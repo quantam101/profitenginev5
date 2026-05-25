@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { hasWebhookAccess } from '@/lib/webhookAuth';
 
 interface DispatchPayload {
   dispatchId: string;
@@ -16,6 +17,10 @@ interface DispatchPayload {
 const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
 
 export async function POST(req: NextRequest) {
+  if (!hasWebhookAccess(req)) {
+    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = (await req.json()) as Partial<DispatchPayload>;
 
