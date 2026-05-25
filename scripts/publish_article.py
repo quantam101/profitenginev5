@@ -48,10 +48,25 @@ GH_DIR = os.getenv("GITHUB_CONTENT_DIR", "posts").strip()
 DEVTO_KEY = os.getenv("DEVTO_API_KEY", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 
-DEFAULT_TOPIC = os.getenv(
-    "ARTICLE_TOPIC",
-    "Best Free AI Tools to Build Passive Income Streams in 2026",
-)
+def _default_topic() -> str:
+    """Pick today's topic from the rotation list, or use ARTICLE_TOPIC env override."""
+    override = os.getenv("ARTICLE_TOPIC", "").strip()
+    if override:
+        return override
+    try:
+        # Import sibling module without package install
+        import importlib.util, pathlib
+        spec = importlib.util.spec_from_file_location(
+            "article_topics",
+            pathlib.Path(__file__).parent / "article_topics.py",
+        )
+        mod = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        return mod.pick_topic()
+    except Exception:
+        return "Best Free AI Tools to Build Passive Income Streams in 2026"
+
+DEFAULT_TOPIC = _default_topic()
 
 SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
 passive income, and digital automation. Write high-quality, helpful articles that

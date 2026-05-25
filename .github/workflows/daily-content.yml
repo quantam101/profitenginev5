@@ -1,0 +1,57 @@
+name: Daily Content Publisher
+
+# Publishes one SEO article per day to GitHub Pages (quantam101/content)
+# using Groq's free llama-3.3-70b-versatile model.
+# Zero infrastructure required — runs entirely on GitHub's free CI runners.
+# Topics rotate from scripts/article_topics.py (90-topic cycle).
+
+on:
+  schedule:
+    # 07:05 UTC daily — 5 min after n8n cron on the server (avoids overlap)
+    - cron: '5 7 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Article topic (leave blank for today''s rotation)'
+        required: false
+        default: ''
+
+jobs:
+  publish:
+    name: Generate and publish article
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install httpx
+
+      - name: Publish article
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GITHUB_CONTENT_OWNER: quantam101
+          GITHUB_CONTENT_REPO: content
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_CONTENT_DIR: posts
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          PYTHONUTF8: "1"
+        run: python scripts/publish_article.py
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Content Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
