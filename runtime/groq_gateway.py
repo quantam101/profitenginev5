@@ -1,7 +1,7 @@
 """
 Groq gateway — fast free inference via Groq Cloud API.
 
-Groq processes 700+ tokens/second on llama-3.1-70b-versatile (free tier).
+Groq processes 700+ tokens/second on llama-3.3-70b-versatile (free tier).
 This is ~30-50x faster than Ollama on OCI A1 ARM CPU.
 
 Set GROQ_API_KEY in your server .env to activate this tier.
@@ -26,7 +26,7 @@ def call_groq(system: str, user_message: str, max_tokens: int = 1024) -> Optiona
     if not key:
         return None
 
-    model = os.getenv("GMAOS_GROQ_MODEL", "llama-3.1-70b-versatile")
+    model = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
     timeout = float(os.getenv("GMAOS_GROQ_TIMEOUT", "60"))
 
     try:

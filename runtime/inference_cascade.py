@@ -3,7 +3,7 @@ Shared inference cascade — single entry point for all agent AI calls.
 
 Tier order (lowest cost first):
   1. Ollama local   — free forever, on-device, ~15-30 tok/s on OCI A1 ARM
-  2. Groq Cloud     — free tier, 700+ tok/s, llama-3.1-70b-versatile
+  2. Groq Cloud     — free tier, 700+ tok/s, llama-3.3-70b-versatile
   3. Gemini Flash   — free tier, 1M context, Google AI
   4. Claude         — key-gated, best quality, paid fallback
   5. Stub           — no-model deterministic fallback (never None)
