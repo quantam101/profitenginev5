@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     };
 
     try {
-      await fetch(`${RUNTIME}/execute`, {
+      const res = await fetch(`${RUNTIME}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
         }),
         signal: AbortSignal.timeout(15000),
       });
+      await res.body?.cancel();
     } catch {
       // Runtime may be offline; record is still logged below
     }
