@@ -154,7 +154,7 @@ fi
 log ".env updated."
 
 # ── add deploy public key to authorized_keys ───────────────────────────────
-DEPLOY_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions"
+DEPLOY_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOBHpI9Cb2Nh//Hx3qPPQ6qeY9dZbVDobvh82oiI8e5O profitengine-deploy@github-actions"
 AUTH_KEYS="$HOME/.ssh/authorized_keys"
 mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
 if ! grep -qF "profitengine-deploy@github-actions" "$AUTH_KEYS" 2>/dev/null; then
