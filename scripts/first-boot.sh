@@ -37,6 +37,10 @@ GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:-<your-github-pat>}"
 GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD:-<your-gmail-app-password>}"
 AMAZON_PARTNER_TAG="${AMAZON_PARTNER_TAG:-alreadyhere-20}"
 DEVTO_API_KEY="${DEVTO_API_KEY:-}"
+HASHNODE_API_KEY="${HASHNODE_API_KEY:-}"
+HASHNODE_PUB_ID="${HASHNODE_PUB_ID:-}"
+MEDIUM_API_KEY="${MEDIUM_API_KEY:-}"
+MEDIUM_AUTHOR_ID="${MEDIUM_AUTHOR_ID:-}"
 # ─────────────────────────────────────────────────────────────────
 
 REPO_DIR="/home/ubuntu/profitenginev5"
@@ -103,7 +107,7 @@ log "Running bootstrap-server.sh …"
 cd "$REPO_DIR"
 
 export GROQ_API_KEY GEMINI_API_KEY GITHUB_CONTENT_TOKEN GMAIL_APP_PASSWORD
-export AMAZON_PARTNER_TAG DEVTO_API_KEY
+export AMAZON_PARTNER_TAG DEVTO_API_KEY HASHNODE_API_KEY HASHNODE_PUB_ID MEDIUM_API_KEY MEDIUM_AUTHOR_ID
 
 bash scripts/bootstrap-server.sh
 

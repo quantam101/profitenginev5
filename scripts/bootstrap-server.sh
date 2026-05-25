@@ -111,6 +111,8 @@ upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 [[ -n "${AMAZON_PARTNER_TAG:-}"   ]] && upsert_env AMAZON_PARTNER_TAG     "${AMAZON_PARTNER_TAG}"
 [[ -n "${HASHNODE_API_KEY:-}"     ]] && upsert_env HASHNODE_API_KEY        "${HASHNODE_API_KEY}"
 [[ -n "${HASHNODE_PUB_ID:-}"      ]] && upsert_env HASHNODE_PUBLICATION_ID "${HASHNODE_PUB_ID}"
+[[ -n "${MEDIUM_API_KEY:-}"       ]] && upsert_env MEDIUM_API_KEY          "${MEDIUM_API_KEY}"
+[[ -n "${MEDIUM_AUTHOR_ID:-}"     ]] && upsert_env MEDIUM_AUTHOR_ID        "${MEDIUM_AUTHOR_ID}"
 
 # Auto-generate WEBHOOK_SECRET if not set
 if ! grep -qE "^WEBHOOK_SECRET=.+" "$ENV_FILE"; then

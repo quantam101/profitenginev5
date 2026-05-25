@@ -44,6 +44,8 @@ jobs:
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
         run: |
           # Write secrets to a temp file and scp it to the server
           cat > /tmp/deploy_env.sh <<EOF
@@ -56,6 +58,8 @@ jobs:
           export AMAZON_PARTNER_TAG="${AMAZON_PARTNER_TAG}"
           export HASHNODE_API_KEY="${HASHNODE_API_KEY}"
           export HASHNODE_PUB_ID="${HASHNODE_PUB_ID}"
+          export MEDIUM_API_KEY="${MEDIUM_API_KEY}"
+          export MEDIUM_AUTHOR_ID="${MEDIUM_AUTHOR_ID}"
           EOF
 
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
