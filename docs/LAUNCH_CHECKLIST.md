@@ -5,7 +5,7 @@
 - [x] CI passes
 - [x] Lint passes
 - [x] Typecheck passes
-- [x] Tests pass (20/20)
+- [x] Tests pass (34/34)
 - [x] Security scan passes — no secrets in repo
 - [x] No paid adapters enabled (`max_cost_usd: 0`)
 - [x] No-spend policy active
@@ -19,7 +19,7 @@
 ## Content Pipeline (live ✅)
 
 - [x] GitHub Pages content site live: https://quantam101.github.io/content
-- [x] 11 articles published (10 SEO + 1 welcome)
+- [x] 11+ articles published and growing daily (07:05 UTC auto-publish)
 - [x] Daily auto-publish cron: 07:05 UTC via GitHub Actions (free tier)
 - [x] 90-topic rotation in `scripts/article_topics.py`
 - [x] Affiliate link injection ready (`AFFILIATE_LINKS` env var)
