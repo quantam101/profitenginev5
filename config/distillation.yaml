@@ -1,0 +1,39 @@
+pipeline:
+  id: profitengine-distillation
+  version: 1.0.0
+  mode: deterministic_first
+  fail_closed: true
+
+stages:
+  - id: extract
+    purpose: normalize task input before routing
+    enabled: true
+  - id: compress
+    purpose: reduce context volume while preserving decision facts
+    enabled: true
+  - id: vector_lookup
+    purpose: reuse verified prior outputs before new execution
+    enabled: true
+  - id: complexity_score
+    purpose: select deterministic, local model, or review queue route
+    enabled: true
+  - id: route
+    purpose: dispatch to allowed local execution path
+    enabled: true
+  - id: verify
+    purpose: validate output before memory commit
+    enabled: true
+  - id: audit_commit
+    purpose: persist verified result metadata
+    enabled: true
+
+budgets:
+  max_cost_usd: 0
+  max_context_chars: 8000
+  semantic_match_floor: 0.96
+  local_first: true
+
+parallelism:
+  enabled: true
+  max_workers: 6
+  mode: safe_local
