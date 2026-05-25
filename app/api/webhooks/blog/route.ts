@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { hasWebhookAccess } from '@/lib/webhookAuth';
 
 const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
 
@@ -14,6 +15,10 @@ interface BlogPayload {
 }
 
 export async function POST(req: NextRequest) {
+  if (!hasWebhookAccess(req)) {
+    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = (await req.json()) as Partial<BlogPayload>;
 
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
       });
       await res.body?.cancel();
     } catch {
-      // Runtime may be offline; record is still logged below
+      // Runtime may be offline; record is still returned
     }
 
     return NextResponse.json({ ok: true, record }, { status: 201 });
