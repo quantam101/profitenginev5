@@ -51,7 +51,7 @@ This is the reference deployment target.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/<your-org>/profitenginev5.git
+git clone https://github.com/quantam101/profitenginev5.git
 cd profitenginev5
 
 # 2. Configure environment
@@ -83,7 +83,7 @@ Copy `.env.example` to `.env` and fill in the values below.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `SITE_DOMAIN` | ✅ | — | Your root domain, e.g. `profitengine.example.com` |
+| `SITE_DOMAIN` | ✅ | — | Root domain, e.g. `profitengine.alreadyherellc.com` |
 | `ACME_EMAIL` | ✅ | — | Email for Let's Encrypt certificates |
 | `POSTGRES_DB` | ✅ | — | Database name |
 | `POSTGRES_USER` | ✅ | — | Database user |
@@ -127,14 +127,14 @@ After the pull the inference cascade activates automatically on the next executi
 Point your DNS records to your server IP **before** running the deploy script.
 Caddy handles TLS automatically via Let's Encrypt.
 
-Required DNS records (A records pointing to your server):
+Required DNS records — A records pointing to `129.146.167.73`:
 
 | Subdomain | Points to | Purpose |
 |---|---|---|
-| `profitengine.example.com` | server IP | Marketing site |
-| `app.profitengine.example.com` | server IP | Command center (Next.js) |
-| `api.profitengine.example.com` | server IP | Runtime API (FastAPI) |
-| `status.profitengine.example.com` | server IP | Uptime Kuma monitoring |
+| `profitengine.alreadyherellc.com` | `129.146.167.73` | Marketing site |
+| `app.profitengine.alreadyherellc.com` | `129.146.167.73` | Command center (Next.js) |
+| `api.profitengine.alreadyherellc.com` | `129.146.167.73` | Runtime API (FastAPI) |
+| `status.profitengine.alreadyherellc.com` | `129.146.167.73` | Uptime Kuma monitoring |
 
 n8n is NOT publicly exposed by default (security policy). Enable it in the Caddyfile
 only after verifying `N8N_BASIC_AUTH_ACTIVE=true` is set.

@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
         'Dockerfile.web',
         '.github/workflows/ci.yml',
         'package.json',
+        'package-lock.json',
         '.env.example',
         'vercel.json',
         'app/**/*',
