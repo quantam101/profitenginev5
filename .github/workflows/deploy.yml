@@ -20,7 +20,7 @@ jobs:
     name: Deploy to 129.146.167.73
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -68,7 +68,9 @@ jobs:
           # Clone repo on first deploy if not present, then bootstrap
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=15 \
+            -o ConnectTimeout=30 \
+            -o ServerAliveInterval=60 \
+            -o ServerAliveCountMax=15 \
             opc@129.146.167.73 \
             "set -e
              REPO_DIR=/home/opc/profitenginev5
@@ -78,7 +80,7 @@ jobs:
              cd \$REPO_DIR
              git fetch origin && git checkout main && git reset --hard origin/main
              source /tmp/deploy_env.sh
-             REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -60
+             REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -100
              rm -f /tmp/deploy_env.sh"
 
       - name: Verify health
