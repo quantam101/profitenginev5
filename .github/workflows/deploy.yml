@@ -76,7 +76,7 @@ jobs:
                git clone https://github.com/quantam101/profitenginev5.git \$REPO_DIR
              fi
              cd \$REPO_DIR
-             git pull --ff-only
+             git fetch origin && git checkout main && git reset --hard origin/main
              source /tmp/deploy_env.sh
              REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -60
              rm -f /tmp/deploy_env.sh"
