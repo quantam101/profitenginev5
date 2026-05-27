@@ -13,27 +13,21 @@
 | Health score | ✅ 100/100 | ok=true, all 11 checks pass |
 | Disk usage | ✅ 67% (9.9 GB free) | Was 100% — 3.3 GB build cache cleared |
 | Docker Guard cron | ✅ Installed | Runs every 6h via cron + GitHub Actions |
-| DNS | ❌ NXDOMAIN | **Manual step required** — see below |
-| HTTPS / Caddy cert | ❌ Pending DNS | Auto-provisions once DNS is live |
+| DNS | ✅ Propagated | All 4 A records → 129.146.167.73 |
+| HTTPS / Caddy cert | ✅ Live | TLS certs issued for all 4 subdomains |
 
 ---
 
 ## 🔧 Manual Steps Required (priority order)
 
-### 1. DNS — GoDaddy A Records (BLOCKING for live traffic)
-Go to https://dcc.godaddy.com → profitengine.alreadyherellc.com → DNS
+### 1. DNS — ✅ COMPLETE (2026-05-27)
+All 4 A records set in GoDaddy → 129.146.167.73. TLS certs live.
 
-Add these A records (all pointing to the same IP):
-
-| Name | Type | Value | TTL |
-|------|------|-------|-----|
-| `profitengine` | A | `129.146.167.73` | 600 |
-| `api.profitengine` | A | `129.146.167.73` | 600 |
-| `status.profitengine` | A | `129.146.167.73` | 600 |
-| `app.profitengine` | A | `129.146.167.73` | 600 |
-
-Once DNS propagates (5-30 min), Caddy auto-provisions TLS certs via ACME.
-Verify: `curl https://profitengine.alreadyherellc.com/api/health`
+Live URLs:
+- https://profitengine.alreadyherellc.com        ← main dashboard
+- https://api.profitengine.alreadyherellc.com     ← API
+- https://status.profitengine.alreadyherellc.com  ← Uptime Kuma
+- https://app.profitengine.alreadyherellc.com     ← app
 
 ### 2. Blog Publishing API Keys (revenue-enabling)
 Add these to GitHub Secrets (https://github.com/quantam101/profitenginev5/settings/secrets/actions):
@@ -65,7 +59,7 @@ sudo growfs /dev/mapper/ocivolume-root
 - `AFFILIATE_LINKS` — Optional JSON map of product keywords to URLs (not required, code has defaults)
 
 ### 6. Vercel Env Var (if using Vercel for Next.js edge)
-Add `PROFITENGINE_WEBHOOK_TOKEN=29d6accb030f7d60f1d0503197f9017e74962e18fdee514ea85c0635124f2700`
+Add `PROFITENGINE_WEBHOOK_TOKEN=85e7269ade9a0d356c5d3ad74e7662046f9353ad91aa6a20e2e3b88fce71b29e`
 
 ---
 
@@ -164,14 +158,19 @@ ssh -i ~/profitengine-ed25519 opc@129.146.167.73 \
 
 ---
 
-## 📝 Session 7 Actions (no new commits)
+## 📝 Session 7 Actions — GO LIVE (2026-05-27)
 
 | Action | Result |
 |--------|--------|
-| Checked Downloads folder for API keys | Found `AMAZON_PARTNER_TAG=alreadyhere-20` in COMPLETE_SETUP.sh |
-| Set `AMAZON_PARTNER_TAG` GitHub secret | ✅ Done — `alreadyhere-20` |
-| Checked Bitwarden integration (lifelong-auto-router zip) | Uses BWS CLI — no ProfitEngine keys stored there |
-| Server health verified | All 6 containers up, 9.9 GB free |
+| Set `AMAZON_PARTNER_TAG` secret | ✅ `alreadyhere-20` (found in Downloads) |
+| Set `DEVTO_API_KEY` secret | ✅ `w67nr6yMcqtPC5JHDERCDRxk` |
+| Set `HASHNODE_API_KEY` secret | ✅ `3e71b759-...` (PAT — needs Pro plan) |
+| Set `HASHNODE_PUB_ID` secret | ⚠️ Set to PAT UUID (real pub ID TBD) |
+| Set `MEDIUM_AUTHOR_ID` secret | ✅ `c64d1c9f-e473-408d-8653-f79c43a0e065` |
+| Hashnode API investigation | Now requires Pro plan — script handles failure gracefully |
+| DNS A records (GoDaddy) | ✅ All 4 set → 129.146.167.73 |
+| TLS certs (Caddy/ACME) | ✅ All 4 subdomains provisioned |
+| **PRODUCTION GO-LIVE** | ✅ **2026-05-27** |
 
 ## 📝 Commit History (Session 6)
 
@@ -221,7 +220,7 @@ C:\Users\alrea\profitenginev5\              Project repo
 - ✅ TLS cert renewal (Caddy auto-renews)
 
 ### Needs Your Action
-- ❌ DNS A records (10 minutes, blocks HTTPS)
-- ❌ Blog API keys (enables revenue publishing)
-- ❌ OCI disk expansion (prevents future disk-full crises)
-- ❌ Amazon Associates approval (enables affiliate revenue)
+- ❌ Upstash Redis — console.upstash.com (free, enables cycle/self-improve caching)
+- ❌ Medium API key — requires approval at yourfriends@medium.com
+- ❌ OCI disk expansion 30→50 GB (preventive, not urgent)
+- ❌ Hashnode Pro (optional — API requires paid plan)
