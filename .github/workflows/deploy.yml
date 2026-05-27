@@ -36,7 +36,15 @@ jobs:
           ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key is invalid — re-set SERVER_SSH_KEY secret"; exit 1; }
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Deploy via SSH
+      - name: Test SSH connectivity
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            opc@129.146.167.73 \
+            "echo SSH_OK && hostname && df -h / | tail -1"
+
+      - name: Upload deploy env
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -64,10 +72,13 @@ jobs:
           export MEDIUM_API_KEY="${MEDIUM_API_KEY}"
           export MEDIUM_AUTHOR_ID="${MEDIUM_AUTHOR_ID}"
           EOF
-
+          echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key)"
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             /tmp/deploy_env.sh opc@129.146.167.73:/tmp/deploy_env.sh
+          echo "SCP complete"
 
+      - name: Deploy via SSH
+        run: |
           # Clone repo on first deploy if not present, then bootstrap
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
