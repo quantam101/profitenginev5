@@ -1,5 +1,5 @@
 # ProfitEngine v5 — Master Reference Document
-**Last updated:** 2026-05-27 (Session 6)
+**Last updated:** 2026-05-27 (Session 7)
 
 ---
 
@@ -11,7 +11,7 @@
 | GitHub Actions deploy | ✅ Working | ED25519 SSH key fixed |
 | Server containers | ✅ All 6 running | web, runtime, caddy, n8n, postgres, uptime-kuma |
 | Health score | ✅ 100/100 | ok=true, all 11 checks pass |
-| Disk usage | ✅ 64% (10 GB free) | Was 100% — 3.3 GB build cache cleared |
+| Disk usage | ✅ 67% (9.9 GB free) | Was 100% — 3.3 GB build cache cleared |
 | Docker Guard cron | ✅ Installed | Runs every 6h via cron + GitHub Actions |
 | DNS | ❌ NXDOMAIN | **Manual step required** — see below |
 | HTTPS / Caddy cert | ❌ Pending DNS | Auto-provisions once DNS is live |
@@ -61,9 +61,8 @@ sudo growfs /dev/mapper/ocivolume-root
 ```
 
 ### 5. Amazon Affiliate
-After Amazon Associates approval:
-- `AMAZON_PARTNER_TAG` — your-tag-20
-- `AFFILIATE_LINKS` — JSON map of product keywords to URLs
+`AMAZON_PARTNER_TAG=alreadyhere-20` is already set ✅ (found in Downloads/COMPLETE_SETUP.sh)
+- `AFFILIATE_LINKS` — Optional JSON map of product keywords to URLs (not required, code has defaults)
 
 ### 6. Vercel Env Var (if using Vercel for Next.js edge)
 Add `PROFITENGINE_WEBHOOK_TOKEN=29d6accb030f7d60f1d0503197f9017e74962e18fdee514ea85c0635124f2700`
@@ -91,6 +90,7 @@ C:\Users\alrea\profitengine-ed25519.pub    # public key
 | Secret | Status | Updated |
 |--------|--------|---------|
 | `SERVER_SSH_KEY` | ✅ Set | 2026-05-27 (ED25519, base64-encoded) |
+| `AMAZON_PARTNER_TAG` | ✅ Set | 2026-05-27 (`alreadyhere-20`) |
 | `GROQ_API_KEY` | ✅ Set | 2026-05-24 |
 | `GEMINI_API_KEY` | ✅ Set | 2026-05-26 |
 | `GMAIL_APP_PASSWORD` | ✅ Set | 2026-05-26 |
@@ -104,8 +104,8 @@ C:\Users\alrea\profitengine-ed25519.pub    # public key
 | `UPSTASH_REDIS_REST_URL` | ❌ Missing | Free at console.upstash.com |
 | `UPSTASH_REDIS_REST_TOKEN` | ❌ Missing | Free at console.upstash.com |
 | `ANTHROPIC_API_KEY` | ❌ Missing | Optional (Groq/Gemini are primary) |
-| `AFFILIATE_LINKS` | ❌ Missing | After Amazon Associates approval |
-| `AMAZON_PARTNER_TAG` | ❌ Missing | After Amazon Associates approval |
+| `AFFILIATE_LINKS` | ❌ Missing (optional) | Custom link map — code has defaults built-in |
+| `AMAZON_PARTNER_TAG` | ✅ Set | `alreadyhere-20` (found in Downloads/COMPLETE_SETUP.sh) |
 
 ---
 
@@ -149,7 +149,7 @@ gh secret set DEVTO_API_KEY --body "your-key-here" -R quantam101/profitenginev5
 
 ```
 Server: 129.146.167.73
-Disk: 64% used (10 GB free / 30 GB total)
+Disk: 67% used (9.9 GB free / 30 GB total)
 Containers: caddy, web, runtime (healthy), n8n, postgres, uptime-kuma (healthy)
 Health score: 100/100
 Build cache: Cleared — 3.3 GB freed
@@ -163,6 +163,15 @@ ssh -i ~/profitengine-ed25519 opc@129.146.167.73 \
 ```
 
 ---
+
+## 📝 Session 7 Actions (no new commits)
+
+| Action | Result |
+|--------|--------|
+| Checked Downloads folder for API keys | Found `AMAZON_PARTNER_TAG=alreadyhere-20` in COMPLETE_SETUP.sh |
+| Set `AMAZON_PARTNER_TAG` GitHub secret | ✅ Done — `alreadyhere-20` |
+| Checked Bitwarden integration (lifelong-auto-router zip) | Uses BWS CLI — no ProfitEngine keys stored there |
+| Server health verified | All 6 containers up, 9.9 GB free |
 
 ## 📝 Commit History (Session 6)
 
