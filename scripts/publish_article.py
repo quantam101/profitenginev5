@@ -223,17 +223,25 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     title = article.get("title", "Untitled")
     meta = article.get("meta_description", "")
     body = article.get("body", "")
-    tags: List[str] = article.get("tags", [])[:4]
+    raw_tags: List[str] = article.get("tags", [])
+    # Dev.to requires: lowercase, alphanumeric only, max 20 chars, no spaces
+    clean_tags: List[str] = []
+    for t in raw_tags:
+        sanitized = re.sub(r'[^a-z0-9]', '', t.lower().replace(' ', '').replace('-', ''))[:20]
+        if sanitized and sanitized not in clean_tags:
+            clean_tags.append(sanitized)
+    tags = clean_tags[:4]
     body_markdown = f"> {meta}\n\n{body}" if meta else body
-    payload = {
+    payload: Dict[str, Any] = {
         "article": {
             "title": title,
             "published": True,
             "body_markdown": body_markdown,
             "tags": tags,
-            "canonical_url": canonical_url,
         }
     }
+    if canonical_url:
+        payload["article"]["canonical_url"] = canonical_url
     r = httpx.post(
         f"{DEVTO_BASE}/articles",
         headers={"api-key": DEVTO_KEY, "Content-Type": "application/json"},
