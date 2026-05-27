@@ -1,0 +1,96 @@
+name: Run Profit Cycle
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: profit-cycle
+  cancel-in-progress: false
+
+jobs:
+  cycle:
+    name: Execute sovereign cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run cycle
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          GMAOS_LOCAL_MODEL_ENABLED: 'false'
+          GITHUB_CONTENT_OWNER: quantam101
+          GITHUB_CONTENT_REPO: content
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_CONTENT_DIR: posts
+        run: |
+          python -c "
+          import asyncio, json, os, time, hashlib, datetime
+          from runtime.sovereign_core import SovereignAutomationCore
+          from runtime.cycle_log import CycleLog, CycleRecord
+
+          # Run one sovereign cycle
+          core = SovereignAutomationCore()
+          start = time.time()
+          result = core.execute(
+              system_declaration='Registry-governed automated profit cycle.',
+              dynamic_context='',
+              objective='Run automated profit cycle: scan trends, generate content, seo-optimize, publish, and record results.',
+              embedding_vector=[0.001] * 384,
+              namespace='cycle',
+              actor='github-actions-cron',
+              agent_id='sovereign-orchestrator',
+          )
+          duration_ms = int((time.time() - start) * 1000)
+          now = time.time()
+          iso = datetime.datetime.fromtimestamp(now, tz=datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+          record = CycleRecord(
+              cycle_id=hashlib.sha256(f'{now}'.encode()).hexdigest()[:16],
+              timestamp=now,
+              iso_timestamp=iso,
+              agent_id='sovereign-orchestrator',
+              route_tier=result.route_tier,
+              objective_excerpt='Run automated profit cycle'[:120],
+              output_excerpt=result.output[:200],
+              status=result.status,
+              duration_ms=duration_ms,
+              cached=result.cached,
+              details=result.details,
+          )
+          print(f'Cycle complete: {record.status} in {duration_ms}ms via {record.route_tier}')
+          "
+
+      - name: Push cycle data to Redis
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: |
+          python scripts/push_cycles_to_redis.py
