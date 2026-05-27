@@ -22,18 +22,16 @@ OCI GitHub Actions CI/CD pipeline — fully working end-to-end.
 ## SSH Access
 
 ```bash
-# From WSL2 — deploy key at /tmp/profitengine_deploy
-ssh -i /tmp/profitengine_deploy opc@129.146.167.73
-
-# If /tmp/profitengine_deploy is gone (WSL restart):
-# Private key stored in GitHub secret SERVER_SSH_KEY (base64-encoded)
-# Decode: base64 -d <<< "$SERVER_SSH_KEY" > /tmp/profitengine_deploy && chmod 600 /tmp/profitengine_deploy
+# New ED25519 deploy key (rotated Session 4 — 2026-05-27)
+ssh -i C:\Users\alrea\profitengine-ed25519 opc@129.146.167.73
 ```
 
-Deploy public key:
+**Current deploy public key (fingerprint: SHA256:lEzI1h1lTjWqNqjJmtO2WQQ8l/D09oAqFzOyeVPAhLM):**
 ```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOBHpI9Cb2Nh//Hx3qPPQ6qeY9dZbVDobvh82oiI8e5O profitengine-deploy@github-actions
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJujLyE+xXWJn4cJ9bVTeLmWb2qzUWfTLjnd10GdNGKt profitengine-deploy@github-actions
 ```
+
+**Private key files:** `C:\Users\alrea\profitengine-ed25519` (private), `C:\Users\alrea\profitengine-ed25519.pub` (public)
 
 ---
 
@@ -85,36 +83,65 @@ Running containers:
 
 ---
 
+## 🚨 URGENT: Deploy SSH Key Recovery (Session 4)
+
+**Problem:** Both the old RSA key and the oracle PEM key are rejected by the server.
+The server's `authorized_keys` no longer contains the deploy key.
+A new ED25519 key pair was generated and the code was updated.
+
+**Status after Session 4:** Deploys will fail until BOTH steps below are done.
+
+### Step 1 — Add public key to server via OCI Serial Console
+
+1. Go to: https://cloud.oracle.com → **Compute → Instances**
+2. Click on the **profitengine-server** instance
+3. Under **Resources**, click **Console connection**
+4. Click **Create local connection** → **Connect** (launch serial console)
+5. Once logged in as `opc`, run:
+```bash
+cat >> ~/.ssh/authorized_keys << 'EOF'
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJujLyE+xXWJn4cJ9bVTeLmWb2qzUWfTLjnd10GdNGKt profitengine-deploy@github-actions
+EOF
+chmod 600 ~/.ssh/authorized_keys
+cat ~/.ssh/authorized_keys   # verify it's there
+```
+
+### Step 2 — Set SERVER_SSH_KEY secret to new ED25519 private key
+
+**Do NOT use PowerShell pipe to gh.exe — it corrupts the base64.**
+Use the Node.js script (already written to `C:\Users\alrea\set-secret-ed25519.mjs`):
+
+```powershell
+# Run from PowerShell with your GitHub PAT
+cd "C:\Users\alrea\profitenginev5"
+npm install tweetsodium --no-save
+$env:GH_TOKEN = "gho_..."   # your GitHub PAT from password manager
+node "C:\Users\alrea\set-secret-ed25519.mjs"
+# Should print: Status: 204   SUCCESS — SERVER_SSH_KEY updated
+```
+
+### Step 3 — Re-trigger deploy
+
+After both steps above:
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" workflow run deploy.yml --repo quantam101/profitenginev5
+```
+
+---
+
 ## How to Re-Set SERVER_SSH_KEY Secret (if it breaks again)
 
 **Do NOT use PowerShell pipe to gh.exe — it corrupts the base64.**
-Use the Node.js script below which calls the GitHub API directly:
 
 ```powershell
-# 1. Get the base64 key from WSL
-wsl bash -c "base64 -w 0 /tmp/profitengine_deploy > /tmp/b64key.txt"
+# 1. Generate new ED25519 key in WSL
+wsl bash -c "ssh-keygen -t ed25519 -C 'profitengine-deploy@github-actions' -f /tmp/new_deploy -N '' && cp /tmp/new_deploy /mnt/c/Users/alrea/profitengine-ed25519 && cp /tmp/new_deploy.pub /mnt/c/Users/alrea/profitengine-ed25519.pub"
 
-# 2. Run the encryption script (requires tweetsodium)
+# 2. Run the encryption script
 cd C:\Users\alrea\profitenginev5
 npm install tweetsodium --no-save
-node set-secret.mjs   # script is in .gitignore — recreate if needed
-```
-
-The set-secret.mjs template:
-```js
-import { createRequire } from 'module';
-import https from 'https';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
-const sodium = require(path.join(__dirname, 'node_modules', 'tweetsodium'));
-const TOKEN = '<your-github-pat>';
-const REPO = 'quantam101/profitenginev5';
-const b64Key = fs.readFileSync('\\\\wsl$\\Ubuntu\\tmp\\b64key.txt', 'utf8').trim();
-// ... (get public key, encrypt with sodium.seal, PUT to GitHub API)
-// Full script: https://github.com/quantam101/profitenginev5/actions for reference
+$env:GH_TOKEN = "gho_..."
+node "C:\Users\alrea\set-secret-ed25519.mjs"
 ```
 
 ---
