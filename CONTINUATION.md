@@ -1,5 +1,5 @@
 # ProfitEngine v5 — Master Reference Document
-**Last updated:** 2026-05-27 (Session 7)
+**Last updated:** 2026-05-27 (Session 7 — COMPLETE)
 
 ---
 
@@ -15,6 +15,8 @@
 | Docker Guard cron | ✅ Installed | Runs every 6h via cron + GitHub Actions |
 | DNS | ✅ Propagated | All 4 A records → 129.146.167.73 |
 | HTTPS / Caddy cert | ✅ Live | TLS certs issued for all 4 subdomains |
+| Content pipeline | ✅ LIVE | GitHub Pages + Dev.to publishing daily |
+| Dev.to publishing | ✅ Working | Tag sanitization fix (commit 516a841) |
 
 ---
 
@@ -165,12 +167,20 @@ ssh -i ~/profitengine-ed25519 opc@129.146.167.73 \
 | Set `AMAZON_PARTNER_TAG` secret | ✅ `alreadyhere-20` (found in Downloads) |
 | Set `DEVTO_API_KEY` secret | ✅ `w67nr6yMcqtPC5JHDERCDRxk` |
 | Set `HASHNODE_API_KEY` secret | ✅ `3e71b759-...` (PAT — needs Pro plan) |
-| Set `HASHNODE_PUB_ID` secret | ⚠️ Set to PAT UUID (real pub ID TBD) |
+| Set `HASHNODE_PUB_ID` secret | ⚠️ Set to PAT UUID (real pub ID TBD after Pro upgrade) |
 | Set `MEDIUM_AUTHOR_ID` secret | ✅ `c64d1c9f-e473-408d-8653-f79c43a0e065` |
 | Hashnode API investigation | Now requires Pro plan — script handles failure gracefully |
+| Fix CONTENT_REPO_TOKEN (expired) | ✅ Updated to working OAuth token |
+| Fix Dev.to 422 (tag sanitization) | ✅ Commit `516a841` — strips spaces/special chars |
 | DNS A records (GoDaddy) | ✅ All 4 set → 129.146.167.73 |
 | TLS certs (Caddy/ACME) | ✅ All 4 subdomains provisioned |
+| End-to-end pipeline smoke test | ✅ GitHub Pages + Dev.to — article live |
 | **PRODUCTION GO-LIVE** | ✅ **2026-05-27** |
+
+### First live article (published 2026-05-27):
+- **Title:** "Building Recurring Revenue as a Freelancer: A Path to Financial Stability"
+- **GitHub Pages:** `https://quantam101.github.io/content/posts/2026-05-27-building-recurring-revenue-as-a-freelancer.html`
+- **Dev.to:** `https://dev.to/already_herellc_c954583f/building-recurring-revenue-as-a-freelancer-a-path-to-financial-stability-11kn`
 
 ## 📝 Commit History (Session 6)
 
@@ -220,7 +230,12 @@ C:\Users\alrea\profitenginev5\              Project repo
 - ✅ TLS cert renewal (Caddy auto-renews)
 
 ### Needs Your Action
-- ❌ Upstash Redis — console.upstash.com (free, enables cycle/self-improve caching)
-- ❌ Medium API key — requires approval at yourfriends@medium.com
-- ❌ OCI disk expansion 30→50 GB (preventive, not urgent)
-- ❌ Hashnode Pro (optional — API requires paid plan)
+- ❌ **Upstash Redis** — console.upstash.com (free, enables cycle/self-improve caching)
+  - Create DB → name: `profitenginev5`, region: `us-east-1` → REST API tab → copy URL + Token
+  - Set as: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` GitHub secrets
+- ❌ **Medium API key** — email draft ready, send to yourfriends@medium.com requesting developer access
+- ❌ **OCI disk expansion** 30→50 GB (preventive, not urgent)
+  - OCI Console → Compute → Boot Volumes → profitengine-server → Edit → Resize → 50 GB
+  - Then SSH: `sudo growfs /dev/mapper/ocivolume-root`
+- ❌ **Hashnode Pro** (optional ~$9/mo) — upgrade at hashnode.com → Blog Dashboard → Billing
+  - After upgrade, get real pub ID (24-char hex from dashboard URL) and update `HASHNODE_PUB_ID` secret
