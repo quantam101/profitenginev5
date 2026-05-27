@@ -20,6 +20,7 @@ COPY --from=build /app/public ./public
 # Config files required by the health-check endpoint (buildHealthPayload reads these)
 COPY --from=build /app/eaos.config.yaml ./eaos.config.yaml
 COPY --from=build /app/vercel.json ./vercel.json
+COPY --from=build /app/app/api/health ./app/api/health
 COPY --from=build /app/agents ./agents
 COPY --from=build /app/connectors ./connectors
 COPY --from=build /app/observability ./observability
