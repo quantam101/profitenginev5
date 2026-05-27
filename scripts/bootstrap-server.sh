@@ -177,32 +177,39 @@ git pull --ff-only || {
   git reset --hard origin/main
 }
 
+# ── free build cache before rebuilding (prevents disk-full failures) ──────
+log "Pruning Docker build cache …"
+docker buildx prune -af --filter type=exec.cachemount 2>/dev/null || true
+# Keep at least 4 GB free; if less, prune all build + dangling images
+AVAIL_KB=$(df / | awk 'NR==2{print $4}')
+if [[ "${AVAIL_KB:-0}" -lt 4194304 ]]; then
+  warn "Disk below 4 GB free (${AVAIL_KB} KB) — running full prune …"
+  docker buildx prune -af 2>/dev/null || true
+  docker image prune -af 2>/dev/null || true
+fi
+
 # ── rebuild and restart containers ────────────────────────────────────────
 log "Rebuilding Docker images …"
 docker compose build web runtime
 
-log "Restarting services …"
+log "Restarting services (ollama is opt-in; use --profile local-llm to enable) …"
 docker compose up -d --remove-orphans
 
 # ── wait for services ─────────────────────────────────────────────────────
 log "Waiting for runtime API …"
 for i in $(seq 1 30); do
-  docker compose exec -T runtime curl -sf http://localhost:8080/health > /dev/null 2>&1 && \
-    { log "Runtime healthy."; break; } || sleep 2
+  # runtime has curl; web (Alpine Next.js) does not
+  docker compose exec -T runtime python3 -c \
+    "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8080/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
+    > /dev/null 2>&1 && { log "Runtime healthy."; break; } || sleep 2
 done
 
 log "Waiting for web (Next.js) …"
 for i in $(seq 1 30); do
-  docker compose exec -T web curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && \
-    { log "Web healthy."; break; } || sleep 2
+  docker compose exec -T runtime python3 -c \
+    "import urllib.request,sys; r=urllib.request.urlopen('http://web:3000/api/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
+    > /dev/null 2>&1 && { log "Web healthy."; break; } || sleep 2
 done
-
-# ── pull Ollama model if missing ───────────────────────────────────────────
-MODEL="${GMAOS_LOCAL_MODEL_NAME:-llama3.1:8b}"
-if ! docker compose exec -T ollama ollama list 2>/dev/null | grep -q "${MODEL%%:*}"; then
-  log "Pulling Ollama model $MODEL in background …"
-  docker compose exec -d ollama ollama pull "$MODEL" || warn "Model pull failed — run manually later."
-fi
 
 log ""
 log "╔═══════════════════════════════════════════════════════════╗"

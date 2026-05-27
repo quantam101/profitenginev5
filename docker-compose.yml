@@ -89,6 +89,11 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
+    # Profile "local-llm": not started on regular deploys (saves 10+ GB disk).
+    # To start manually: docker compose --profile local-llm up -d ollama
+    # Then pull a model: docker compose exec ollama ollama pull llama3.1:8b
+    profiles:
+      - local-llm
     expose:
       - "11434"
     volumes:

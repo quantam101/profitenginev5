@@ -89,7 +89,13 @@ jobs:
       - name: Verify health
         run: |
           sleep 10
-          STATUS=$(curl -sf --max-time 15 http://129.146.167.73:3000/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null || echo "unreachable")
+          # Port 3000 is Docker-internal only; probe via Caddy on :80 with correct Host header
+          # (Caddy will 308-redirect to HTTPS when DNS is live; fall back to direct check)
+          STATUS=$(curl -sf --max-time 15 \
+            -H "Host: profitengine.alreadyherellc.com" \
+            http://129.146.167.73/api/health \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null \
+            || echo "unreachable")
           echo "Health check: $STATUS"
           if [[ "$STATUS" == "fail" ]]; then
             echo "::warning::Health check returned ok=false — check server logs"
