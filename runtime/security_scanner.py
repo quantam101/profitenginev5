@@ -50,6 +50,8 @@ _IGNORED_RELATIVE = {
     ".env.example",
     "DEPLOYMENT.md",
     ".github/workflows/deploy.yml",
+    ".github/workflows/cycle.yml",
+    ".github/workflows/self-improve.yml",
     "scripts/bootstrap-server.sh",
     "scripts/secrets.env.example",
     "docs/LAUNCH_CHECKLIST.md",
