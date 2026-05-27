@@ -76,7 +76,24 @@ class SovereignAutomationCore:
         )
 
         clean_system, clean_context = self.minifier.minify(system_declaration, dynamic_context)
-        self.audit.info(actor, "manifest_minified", {"system_chars": len(clean_system), "context_chars": len(clean_context)}, correlation_id)
+        manifest_tokens = self.minifier.token_count(clean_system, clean_context)
+        self.audit.info(
+            actor, "manifest_minified",
+            {
+                "system_chars":    len(clean_system),
+                "context_chars":   len(clean_context),
+                "token_est":       manifest_tokens,
+            },
+            correlation_id,
+        )
+
+        # Opportunistically prune expired cache entries (fast, amortised cost)
+        try:
+            pruned = self.cache.prune_expired(namespace=namespace)
+            if pruned:
+                self.audit.info(actor, "cache_pruned", {"expired_records": pruned}, correlation_id)
+        except Exception:
+            pass
 
         cache_hit = self.cache.search(embedding_vector, namespace=namespace)
         if cache_hit:
@@ -209,7 +226,7 @@ class SovereignAutomationCore:
                 status=result.status,
                 duration_ms=int((ts - started_at) * 1000),
                 cached=result.cached,
-                details={k: v for k, v in result.details.items() if k in ("record_id", "agent_metrics", "confidence")},
+                details={k: v for k, v in result.details.items() if k in ("record_id", "agent_metrics", "confidence", "complexity")},
             ))
         except Exception:
             # Cycle logging must never crash a live execution.
