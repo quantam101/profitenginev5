@@ -11,6 +11,7 @@ env:
   # Image names follow: ghcr.io/<owner>/<repo>-web  and  ghcr.io/<owner>/<repo>-runtime
   IMAGE_WEB:     ghcr.io/${{ github.repository }}-web
   IMAGE_RUNTIME: ghcr.io/${{ github.repository }}-runtime
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ── 1. Run the full CI suite before releasing ──────────────────────────────
