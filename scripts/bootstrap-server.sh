@@ -154,15 +154,19 @@ fi
 log ".env updated."
 
 # ── add deploy public key to authorized_keys ───────────────────────────────
-DEPLOY_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOBHpI9Cb2Nh//Hx3qPPQ6qeY9dZbVDobvh82oiI8e5O profitengine-deploy@github-actions"
+# This key fingerprint: SHA256:lEzI1h1lTjWqNqjJmtO2WQQ8l/D09oAqFzOyeVPAhLM
+DEPLOY_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJujLyE+xXWJn4cJ9bVTeLmWb2qzUWfTLjnd10GdNGKt profitengine-deploy@github-actions"
 AUTH_KEYS="$HOME/.ssh/authorized_keys"
 mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-if ! grep -qF "profitengine-deploy@github-actions" "$AUTH_KEYS" 2>/dev/null; then
-  echo "$DEPLOY_PUB_KEY" >> "$AUTH_KEYS"
-  chmod 600 "$AUTH_KEYS"
-  log "Added GitHub Actions deploy key to $AUTH_KEYS"
+touch "$AUTH_KEYS" && chmod 600 "$AUTH_KEYS"
+# Use fingerprint-based check so key rotation doesn't leave orphaned entries
+if grep -qF "AAAAC3NzaC1lZDI1NTE5AAAAIJujLyE+xXWJn4cJ9bVTeLmWb2qzUWfTLjnd10GdNGKt" "$AUTH_KEYS" 2>/dev/null; then
+  log "Deploy key already present in $AUTH_KEYS — skipping."
 else
-  log "Deploy key already present in authorized_keys — skipping."
+  # Remove any stale deploy keys with the same comment, add the current one
+  sed -i '/profitengine-deploy@github-actions/d' "$AUTH_KEYS" 2>/dev/null || true
+  echo "$DEPLOY_PUB_KEY" >> "$AUTH_KEYS"
+  log "Added GitHub Actions deploy key to $AUTH_KEYS"
 fi
 
 # ── pull latest code ───────────────────────────────────────────────────────

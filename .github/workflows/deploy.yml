@@ -29,8 +29,11 @@ jobs:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d '\r\n' | base64 -d > ~/.ssh/deploy_key
+          # SERVER_SSH_KEY is the base64-encoded OpenSSH private key (ED25519)
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # Validate the key loaded correctly
+          ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key is invalid — re-set SERVER_SSH_KEY secret"; exit 1; }
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy via SSH
