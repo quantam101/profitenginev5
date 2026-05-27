@@ -1,0 +1,137 @@
+name: Docker Guard — Disk & Container Health
+
+# Runs every 6 hours via SSH to the OCI server.
+# Collects distilled health output from scripts/docker-guard.sh,
+# then passes it to the docker-guard Python agent for AI analysis.
+#
+# Requires: SERVER_SSH_KEY GitHub secret (base64-encoded ED25519 private key)
+#
+# Manual trigger: Actions → "Docker Guard" → Run workflow
+
+on:
+  schedule:
+    - cron: '30 */6 * * *'   # 00:30, 06:30, 12:30, 18:30 UTC (offset from deploy)
+  workflow_dispatch:
+    inputs:
+      aggressive:
+        description: 'Run aggressive prune regardless of disk level'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: docker-guard
+  cancel-in-progress: true   # newer guard run supersedes in-flight one
+
+jobs:
+  guard:
+    name: Guard 129.146.167.73
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key invalid"; exit 1; }
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Run docker-guard on server
+        id: guard
+        run: |
+          GUARD_OUTPUT=$(ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=10 \
+            opc@129.146.167.73 \
+            "REPO_DIR=/home/opc/profitenginev5 \
+             AGGRESSIVE=${{ github.event.inputs.aggressive || 'false' }} \
+             bash /home/opc/profitenginev5/scripts/docker-guard.sh 2>&1" || true)
+
+          # Write to file for next step (avoids shell escaping issues)
+          echo "$GUARD_OUTPUT" > /tmp/guard-output.txt
+          echo "Guard output (${#GUARD_OUTPUT} chars):"
+          echo "$GUARD_OUTPUT"
+
+          # Extract disk metrics for step summary
+          AVAIL=$(echo "$GUARD_OUTPUT" | grep "event=disk_snapshot" | grep -oP "avail_gb=\K[\d.]+" || echo "?")
+          USED=$(echo "$GUARD_OUTPUT" | grep "event=disk_snapshot" | grep -oP "used_pct=\K\d+" || echo "?")
+          FREED=$(echo "$GUARD_OUTPUT" | grep "event=disk_after" | grep -oP "freed_mb=\K-?\d+" || echo "0")
+          STATUS=$(echo "$GUARD_OUTPUT" | grep "event=guard_complete" | grep -oP "status=\K\w+" || echo "error")
+          UNHEALTHY=$(echo "$GUARD_OUTPUT" | grep "level=warn" | grep "event=unhealthy" || echo "")
+
+          echo "avail_gb=$AVAIL"     >> "$GITHUB_OUTPUT"
+          echo "used_pct=$USED"      >> "$GITHUB_OUTPUT"
+          echo "freed_mb=$FREED"     >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS"      >> "$GITHUB_OUTPUT"
+          echo "has_unhealthy=$([ -n '$UNHEALTHY' ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+          # Annotate if disk is low
+          if [[ "$USED" -gt 85 ]] 2>/dev/null; then
+            echo "::warning::Disk usage at ${USED}% — ${AVAIL} GB free. Consider expanding boot volume."
+          fi
+          if [[ "$USED" -gt 93 ]] 2>/dev/null; then
+            echo "::error::Disk usage CRITICAL at ${USED}% — only ${AVAIL} GB free!"
+          fi
+          [[ -n "$UNHEALTHY" ]] && echo "::warning::Unhealthy containers detected: $UNHEALTHY"
+
+      - name: Analyse with docker-guard agent (distilled AI analysis)
+        if: always()
+        run: |
+          pip install -q groq google-generativeai 2>/dev/null || true
+          pip install -r requirements.txt -q 2>/dev/null || true
+
+          GUARD_OUTPUT=$(cat /tmp/guard-output.txt)
+          python3 - <<'PYEOF'
+          import os, sys
+
+          guard_out = open("/tmp/guard-output.txt").read()
+          if not guard_out.strip():
+              print("No guard output to analyze.")
+              sys.exit(0)
+
+          try:
+              from runtime.agent_impls.docker_guard import Agent
+              agent = Agent()
+              result = agent.run(
+                  objective="analyze docker and disk health on ProfitEngine server",
+                  context=guard_out,
+                  connectors=[],
+              )
+              print("=== Docker Guard AI Analysis ===")
+              print(result.output)
+              print()
+              print("Metrics:", result.metrics)
+          except Exception as e:
+              print(f"Agent analysis skipped: {e}")
+              # Non-fatal — raw guard output was already printed above
+          PYEOF
+        env:
+          GROQ_API_KEY:   ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAOS_LOCAL_MODEL_ENABLED: 'false'
+
+      - name: Write step summary
+        if: always()
+        run: |
+          {
+            echo "## Docker Guard Report — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Disk free | ${{ steps.guard.outputs.avail_gb }} GB |"
+            echo "| Disk used | ${{ steps.guard.outputs.used_pct }}% |"
+            echo "| Freed this run | ${{ steps.guard.outputs.freed_mb }} MB |"
+            echo "| Guard status | ${{ steps.guard.outputs.status }} |"
+            echo ""
+            echo "### Raw Guard Output"
+            echo '```'
+            cat /tmp/guard-output.txt 2>/dev/null | head -50 || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

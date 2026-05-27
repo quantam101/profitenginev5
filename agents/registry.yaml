@@ -79,3 +79,19 @@ agents:
     forbidden_actions: [paid_api_call, production_deploy]
     approval_required_actions: []
     verifier_required: false
+
+  # ── Infrastructure health agent ──────────────────────────────────────────
+  - id: docker-guard
+    name: Docker Guard Agent
+    version: 0.1.0
+    mission: >
+      Analyze distilled Docker/Ollama health reports from the server.
+      Identifies disk pressure, unhealthy containers, and oversized Ollama
+      models, then produces a structured remediation plan using the inference
+      cascade (Ollama→Groq→stub, zero cost). Does not call Docker directly —
+      processes pre-collected output from scripts/docker-guard.sh.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, repo_merge]
+    approval_required_actions: []
+    verifier_required: false
