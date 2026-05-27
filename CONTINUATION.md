@@ -85,6 +85,40 @@ Running containers:
 
 ---
 
+## How to Re-Set SERVER_SSH_KEY Secret (if it breaks again)
+
+**Do NOT use PowerShell pipe to gh.exe — it corrupts the base64.**
+Use the Node.js script below which calls the GitHub API directly:
+
+```powershell
+# 1. Get the base64 key from WSL
+wsl bash -c "base64 -w 0 /tmp/profitengine_deploy > /tmp/b64key.txt"
+
+# 2. Run the encryption script (requires tweetsodium)
+cd C:\Users\alrea\profitenginev5
+npm install tweetsodium --no-save
+node set-secret.mjs   # script is in .gitignore — recreate if needed
+```
+
+The set-secret.mjs template:
+```js
+import { createRequire } from 'module';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const sodium = require(path.join(__dirname, 'node_modules', 'tweetsodium'));
+const TOKEN = '<your-github-pat>';
+const REPO = 'quantam101/profitenginev5';
+const b64Key = fs.readFileSync('\\\\wsl$\\Ubuntu\\tmp\\b64key.txt', 'utf8').trim();
+// ... (get public key, encrypt with sodium.seal, PUT to GitHub API)
+// Full script: https://github.com/quantam101/profitenginev5/actions for reference
+```
+
+---
+
 ## Remaining Manual Steps (priority order)
 
 ### 1 — Vercel Webhook Token (5 min)
