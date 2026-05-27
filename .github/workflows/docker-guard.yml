@@ -70,16 +70,17 @@ jobs:
           echo "used_pct=$USED"      >> "$GITHUB_OUTPUT"
           echo "freed_mb=$FREED"     >> "$GITHUB_OUTPUT"
           echo "status=$STATUS"      >> "$GITHUB_OUTPUT"
-          echo "has_unhealthy=$([ -n '$UNHEALTHY' ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_unhealthy=$([ -n "${UNHEALTHY}" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-          # Annotate if disk is low
-          if [[ "$USED" -gt 85 ]] 2>/dev/null; then
+          # Annotate if disk is low (guard against non-numeric USED value)
+          if [[ "$USED" =~ ^[0-9]+$ ]] && [[ "$USED" -gt 93 ]]; then
+            echo "::error::Disk usage CRITICAL at ${USED}% — only ${AVAIL} GB free!"
+          elif [[ "$USED" =~ ^[0-9]+$ ]] && [[ "$USED" -gt 85 ]]; then
             echo "::warning::Disk usage at ${USED}% — ${AVAIL} GB free. Consider expanding boot volume."
           fi
-          if [[ "$USED" -gt 93 ]] 2>/dev/null; then
-            echo "::error::Disk usage CRITICAL at ${USED}% — only ${AVAIL} GB free!"
+          if [[ -n "$UNHEALTHY" ]]; then
+            echo "::warning::Unhealthy containers detected: $UNHEALTHY"
           fi
-          [[ -n "$UNHEALTHY" ]] && echo "::warning::Unhealthy containers detected: $UNHEALTHY"
 
       - name: Analyse with docker-guard agent (distilled AI analysis)
         if: always()

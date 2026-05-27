@@ -64,12 +64,15 @@ if [[ -f "$COMPOSE_FILE" ]]; then
   RUNNING_SERVICES="${RUNNING_SERVICES#,}"
   UNHEALTHY_SERVICES="${UNHEALTHY_SERVICES#,}"
   EXIT_SERVICES="${EXIT_SERVICES#,}"
-  RUNNING_COUNT=$(echo "$RUNNING_SERVICES" | tr ',' '\n' | grep -c . || echo 0)
-  UNHEALTHY_COUNT=$(echo "$UNHEALTHY_SERVICES" | tr ',' '\n' | grep -c . || echo 0)
+  # Count CSV items safely — avoids the grep-c/grep-exit-1 double-output bug
+  _csv_count() { [[ -z "$1" ]] && echo 0 || { echo "$1" | tr -cd ',' | wc -c | awk '{print $1+1}'; }; }
+  RUNNING_COUNT=$(_csv_count "$RUNNING_SERVICES")
+  UNHEALTHY_COUNT=$(_csv_count "$UNHEALTHY_SERVICES")
 
   emit info "event=container_status running=${RUNNING_COUNT} services=${RUNNING_SERVICES:-none} unhealthy=${UNHEALTHY_SERVICES:-none} exited=${EXIT_SERVICES:-none}"
-  [[ "${UNHEALTHY_COUNT:-0}" -gt 0 ]] && \
+  if [[ "${UNHEALTHY_COUNT}" -gt 0 ]]; then
     emit warn "event=unhealthy_containers count=${UNHEALTHY_COUNT} names=${UNHEALTHY_SERVICES}"
+  fi
 else
   emit warn "event=compose_missing path=${COMPOSE_FILE}"
 fi
