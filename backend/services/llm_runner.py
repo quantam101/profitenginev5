@@ -152,18 +152,30 @@ def _gemini(prompt: str, system: Optional[str], max_tokens: int) -> str:
     contents.append({"role": "user", "parts": [{"text": prompt}]})
     try:
         resp = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}",
-            json={"contents": contents, "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7}},
-            timeout=60,
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}",
+            json={
+                "contents": contents,
+                "generationConfig": {
+                    # gemini-2.5-flash is a thinking model: thinking tokens count against maxOutputTokens.
+                    # Add a 3072-token thinking buffer so actual output always has full room.
+                    "maxOutputTokens": max_tokens + 3072,
+                    "temperature": 0.7,
+                },
+            },
+            timeout=90,
         )
         resp.raise_for_status()
         data = resp.json()
-        _track_tokens("gemini", 0, 0)
+        usage = data.get("usageMetadata", {})
+        _track_tokens("gemini", usage.get("promptTokenCount", 0), usage.get("candidatesTokenCount", 0))
         _close("gemini")
-        return (data.get("candidates", [{}])[0]
-                    .get("content", {})
-                    .get("parts", [{}])[0]
-                    .get("text", "")).strip()
+        parts = (data.get("candidates", [{}])[0]
+                     .get("content", {})
+                     .get("parts", []))
+        text = "".join(p.get("text", "") for p in parts).strip()
+        if not text:
+            raise RuntimeError("gemini:empty_response")
+        return text
     except Exception as e:
         _trip("gemini")
         raise e
