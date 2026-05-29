@@ -47,7 +47,7 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
     if (GH_TOKEN) headers['Authorization'] = `token ${GH_TOKEN}`;
     const res = await fetch(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/posts?per_page=100`,
-      { headers, next: { revalidate: 300 } },
+      { headers, next: { revalidate: 300 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return { postCount: 0, lastTitle: '', lastDate: '' };
     const files = await res.json() as Array<{ name: string }>;

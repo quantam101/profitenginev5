@@ -13,10 +13,17 @@
     "test:unit": "python -m pytest -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:runtime": "python -m pytest -q",
+    "test:full": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs --skip-live",
+    "test:full:live": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs",
+    "test:smoke": "python -m pytest tests/test_full_suite.py -v -k smoke",
+    "test:latency": "python -m pytest tests/test_full_suite.py -v -k latency",
+    "test:load": "python -m pytest tests/test_full_suite.py -v -k load",
+    "test:timeout": "python -m pytest tests/test_full_suite.py -v -k timeout",
     "validate:yaml": "python scripts/validate_yaml.py",
     "security:scan": "python scripts/security_check.py",
     "agents:parallel": "node scripts/run-parallel-agents.mjs",
     "ci:all": "npm audit --audit-level=high && npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run security:scan && npm run agents:parallel && npm run build",
+    "ci:full": "npm run ci:all && npm run test:full",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
   },
   "dependencies": {
