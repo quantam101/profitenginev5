@@ -1,0 +1,119 @@
+{
+  "theme": "Dark",
+  "archetype": "7 (Electric & Neon - Terminal/Hacker Aesthetic)",
+  "project_name": "ProfitEngine",
+  "domain": "Developer Tool / CLI / Code Merger",
+  "typography": {
+    "headings": {
+      "family": "Space Mono",
+      "import_url": "https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+      "scale": "text-4xl to text-6xl clamp",
+      "style": "tracking-tighter uppercase or sharp",
+      "fallback": "monospace",
+      "usage": "Hero heading, section titles, pricing tier names"
+    },
+    "body": {
+      "family": "JetBrains Mono",
+      "import_url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap",
+      "scale": "text-base sm:text-sm",
+      "style": "tracking-tight leading-relaxed",
+      "fallback": "monospace",
+      "usage": "All paragraph text, code blocks, navigation, buttons"
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#050505",
+      "surface": "#0C0C0C",
+      "surface_elevated": "#141414",
+      "noise_overlay": "opacity-5"
+    },
+    "text": {
+      "primary": "#F3F4F6",
+      "secondary": "#9CA3AF",
+      "muted": "#4B5563"
+    },
+    "accent": {
+      "primary": "#00FF41",
+      "primary_glow": "rgba(0, 255, 65, 0.4)",
+      "secondary": "#CCFF00"
+    },
+    "border": {
+      "default": "#1F2937",
+      "subtle": "#111827",
+      "active": "#00FF41"
+    }
+  },
+  "layout_spacing": {
+    "grid_strategy": "MODE A: TETRIS GRID for features, bento style with wide gap-8",
+    "container_padding": "p-8 md:p-12 lg:p-16",
+    "section_spacing": "py-24 md:py-32",
+    "borders": "Square edges, sharp corners (rounded-none or max rounded-sm). 1px solid borders.",
+    "alignment": "Asymmetric, generous whitespace, brutalist spacing."
+  },
+  "components": {
+    "buttons": {
+      "primary": "Sharp edges (rounded-none), bg-[#00FF41] text-black font-bold uppercase tracking-widest hover:bg-[#CCFF00] transition-colors shadow-[0_0_15px_rgba(0,255,65,0.4)]",
+      "secondary": "Sharp edges, bg-transparent border border-[#333] text-white hover:border-[#00FF41] hover:text-[#00FF41] transition-colors"
+    },
+    "hero": {
+      "style": "Terminal CLI vibe. Asymmetric. Large Space Mono header. Background with subtle noise and grid lines.",
+      "interactive": "Live typing effect for CLI install command. '> npm i -g profitengine'"
+    },
+    "playground": {
+      "style": "Split-pane code editor layout. Left: Source A & Source B (tabs), Right: AST Merged Output. JetBrains Mono font inside.",
+      "accents": "Neon green line numbers, active tab glow, mock diff logic displaying AST merging.",
+      "container": "Border-collapse style layout. Background pure black or very dark gray, 1px border (#2A2A2A)."
+    },
+    "cards": {
+      "style": "Grid Borders (The 'Technical' Look). border-collapse style layout. Background pure black or very dark gray, 1px border. Hover effect: Tracing Beam or subtle green shadow."
+    },
+    "waitlist_form": {
+      "style": "Terminal input style. Prefix with '>_'. No background, bottom border only on focus, glowing submit button."
+    },
+    "stats": {
+      "style": "Large neon green numbers (text-5xl or 6xl Space Mono), muted description. Files merged, Repos analyzed, Devs joined."
+    }
+  },
+  "motion_micro_interactions": {
+    "hover": "Sharp, instantaneous color swaps. High contrast.",
+    "scroll": "Subtle reveal, no bouncy animations. Use Framer Motion for precise, rigid entrance.",
+    "typing": "Simulated terminal typing for code snippets or headlines."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "hero_bg_terminal",
+        "url": "https://static.prod-images.emergentagent.com/jobs/03007607-18b4-446a-b4d6-17aeeb64e908/images/0c1f4025fb2f0570f484283d75f6d34b32bb158305f21f60cd181a06e8e0f966.png",
+        "description": "Abstract dark mode background, cinematic terminal hacker aesthetic",
+        "usage": "Use as an absolutely positioned background image in the Hero section with opacity-20 or opacity-30 and a black gradient overlay."
+      },
+      {
+        "category": "ast_tree_graphic",
+        "url": "https://static.prod-images.emergentagent.com/jobs/03007607-18b4-446a-b4d6-17aeeb64e908/images/d99df2800c422abc86f70c6ac01cee721a67766d8f498455bc5552b19f73e228.png",
+        "description": "Abstract 3D rendering of an abstract syntax tree (AST) data structure",
+        "usage": "Use in the feature section explaining the AST logic or next to the Playground."
+      }
+    ]
+  },
+  "icons": {
+    "library": "lucide-react",
+    "installation": "yarn add lucide-react framer-motion clsx tailwind-merge",
+    "style": "Stroke width 1.5, color #00FF41 for active/accents, #9CA3AF for passive. NO EMOJIS."
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure text over dark backgrounds meets APCA standards. Use text-shadow if needed. Text hover states must always be clearly defined.",
+    "testing": "All interactive elements MUST include data-testid attribute (e.g., data-testid='hero-cta-button', data-testid='waitlist-input')"
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Electric & Neon (Terminal/Hacker) aesthetic. NO PURPLE, no rounded-xl or rounded-full for layout containers.",
+    "Use standard HTML/Tailwind for marketing layout. Do not over-rely on Shadcn for layout containers as they are too rigid for creative marketing pages.",
+    "Make the Playground functional using React state or simple mock merging to show AST functionality live.",
+    "Add a global CSS noise overlay or inline SVG noise to give it a gritty terminal feel.",
+    "Ensure 'Space Mono' is used for all major section headings, and 'JetBrains Mono' for body copy and code blocks.",
+    "Include a live counter for 'stats' (files merged, developers joined) with simple JS interval logic or framer-motion.",
+    "Pricing cards should resemble hacker terminal windows with 'Hobby', 'Pro', 'Enterprise' tiers and green accents.",
+    "Embed the interactive playground directly on the landing page, allowing users to paste 2 Python/JS code snippets and 'merge' them.",
+    "Footer should include GitHub link, docs, and CLI install command in a pure monospace terminal layout."
+  ]
+}
