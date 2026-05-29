@@ -19,3 +19,6 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Claude Code local settings (may contain command history with secrets)
+.claude/settings.local.json

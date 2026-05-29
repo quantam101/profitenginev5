@@ -140,7 +140,7 @@ def test_router_local_model_tier_when_ollama_enabled(monkeypatch):
 def test_router_claude_tier_when_no_ollama_but_key_present(monkeypatch):
     """Router selects CLAUDE_API tier when Ollama is off but Claude key is set."""
     monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "false")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test")
     import importlib
     import runtime.local_model_router as mod
     importlib.reload(mod)
@@ -177,7 +177,7 @@ def test_sovereign_orchestrator_fallback_without_key(monkeypatch):
 
 def test_sovereign_orchestrator_with_mocked_claude(monkeypatch):
     """With a key present and Claude mocked, the orchestrator returns AI output."""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test-key")
     import runtime.claude_gateway as gw
     monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=1024: "Mocked plan: step 1, step 2.")
     import importlib
@@ -206,7 +206,7 @@ def test_lifelong_catch_correct_fallback_without_key(tmp_path, monkeypatch):
 
 def test_lifelong_catch_correct_records_with_mocked_claude(tmp_path, monkeypatch):
     """With Claude mocked, the LC&C agent records the improvement to disk."""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test-key")
     monkeypatch.setenv("GMAOS_CORRECTIONS_PATH", str(tmp_path / "corrections.jsonl"))
     import runtime.claude_gateway as gw
     monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=256: "Rewrite seo_title prompt to include keyword in first 5 words.")
@@ -238,7 +238,7 @@ def test_sovereign_orchestrator_dispatches_end_to_end(tmp_path, monkeypatch):
     monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
     monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
     monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test-key")
     import runtime.claude_gateway as gw
     monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=512: "Cycle plan: scan trends -> draft -> publish.")
     import importlib
