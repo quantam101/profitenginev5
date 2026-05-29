@@ -10,7 +10,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "python -m pytest -q",
+    "test:unit": "python -m pytest code_merger/tests/ -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:runtime": "python -m pytest -q",
     "test:full": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs --skip-live",
