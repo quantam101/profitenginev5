@@ -31,7 +31,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage  # noqa: F401 — used by provider fallback
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.services.llm_provider import call_llm
@@ -179,13 +178,12 @@ class _RunRecord:
 class Distiller:
     """Token-efficient LLM router with cache + tiering + JSON parsing."""
 
-    def __init__(self, db: AsyncIOMotorDatabase, *, api_key: str | None = None) -> None:
+    def __init__(self, db: AsyncIOMotorDatabase) -> None:
         self.db = db
-        self.api_key = api_key or os.environ.get("EMERGENT_LLM_KEY", "")
         self.cheap_provider = os.environ.get("DISTILLATION_CHEAP_PROVIDER", "gemini")
-        self.cheap_model = os.environ.get("DISTILLATION_CHEAP_MODEL", "gemini-3-flash-preview")
-        self.exp_provider = os.environ.get("DISTILLATION_EXPENSIVE_PROVIDER", "anthropic")
-        self.exp_model = os.environ.get("DISTILLATION_EXPENSIVE_MODEL", "claude-sonnet-4-6")
+        self.cheap_model = os.environ.get("DISTILLATION_CHEAP_MODEL", "gemini-2.5-flash")
+        self.exp_provider = os.environ.get("DISTILLATION_EXPENSIVE_PROVIDER", "deepseek")
+        self.exp_model = os.environ.get("DISTILLATION_EXPENSIVE_MODEL", "deepseek-chat")
         self.cache_ttl_hours = int(os.environ.get("DISTILLATION_CACHE_TTL_HOURS", "168"))
 
     # ── Cache ──
@@ -212,13 +210,10 @@ class Distiller:
         self, *, provider: str, model: str, system: str, prompt: str,
         max_tokens: int, session_id: str,
     ) -> str:
-        chat = LlmChat(
-            api_key=self.api_key,
-            session_id=session_id,
-            system_message=system,
-        ).with_model(provider, model).with_params(max_tokens=max_tokens)
-        msg = UserMessage(text=prompt)
-        return await chat.send_message(msg)
+        return await call_llm(
+            provider=provider, model=model, system=system,
+            prompt=prompt, max_tokens=max_tokens, session_id=session_id,
+        )
 
     # ── Internal: prompt + system prep ──
     def _prepare_system(self, req: DistillRequest) -> str:

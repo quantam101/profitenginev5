@@ -1,10 +1,10 @@
 """
 ProfitEngine v5 backend — FastAPI service.
 
-Mirrors the already-here-llc command-OS surface: 11 agents (Sovereign + 10
-specialists), revenue ledger, approvals, audit, builds, deployments, books,
-proof-of-work, proposals, secrets, advisor, distillation, cost, and the
-Cash AI governance layer (live cycle trigger + decision audit trail + WS).
+Mirrors the already-here-llc command-OS surface: 20 agents (Prime Orchestrator
++ 19 specialists), revenue ledger, approvals, audit, builds, deployments,
+books, proof-of-work, proposals, secrets, advisor, distillation, cost, and
+the Cash AI governance layer (live cycle trigger + decision audit trail + WS).
 Product data is fixture-backed; waitlist, merge events, agent runs,
 approval decisions, cycle events and distillation runs persist to Mongo.
 """

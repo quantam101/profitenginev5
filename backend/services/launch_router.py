@@ -26,9 +26,6 @@ from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 
-from emergentintegrations.payments.stripe.checkout import (  # noqa: F401 — kept for emergent transport fallback
-    StripeCheckout, CheckoutSessionRequest,
-)
 from backend.services.stripe_transport import StripeTransport
 
 
