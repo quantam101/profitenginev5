@@ -97,46 +97,79 @@ The article should be 800-1200 words, include:
 
 
 # ── Groq generation ────────────────────────────────────────────────────────────
-GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+GEMINI_KEY = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
+GEMINI_MODEL = os.getenv("GMAOS_GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+# Groq models in priority order — fall through if one hits a rate limit
+GROQ_MODELS = [
+    os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile"),
+    "llama-3.1-8b-instant",          # faster, lower quota usage
+    "gemma2-9b-it",                   # alternative free model
+    "mixtral-8x7b-32768",             # mixtral fallback
+]
 
 
-def _call_groq(prompt: str) -> str:
+import time as _time  # noqa: E402
+
+def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
+    """Call fn(); on 429 wait base_delay * 2^attempt seconds and retry."""
+    for attempt in range(max_retries + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            msg = str(exc)
+            is_rate_limit = "429" in msg or "rate" in msg.lower() or "quota" in msg.lower()
+            if is_rate_limit and attempt < max_retries:
+                wait = base_delay * (2 ** attempt)
+                print(f"[AI] Rate limited (attempt {attempt+1}/{max_retries}), waiting {wait}s …")
+                _time.sleep(wait)
+            else:
+                raise
+
+
+def _call_groq(prompt: str, model: str | None = None) -> str:
     """Call Groq API. Raises on failure."""
-    resp = httpx.post(
-        GROQ_URL,
-        headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
-        json={
-            "model": GROQ_MODEL,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            "max_tokens": 3000,
-            "temperature": 0.7,
-        },
-        timeout=120,
-    )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    m = model or GROQ_MODELS[0]
+    def _do() -> str:
+        resp = httpx.post(
+            GROQ_URL,
+            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": m,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 3000,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
 
 
 def _call_gemini(prompt: str) -> str:
     """Call Gemini Flash API. Raises on failure."""
-    resp = httpx.post(
-        f"{GEMINI_URL}?key={GEMINI_KEY}",
-        headers={"Content-Type": "application/json"},
-        json={
-            "contents": [
-                {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
-            ],
-            "generationConfig": {"maxOutputTokens": 3072, "temperature": 0.7},
-        },
-        timeout=120,
-    )
-    resp.raise_for_status()
-    parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
-    return "".join(p.get("text", "") for p in parts).strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+    def _do() -> str:
+        resp = httpx.post(
+            f"{url}?key={GEMINI_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [
+                    {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
+                ],
+                "generationConfig": {"maxOutputTokens": 3072, "temperature": 0.7},
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        return "".join(p.get("text", "") for p in parts).strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
 
 
 def generate_article(topic: str) -> Dict[str, Any]:
@@ -144,20 +177,24 @@ def generate_article(topic: str) -> Dict[str, Any]:
         sys.exit("❌ Neither GROQ_API_KEY nor GEMINI_API_KEY is set")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
-    # Try Groq first; fall back to Gemini on rate-limit or error
+    # Try each Groq model in priority order, then fall back to Gemini
     raw = ""
     if GROQ_KEY:
-        try:
-            raw = _call_groq(prompt)
-            print("[AI] Provider: Groq")
-        except Exception as e:
-            print(f"[AI] Groq failed ({e}), trying Gemini...")
+        for model in GROQ_MODELS:
+            try:
+                raw = _call_groq(prompt, model=model)
+                print(f"[AI] Provider: Groq ({model})")
+                break
+            except Exception as e:
+                print(f"[AI] Groq/{model} failed ({e}), trying next...")
     if not raw and GEMINI_KEY:
-        raw = _call_gemini(prompt)
-        print("[AI] Provider: Gemini")
-    # Strip markdown code fences if model wrapped in them
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
+        try:
+            raw = _call_gemini(prompt)
+            print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
+        except Exception as e:
+            print(f"[AI] Gemini failed ({e})")
+    if not raw:
+        sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     # Strip markdown code fences if model wrapped in them
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
