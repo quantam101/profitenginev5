@@ -65,12 +65,17 @@ class TestCashAI:
 class TestPersistence:
     def test_execute_persists_run(self, s):
         before = s.get(f"{API}/agent-runs?limit=200", timeout=15).json()
-        r = s.post(f"{API}/agents/seo-scout/execute", timeout=15)
+        r = s.post(f"{API}/agents/seo-scout/execute", timeout=30)
         assert r.status_code == 200
+        body = r.json()
+        # Endpoint now does real LLM work via Distiller → completed or errored, never queued
+        assert body["status"] in {"completed", "errored"}
+        assert body["tier"] in {"cache", "cheap", "expensive", "fallback"}
+        assert "output" in body
         after = s.get(f"{API}/agent-runs?limit=200", timeout=15).json()
         assert len(after) == len(before) + 1
         assert after[0]["agent_id"] == "seo-scout"
-        assert after[0]["status"] == "queued"
+        assert after[0]["status"] in {"completed", "errored"}
 
     def test_decide_approval_persists(self, s):
         # Fetch an open approval id

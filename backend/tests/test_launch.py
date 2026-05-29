@@ -77,8 +77,8 @@ class TestLaunch:
                   "uptime_pct", "at"):
             assert k in d
         assert d["engine_status"] == "operational"
-        assert d["operators_joined"] >= 312  # anchored baseline
-        assert d["agent_runs_total"] >= 3191
+        assert d["operators_joined"] >= 0  # real Mongo count only — no placeholders
+        assert d["agent_runs_total"] >= 0
         assert isinstance(d["uptime_pct"], (int, float))
 
     def test_cohort_shape(self, client):

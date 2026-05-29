@@ -192,20 +192,77 @@ async def execute_agent(agent_id: str) -> dict:
     agent = next((a for a in _AGENTS if a["id"] == agent_id), None)
     if not agent:
         raise HTTPException(status_code=404, detail="agent not found")
-    run = {
-        "id": str(uuid.uuid4()),
-        "agent_id": agent_id,
-        "agent_name": agent["name"],
-        "status": "queued",
-        "queued_at": datetime.now(timezone.utc).isoformat(),
-    }
-    await db.agent_runs.insert_one(run)
-    await ws_hub.broadcast("agent.run.queued", {
-        "agent_id": agent_id, "agent_name": agent["name"], "run_id": run["id"],
+
+    # Persist queued row FIRST so the dashboard can show it instantly
+    run_id = str(uuid.uuid4())
+    queued_at = datetime.now(timezone.utc).isoformat()
+    await db.agent_runs.insert_one({
+        "id": run_id, "agent_id": agent_id, "agent_name": agent["name"],
+        "status": "queued", "queued_at": queued_at,
     })
-    return {"agent_id": agent_id, "run_id": run["id"], "status": "queued",
-            "queued_at": run["queued_at"],
-            "message": f"{agent['name']} run queued."}
+    await ws_hub.broadcast("agent.run.queued", {
+        "agent_id": agent_id, "agent_name": agent["name"], "run_id": run_id,
+    })
+
+    # Real work — route the agent's mission through the Distiller for
+    # token-efficient LLM output. Cheap tier handles most agents, expert tier
+    # auto-escalates only when the model flags requires_expert.
+    system = (
+        f"You are {agent['name']} inside the ProfitEngineV5 enterprise "
+        f"controlled-autonomy platform. Your mission: {agent['mission']} "
+        "Respond as a SINGLE JSON object with the keys: "
+        "headline (string, <= 90 chars), findings (array of 1-4 short bullets), "
+        "next_action (string), confidence (number 0..1), "
+        "requires_expert (boolean — true only if deep reasoning is needed)."
+    )
+    prompt = (
+        f"Run a single cycle now for {agent['name']}. Use the equation "
+        "Daily Revenue = Demand × Conversion × AOV × Frequency × Capacity × Margin "
+        "to anchor your decision. Be concrete. Do not invent figures."
+    )
+    schema = ('{"headline": string, "findings": string[], "next_action": string, '
+              '"confidence": number, "requires_expert": boolean}')
+    try:
+        result = await distiller.run(DistillRequest(
+            task=f"agent.execute.{agent_id}",
+            prompt=prompt, system=system, schema_hint=schema, max_tokens=512,
+        ))
+        output = result.output if isinstance(result.output, dict) else {"raw": str(result.output)}
+        status = "completed"
+        notes = result.notes
+    except Exception as exc:  # noqa: BLE001 — never break the dashboard
+        output = {"error": str(exc),
+                  "headline": f"{agent['name']} run deferred",
+                  "findings": ["LLM transport failed — fixture-only output returned"],
+                  "next_action": "retry after backoff",
+                  "confidence": 0.0}
+        result = type("R", (), {"tier": "fallback", "cost_usd": 0.0,
+                                "saved_usd": 0.0, "tokens_in": 0, "tokens_out": 0,
+                                "latency_ms": 0, "cache_hit": False})()
+        status = "errored"
+        notes = []
+
+    completed_at = datetime.now(timezone.utc).isoformat()
+    update = {
+        "status": status, "completed_at": completed_at,
+        "output": output, "tier": result.tier,
+        "cost_usd": round(getattr(result, "cost_usd", 0.0), 6),
+        "saved_usd": round(getattr(result, "saved_usd", 0.0), 6),
+        "tokens_in": getattr(result, "tokens_in", 0),
+        "tokens_out": getattr(result, "tokens_out", 0),
+        "latency_ms": getattr(result, "latency_ms", 0),
+        "cache_hit": getattr(result, "cache_hit", False),
+        "notes": notes,
+    }
+    await db.agent_runs.update_one({"id": run_id}, {"$set": update})
+    await ws_hub.broadcast("agent.run.completed", {
+        "agent_id": agent_id, "run_id": run_id, "tier": result.tier,
+        "status": status,
+    })
+    return {"agent_id": agent_id, "run_id": run_id, "status": status,
+            "queued_at": queued_at, "completed_at": completed_at,
+            "output": output, "tier": result.tier,
+            "cost_usd": update["cost_usd"], "saved_usd": update["saved_usd"]}
 
 
 # ── Approvals ─────────────────────────────────────────────────

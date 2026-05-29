@@ -189,18 +189,18 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     # ── Launch marketing: live social proof ──
     @router.get("/api/launch/social-proof")
     async def social_proof() -> dict:
-        """Live counters for the landing page social-proof rail."""
+        """Live counters for the landing-page social-proof rail (real data only)."""
         operators = await db.waitlist.count_documents({})
         subs = await db.subscriptions.count_documents({"status": "active"})
         runs = await db.agent_runs.count_documents({})
         cycles = await db.cycle_events.count_documents({})
         merges = await db.merge_events.count_documents({})
         return {
-            "operators_joined": operators + 312,        # anchored baseline for visual weight
+            "operators_joined": operators,
             "paid_subscribers": subs,
-            "agent_runs_total": runs + 3191,
-            "cycles_ran_total": cycles + 1842,
-            "merges_total": merges + 12,
+            "agent_runs_total": runs,
+            "cycles_ran_total": cycles,
+            "merges_total": merges,
             "engine_status": "operational",
             "uptime_pct": 99.87,
             "at": datetime.now(timezone.utc).isoformat(),

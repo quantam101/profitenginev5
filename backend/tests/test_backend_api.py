@@ -65,10 +65,11 @@ class TestAgents:
         assert sov["type"] == "orchestrator"
 
     def test_execute_known_agent(self, s):
-        r = s.post(f"{API}/agents/seo-scout/execute", json={}, timeout=15)
+        r = s.post(f"{API}/agents/seo-scout/execute", json={}, timeout=30)
         assert r.status_code == 200
         body = r.json()
         assert "run_id" in body and body["agent_id"] == "seo-scout"
+        assert body["status"] in {"completed", "errored"}
 
     def test_execute_unknown_agent_404(self, s):
         r = s.post(f"{API}/agents/does-not-exist/execute", json={}, timeout=15)
