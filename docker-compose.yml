@@ -14,6 +14,7 @@ services:
     depends_on:
       - web
       - runtime
+      - backend
       - uptime-kuma
 
   web:
@@ -73,6 +74,22 @@ services:
       N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:?N8N_BASIC_AUTH_PASSWORD is required}
     volumes:
       - n8n_data:/home/node/.n8n
+
+  # FastAPI backend — MongoDB Atlas, Stripe, distillation, referrals, waitlist.
+  # Exposed at backend.alreadyherellc.com via Caddy (see caddy/Caddyfile).
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   uptime-kuma:
     image: louislam/uptime-kuma:1

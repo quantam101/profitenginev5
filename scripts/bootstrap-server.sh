@@ -136,6 +136,29 @@ upsert_env GMAOS_GEMINI_TIMEOUT       "60"
 upsert_env SITE_DOMAIN                "${SITE_DOMAIN:-profitengine.alreadyherellc.com}"
 upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 
+# ── backend (FastAPI / MongoDB) optional keys ──────────────────────────────
+# Set these GitHub secrets to activate the v5 backend service:
+#   MONGO_URL, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET,
+#   OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, RESEND_API_KEY
+[[ -n "${MONGO_URL:-}"              ]] && upsert_env MONGO_URL              "${MONGO_URL}"
+[[ -n "${STRIPE_API_KEY:-}"         ]] && upsert_env STRIPE_API_KEY         "${STRIPE_API_KEY}"
+[[ -n "${STRIPE_WEBHOOK_SECRET:-}"  ]] && upsert_env STRIPE_WEBHOOK_SECRET  "${STRIPE_WEBHOOK_SECRET}"
+[[ -n "${OPENAI_API_KEY:-}"         ]] && upsert_env OPENAI_API_KEY         "${OPENAI_API_KEY}"
+[[ -n "${OPENROUTER_API_KEY:-}"     ]] && upsert_env OPENROUTER_API_KEY     "${OPENROUTER_API_KEY}"
+[[ -n "${DEEPSEEK_API_KEY:-}"       ]] && upsert_env DEEPSEEK_API_KEY       "${DEEPSEEK_API_KEY}"
+[[ -n "${RESEND_API_KEY:-}"         ]] && upsert_env RESEND_API_KEY         "${RESEND_API_KEY}"
+
+# Backend config (safe defaults — no secrets)
+upsert_env DB_NAME                        "profitengine"
+upsert_env DISTILLATION_CHEAP_PROVIDER   "${DISTILLATION_CHEAP_PROVIDER:-gemini}"
+upsert_env DISTILLATION_CHEAP_MODEL      "${DISTILLATION_CHEAP_MODEL:-gemini-2.5-flash}"
+upsert_env DISTILLATION_EXPENSIVE_PROVIDER "${DISTILLATION_EXPENSIVE_PROVIDER:-gemini}"
+upsert_env DISTILLATION_EXPENSIVE_MODEL  "${DISTILLATION_EXPENSIVE_MODEL:-gemini-2.5-flash}"
+upsert_env DISTILLATION_CACHE_TTL_HOURS  "${DISTILLATION_CACHE_TTL_HOURS:-168}"
+upsert_env COHORT_TOTAL_SEATS            "${COHORT_TOTAL_SEATS:-100}"
+upsert_env COHORT_LABEL                  "${COHORT_LABEL:-Cohort 1}"
+upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://profitengine.alreadyherellc.com}"
+
 # Optional keys — injected when available, skipped otherwise
 [[ -n "${ANTHROPIC_API_KEY:-}" ]] && upsert_env ANTHROPIC_API_KEY      "${ANTHROPIC_API_KEY}"
 [[ -n "${DEVTO_API_KEY:-}"        ]] && upsert_env DEVTO_API_KEY         "${DEVTO_API_KEY}"

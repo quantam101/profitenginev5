@@ -60,6 +60,14 @@ jobs:
           HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
           MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
           MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          # v5 backend secrets — add these in GitHub → Settings → Secrets → Actions
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
           # Write secrets to a temp file and scp it to the server
           cat > /tmp/deploy_env.sh <<EOF
@@ -75,8 +83,15 @@ jobs:
           export HASHNODE_PUB_ID="${HASHNODE_PUB_ID}"
           export MEDIUM_API_KEY="${MEDIUM_API_KEY}"
           export MEDIUM_AUTHOR_ID="${MEDIUM_AUTHOR_ID}"
+          export MONGO_URL="${MONGO_URL}"
+          export STRIPE_API_KEY="${STRIPE_API_KEY}"
+          export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}"
+          export OPENAI_API_KEY="${OPENAI_API_KEY}"
+          export OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
+          export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}"
+          export RESEND_API_KEY="${RESEND_API_KEY}"
           EOF
-          echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key, ${#ANTHROPIC_API_KEY} char Anthropic key)"
+          echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key, ${#MONGO_URL} char Mongo URL)"
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             /tmp/deploy_env.sh opc@129.146.167.73:/tmp/deploy_env.sh
           echo "SCP complete"

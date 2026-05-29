@@ -40,6 +40,19 @@ api.{$SITE_DOMAIN} {
   }
 }
 
+backend.alreadyherellc.com {
+  encode gzip zstd
+  reverse_proxy backend:8001
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  }
+}
+
 status.{$SITE_DOMAIN} {
   encode gzip zstd
   reverse_proxy uptime-kuma:3001
