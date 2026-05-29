@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 
 const ORACLE = process.env.ORACLE_API_URL ?? 'http://localhost:3000';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
@@ -27,7 +27,7 @@ async function tryOracle(): Promise<Record<string, unknown> | null> {
       _source: 'oracle_live',
       engineRunning: !!(d.ok),
       uptime: `${h}h ${m}m`,
-      healthScore: (d.intelligenceReport as Record<string, number>)?.healthScore ?? 20,
+      healthScore: (d.intelligenceReport as Record<string, number>)?.healthScore ?? liveHealth ?? 20,
       tokensToday: Math.round(((tok.total as number) ?? 0) / 1000),
       content24h: (lc.generated as number) ?? 0,
       totalCycles: (d.totalCycles as number) ?? 0,
@@ -67,8 +67,23 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
   }
 }
 
+/** Fetch real health score from the local /api/health endpoint. */
+async function fetchLocalHealthScore(): Promise<number | null> {
+  try {
+    const res = await fetch(`${ORACLE}/api/health`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const d = await res.json() as Record<string, unknown>;
+    return typeof d.healthScore === 'number' ? d.healthScore : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
-  const [oracle, ghStats] = await Promise.all([tryOracle(), fetchGitHubStats()]);
+  const [oracle, ghStats, liveHealth] = await Promise.all([tryOracle(), fetchGitHubStats(), fetchLocalHealthScore()]);
 
   if (oracle) {
     // Enrich oracle data with real GitHub stats
@@ -95,7 +110,7 @@ export async function GET() {
         lastPublishedDate: ghStats.lastDate,
         contentSite: CONTENT_SITE,
         content24h: ghStats.postCount,
-        healthScore: 72,
+        healthScore: liveHealth ?? 72,
         uptime: 'pipeline active',
         tokensToday: 0,
       },
