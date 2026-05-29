@@ -23,6 +23,7 @@ _IGNORED_FILES = {
     "health.mjs",
     "package-lock.json",
     "first-boot.sh",
+    "docker-compose.yml",
 }
 
 _IGNORED_RELATIVE = {
