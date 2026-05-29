@@ -25,6 +25,7 @@ export default function DashboardLayout() {
   const { pathname } = useLocation();
   useEffect(() => {
     getCycleStatus().then(setCycle).catch(() => setCycle(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return (

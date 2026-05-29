@@ -17,6 +17,7 @@ export default function AgentsShowcase() {
   const [agents, setAgents] = useState([]);
   useEffect(() => {
     getAgents().then(setAgents).catch(() => setAgents([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

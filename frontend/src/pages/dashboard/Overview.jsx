@@ -6,6 +6,18 @@ import {
 import { ArrowUpRight, ShieldAlert, Cpu } from "lucide-react";
 import { getRevenue, getAgents, getApprovals, getStats } from "../../lib/api";
 
+function riskTone(risk) {
+  if (risk === "high") return "text-red-400";
+  if (risk === "medium") return "text-yellow-400";
+  return "text-ink-muted";
+}
+
+function agentStatusTone(status) {
+  if (status === "online") return "text-acid";
+  if (status === "paused") return "text-yellow-400";
+  return "text-ink-muted";
+}
+
 export default function Overview() {
   const [revenue, setRevenue] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -17,6 +29,7 @@ export default function Overview() {
     getAgents().then(setAgents).catch(() => {});
     getApprovals().then(setApprovals).catch(() => {});
     getStats().then(setStats).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalRev = revenue.reduce((s, p) => s + p.amount, 0);
@@ -88,15 +101,7 @@ export default function Overview() {
               <li key={a.id} className="border border-line bg-bg p-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-acid">{a.agent}</span>
-                  <span
-                    className={`text-[10px] uppercase tracking-widest ${
-                      a.risk === "high"
-                        ? "text-red-400"
-                        : a.risk === "medium"
-                        ? "text-yellow-400"
-                        : "text-ink-muted"
-                    }`}
-                  >
+                  <span className={`text-[10px] uppercase tracking-widest ${riskTone(a.risk)}`}>
                     {a.risk}
                   </span>
                 </div>
@@ -113,7 +118,7 @@ export default function Overview() {
           <div key={a.id} className="bg-bg-surface p-5">
             <div className="flex items-center justify-between text-[11px] uppercase tracking-widest text-ink-muted">
               <span><Cpu className="inline h-3 w-3 text-acid" /> {a.name}</span>
-              <span className={a.status === "online" ? "text-acid" : a.status === "paused" ? "text-yellow-400" : "text-ink-muted"}>
+              <span className={agentStatusTone(a.status)}>
                 ● {a.status}
               </span>
             </div>

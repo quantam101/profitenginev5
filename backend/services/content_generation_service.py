@@ -35,7 +35,7 @@ class ContentScript:
     metadata: dict[str, Any]
 
 def _title_hash(title: str) -> str:
-    return hashlib.md5(title.encode()).hexdigest()[:12]
+    return hashlib.sha256(title.encode()).hexdigest()[:12]
 
 def _slugify(title: str) -> str:
     return re.sub('^-|-$', '', re.sub('[^a-z0-9]+', '-', title.lower()))

@@ -16,6 +16,7 @@ export default function Nav() {
     const on = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", on);
     return () => window.removeEventListener("scroll", on);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <header

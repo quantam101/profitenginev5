@@ -59,7 +59,7 @@ _DEDUP: dict[str, dict] = {}
 _DEDUP_TTL = 60
 
 def _dedup_key(prompt: str, system: Optional[str]) -> str:
-    return hashlib.md5(((system or '') + prompt).encode()).hexdigest()
+    return hashlib.sha256(((system or '') + prompt).encode()).hexdigest()
 
 def _dedup_get(key: str) -> Optional[str]:
     entry = _DEDUP.get(key)
@@ -298,6 +298,7 @@ async def run_cached(db, provider: str, model: str, system_msg: str, prompt: str
     await check_daily_budget(db, expected_tokens=estimated)
     chat = LlmChat(api_key=api_key, session_id=session_id, system_message=system_msg)
     chat.with_model(provider, model)
+    response: str = ""
     try:
         response = await chat.send_message(UserMessage(text=distilled_prompt))
     except Exception as e:

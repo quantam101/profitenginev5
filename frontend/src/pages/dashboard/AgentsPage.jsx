@@ -2,10 +2,17 @@ import React, { useEffect, useState } from "react";
 import { Cpu, Pause, Play } from "lucide-react";
 import { getAgents } from "../../lib/api";
 
+function statusTone(status) {
+  if (status === "online") return "text-acid";
+  if (status === "paused") return "text-yellow-400";
+  return "text-ink-muted";
+}
+
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
   useEffect(() => {
     getAgents().then(setAgents).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="px-6 py-10 md:px-10" data-testid="agents-page">
@@ -30,11 +37,7 @@ export default function AgentsPage() {
                   <div className="text-[11px] uppercase tracking-widest text-ink-faint">{a.role}</div>
                 </div>
               </div>
-              <span
-                className={`text-[11px] uppercase tracking-widest ${
-                  a.status === "online" ? "text-acid" : a.status === "paused" ? "text-yellow-400" : "text-ink-muted"
-                }`}
-              >
+              <span className={`text-[11px] uppercase tracking-widest ${statusTone(a.status)}`}>
                 ● {a.status}
               </span>
             </div>

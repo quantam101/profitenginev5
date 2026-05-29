@@ -15,6 +15,7 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     getApprovals().then(setApprovals).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const decide = (id, action) => {

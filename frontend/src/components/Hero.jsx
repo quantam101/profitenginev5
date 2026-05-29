@@ -17,6 +17,7 @@ export default function Hero() {
       if (i >= TYPED.length) clearInterval(interval);
     }, 55);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const copy = () => {
@@ -104,6 +105,12 @@ export default function Hero() {
   );
 }
 
+function stepTone(state) {
+  if (state === "done") return "text-acid";
+  if (state === "running") return "animate-pulse text-acid-soft";
+  return "text-ink-faint";
+}
+
 function CyclePanel() {
   const steps = [
     { name: "scout", state: "done", ms: "412ms" },
@@ -132,15 +139,7 @@ function CyclePanel() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-ink-faint">{s.ms}</span>
-                <span
-                  className={
-                    s.state === "done"
-                      ? "text-acid"
-                      : s.state === "running"
-                      ? "animate-pulse text-acid-soft"
-                      : "text-ink-faint"
-                  }
-                >
+                <span className={stepTone(s.state)}>
                   ● {s.state}
                 </span>
               </div>

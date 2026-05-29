@@ -16,6 +16,7 @@ export default function RevenuePage() {
   const [series, setSeries] = useState([]);
   useEffect(() => {
     getRevenue(days).then(setSeries).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
   const total = series.reduce((s, p) => s + p.amount, 0);

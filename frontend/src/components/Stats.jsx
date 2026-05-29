@@ -16,6 +16,7 @@ function Counter({ value, label, prefix = "", testId }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
     <div className="border border-line bg-bg-surface px-6 py-8" data-testid={testId}>
@@ -36,6 +37,7 @@ export default function Stats() {
       .catch(() =>
         setStats({ revenue_30d: 14820, posts_published: 1252, agents_online: 5, devs_joined: 312 })
       );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <section className="border-b border-line py-20" data-testid="stats-section">

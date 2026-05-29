@@ -253,7 +253,8 @@ _CONTENT = [
 
 
 def _revenue_series(days: int = 30) -> list[dict]:
-    rng = random.Random(42)
+    # Deterministic seeded RNG for mock chart data — NOT a security context.
+    rng = random.Random(42)  # noqa: S311
     base = 280.0
     today = datetime.now(timezone.utc).date()
     out = []
@@ -363,15 +364,17 @@ async def cycle_status() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 @app.post("/api/merge", response_model=MergeResponse)
 async def merge_endpoint(req: MergeRequest) -> MergeResponse:
+    res = None
+    added_imports: list[str] = []
     try:
         if req.language == "python":
             res = merge_python_files(req.base, req.target, add_unique_blocks=req.add_unique)
             added_imports = res.added_imports
         else:
             res = merge_js_files(req.base, req.target, add_unique_blocks=req.add_unique)
-            added_imports = []
     except SyntaxError as exc:
         raise HTTPException(status_code=400, detail=f"Syntax error: {exc}") from exc
+    assert res is not None  # narrow type for the checker
     await db.merge_events.insert_one({
         "id": str(uuid.uuid4()),
         "language": req.language,
