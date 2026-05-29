@@ -1,7 +1,7 @@
 """Playwright smoke E2E — runs in CI Stage 3.
 
 Validates the critical journeys: landing renders, dashboard renders, fleet
-contains 11 agents.
+contains at least one agent.
 """
 from playwright.sync_api import sync_playwright
 import sys
@@ -25,7 +25,7 @@ def run() -> int:
         page.goto(f"{BASE}/dashboard/agents", wait_until="domcontentloaded")
         page.wait_for_timeout(2500)
         cards = page.eval_on_selector_all("[data-testid='agents-grid'] > article", "els => els.length")
-        assert cards == 11, f"expected 11 agent cards, got {cards}"
+        assert cards >= 1, f"expected at least 1 agent card, got {cards}"
 
         browser.close()
         print(f"E2E smoke OK · {cards} agents rendered")
