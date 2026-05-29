@@ -4,6 +4,7 @@ import {
   Crown, LayoutDashboard, Cpu, ShieldAlert, MessageCircleQuestion, Radar,
   FileText, BarChart3, BookOpen, Server, GitBranch, ScrollText, Vote,
   Award, LineChart, Sparkles, DollarSign, KeyRound, ArrowLeft, Activity, Terminal,
+  Brain,
 } from "lucide-react";
 import { getCycleStatus, getSovereignStatus } from "../../lib/api";
 
@@ -13,6 +14,7 @@ const NAV_GROUPS = [
     links: [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true, testId: "sidebar-overview" },
       { to: "/dashboard/sovereign", label: "Sovereign", icon: Crown, sov: true, testId: "sidebar-sovereign" },
+      { to: "/dashboard/cash-ai", label: "Cash AI", icon: Brain, sov: true, testId: "sidebar-cash-ai" },
       { to: "/dashboard/agents", label: "Agents", icon: Cpu, testId: "sidebar-agents" },
       { to: "/dashboard/approvals", label: "Approvals", icon: ShieldAlert, testId: "sidebar-approvals" },
       { to: "/dashboard/advisor", label: "Advisor", icon: MessageCircleQuestion, testId: "sidebar-advisor" },

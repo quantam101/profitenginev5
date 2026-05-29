@@ -46,3 +46,31 @@ export const getAnalytics = () => api.get("/analytics").then((r) => r.data);
 // Code merger
 export const postMerge = (b) => api.post("/merge", b).then((r) => r.data);
 export const getDemoReport = () => api.get("/demo").then((r) => r.data);
+
+// Cash AI
+export const getCashLastDecision = () => api.get("/cash/last-decision").then((r) => r.data);
+export const getCashAuditTrail = (limit = 20) => api.get(`/cash/audit-trail?limit=${limit}`).then((r) => r.data);
+export const triggerCashCycle = () => api.post("/cash/cycle/trigger").then((r) => r.data);
+export const clearCashCache = () => api.post("/cash/cache/clear").then((r) => r.data);
+export const getDistillationStats = () => api.get("/distillation/stats").then((r) => r.data);
+
+// WebSocket — live cycle events
+export function subscribeCycle(onEvent) {
+  const wsUrl = (BACKEND_URL || "").replace(/^http/, "ws") + "/api/ws/cycle";
+  let ws;
+  let closed = false;
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.onmessage = (e) => {
+      try { onEvent(JSON.parse(e.data)); } catch { /* ignore parse */ }
+    };
+    ws.onerror = () => { /* silent — page still works without WS */ };
+  } catch {
+    return () => {};
+  }
+  return () => {
+    closed = true;
+    try { ws && ws.close(); } catch { /* noop */ }
+    return closed;
+  };
+}

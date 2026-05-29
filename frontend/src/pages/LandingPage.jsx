@@ -5,6 +5,7 @@ import Stats from "../components/Stats";
 import Problem from "../components/Problem";
 import AgentsShowcase from "../components/AgentsShowcase";
 import DashboardPreview from "../components/DashboardPreview";
+import ProofOfWork from "../components/ProofOfWork";
 import EngineSection from "../components/EngineSection";
 import Pricing from "../components/Pricing";
 import Roadmap from "../components/Roadmap";
@@ -22,6 +23,7 @@ export default function LandingPage() {
         <Problem />
         <AgentsShowcase />
         <DashboardPreview />
+        <ProofOfWork />
         <EngineSection />
         <Pricing />
         <Roadmap />
