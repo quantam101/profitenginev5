@@ -25,20 +25,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install Python deps
         run: |
+          pip install -r requirements.txt
           pip install -r backend/requirements.txt
           pip install ruff
       - name: Install Node deps
-        run: |
-          cd frontend && yarn install --frozen-lockfile
+        run: npm ci
       - name: Ruff lint
         run: ruff check backend code_merger
-      - name: ESLint
-        run: |
-          cd frontend && yarn lint || echo "no lint script — skipping"
+      - name: npm run ci:all
+        run: npm run ci:all
+        env:
+          CI: "true"
+          ANTHROPIC_API_KEY: "sk-ant-stub-for-ci"
+          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
       - name: Unit tests (code_merger)
         run: python -m pytest code_merger/tests/ -v
       - name: Unit tests (backend distillation)
@@ -91,12 +94,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install deps
         run: |
           pip install -r backend/requirements.txt
-          cd frontend && yarn install --frozen-lockfile
+          npm ci
       - name: Boot backend
         env:
           MONGO_URL: "mongodb://localhost:27017"
@@ -154,15 +157,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Frontend deployment gate
-        working-directory: frontend
         run: |
-          yarn install --frozen-lockfile
-          yarn verify
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
       - name: Done
-        run: echo "✓ deployment gate passed — frontend lints, env-check clean, production build succeeds."
+        run: echo "deployment gate passed — lints, types, and production build succeeded."
 
   readiness:
     name: "Stage 6 — readiness gate"
