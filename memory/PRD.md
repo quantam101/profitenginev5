@@ -131,5 +131,17 @@ Live verified: **82.58% savings vs all-Claude baseline** over 10 runs.
 - Vector-embedding-based semantic dedup in distiller (currently lexical)
 
 ## Test ownership
-- Full suite: `cd /app && python -m pytest -v` → 69 local + 7 live HTTP = 76 tests
-- Last green run: `/app/test_reports/iteration_4.json`
+- Full suite: `cd /app && python -m pytest -v` → 85 unit + 19 live integration = 104 tests
+- Last green run: `/app/test_reports/iteration_9.json` (104/104 PASS)
+
+## Iteration 9 (Feb 2026) — Code Quality refactor
+- **launch_router.py** (`build_router` cyclomatic 27 → ~3): every handler extracted to
+  module-level `_h_*` async helpers; `build_router` is now a thin route binder.
+- **distillation.py** (`Distiller.run` cyclomatic 18 → ~5): orchestrator split into
+  `_prepare_system` + `_serve_from_cache` + `_try_cheap` + `_run_expensive`.
+- Public contracts preserved byte-for-byte across all 9 launch endpoints and the
+  distillation cache → cheap → expensive cascade (verified by 19 live integration
+  tests in `test_iteration9_refactor.py`).
+- React hooks, localStorage usage, fixtures RNG and Recharts inline objects were
+  already addressed with principled fixes + documented `eslint-disable` rationale
+  in prior iterations; re-confirmed defensible.
