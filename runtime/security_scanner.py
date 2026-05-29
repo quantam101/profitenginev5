@@ -28,6 +28,7 @@ _IGNORED_FILES = {
 
 _IGNORED_RELATIVE = {
     "app/api/advisor/route.ts",
+    "app/api/widget/embed-source.ts",
     "app/dashboard/page.tsx",
     "runtime/claude_gateway.py",
     "runtime/groq_gateway.py",
