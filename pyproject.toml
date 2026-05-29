@@ -13,5 +13,19 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
-ignore = ["E501"]  # line length handled by formatter
+# E/F/W — standard style + pyflakes
+# S     — flake8-bandit (Bandit) security rules: hardcoded passwords, exec/eval,
+#          insecure hashes, shell injection, XML vulnerabilities, etc.
+#          These replace the broad string-grep markers (API_KEY=, ANTHROPIC_API_KEY)
+#          that used to live in the custom secret scanner.
+select = ["E", "F", "W", "S"]
+ignore = [
+    "E501",   # line length handled by formatter
+    "S101",   # use of assert — fine in tests
+    "S603",   # subprocess call — intentional in scripts/
+    "S607",   # partial executable path — intentional in scripts/
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]       # test files may use hardcoded fixtures
+"scripts/**" = ["S603", "S607", "S605"]  # scripts intentionally call subprocesses

@@ -3,60 +3,36 @@
 from pathlib import Path
 from typing import List
 
-# Narrow markers — broad 'sk-' matches innocent words like 'task-', 'disk-', 'risk-'.
-# Use known Anthropic / OpenAI key prefixes only.
+# Only match actual key VALUE prefixes — not env-var names like ANTHROPIC_API_KEY
+# or assignment patterns like API_KEY= which appear legitimately in every gateway file.
+# Ruff (select=S) and ESLint handle code-quality / hardcoded-credential checks;
+# this scanner exists only to catch accidentally committed key values.
 SECRET_MARKERS = [
-    "sk-ant-",
-    "sk-proj-",
-    "API_KEY=",
-    "BEGIN PRIVATE KEY",
-    "AWS_SECRET",
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
+    "sk-ant-",               # Anthropic live key
+    "sk-proj-",              # OpenAI live key
+    "BEGIN PRIVATE KEY",     # PEM private key block
+    "BEGIN RSA PRIVATE KEY", # RSA PEM block
+    "AWS_SECRET_ACCESS_KEY=", # AWS secret with a value (not just the var name)
 ]
 
-# Files that legitimately reference marker strings as env var names, SDK kwargs,
-# doc examples, or test fixture strings — not embedded secrets.
+# Files that self-referentially list the marker strings (scanner definitions,
+# key-rotation docs, example env files).  Keep this list short — if a file keeps
+# ending up here, the marker is too broad, not the file too noisy.
 _IGNORED_FILES = {
     "security_scanner.py",
+    "security_check.py",   # runner script — self-referentially documents markers
     "verifier.py",
     "health.mjs",
     "package-lock.json",
-    "first-boot.sh",
-    "docker-compose.yml",
 }
 
 _IGNORED_RELATIVE = {
-    "app/api/advisor/route.ts",
-    "app/api/widget/embed-source.ts",
-    "app/dashboard/page.tsx",
-    "runtime/claude_gateway.py",
-    "runtime/groq_gateway.py",
-    "runtime/gemini_gateway.py",
-    "runtime/inference_cascade.py",
-    "runtime/ollama_gateway.py",
-    "runtime/local_model_router.py",
-    "runtime/devto_client.py",
-    "runtime/github_client.py",
-    "runtime/gmail_client.py",
-    "runtime/hashnode_client.py",
-    "runtime/medium_client.py",
-    "runtime/agent_impls/sovereign_orchestrator.py",
-    "runtime/agent_impls/lifelong_catch_correct.py",
-    "runtime/agent_impls/local_research.py",
-    "runtime/agent_impls/trend_scanner.py",
-    "runtime/agent_impls/content_gen.py",
-    "runtime/agent_impls/blog_publisher.py",
-    "runtime/agent_impls/content_pipeline.py",
-    "tests/test_core.py",
     ".env.example",
+    "scripts/secrets.env.example",
+    "tests/test_core.py",  # uses example key strings as test fixtures
     "CONTINUATION.md",
     "DEPLOYMENT.md",
-    ".github/workflows/deploy.yml",
-    ".github/workflows/cycle.yml",
-    ".github/workflows/self-improve.yml",
-    "scripts/bootstrap-server.sh",
-    "scripts/secrets.env.example",
+    "DEPLOY.md",
     "docs/LAUNCH_CHECKLIST.md",
     "docs/AFFILIATE_SETUP.md",
 }
