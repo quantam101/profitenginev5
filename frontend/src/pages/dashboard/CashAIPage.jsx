@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Brain, Zap, Eraser, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Metric } from "./_shared";
+import { logger } from "../../lib/logger";
 import {
   getCashLastDecision, getCashAuditTrail, triggerCashCycle, clearCashCache,
   getAgents, subscribeCycle,
@@ -92,12 +93,9 @@ export default function CashAIPage() {
   const [liveEvent, setLiveEvent] = useState(null);
 
   const refresh = useCallback(() => {
-    getCashLastDecision().then(setDecision)
-      .catch((e) => console.warn("[CashAI] last-decision:", e?.message || e));
-    getCashAuditTrail(20).then(setTrail)
-      .catch((e) => console.warn("[CashAI] audit-trail:", e?.message || e));
-    getAgents().then(setAgents)
-      .catch((e) => console.warn("[CashAI] agents:", e?.message || e));
+    getCashLastDecision().then(setDecision).catch((e) => logger.warn("CashAI.last", e));
+    getCashAuditTrail(20).then(setTrail).catch((e) => logger.warn("CashAI.audit", e));
+    getAgents().then(setAgents).catch((e) => logger.warn("CashAI.agents", e));
   }, []);
 
   useEffect(() => {

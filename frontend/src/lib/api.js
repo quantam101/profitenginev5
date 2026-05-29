@@ -1,4 +1,5 @@
 import axios from "axios";
+import { logger } from "./logger";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -83,18 +84,17 @@ export function subscribeCycle(onEvent) {
     ws = new WebSocket(wsUrl);
     ws.onmessage = (e) => {
       try { onEvent(JSON.parse(e.data)); }
-      catch (err) { console.warn("[ws] malformed event:", err?.message || err); }
+      catch (err) { logger.warn("ws.parse", err); }
     };
     ws.onerror = (err) => {
-      // Page still works without WS — but log so we can diagnose flakiness.
-      console.warn("[ws] error event:", err?.type || "unknown");
+      logger.warn("ws.error", err?.type || "unknown");
     };
   } catch (err) {
-    console.warn("[ws] connect failed:", err?.message || err);
+    logger.warn("ws.connect", err);
     return () => {};
   }
   return () => {
     try { ws && ws.close(); }
-    catch (err) { console.warn("[ws] close failed:", err?.message || err); }
+    catch (err) { logger.warn("ws.close", err); }
   };
 }

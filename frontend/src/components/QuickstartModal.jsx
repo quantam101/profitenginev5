@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, ArrowRight, Cpu, Brain, ShieldAlert, Sparkles, Rocket, Check } from "lucide-react";
+import { logger } from "../lib/logger";
 
 const STEPS = [
   {
@@ -38,19 +39,15 @@ const KEY = "pev5.quickstart.seen";
 
 // NOTE: this is a UX preference flag ("user has dismissed the onboarding modal"),
 // NOT a credential. localStorage is the correct store for non-sensitive UX state.
+// See SECURITY.md → "Client-side storage policy".
 export function shouldAutoOpenQuickstart() {
   try { return !localStorage.getItem(KEY); }
-  catch (err) {
-    console.warn("[quickstart] localStorage read failed:", err?.message || err);
-    return false;
-  }
+  catch (err) { logger.warn("quickstart.read", err); return false; }
 }
 
 export function markQuickstartSeen() {
   try { localStorage.setItem(KEY, "1"); }
-  catch (err) {
-    console.warn("[quickstart] localStorage write failed:", err?.message || err);
-  }
+  catch (err) { logger.warn("quickstart.write", err); }
 }
 
 export default function QuickstartModal({ open, onClose }) {

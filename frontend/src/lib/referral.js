@@ -6,9 +6,11 @@
  * already in the URL), not a credential or session token. localStorage is the
  * correct store: no auth bearer, no PII, no XSS-exfil risk because the value
  * is non-sensitive by design. We do NOT use this pattern for auth tokens.
+ * See SECURITY.md → "Client-side storage policy" for the full rule set.
  */
 import { useEffect } from "react";
 import { trackReferral } from "../lib/api";
+import { logger } from "./logger";
 
 const KEY = "pev5.ref";
 
@@ -16,7 +18,7 @@ export function getReferralCode() {
   try {
     return localStorage.getItem(KEY) || null;
   } catch (err) {
-    console.warn("[referral] localStorage read failed:", err?.message || err);
+    logger.warn("referral.read", err);
     return null;
   }
 }
@@ -32,12 +34,12 @@ export function useReferralCapture() {
       if (existing === code) return;
       localStorage.setItem(KEY, code);
     } catch (err) {
-      console.warn("[referral] capture failed:", err?.message || err);
+      logger.warn("referral.capture", err);
       return;
     }
-    // Fire the network call OUTSIDE the storage try/catch so storage errors
-    // don't suppress backend tracking.
+    // Fire network call OUTSIDE the storage try/catch so storage errors don't
+    // suppress backend tracking.
     trackReferral(code, window.location.pathname)
-      .catch((err) => console.warn("[referral] backend track failed:", err?.message || err));
+      .catch((err) => logger.warn("referral.track", err));
   }, []);
 }

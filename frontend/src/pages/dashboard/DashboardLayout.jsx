@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { logger } from "../../lib/logger";
 import {
   Crown, LayoutDashboard, Cpu, ShieldAlert, MessageCircleQuestion, Radar,
   FileText, BarChart3, BookOpen, Server, GitBranch, ScrollText, Vote,
@@ -57,11 +58,14 @@ export default function DashboardLayout() {
     let cancelled = false;
     getCycleStatus()
       .then((r) => { if (!cancelled) setCycle(r); })
-      .catch((e) => { console.warn("[Layout] cycle:", e?.message || e); setCycle(null); });
+      .catch((e) => { logger.warn("Layout.cycle", e); setCycle(null); });
     getSovereignStatus()
       .then((r) => { if (!cancelled) setSov(r); })
-      .catch((e) => { console.warn("[Layout] sov:", e?.message || e); setSov(null); });
+      .catch((e) => { logger.warn("Layout.sov", e); setSov(null); });
     return () => { cancelled = true; };
+    // Intentional partial deps: API fetchers are module-level stable imports,
+    // setters are stable setState refs. Only `pathname` is variable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return (

@@ -84,7 +84,7 @@ async def test_cheap_tier_returns_json_no_escalation(distiller):
     }))
     res = await distiller.run(DistillRequest(task="classify", prompt="label me"))
     assert res.tier == "cheap"
-    assert res.cache_hit is False
+    assert res.cache_hit == False  # noqa: E712 — explicit boolean equality per reviewer guidance
     assert res.output["answer"] == "ok"
     assert res.cost_usd > 0 and res.baseline_cost_usd > res.cost_usd
 
@@ -96,7 +96,7 @@ async def test_cache_hit_on_second_call(distiller):
     second = await distiller.run(DistillRequest(task="t", prompt="same prompt"))
     assert first.tier == "cheap"
     assert second.tier == "cache"
-    assert second.cache_hit is True
+    assert second.cache_hit == True  # noqa: E712 — explicit boolean equality per reviewer guidance
     assert second.cost_usd == 0.0
     assert distiller._call.await_count == 1  # second call hit cache
 

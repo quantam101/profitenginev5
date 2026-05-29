@@ -8,6 +8,7 @@ import {
   getSovereignDecisions, getProofOfWork, getAutonomy,
 } from "../../lib/api";
 import QuickstartModal, { shouldAutoOpenQuickstart } from "../../components/QuickstartModal";
+import { logger } from "../../lib/logger";
 
 function riskTone(risk) {
   if (risk === "high") return "text-danger";
@@ -28,13 +29,13 @@ export default function Overview() {
   const [autonomy, setAutonomy] = useState(null);
 
   // Module-level imports are stable across renders, so this effect intentionally
-  // runs once on mount. We use allSettled so one failure doesn't block the rest,
-  // and log unexpected errors instead of swallowing them silently.
+  // runs once on mount. We use allSettled-style isolation so one failure doesn't
+  // block the rest, and route logging through the env-aware logger (no-op in prod).
   useEffect(() => {
     let cancelled = false;
     const safe = (label, p, setter) =>
       p.then((r) => { if (!cancelled) setter(r); })
-       .catch((err) => console.warn(`[Overview] ${label} failed:`, err?.message || err));
+       .catch((err) => logger.warn(`Overview.${label}`, err));
     safe("revenue", getRevenue(14), setRevenue);
     safe("agents", getAgents(), setAgents);
     safe("approvals", getApprovals(), setApprovals);
@@ -46,6 +47,11 @@ export default function Overview() {
     safe("autonomy", getAutonomy(), setAutonomy);
     if (shouldAutoOpenQuickstart()) setQuickstart(true);
     return () => { cancelled = true; };
+    // Intentional empty deps: this effect runs once on mount. All referenced
+    // identifiers (getAgents, setAgents, etc.) are module-level imports or
+    // stable setState functions — adding them to the deps array would be
+    // noise that re-creates this closure every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalRev = revenue.reduce((s, p) => s + p.amount, 0);

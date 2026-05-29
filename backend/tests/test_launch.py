@@ -102,7 +102,7 @@ class TestReferral:
         r = client.post(f"{BASE_URL}/api/referral/track",
                         json={"code": "TEST_VIRAL2026", "landing_path": "/"})
         assert r.status_code == 200
-        assert r.json()["tracked"] is True
+        assert r.json()["tracked"] == True  # noqa: E712
         s = client.get(f"{BASE_URL}/api/referral/stats/TEST_VIRAL2026")
         assert s.status_code == 200
         sd = s.json()
@@ -118,5 +118,5 @@ class TestSubscriptions:
                        params={"email": "TEST_nobody@example.com"})
         assert r.status_code == 200
         d = r.json()
-        assert d["active"] is False
+        assert d["active"] == False  # noqa: E712
         assert d["tier"] == "operator"

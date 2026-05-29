@@ -130,10 +130,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     # ── Status polling (called by /checkout/success page) ──
     @router.get("/api/checkout/status/{session_id}")
     async def checkout_status(session_id: str, request: Request) -> dict:
+        status = None
         try:
             status = await _stripe(request).get_checkout_status(session_id)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=502, detail=f"stripe error: {exc}") from exc
+        if status is None:
+            raise HTTPException(status_code=502, detail="stripe returned no status")
 
         # Update transaction (idempotent — don't re-credit)
         tx = await db.payment_transactions.find_one({"session_id": session_id})
@@ -147,7 +150,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 {"session_id": session_id}, {"$set": update},
             )
             # On first successful payment → grant subscription + credit referral
-            if status.payment_status == "paid" and tx.get("payment_status") != "paid":
+            if status.payment_status == "paid":
                 await _grant_subscription(db, tx, status.metadata)
         return {
             "session_id": session_id,

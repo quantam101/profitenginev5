@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, Sparkles, ShieldCheck, TrendingUp } from "lucide-react";
 import { getProofOfWork, getDistillationStats, getFleetStats, getStats } from "../lib/api";
+import { logger } from "../lib/logger";
 
 function Stat({ label, value, accent, testId }) {
   return (
@@ -96,7 +97,7 @@ function useProofData() {
 
   useEffect(() => {
     const safe = (label, p, setter) =>
-      p.then(setter).catch((e) => console.warn(`[ProofOfWork] ${label}:`, e?.message || e));
+      p.then(setter).catch((e) => logger.warn(`ProofOfWork.${label}`, e));
     safe("proof-of-work", getProofOfWork(), setPow);
     safe("distillation-stats", getDistillationStats(), setDist);
     safe("fleet-stats", getFleetStats(), setFleet);

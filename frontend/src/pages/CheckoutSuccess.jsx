@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { checkoutStatus } from "../lib/api";
+import { logger } from "../lib/logger";
 
 const POLL_MS = 2000;
 const MAX_ATTEMPTS = 8;
@@ -107,7 +108,7 @@ function useCheckoutPolling(sessionId) {
         setState({ status: "pending", attempts: attempt, info: r });
         setTimeout(poll, POLL_MS);
       } catch (e) {
-        console.warn("[checkout] status poll failed:", e?.message || e);
+        logger.warn("checkout.poll", e);
         if (attempt >= MAX_ATTEMPTS) {
           setState({ status: "error", err: e?.message || "unknown" });
           return;
