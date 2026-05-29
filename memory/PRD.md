@@ -65,22 +65,23 @@ Live verified: **82.58% savings vs all-Claude baseline** over 10 runs.
 ## What's implemented
 - [x] AST merger CLI · 15/15 pytest pass
 - [x] AHD ↔ PEV5 merge applied · 32 new defs pulled in
-- [x] 29 backend endpoints (+3 new for distillation, /api/distillation/status now live)
-- [x] **11-agent fleet** preserved (Sovereign + Cost Guard + Content + Proposal + Lifelong + SEO Scout + Faceless Video + POD Designer + Affiliate + Health Oracle + Procurement)
-- [x] 18 dashboard pages with AHD command-OS aesthetic
-- [x] TokenForge-style launch (React + Next.js mirror)
-- [x] **Data Distillation engine** — cache + Gemini-Flash + Claude-Sonnet tiering, 82.58% live savings
-- [x] **Advisor endpoint upgraded** — now uses distiller with deterministic fallback
-- [x] **5-stage CI/CD pipeline** in `.github/workflows/ci.yml`
-- [x] **k6 smoke** at `/app/ci/load_smoke.js`
-- [x] **76/76 tests pass** (15 code_merger + 41 backend_api + 13 distillation unit + 7 distillation live HTTP)
+- [x] 33 backend endpoints (29 v5 + 4 Cash AI/persistence/WS)
+- [x] **11-agent fleet** preserved exactly
+- [x] 19 dashboard pages with AHD command-OS aesthetic (added **Cash AI**)
+- [x] TokenForge-style launch (React + Next.js mirror) + **Proof of Work showcase** (live data)
+- [x] **Data Distillation engine** — 82.58% live savings
+- [x] **Cash AI page** ported from AHD — Clear AI Cache + Trigger Cycle + Last Cash Decision (highest-confidence open approval) + 11-agent fleet grid + Decision Audit Trail + live WS pill
+- [x] **Persistence + WebSocket** — agent runs, approval decisions and cycle events persist to Mongo; live `/api/ws/cycle` broadcast keeps the dashboard real-time
+- [x] **Fixtures extracted** to `backend/fixtures.py` (server.py from 648 → ~617 lines)
+- [x] **5-stage CI/CD pipeline** in `.github/workflows/ci.yml` + k6 smoke
+- [x] **83/83 tests pass** (15 code_merger + 41 backend_api + 13 distillation unit + 7 distillation live + 7 cash_ai)
 
 ## Backlog (P1)
 - Push `/app` to `quantam101/profitenginev5` via "Save to Github"
 - Wire `POST /api/waitlist` from the Next.js launch (currently `mailto:` fallback)
-- Persist agent execute / approval decisions to Mongo + WebSocket push for real-time cycle updates
-- Connector registry UI (the YAML already exists at `/app/connectors/registry.yaml`)
-- Extract fixture blocks from server.py into `backend/fixtures.py` (server.py is at ~645 lines)
+- Split server.py into `backend/routers/{cash_ai,distillation,merger,ops}.py` (server.py is at ~617 lines)
+- Add Stripe checkout for Studio tier (test key already in pod env)
+- Connector registry UI
 
 ## Backlog (P2)
 - GitHub Action that runs `code_merger repo` on every PR + posts diff comment

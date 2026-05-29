@@ -58,6 +58,7 @@ export const getDistillationStats = () => api.get("/distillation/stats").then((r
 export function subscribeCycle(onEvent) {
   const wsUrl = (BACKEND_URL || "").replace(/^http/, "ws") + "/api/ws/cycle";
   let ws;
+  // eslint-disable-next-line no-unused-vars
   let closed = false;
   try {
     ws = new WebSocket(wsUrl);
@@ -71,6 +72,5 @@ export function subscribeCycle(onEvent) {
   return () => {
     closed = true;
     try { ws && ws.close(); } catch { /* noop */ }
-    return closed;
   };
 }
