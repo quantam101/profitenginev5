@@ -35,12 +35,14 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 from code_merger.python_merger import merge_python_files  # noqa: E402
 from code_merger.js_merger import merge_js_files  # noqa: E402
 from code_merger.scoring import score_python_function  # noqa: E402
+from backend.services.distillation import Distiller, DistillRequest  # noqa: E402
 
 
 MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 mongo_client = AsyncIOMotorClient(MONGO_URL)
 db = mongo_client[DB_NAME]
+distiller = Distiller(db)
 
 
 # ── Schemas ────────────────────────────────────────────────────
@@ -496,8 +498,53 @@ async def proof_of_work() -> dict:
 
 @app.get("/api/distillation/status")
 async def distillation_status() -> dict:
-    return {"state": "active", "tier_routing": {"local": 0.42, "groq": 0.31, "gemini": 0.18, "claude": 0.09},
-            "savings_vs_baseline_pct": 0.71, "pipeline_runs_24h": 1842}
+    """Live status of the distillation engine (real Mongo accounting)."""
+    s = await distiller.stats()
+    total = max(1, s["total_runs"])
+    tier_routing = {k: round(v / total, 4) for k, v in s["tier_breakdown"].items()}
+    return {
+        "state": "active",
+        "tier_routing": tier_routing,
+        "savings_vs_baseline_pct": s["savings_pct"],
+        "pipeline_runs_24h": s["total_runs"],
+        "cheap_model": s["cheap_model"],
+        "expensive_model": s["expensive_model"],
+    }
+
+
+class DistillationAskRequest(BaseModel):
+    task: str
+    prompt: str
+    system: str | None = None
+    schema_hint: str | None = None
+    force_tier: Literal["cheap", "expensive"] | None = None
+    max_tokens: int = 1024
+
+
+@app.post("/api/distillation/distill")
+async def distillation_distill(body: DistillationAskRequest) -> dict:
+    """Run a single prompt through the tiered distillation engine."""
+    if not body.prompt.strip():
+        raise HTTPException(status_code=400, detail="prompt is required")
+    result = await distiller.run(DistillRequest(
+        task=body.task, prompt=body.prompt, system=body.system,
+        schema_hint=body.schema_hint, force_tier=body.force_tier,
+        max_tokens=body.max_tokens,
+    ))
+    return {
+        "tier": result.tier, "output": result.output, "cache_hit": result.cache_hit,
+        "tokens_in": result.tokens_in, "tokens_out": result.tokens_out,
+        "cost_usd": round(result.cost_usd, 6),
+        "baseline_cost_usd": round(result.baseline_cost_usd, 6),
+        "saved_usd": round(result.saved_usd, 6),
+        "latency_ms": result.latency_ms, "notes": result.notes,
+    }
+
+
+@app.get("/api/distillation/stats")
+async def distillation_stats() -> dict:
+    """Detailed token + cost accounting across all distillation runs."""
+    return await distiller.stats()
 
 
 @app.get("/api/analytics")
@@ -513,15 +560,42 @@ async def advisor_ask(body: dict) -> dict:
     q = (body.get("question") or "").strip()
     if not q:
         raise HTTPException(status_code=400, detail="question required")
-    return {
-        "question": q,
-        "answer": (
-            "Based on the last 14 days, your Stream-C (digital product) is your highest-leverage channel. "
-            "Suggest pushing Scout opportunity #4017 through Content → Video → Social, gated on Guard."
-        ),
-        "agent": "sovereign-orchestrator",
-        "at": datetime.now(timezone.utc).isoformat(),
-    }
+    schema = (
+        '{"answer": string, "confidence": number, "channels": string[], '
+        '"requires_expert": boolean}'
+    )
+    system = (
+        "You are the Sovereign Orchestrator of an autonomous content engine. "
+        "Recommend the highest-leverage next action across content / video / "
+        "social / proposal channels. Respond as a single JSON object. Set "
+        "`requires_expert` to true only if the question demands deep reasoning."
+    )
+    try:
+        result = await distiller.run(DistillRequest(
+            task="advisor.ask", prompt=q, system=system, schema_hint=schema,
+            max_tokens=512,
+        ))
+        output = result.output if isinstance(result.output, dict) else {"answer": str(result.output)}
+        return {
+            "question": q,
+            "answer": output.get("answer", str(output)),
+            "confidence": output.get("confidence"),
+            "agent": "sovereign-orchestrator",
+            "tier": result.tier, "cache_hit": result.cache_hit,
+            "saved_usd": round(result.saved_usd, 6),
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception:  # noqa: BLE001 — fallback so dashboard never breaks
+        return {
+            "question": q,
+            "answer": (
+                "Based on the last 14 days, your Stream-C (digital product) is your highest-leverage channel. "
+                "Suggest pushing Scout opportunity #4017 through Content → Video → Social, gated on Guard."
+            ),
+            "agent": "sovereign-orchestrator",
+            "tier": "fallback", "cache_hit": False, "saved_usd": 0.0,
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # ── Code merger ────────────────────────────────────────────────

@@ -19,8 +19,10 @@ BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
 API = f"{BASE_URL}/api"
 
 EXPECTED_AGENTS = {
-    "sovereign-v1", "scout-agent", "content-agent", "video-agent",
-    "social-agent", "revenue-agent", "guard-agent",
+    "sovereign-orchestrator", "cost-guard", "content-generation",
+    "proposal-engine", "lifelong-catch-correct", "seo-scout",
+    "faceless-video", "pod-designer", "affiliate-link",
+    "health-oracle", "procurement-scout",
 }
 
 
@@ -48,21 +50,21 @@ class TestAgents:
         assert r.status_code == 200
         data = r.json()
         assert isinstance(data, list)
-        assert len(data) == 7
+        assert len(data) == 11
         ids = {a["id"] for a in data}
         assert ids == EXPECTED_AGENTS, f"missing: {EXPECTED_AGENTS - ids}"
 
     def test_sovereign_is_orchestrator(self, s):
         data = s.get(f"{API}/agents", timeout=15).json()
-        sov = next(a for a in data if a["id"] == "sovereign-v1")
+        sov = next(a for a in data if a["id"] == "sovereign-orchestrator")
         assert sov["tier"] == "sovereign"
         assert sov["type"] == "orchestrator"
 
     def test_execute_known_agent(self, s):
-        r = s.post(f"{API}/agents/scout-agent/execute", json={}, timeout=15)
+        r = s.post(f"{API}/agents/seo-scout/execute", json={}, timeout=15)
         assert r.status_code == 200
         body = r.json()
-        assert "run_id" in body and body["agent_id"] == "scout-agent"
+        assert "run_id" in body and body["agent_id"] == "seo-scout"
 
     def test_execute_unknown_agent_404(self, s):
         r = s.post(f"{API}/agents/does-not-exist/execute", json={}, timeout=15)
@@ -121,7 +123,7 @@ class TestAdvisor:
                    json={"question": "How should I allocate budget?"}, timeout=15)
         assert r.status_code == 200
         body = r.json()
-        assert body["agent"] == "sovereign-v1"
+        assert body["agent"] == "sovereign-orchestrator"
         assert len(body["answer"]) > 0
 
     def test_empty_question_400(self, s):
@@ -173,7 +175,9 @@ class TestOps:
     def test_distillation_routing(self, s):
         d = s.get(f"{API}/distillation/status", timeout=15).json()
         routing = d["tier_routing"]
-        assert {"local", "groq", "gemini", "claude"} <= set(routing)
+        # New tier model: cache / cheap / expensive
+        assert {"cache", "cheap", "expensive"} <= set(routing)
+        assert "cheap_model" in d and "expensive_model" in d
 
     def test_cost_categories(self, s):
         c = s.get(f"{API}/cost", timeout=15).json()

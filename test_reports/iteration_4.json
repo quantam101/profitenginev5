@@ -1,0 +1,43 @@
+{
+  "summary": "ITERATION 4 — Validated the new Data Distillation engine + regression on the 11-agent ProfitEngine v5 surface. Full pytest suite 69/69 PASS (15 code_merger + 41 backend_api regression + 13 distillation unit) PLUS a new 7-test live HTTP suite (test_distillation_live.py) hitting the public preview URL — 7/7 PASS. End-to-end live verification confirms the money-saving behavior: 1st `/api/distillation/distill` call routed to tier='cheap' (gemini/gemini-3-flash-preview, real JSON response, cost $0.000006, saved $0.000705); 2nd identical call routed to tier='cache' with cache_hit=true and cost_usd=0. /api/distillation/stats reports 82.58% savings vs baseline, tier_breakdown {cache:5, cheap:4, expensive:1}, cheap_model='gemini/gemini-3-flash-preview', expensive_model='anthropic/claude-sonnet-4-6'. /api/distillation/status returns the new {cache,cheap,expensive} tier_routing keys with cheap_model+expensive_model. /api/distillation/distill correctly returns 400 for empty/whitespace prompts. /api/advisor/ask returns 200 with agent='sovereign-orchestrator', non-empty answer, tier in {cheap,cache,expensive,fallback}, and 400 on empty question. /api/agents still returns all 11 expected agents (sovereign-orchestrator, cost-guard, content-generation, proposal-engine, lifelong-catch-correct, seo-scout, faceless-video, pod-designer, affiliate-link, health-oracle, procurement-scout). All other v5 endpoints (health, stats, fleet-stats, sovereign/*, approvals + decide flows, content, revenue series/streams/stats, ledger, scout, deployments, builds, audit, books, proposals, secrets, cost, proof-of-work, analytics, cycle, merge, score, waitlist) still 200. No bugs found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_backend_api.py",
+    "/app/backend/tests/test_distillation.py",
+    "/app/backend/tests/test_distillation_live.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now ~645 lines — still under the 700 threshold but the fixture blocks (_AGENTS, _APPROVALS, _CONTENT, _REVENUE_STREAMS, _DEPLOYMENTS, _BUILDS, _AUDIT, _PROPOSALS, _BOOKS, _SECRETS, _SOVEREIGN_DECISIONS, _SCOUT_OPPS, _COST) account for ~170 lines; recommend extracting into backend/fixtures.py before adding any more domain data.",
+    "Distiller correctly excludes Mongo `_id` from cache responses (uses `_id` as the cache key but returns only output/raw/tokens_out — clean).",
+    "Distiller._call is async, properly awaited, uses with_model(provider, model).with_params(max_tokens=...) per emergentintegrations API — no blocking IO.",
+    "Cache TTL governed by env DISTILLATION_CACHE_TTL_HOURS (default 168h/7d) — expired entries are lazily deleted on read, which is correct.",
+    "Robust JSON parsing in _try_parse_json (strips ```json fences AND falls back to first-{…-last-} regex extraction) — non-JSON cheap-tier responses cleanly escalate to expensive tier with a note.",
+    "Strict-JSON system prompt + schema_hint + requires_expert key give the cheap tier a self-escalation signal; expensive tier only fires when cheap is genuinely unsure or returns bad JSON. This is the cost-control core and it works as documented.",
+    "Advisor endpoint wraps the distiller call in try/except so a downed LLM still returns a deterministic fallback tier='fallback' answer — the dashboard cannot break from LLM outages.",
+    "Empty/whitespace input validation: both /api/distillation/distill and /api/advisor/ask correctly raise HTTPException(400) before consuming any LLM budget — good defensive ordering.",
+    "Cost accounting fields (cost_usd, baseline_cost_usd, saved_usd) are computed per call and persisted in `distillation_runs`, then aggregated in stats() — the savings_pct reading 82.58% in live data confirms the math is right."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_distillation_live.py (NEW — 7 live HTTP tests for distillation_status/stats/distill + advisor/ask via the public preview URL)"
+  ],
+  "success_rate": {
+    "backend": "100% (76/76 = 69 existing pytest + 7 new live HTTP tests)",
+    "frontend": "not tested (backend-only review per request)"
+  },
+  "test_credentials": "None — all endpoints open.",
+  "seed_data_creation": "Live tests inserted ~10 documents into MongoDB `distillation_runs` and a few into `distillation_cache` (TTL 7d, harmless).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Live distillation tests: /app/backend/tests/test_distillation_live.py. Full pytest run: `cd /app && python -m pytest -v --junitxml=/app/test_reports/pytest/pytest_results.xml`. BASE_URL from /app/frontend/.env (REACT_APP_BACKEND_URL). The Distiller stores SHA-256(normalized_prompt + tier + schema + task) as the cache key in collection `distillation_cache`; repeat calls with the same prompt+task+tier return tier='cache', cost_usd=0. Cheap tier is gemini/gemini-3-flash-preview, expensive is anthropic/claude-sonnet-4-6, both via EMERGENT_LLM_KEY using emergentintegrations.llm.chat.LlmChat. Advisor endpoint has a try/except fallback so it cannot 500 from LLM outage — it returns tier='fallback' instead.",
+  "rca of the issue": "No bugs found. The Data Distillation engine works end-to-end as designed: SHA-256 cache hit on repeat prompts saves 100% cost; cheap-first tiering keeps real-world live cost at ~$0.000006/call (gemini-3-flash) with the expensive Claude tier only firing on requires_expert=true or non-JSON cheap output; stats endpoint correctly aggregates 82.58% savings vs the all-Claude baseline across 10 live runs."
+}

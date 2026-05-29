@@ -9,7 +9,7 @@ export default function DistillationPage() {
   if (!d) return <div className="px-6 py-10 md:px-10" data-testid="distillation-page" />;
   return (
     <div className="px-6 py-10 md:px-10" data-testid="distillation-page">
-      <PageHeader eyebrow="// distillation" title="Tiered inference router." subtitle="Local Ollama → Groq → Gemini → Claude cascade. Every prompt picks the cheapest tier that meets quality." />
+      <PageHeader eyebrow="// distillation" title="Tiered inference router." subtitle={`Cache → ${d.cheap_model || "cheap"} → ${d.expensive_model || "expensive"}. Every prompt hits the cheapest tier that meets quality, with strict-JSON outputs and SHA-256 cache.`} />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 mb-6">
         <Metric label="state" value={d.state} testId="dist-state" />
         <Metric label="savings vs baseline" value={`${Math.round(d.savings_vs_baseline_pct * 100)}%`} testId="dist-savings" />
