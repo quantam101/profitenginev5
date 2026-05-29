@@ -5,7 +5,7 @@ import { ArrowUpRight, ShieldAlert, Cpu, Crown, Award, DollarSign, BookOpen } fr
 import { PageHeader, Metric, StatusBadge } from "./_shared";
 import {
   getRevenue, getAgents, getApprovals, getStats, getLedgerProgress, getSovereignStatus,
-  getSovereignDecisions, getProofOfWork,
+  getSovereignDecisions, getProofOfWork, getAutonomy,
 } from "../../lib/api";
 import QuickstartModal, { shouldAutoOpenQuickstart } from "../../components/QuickstartModal";
 
@@ -25,6 +25,7 @@ export default function Overview() {
   const [decisions, setDecisions] = useState([]);
   const [pow, setPow] = useState(null);
   const [quickstart, setQuickstart] = useState(false);
+  const [autonomy, setAutonomy] = useState(null);
 
   useEffect(() => {
     getRevenue(14).then(setRevenue).catch(() => {});
@@ -35,6 +36,7 @@ export default function Overview() {
     getSovereignStatus().then(setSov).catch(() => {});
     getSovereignDecisions().then(setDecisions).catch(() => {});
     getProofOfWork().then(setPow).catch(() => {});
+    getAutonomy().then(setAutonomy).catch(() => {});
     if (shouldAutoOpenQuickstart()) setQuickstart(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,6 +62,12 @@ export default function Overview() {
           <Award className="h-3 w-3" strokeWidth={2} />
           $25k unlock · <span className="text-ink">{pct}%</span>
         </div>
+        {autonomy && (
+          <div className="inline-flex items-center gap-2 border border-line bg-bg-panel px-3 py-1.5 text-[11px] uppercase tracking-widest text-ink-muted" data-testid="status-autonomy">
+            <Crown className="h-3 w-3 text-sov-soft" strokeWidth={2} />
+            autonomy · <span className="font-bold text-ink">{autonomy.level}</span> <span className="text-ink-faint">· {autonomy.mode.toLowerCase()}</span>
+          </div>
+        )}
         <div className="ml-auto">
           <button
             type="button"

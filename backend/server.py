@@ -39,6 +39,7 @@ from backend.services.distillation import Distiller, DistillRequest  # noqa: E40
 from backend import fixtures as fx  # noqa: E402
 from backend.services.ws_hub import ws_hub  # noqa: E402
 from backend.services.launch_router import build_router as build_launch_router  # noqa: E402
+from backend.services.enterprise_router import build_router as build_enterprise_router  # noqa: E402
 
 
 MONGO_URL = os.environ["MONGO_URL"]
@@ -133,6 +134,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
 
 # Stripe checkout + launch marketing endpoints
 app.include_router(build_launch_router(db))
+# Enterprise blueprint endpoints (autonomy, lifelong, manifest)
+app.include_router(build_enterprise_router(db))
 
 
 @app.get("/api/health")

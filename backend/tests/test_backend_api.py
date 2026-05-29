@@ -23,6 +23,10 @@ EXPECTED_AGENTS = {
     "proposal-engine", "lifelong-catch-correct", "seo-scout",
     "faceless-video", "pod-designer", "affiliate-link",
     "health-oracle", "procurement-scout",
+    # Enterprise expansion (Feb 2026)
+    "motivation-engine", "revenue-intelligence", "offer-engineering",
+    "sales-execution", "cash-conversion", "learning-agent",
+    "analytics-agent", "codex-optimization", "audit-agent",
 }
 
 
@@ -50,7 +54,7 @@ class TestAgents:
         assert r.status_code == 200
         data = r.json()
         assert isinstance(data, list)
-        assert len(data) == 11
+        assert len(data) == 20
         ids = {a["id"] for a in data}
         assert ids == EXPECTED_AGENTS, f"missing: {EXPECTED_AGENTS - ids}"
 

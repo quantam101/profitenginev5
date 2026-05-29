@@ -54,6 +54,12 @@ export const trackReferral = (code, landing_path = null) =>
   api.post("/referral/track", { code, landing_path }).then((r) => r.data);
 export const getReferralStats = (code) => api.get(`/referral/stats/${code}`).then((r) => r.data);
 
+// Enterprise
+export const getAutonomy = () => api.get("/autonomy").then((r) => r.data);
+export const setAutonomy = (level) => api.put("/autonomy", { level }).then((r) => r.data);
+export const getLifelongIssues = (limit = 50) => api.get(`/lifelong/issues?limit=${limit}`).then((r) => r.data);
+export const getEnterpriseManifest = () => api.get("/enterprise/manifest").then((r) => r.data);
+
 // Stripe checkout
 export const listPackages = () => api.get("/checkout/packages").then((r) => r.data);
 export const createCheckout = (b) => api.post("/checkout/session", b).then((r) => r.data);

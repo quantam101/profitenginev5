@@ -23,6 +23,7 @@ import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import DistillationPage from "./pages/dashboard/DistillationPage";
 import AdvisorPage from "./pages/dashboard/AdvisorPage";
 import CashAIPage from "./pages/dashboard/CashAIPage";
+import LifelongPage from "./pages/dashboard/LifelongPage";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
             <Route index element={<Overview />} />
             <Route path="sovereign" element={<SovereignPage />} />
             <Route path="cash-ai" element={<CashAIPage />} />
+            <Route path="lifelong" element={<LifelongPage />} />
             <Route path="agents" element={<AgentsPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="advisor" element={<AdvisorPage />} />

@@ -47,15 +47,15 @@ export default function Hero() {
             className="font-display text-5xl leading-[0.95] tracking-tighter md:text-7xl"
             data-testid="hero-title"
           >
-            Ship an<br />
-            <span className="text-ok">autonomous</span><br />
-            content business.
+            Enterprise<br />
+            <span className="text-ok">controlled autonomy</span><br />
+            for revenue.
           </h1>
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-ink-muted md:text-base">
-            ProfitEngine v5 runs an <span className="text-ok">11-agent autonomous fleet</span> — Sovereign Orchestrator coordinating
-            ten specialists across content, revenue, security and learning. They scout opportunities, generate assets, ship
-            print-on-demand designs, pull federal contracts, enforce zero-spend and self-correct on every cycle.
-            You approve. The fleet ships.
+            ProfitEngine v5 is a <span className="text-ok">production-grade, parallel multi-agent OS</span> — Prime Orchestrator
+            coordinating 19 specialist agents across revenue, market, product, learning and risk. Bounded autonomy at L3,
+            zero-trust hardened, audit-required. Every failure becomes a lesson, every lesson becomes infrastructure.
+            <span className="text-ok"> You stay in command.</span>
           </p>
 
           <div

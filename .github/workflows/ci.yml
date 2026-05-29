@@ -145,10 +145,29 @@ jobs:
         run: k6 run ci/load_smoke.js
 
   # ── Stage 5: build + readiness gate ────────────────────────────
-  readiness:
-    name: "Stage 5 — readiness gate"
+  deployment_gate:
+    name: "Stage 5 — deployment gate (yarn verify)"
     runs-on: ubuntu-latest
     needs: [e2e, performance]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - name: Frontend deployment gate
+        working-directory: frontend
+        run: |
+          yarn install --frozen-lockfile
+          yarn verify
+      - name: Done
+        run: echo "✓ deployment gate passed — frontend lints, env-check clean, production build succeeds."
+
+  readiness:
+    name: "Stage 6 — readiness gate"
+    runs-on: ubuntu-latest
+    needs: [deployment_gate]
     steps:
       - uses: actions/checkout@v4
       - run: echo "All gates passed. Ready to deploy."

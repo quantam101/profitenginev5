@@ -15,6 +15,7 @@ const NAV_GROUPS = [
       { to: "/dashboard", label: "Command Center", icon: LayoutDashboard, end: true, testId: "sidebar-overview" },
       { to: "/dashboard/sovereign", label: "Sovereign", icon: Crown, sov: true, testId: "sidebar-sovereign" },
       { to: "/dashboard/cash-ai", label: "Cash AI", icon: Brain, sov: true, testId: "sidebar-cash-ai" },
+      { to: "/dashboard/lifelong", label: "Lifelong Catch & Correct", icon: ShieldAlert, testId: "sidebar-lifelong" },
       { to: "/dashboard/agents", label: "AI Agents", icon: Cpu, testId: "sidebar-agents" },
       { to: "/dashboard/approvals", label: "Approval Queue", icon: ShieldAlert, testId: "sidebar-approvals" },
       { to: "/dashboard/advisor", label: "Advisor", icon: MessageCircleQuestion, testId: "sidebar-advisor" },
