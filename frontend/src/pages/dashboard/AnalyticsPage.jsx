@@ -17,10 +17,10 @@ export default function AnalyticsPage() {
       <PageHeader eyebrow="// analytics" title="Mesh telemetry." subtitle="Cycle completion, approval latency and channel split across the 7-agent mesh." />
       {an && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 mb-6">
-          <Metric label="daily active agents" value={`${an.daily_active_agents}/7`} testId="an-dau" />
-          <Metric label="weekly active agents" value={`${an.weekly_active_agents}/7`} testId="an-wau" />
-          <Metric label="cycle completion" value={`${Math.round(an.cycle_completion_rate * 100)}%`} testId="an-cycle" />
-          <Metric label="median approval latency" value={`${an.approval_latency_median_s}s`} testId="an-latency" />
+          <Metric label="daily active agents" value={`${an.daily_active_agents}/7`} testId="analytics-dau" />
+          <Metric label="weekly active agents" value={`${an.weekly_active_agents}/7`} testId="analytics-wau" />
+          <Metric label="cycle completion" value={`${Math.round(an.cycle_completion_rate * 100)}%`} testId="analytics-cycle" />
+          <Metric label="median approval latency" value={`${an.approval_latency_median_s}s`} testId="analytics-latency" />
         </div>
       )}
       <div className="grid gap-4 lg:grid-cols-2">

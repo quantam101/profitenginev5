@@ -49,7 +49,7 @@ export default function AgentsPage() {
                 </div>
                 <button
                   onClick={() => run(a.id)}
-                  data-testid={`execute-agent-${a.id}`}
+                  data-testid={`agent-execute-${a.id}`}
                   className="shrink-0 inline-flex items-center gap-1 rounded-soft border border-ok bg-ok/10 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-ok hover:bg-ok hover:text-bg-deep"
                 >
                   <Activity className="h-3.5 w-3.5" /> Execute

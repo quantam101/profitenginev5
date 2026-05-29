@@ -15,7 +15,7 @@ export default function ProofOfWorkPage() {
       <PageHeader eyebrow="// proof of work" title="Operational integrity." subtitle="A signed, cryptographic attestation of the engine's last 24h." />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="sov-card p-6 flex flex-col items-center justify-center" data-testid="pow-meter">
-          <div className="profit-meter">
+          <div className="profit-meter" data-testid="pow-meter-ring">
             <svg width="180" height="180">
               <circle className="track" cx="90" cy="90" r="70" />
               <circle className="fill" cx="90" cy="90" r="70" strokeDasharray={C} strokeDashoffset={offset} />

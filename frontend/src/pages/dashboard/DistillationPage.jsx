@@ -22,7 +22,7 @@ export default function DistillationPage() {
         </div>
         <div className="space-y-3">
           {Object.entries(d.tier_routing).map(([k, v]) => (
-            <div key={k} className="text-sm" data-testid={`dist-tier-${k}`}>
+            <div key={k} className="text-sm" data-testid={`distill-${k}`}>
               <div className="flex items-center justify-between mb-1">
                 <span className="font-mono">{k}</span>
                 <span className="text-ok">{Math.round(v * 100)}%</span>
