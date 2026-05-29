@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 9 verifies the launch_router.py and distillation.py refactors preserve all public contracts. Ran 85 existing pytests + 19 new live integration tests against the public preview URL = 104/104 PASS. Backend: /api/checkout/packages returns the 3 expected packages (studio_monthly, studio_annual, holding_deposit); POST /api/checkout/session 400s on bad package/origin and returns stripe URL on valid (cs_test_*); /api/webhook/stripe rejects unsigned bodies (400); /api/launch/social-proof + /api/launch/cohort return all required keys with engine_status='operational'; referral track/stats validate code length and return full envelope; /api/subscriptions/me returns {active:false, tier:'operator'} for unknown email. Distillation refactor verified: POST /api/distillation/distill returns tier in {cache,cheap,expensive,errored} with tokens_in, tokens_out, cost_usd, baseline_cost_usd, saved_usd, latency_ms, notes (refactor preserved orchestrator→helper contract). Live observation: first call tier='cheap', latency 1.5s, cost_usd 1.1e-05 — cache→cheap→expensive cascade still works. Cash AI: /api/cash/last-decision returns apr_004 (high confidence), /api/cash/audit-trail + /api/cash/cycle/trigger work, WS toast 'Cycle cycle_1543035b triggered' confirmed. Enterprise: /api/agents returns 20 agents, manifest 200, agent execute returns 200 synchronously. Frontend: 0 page errors, 0 console errors across landing + 8 dashboard routes (overview, sovereign, agents, distillation, approvals, advisor, scout, cash-ai, analytics, proof-of-work). Landing social-proof rail shows real Mongo counts (6/43/23/0). Quickstart modal works. Cash AI Trigger Cycle button fires API + toast. Analytics renders 25 SVG chart elements (LineChart + BarChart) cleanly with no Recharts warnings. Only console output is the well-known React Router v6→v7 future-flag advisory (cosmetic, not a defect).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/cash-ai/*", "issue": "Review request refers to /api/cash-ai/last-decision, /api/cash-ai/audit, /api/cash-ai/trigger but actual routes are /api/cash/last-decision, /api/cash/audit-trail, /api/cash/cycle/trigger. Functional behaviour is correct; just a naming/doc mismatch from prior iteration 8 already flagged."},
+      {"endpoint": "/api/distillation/run", "issue": "Review request mentions POST /api/distillation/run; live route is POST /api/distillation/distill (with {prompt, task}). Refactor contract is preserved either way — just route-name drift in the request statement."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration9_refactor.py",
+    "/app/backend/tests/test_launch.py",
+    "/app/backend/tests/test_distillation.py",
+    "/app/backend/tests/test_distillation_live.py",
+    "/app/backend/tests/test_cash_ai.py",
+    "/app/backend/tests/test_enterprise.py",
+    "/app/backend/tests/test_backend_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "launch_router.py refactor: build_router is now a thin route binder around _h_* module-level handlers. Confirmed by running the launch_router unit tests + 11 live HTTP smoke tests — every previous shape (checkout packages dict, checkout session URL, social-proof keys, cohort keys, referral envelope) is byte-for-byte identical. Zero regression.",
+    "distillation.py refactor: Distiller.run is an orchestrator over _serve_from_cache → _try_cheap → _run_expensive → _prepare_system. All 13 distillation unit tests still pass (cache hit, cheap-no-escalation, escalation-on-requires-expert, escalation-on-bad-json, force-expensive, stats aggregation). Live POST /api/distillation/distill returned tier='cheap', cost 1.1e-05 USD, latency 1.5s, notes=['compressed prompt 28→23 chars (18% savings)'] — confirms helper chain is wired correctly and prompt-compression note still surfaces in the response.",
+    "Frontend renders cleanly with 0 page-level JS exceptions and 0 console.error on 8 dashboard routes. React-Router future-flag warnings (v7_startTransition, v7_relativeSplatPath) are cosmetic and pre-existing — opt-in flag would silence them but is not a defect.",
+    "Cash AI WebSocket cycle broadcast works: clicking Trigger Cycle dispatched POST /api/cash/cycle/trigger, server returned cycle_id, frontend toast 'Cycle cycle_1543035b triggered' appeared via WS event.",
+    "Landing social-proof rail shows live counts that increment with real agent activity (43 agent runs after my live test calls, up from 28 last iteration) — confirms removal of anchored baselines is still in place after the refactor."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration9_refactor.py (new — 19 live integration tests covering launch_router + distillation refactor surface)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "none — all endpoints open per /app/memory/test_credentials.md",
+  "seed_data_creation": "Test referral codes prefixed TESTREF{timestamp} written via /api/referral/track. A handful of agent-run rows added via the smoke /api/agents/{id}/execute call (counter went from ~28 to 43+, intentional live-data behaviour). No teardown required.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "104/104 tests green (85 existing unit + 19 new live integration in test_iteration9_refactor.py). The launch_router.py and distillation.py refactors preserve all public contracts byte-for-byte. Use POST /api/distillation/distill with body {prompt, task} (NOT /api/distillation/run). Cash AI routes are /api/cash/last-decision, /api/cash/audit-trail, /api/cash/cycle/trigger (no -ai suffix). Frontend dashboard routes: /dashboard/{sovereign,cash-ai,lifelong,agents,approvals,advisor,scout,content,revenue,books,deployments,builds,audit,proposals,proof-of-work,analytics,distillation}. Note: there is no /dashboard/income — Income Streams sidebar item links to /dashboard/revenue. Stripe key in preview env is sk_test_emergent and returns cs_test_* URLs without real charges.",
+  "rca of the issue": "N/A — no defects found this iteration."
+}

@@ -220,19 +220,8 @@ class Distiller:
         msg = UserMessage(text=prompt)
         return await chat.send_message(msg)
 
-    # ── Public entry ──
-    async def run(self, req: DistillRequest) -> DistillResult:
-        started = time.monotonic()
-        session_id = req.session_id or f"distill-{int(time.time() * 1000)}"
-        compressed = semantic_compress(req.prompt)
-        tokens_in = _estimate_tokens(compressed)
-        notes: list[str] = []
-        if len(compressed) < len(req.prompt):
-            notes.append(
-                f"compressed prompt {len(req.prompt)}→{len(compressed)} chars "
-                f"({1 - len(compressed)/len(req.prompt):.0%} savings)"
-            )
-
+    # ── Internal: prompt + system prep ──
+    def _prepare_system(self, req: DistillRequest) -> str:
         system = req.system or (
             "You are a precise data-distillation worker. ALWAYS respond with a "
             "single valid JSON object and nothing else. Be concise."
@@ -243,95 +232,92 @@ class Distiller:
             "\n\nInclude key `requires_expert` (boolean) — set true only if the "
             "answer needs deeper expert reasoning beyond your confidence."
         )
+        return system
 
-        chosen_tier: Tier = req.force_tier or "cheap"
-        key = cache_key(req.task, compressed, chosen_tier, req.schema_hint)
+    @staticmethod
+    def _compression_note(original: str, compressed: str) -> list[str]:
+        if len(compressed) >= len(original):
+            return []
+        savings = 1 - len(compressed) / len(original)
+        return [f"compressed prompt {len(original)}→{len(compressed)} chars "
+                f"({savings:.0%} savings)"]
 
-        # 1) Cache hit
-        cached = await self._cache_get(key)
-        if cached:
-            latency = int((time.monotonic() - started) * 1000)
-            baseline = (tokens_in + cached.get("tokens_out", 0)) / 1000 * _BASELINE_COST_PER_1K
-            await self._record_run(_RunRecord(
-                tier="cache", task=req.task, tokens_in=tokens_in,
-                tokens_out=cached.get("tokens_out", 0), cost=0.0,
-                baseline=baseline, cache_hit=True, latency_ms=latency,
-            ))
-            return DistillResult(
-                tier="cache",
-                output=cached.get("output"),
-                raw=cached.get("raw", ""),
-                cache_hit=True,
-                tokens_in=tokens_in,
-                tokens_out=cached.get("tokens_out", 0),
-                cost_usd=0.0,
-                baseline_cost_usd=baseline,
-                saved_usd=baseline,
-                latency_ms=latency,
-                requires_expert=False,
-                notes=[*notes, "cache hit"],
+    # ── Internal: result builders ──
+    async def _serve_from_cache(
+        self, *, cached: dict, task: str, tokens_in: int,
+        started: float, notes: list[str], note_suffix: str,
+    ) -> DistillResult:
+        latency = int((time.monotonic() - started) * 1000)
+        tokens_out = cached.get("tokens_out", 0)
+        baseline = (tokens_in + tokens_out) / 1000 * _BASELINE_COST_PER_1K
+        await self._record_run(_RunRecord(
+            tier="cache", task=task, tokens_in=tokens_in, tokens_out=tokens_out,
+            cost=0.0, baseline=baseline, cache_hit=True, latency_ms=latency,
+        ))
+        return DistillResult(
+            tier="cache", output=cached.get("output"), raw=cached.get("raw", ""),
+            cache_hit=True, tokens_in=tokens_in, tokens_out=tokens_out,
+            cost_usd=0.0, baseline_cost_usd=baseline, saved_usd=baseline,
+            latency_ms=latency, requires_expert=False,
+            notes=[*notes, note_suffix],
+        )
+
+    async def _try_cheap(
+        self, *, req: DistillRequest, compressed: str, system: str,
+        tokens_in: int, key: str, started: float, session_id: str,
+        notes: list[str],
+    ) -> DistillResult | None:
+        """Returns a DistillResult if cheap tier succeeded, else None to escalate."""
+        try:
+            raw = await self._call(
+                provider=self.cheap_provider, model=self.cheap_model,
+                system=system, prompt=compressed, max_tokens=req.max_tokens,
+                session_id=f"{session_id}-cheap",
             )
+            parsed, ok = _try_parse_json(raw)
+        except Exception as exc:  # noqa: BLE001
+            notes.append(f"cheap-tier failed: {exc}")
+            return None
 
-        # 2) Cheap tier (unless caller forced expensive)
-        raw = ""
-        parsed: Any = None
-        ok = False
-        if chosen_tier == "cheap":
-            try:
-                raw = await self._call(
-                    provider=self.cheap_provider, model=self.cheap_model,
-                    system=system, prompt=compressed, max_tokens=req.max_tokens,
-                    session_id=f"{session_id}-cheap",
-                )
-                parsed, ok = _try_parse_json(raw)
-            except Exception as exc:  # noqa: BLE001
-                notes.append(f"cheap-tier failed: {exc}")
-                ok = False
+        requires_expert = bool(isinstance(parsed, dict) and parsed.get("requires_expert"))
+        if not ok:
+            notes.append("cheap-tier returned non-JSON, escalating")
+            return None
+        if requires_expert:
+            notes.append("cheap-tier flagged requires_expert, escalating")
+            return None
 
-            requires_expert = bool(isinstance(parsed, dict) and parsed.get("requires_expert"))
-            if ok and not requires_expert:
-                tokens_out = _estimate_tokens(raw)
-                cost = (tokens_in + tokens_out) / 1000 * _TIER_COST_PER_1K["cheap"]
-                baseline = (tokens_in + tokens_out) / 1000 * _BASELINE_COST_PER_1K
-                latency = int((time.monotonic() - started) * 1000)
-                await self._cache_put(key, {"output": parsed, "raw": raw,
-                                            "tokens_out": tokens_out, "tier": "cheap"})
-                await self._record_run(_RunRecord(
-                    tier="cheap", task=req.task, tokens_in=tokens_in,
-                    tokens_out=tokens_out, cost=cost, baseline=baseline,
-                    cache_hit=False, latency_ms=latency,
-                ))
-                return DistillResult(
-                    tier="cheap", output=parsed, raw=raw, cache_hit=False,
-                    tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost,
-                    baseline_cost_usd=baseline, saved_usd=max(0.0, baseline - cost),
-                    latency_ms=latency, requires_expert=False, notes=notes,
-                )
-            if not ok:
-                notes.append("cheap-tier returned non-JSON, escalating")
-            if requires_expert:
-                notes.append("cheap-tier flagged requires_expert, escalating")
-            chosen_tier = "expensive"
+        tokens_out = _estimate_tokens(raw)
+        cost = (tokens_in + tokens_out) / 1000 * _TIER_COST_PER_1K["cheap"]
+        baseline = (tokens_in + tokens_out) / 1000 * _BASELINE_COST_PER_1K
+        latency = int((time.monotonic() - started) * 1000)
+        await self._cache_put(key, {
+            "output": parsed, "raw": raw, "tokens_out": tokens_out, "tier": "cheap",
+        })
+        await self._record_run(_RunRecord(
+            tier="cheap", task=req.task, tokens_in=tokens_in, tokens_out=tokens_out,
+            cost=cost, baseline=baseline, cache_hit=False, latency_ms=latency,
+        ))
+        return DistillResult(
+            tier="cheap", output=parsed, raw=raw, cache_hit=False,
+            tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost,
+            baseline_cost_usd=baseline, saved_usd=max(0.0, baseline - cost),
+            latency_ms=latency, requires_expert=False, notes=notes,
+        )
 
-        # 3) Expensive tier
+    async def _run_expensive(
+        self, *, req: DistillRequest, compressed: str, system: str,
+        tokens_in: int, started: float, session_id: str, notes: list[str],
+    ) -> DistillResult:
         exp_key = cache_key(req.task, compressed, "expensive", req.schema_hint)
         cached = await self._cache_get(exp_key)
         if cached:
-            latency = int((time.monotonic() - started) * 1000)
-            baseline = (tokens_in + cached.get("tokens_out", 0)) / 1000 * _BASELINE_COST_PER_1K
-            await self._record_run(_RunRecord(
-                tier="cache", task=req.task, tokens_in=tokens_in,
-                tokens_out=cached.get("tokens_out", 0), cost=0.0,
-                baseline=baseline, cache_hit=True, latency_ms=latency,
-            ))
-            return DistillResult(
-                tier="cache", output=cached.get("output"), raw=cached.get("raw", ""),
-                cache_hit=True, tokens_in=tokens_in,
-                tokens_out=cached.get("tokens_out", 0), cost_usd=0.0,
-                baseline_cost_usd=baseline, saved_usd=baseline, latency_ms=latency,
-                requires_expert=False, notes=[*notes, "expert cache hit"],
+            return await self._serve_from_cache(
+                cached=cached, task=req.task, tokens_in=tokens_in,
+                started=started, notes=notes, note_suffix="expert cache hit",
             )
 
+        raw = ""
         try:
             raw = await self._call(
                 provider=self.exp_provider, model=self.exp_model,
@@ -350,18 +336,52 @@ class Distiller:
         baseline = (tokens_in + tokens_out) / 1000 * _BASELINE_COST_PER_1K
         latency = int((time.monotonic() - started) * 1000)
         if ok:
-            await self._cache_put(exp_key, {"output": parsed, "raw": raw,
-                                            "tokens_out": tokens_out, "tier": "expensive"})
+            await self._cache_put(exp_key, {
+                "output": parsed, "raw": raw, "tokens_out": tokens_out, "tier": "expensive",
+            })
         await self._record_run(_RunRecord(
-            tier="expensive", task=req.task, tokens_in=tokens_in,
-            tokens_out=tokens_out, cost=cost, baseline=baseline,
-            cache_hit=False, latency_ms=latency,
+            tier="expensive", task=req.task, tokens_in=tokens_in, tokens_out=tokens_out,
+            cost=cost, baseline=baseline, cache_hit=False, latency_ms=latency,
         ))
         return DistillResult(
             tier="expensive", output=parsed, raw=raw, cache_hit=False,
             tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost,
             baseline_cost_usd=baseline, saved_usd=max(0.0, baseline - cost),
             latency_ms=latency, requires_expert=True, notes=notes,
+        )
+
+    # ── Public entry ──
+    async def run(self, req: DistillRequest) -> DistillResult:
+        started = time.monotonic()
+        session_id = req.session_id or f"distill-{int(time.time() * 1000)}"
+        compressed = semantic_compress(req.prompt)
+        tokens_in = _estimate_tokens(compressed)
+        notes: list[str] = self._compression_note(req.prompt, compressed)
+        system = self._prepare_system(req)
+
+        chosen_tier: Tier = req.force_tier or "cheap"
+        key = cache_key(req.task, compressed, chosen_tier, req.schema_hint)
+
+        cached = await self._cache_get(key)
+        if cached:
+            return await self._serve_from_cache(
+                cached=cached, task=req.task, tokens_in=tokens_in,
+                started=started, notes=notes, note_suffix="cache hit",
+            )
+
+        if chosen_tier == "cheap":
+            cheap_result = await self._try_cheap(
+                req=req, compressed=compressed, system=system,
+                tokens_in=tokens_in, key=key, started=started,
+                session_id=session_id, notes=notes,
+            )
+            if cheap_result is not None:
+                return cheap_result
+
+        return await self._run_expensive(
+            req=req, compressed=compressed, system=system,
+            tokens_in=tokens_in, started=started,
+            session_id=session_id, notes=notes,
         )
 
     # ── Accounting ──
