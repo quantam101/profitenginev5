@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # ProfitEngine v5 — Server Bootstrap
 #
@@ -137,6 +137,7 @@ upsert_env SITE_DOMAIN                "${SITE_DOMAIN:-profitengine.alreadyherell
 upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 
 # Optional keys — injected when available, skipped otherwise
+[[ -n "${ANTHROPIC_API_KEY:-}" ]] && upsert_env ANTHROPIC_API_KEY      "${ANTHROPIC_API_KEY}"
 [[ -n "${DEVTO_API_KEY:-}"        ]] && upsert_env DEVTO_API_KEY         "${DEVTO_API_KEY}"
 [[ -n "${AFFILIATE_LINKS:-}"      ]] && upsert_env AFFILIATE_LINKS        "${AFFILIATE_LINKS}"
 [[ -n "${AMAZON_PARTNER_TAG:-}"   ]] && upsert_env AMAZON_PARTNER_TAG     "${AMAZON_PARTNER_TAG}"
