@@ -65,16 +65,27 @@ Live verified: **82.58% savings vs all-Claude baseline** over 10 runs.
 ## What's implemented
 - [x] AST merger CLI · 15/15 pytest pass
 - [x] AHD ↔ PEV5 merge applied · 32 new defs pulled in
-- [x] 33 backend endpoints (29 v5 + 4 Cash AI/persistence/WS)
+- [x] **41 backend endpoints** (33 + 8 new launch/Stripe/referral)
 - [x] **11-agent fleet** preserved exactly
-- [x] 19 dashboard pages with AHD command-OS aesthetic (added **Cash AI**)
-- [x] TokenForge-style launch (React + Next.js mirror) + **Proof of Work showcase** (live data)
-- [x] **Data Distillation engine** — 82.58% live savings
-- [x] **Cash AI page** ported from AHD — Clear AI Cache + Trigger Cycle + Last Cash Decision (highest-confidence open approval) + 11-agent fleet grid + Decision Audit Trail + live WS pill
-- [x] **Persistence + WebSocket** — agent runs, approval decisions and cycle events persist to Mongo; live `/api/ws/cycle` broadcast keeps the dashboard real-time
-- [x] **Fixtures extracted** to `backend/fixtures.py` (server.py from 648 → ~617 lines)
-- [x] **5-stage CI/CD pipeline** in `.github/workflows/ci.yml` + k6 smoke
-- [x] **83/83 tests pass** (15 code_merger + 41 backend_api + 13 distillation unit + 7 distillation live + 7 cash_ai)
+- [x] 19 dashboard pages, sidebar renamed to **AHD taxonomy** (Operations · Revenue · System)
+- [x] **Cash AI page** (highest-confidence open approval) + live WS pill
+- [x] **Persistence + WebSocket** — agent runs, approval decisions, cycle events to Mongo, broadcast via `WS /api/ws/cycle`
+- [x] **Distillation engine** — 82.58% live LLM cost savings (Gemini Flash → Claude Sonnet 4.6 cascade)
+- [x] **Command Center status strip** — All Systems Operational · $0/mo Fixed Cost · $25K Unlock % · Re-open Quickstart
+- [x] **Quickstart 5-step walkthrough modal** — auto-opens for new operators, re-openable anytime
+- [x] **Stripe Checkout (test mode)** — Studio $149/mo · Studio Annual $1490 · Holding $2500 reservation
+  - Server-defined packages (frontend never picks price), `/api/checkout/session`, polling `/api/checkout/status/{id}`, webhook `/api/webhook/stripe`, idempotent subscription grants
+- [x] **/checkout/success page** with 8-attempt polling and Mongo `payment_transactions` + `subscriptions` persistence
+- [x] **Viral launch kit**:
+  - **Social Proof Rail** — live counters (operators, runs, cycles, paid)
+  - **Cohort Bar** — sticky FOMO "94 of 100 seats remaining · closes Jun 12"
+  - **Share Kit** — X / LinkedIn / Copy link buttons on Hero
+  - **Referral system** — `?ref=CODE` capture + localStorage + forwarded into checkout metadata for lifetime attribution
+  - **OG / Twitter meta tags** for polished share previews
+  - **Live Proof of Work showcase** on landing — 99.9% uptime, 81% distillation savings, $9,623 30d revenue, all pulled from real APIs
+- [x] **5-stage CI/CD pipeline** + k6 smoke
+- [x] **Server.py decomposed** — fixtures.py + launch_router.py + distillation.py
+- [x] **77/77 tests pass** (iteration_6)
 
 ## Backlog (P1)
 - Push `/app` to `quantam101/profitenginev5` via "Save to Github"
