@@ -43,12 +43,6 @@ jobs:
           EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'stub-emergent-ci-key' }}
       - name: Unit tests (code_merger)
         run: python -m pytest code_merger/tests/ -v
-      - name: Unit tests (backend distillation)
-        env:
-          MONGO_URL: "mongodb://localhost:27017"
-          DB_NAME: "profitengine_ci"
-          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
-        run: python -m pytest backend/tests/test_distillation.py -v
 
   # ── Stage 2: integration — FastAPI + Mongo ─────────────────────
   integration:
@@ -75,7 +69,7 @@ jobs:
           MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
           EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
-        run: python -m pytest backend/tests/test_backend_api.py -v
+        run: python -m pytest backend/tests/test_backend_api.py backend/tests/test_distillation.py -v
 
   # ── Stage 3: e2e — Playwright against running stack ────────────
   e2e:
