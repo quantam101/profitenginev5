@@ -1,7 +1,4 @@
-import { NextResponse } from 'next/server';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore – type declarations live in lib/health.mjs.d.ts on the server
-import { buildHealthPayload } from '../../../lib/health.mjs';
+import { NextResponse, type NextRequest } from 'next/server';
 
 const ORACLE = process.env.ORACLE_API_URL ?? 'http://localhost:3000';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
@@ -18,7 +15,6 @@ async function tryOracle(): Promise<Record<string, unknown> | null> {
     });
     if (!res.ok) return null;
     const d = await res.json() as Record<string, unknown>;
-    // Map oracle status to dashboard format
     const lc = (d.lastCycle as Record<string, number>) ?? {};
     const tok = (d.tokens as Record<string, number>) ?? {};
     const ht = (d.lastHealth as Record<string, unknown>) ?? {};
@@ -70,24 +66,40 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
   }
 }
 
-export async function GET() {
-  const [oracle, ghStats] = await Promise.all([tryOracle(), fetchGitHubStats()]);
-
-  // Read real health score directly from the health module (no HTTP round-trip)
-  let liveHealth = 100;
+/**
+ * Fetch real health score by calling our own /api/health endpoint.
+ * Uses the incoming request's Host header so it works in every environment
+ * (localhost dev, Docker on OCI, Vercel) without env var configuration.
+ */
+async function fetchHealthScore(requestHost: string): Promise<number> {
   try {
-    const hp = buildHealthPayload({ cacheTtlMs: 30_000 }) as { healthScore: number };
-    liveHealth = hp.healthScore ?? 100;
+    // Use https for non-localhost hosts (production); http for local dev
+    const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
+    const base = isLocal ? `http://${requestHost}` : `https://${requestHost}`;
+    const res = await fetch(`${base}/api/health`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return 100;
+    const d = await res.json() as Record<string, unknown>;
+    return typeof d.healthScore === 'number' ? d.healthScore : 100;
   } catch {
-    // keep default 100 if module unavailable
+    return 100;
   }
+}
+
+export async function GET(request: NextRequest) {
+  const host = request.headers.get('host') ?? 'localhost:3000';
+  const [oracle, ghStats, liveHealth] = await Promise.all([
+    tryOracle(),
+    fetchGitHubStats(),
+    fetchHealthScore(host),
+  ]);
 
   if (oracle) {
-    // Enrich oracle data with real GitHub stats
     return NextResponse.json(
       {
         ...oracle,
-        // Override oracle health score with live reading if oracle returned the default 20
         healthScore: (oracle.healthScore as number) > 20 ? oracle.healthScore : liveHealth,
         contentSite: CONTENT_SITE,
         publishedPosts: ghStats.postCount,
@@ -98,7 +110,6 @@ export async function GET() {
     );
   }
 
-  // Oracle unreachable — return GitHub real stats + live health score
   if (ghStats.postCount > 0) {
     return NextResponse.json(
       {
