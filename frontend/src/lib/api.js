@@ -10,6 +10,7 @@ export const joinWaitlist = (b) => api.post("/waitlist", b).then((r) => r.data);
 
 // Agents + cycle + sovereign
 export const getAgents = () => api.get("/agents").then((r) => r.data);
+export const getFleetStats = () => api.get("/agents/fleet-stats").then((r) => r.data);
 export const executeAgent = (id) => api.post(`/agents/${id}/execute`).then((r) => r.data);
 export const getCycleStatus = () => api.get("/cycle/status").then((r) => r.data);
 export const getSovereignStatus = () => api.get("/sovereign/status").then((r) => r.data);

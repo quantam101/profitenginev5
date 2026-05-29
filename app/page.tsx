@@ -84,7 +84,7 @@ export default function LaunchPage() {
               <article key={a.id} className="agent-card" data-testid={`agent-${a.id}`}>
                 <div className="head">
                   <span style={{color:'var(--acid)'}}>● {a.id}</span>
-                  <span style={{color: a.status === 'online' ? 'var(--acid)' : a.status === 'paused' ? '#fbbf24' : 'var(--acid-soft)'}}>● {a.status}</span>
+                    <span style={{color: a.status === 'online' || a.status === 'active' ? 'var(--acid)' : a.status === 'paused' ? '#fbbf24' : 'var(--acid-soft)'}}>● {a.status}</span>
                 </div>
                 <h3>{a.name}</h3>
                 <div className="role">{a.role}</div>

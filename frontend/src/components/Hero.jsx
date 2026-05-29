@@ -39,7 +39,7 @@ export default function Hero() {
         >
           <div className="mb-6 inline-flex items-center gap-2 border border-line bg-bg-panel/60 px-3 py-1 text-[11px] text-ink-muted rounded-soft">
             <span className="h-1.5 w-1.5 animate-pulse bg-ok rounded-full" />
-            <span>v5 · CLOSED BETA · 7-AGENT MESH</span>
+            <span>v5 · CLOSED BETA · 11-AGENT FLEET</span>
           </div>
           <h1
             className="font-display text-5xl leading-[0.95] tracking-tighter md:text-7xl"
@@ -50,9 +50,10 @@ export default function Hero() {
             content business.
           </h1>
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-ink-muted md:text-base">
-            ProfitEngine v5 runs a 24/7 mesh of <span className="text-ok">one Sovereign orchestrator</span> + six AI specialists —
-            Scout, Content, Video, Social, Revenue and Guard — that find niches, produce assets, distribute, monetize and stay
-            compliant. You approve the moves. The engine ships them.
+            ProfitEngine v5 runs an <span className="text-ok">11-agent autonomous fleet</span> — Sovereign Orchestrator coordinating
+            ten specialists across content, revenue, security and learning. They scout opportunities, generate assets, ship
+            print-on-demand designs, pull federal contracts, enforce zero-spend and self-correct on every cycle.
+            You approve. The fleet ships.
           </p>
 
           <div

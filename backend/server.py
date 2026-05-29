@@ -106,48 +106,85 @@ class StatsResponse(BaseModel):
 
 # ── Domain fixtures (matches AHD shapes) ───────────────────────
 _AGENTS = [
-    {"id": "sovereign-v1", "name": "Sovereign", "type": "orchestrator", "tier": "sovereign",
-     "status": "active", "mission": "Govern the command OS. Maximize net revenue toward $25k unlock at $0/mo fixed cost.",
-     "last_run": "decision cached · 47m remaining", "success_rate": 0.99,
-     "runs_today": 24, "run_count": 1842, "success_count": 1824, "failure_count": 18,
+    {"id": "sovereign-orchestrator", "name": "Sovereign Orchestrator", "type": "orchestrator", "tier": "sovereign",
+     "status": "active", "category": "orchestrator",
+     "mission": "Coordinate multi-agent workflows and enforce governance policies.",
+     "last_run": "decision cached · 47m remaining",
+     "run_count": 152, "success_rate": 0.97, "success_count": 147, "failure_count": 5, "recent_fails": 4, "runs_today": 18,
      "cycle_interval_min": 60, "model": "gemini/gemini-2.0-flash"},
-    {"id": "scout-agent", "name": "Trend Scout", "type": "specialist", "tier": "operational",
-     "status": "online", "mission": "Scan trending search queries, subreddits, TikTok signals to surface monetizable niches.",
-     "last_run": "2m ago", "success_rate": 0.94, "runs_today": 18, "run_count": 612, "success_count": 575, "failure_count": 37,
-     "cycle_interval_min": 60, "model": "gemini/gemini-2.0-flash"},
-    {"id": "content-agent", "name": "Content Generator", "type": "specialist", "tier": "operational",
-     "status": "thinking", "mission": "Produce blog posts, threads, scripts and email sequences from Scout's briefs.",
-     "last_run": "running", "success_rate": 0.91, "runs_today": 42, "run_count": 1289, "success_count": 1173, "failure_count": 116,
-     "cycle_interval_min": 360, "model": "anthropic/claude-sonnet-4-5"},
-    {"id": "video-agent", "name": "Faceless Video Script", "type": "specialist", "tier": "operational",
-     "status": "online", "mission": "Stitch Content briefs into vertical video scripts with captions, music cues and B-roll.",
-     "last_run": "11m ago", "success_rate": 0.88, "runs_today": 9, "run_count": 287, "success_count": 252, "failure_count": 35,
+    {"id": "cost-guard", "name": "Cost Guard Agent", "type": "security", "tier": "operational",
+     "status": "active", "category": "security",
+     "mission": "Enforce zero-spend policy and block unauthorized paid actions.",
+     "last_run": "11m ago",
+     "run_count": 488, "success_rate": 1.0, "success_count": 488, "failure_count": 0, "recent_fails": 0, "runs_today": 22,
+     "cycle_interval_min": 5, "model": "openai/gpt-5.2"},
+    {"id": "content-generation", "name": "Content Generation Agent", "type": "content", "tier": "operational",
+     "status": "active", "category": "content",
+     "mission": "Generate revenue-focused content using AI for blogs, social, and proposals.",
+     "last_run": "running",
+     "run_count": 234, "success_rate": 0.94, "success_count": 220, "failure_count": 14, "recent_fails": 13, "runs_today": 12,
+     "cycle_interval_min": 60, "model": "anthropic/claude-sonnet-4-5"},
+    {"id": "proposal-engine", "name": "Proposal Engine Agent", "type": "revenue", "tier": "operational",
+     "status": "active", "category": "revenue",
+     "mission": "Generate federal proposals and capability statements using H&M proof data.",
+     "last_run": "3h ago",
+     "run_count": 81, "success_rate": 0.94, "success_count": 76, "failure_count": 5, "recent_fails": 5, "runs_today": 2,
      "cycle_interval_min": 720, "model": "anthropic/claude-sonnet-4-5"},
-    {"id": "social-agent", "name": "Social Publisher", "type": "specialist", "tier": "operational",
-     "status": "online", "mission": "Schedule posts, reply to comments, reroute traffic to revenue assets.",
-     "last_run": "1m ago", "success_rate": 0.97, "runs_today": 64, "run_count": 2104, "success_count": 2041, "failure_count": 63,
-     "cycle_interval_min": 30, "model": "openai/gpt-5.2"},
-    {"id": "revenue-agent", "name": "Revenue Tracker", "type": "specialist", "tier": "operational",
-     "status": "online", "mission": "Route traffic across affiliate links, digital products and ad inventory; reallocate budget.",
-     "last_run": "6m ago", "success_rate": 0.92, "runs_today": 24, "run_count": 824, "success_count": 758, "failure_count": 66,
+    {"id": "lifelong-catch-correct", "name": "Lifelong Catch and Correct", "type": "learning", "tier": "operational",
+     "status": "active", "category": "learning",
+     "mission": "Track failures, generate fixes, and prevent repeated mistakes.",
+     "last_run": "27m ago",
+     "run_count": 124, "success_rate": 0.98, "success_count": 121, "failure_count": 3, "recent_fails": 3, "runs_today": 6,
+     "cycle_interval_min": 120, "model": "openai/gpt-5.2"},
+    {"id": "seo-scout", "name": "SEO Scout Agent", "type": "content", "tier": "operational",
+     "status": "active", "category": "content",
+     "mission": "Discover trending niches, run keyword research, and queue topics.",
+     "last_run": "2m ago",
+     "run_count": 312, "success_rate": 0.98, "success_count": 305, "failure_count": 7, "recent_fails": 7, "runs_today": 18,
      "cycle_interval_min": 60, "model": "gemini/gemini-2.0-flash"},
-    {"id": "guard-agent", "name": "Infrastructure Guardian", "type": "specialist", "tier": "operational",
-     "status": "paused", "mission": "Review every outbound asset for policy, IP and brand-safety violations.",
-     "last_run": "human review", "success_rate": 1.0, "runs_today": 6, "run_count": 192, "success_count": 192, "failure_count": 0,
-     "cycle_interval_min": 15, "model": "openai/gpt-5.2"},
+    {"id": "faceless-video", "name": "Faceless Video Agent", "type": "content", "tier": "operational",
+     "status": "active", "category": "content",
+     "mission": "Assemble faceless videos from AI script + free stock footage + TTS.",
+     "last_run": "11m ago",
+     "run_count": 96, "success_rate": 0.95, "success_count": 91, "failure_count": 5, "recent_fails": 5, "runs_today": 4,
+     "cycle_interval_min": 360, "model": "anthropic/claude-sonnet-4-5"},
+    {"id": "pod-designer", "name": "POD Designer Agent", "type": "revenue", "tier": "operational",
+     "status": "active", "category": "revenue",
+     "mission": "Generate print-on-demand designs and push to RedBubble / Printify / Etsy.",
+     "last_run": "44m ago",
+     "run_count": 178, "success_rate": 0.95, "success_count": 169, "failure_count": 9, "recent_fails": 9, "runs_today": 9,
+     "cycle_interval_min": 240, "model": "gemini/gemini-2.0-flash"},
+    {"id": "affiliate-link", "name": "Affiliate Link Agent", "type": "revenue", "tier": "operational",
+     "status": "active", "category": "revenue",
+     "mission": "Manage affiliate link injection across content and track conversions.",
+     "last_run": "1m ago",
+     "run_count": 421, "success_rate": 1.0, "success_count": 419, "failure_count": 2, "recent_fails": 2, "runs_today": 32,
+     "cycle_interval_min": 30, "model": "openai/gpt-5.2"},
+    {"id": "health-oracle", "name": "Health Oracle Agent", "type": "security", "tier": "operational",
+     "status": "active", "category": "security",
+     "mission": "Continuous health checks, circuit-breakers, and self-improve hooks.",
+     "last_run": "16s ago",
+     "run_count": 1043, "success_rate": 1.0, "success_count": 1041, "failure_count": 2, "recent_fails": 2, "runs_today": 144,
+     "cycle_interval_min": 1, "model": "openai/gpt-5.2"},
+    {"id": "procurement-scout", "name": "Procurement Scout Agent", "type": "revenue", "tier": "operational",
+     "status": "active", "category": "revenue",
+     "mission": "Scan SAM.gov + Grants.gov for matching opportunities, queue proposals.",
+     "last_run": "1h ago",
+     "run_count": 62, "success_rate": 0.94, "success_count": 58, "failure_count": 4, "recent_fails": 4, "runs_today": 4,
+     "cycle_interval_min": 360, "model": "gemini/gemini-2.0-flash"},
 ]
 
 _APPROVALS = [
-    {"id": "apr_001", "agent": "Content Generator", "action": "Publish blog post",
+    {"id": "apr_001", "agent": "Content Generation Agent", "action": "Publish blog post",
      "summary": "“5 sleeper niches for affiliate creators in 2026” — 2,180 words, 6 outbound links.", "risk": "low", "created_at": "4m ago"},
-    {"id": "apr_002", "agent": "Revenue Tracker", "action": "Reallocate budget",
+    {"id": "apr_002", "agent": "Affiliate Link Agent", "action": "Reallocate budget",
      "summary": "Move $240/day from Stream-B (Amazon) to Stream-C (Digital). Projected lift +18%.", "risk": "medium", "created_at": "12m ago"},
-    {"id": "apr_003", "agent": "Social Publisher", "action": "Reply to comment thread",
-     "summary": "Public reply on @already_here_llc → 412k impressions, sentiment 0.78.", "risk": "low", "created_at": "21m ago"},
-    {"id": "apr_004", "agent": "Infrastructure Guardian", "action": "Block outbound asset",
-     "summary": "Detected DMCA-flagged image in Video-#221 thumbnail. Requesting alternate.", "risk": "high", "created_at": "38m ago"},
-    {"id": "apr_005", "agent": "Sovereign", "action": "Trigger 6-hour campaign",
-     "summary": "Sovereign proposes a 6-hour multi-channel push on Scout opportunity #4017. Est. spend $0, est. yield $480.", "risk": "medium", "created_at": "1h ago"},
+    {"id": "apr_003", "agent": "SEO Scout Agent", "action": "Queue new topic batch",
+     "summary": "Queue 12 new keyword clusters from AHREFS pull — est. 38k monthly searches.", "risk": "low", "created_at": "21m ago"},
+    {"id": "apr_004", "agent": "Cost Guard Agent", "action": "Block paid action",
+     "summary": "Faceless Video Agent attempted $4.00 ElevenLabs call — blocked, fallback to local TTS.", "risk": "high", "created_at": "38m ago"},
+    {"id": "apr_005", "agent": "Sovereign Orchestrator", "action": "Trigger 6-hour campaign",
+     "summary": "Sovereign proposes a 6-hour multi-channel push on SEO Scout opportunity #4017. Est. spend $0, est. yield $480.", "risk": "medium", "created_at": "1h ago"},
 ]
 
 _CONTENT = [
@@ -185,19 +222,19 @@ _BUILDS = [
 ]
 
 _AUDIT = [
-    {"id": "ev_001", "actor": "sovereign-v1", "action": "decision.approve", "target": "apr_005", "at": "now"},
+    {"id": "ev_001", "actor": "sovereign-orchestrator", "action": "decision.approve", "target": "apr_005", "at": "now"},
     {"id": "ev_002", "actor": "operator@quantam", "action": "approval.veto", "target": "apr_004", "at": "32m ago"},
-    {"id": "ev_003", "actor": "scout-agent", "action": "opportunity.create", "target": "opp_4017", "at": "1h ago"},
-    {"id": "ev_004", "actor": "revenue-agent", "action": "budget.reallocate", "target": "rs_2", "at": "1h ago"},
-    {"id": "ev_005", "actor": "guard-agent", "action": "asset.block", "target": "video_221", "at": "2h ago"},
-    {"id": "ev_006", "actor": "content-agent", "action": "asset.publish", "target": "c2", "at": "1d ago"},
-    {"id": "ev_007", "actor": "social-agent", "action": "reply.post", "target": "tweet_88121", "at": "1d ago"},
+    {"id": "ev_003", "actor": "seo-scout", "action": "opportunity.create", "target": "opp_4017", "at": "1h ago"},
+    {"id": "ev_004", "actor": "affiliate-link", "action": "budget.reallocate", "target": "rs_2", "at": "1h ago"},
+    {"id": "ev_005", "actor": "cost-guard", "action": "paid_action.block", "target": "elevenlabs_call_88", "at": "2h ago"},
+    {"id": "ev_006", "actor": "content-generation", "action": "asset.publish", "target": "c2", "at": "1d ago"},
+    {"id": "ev_007", "actor": "lifelong-catch-correct", "action": "fix.applied", "target": "guard_regex_v3", "at": "1d ago"},
 ]
 
 _PROPOSALS = [
-    {"id": "prop_1", "title": "Open Studio tier waitlist publicly", "author": "sovereign-v1", "votes_for": 4, "votes_against": 1, "state": "open"},
-    {"id": "prop_2", "title": "Pause video-agent until B-roll license resolved", "author": "guard-agent", "votes_for": 6, "votes_against": 0, "state": "passed"},
-    {"id": "prop_3", "title": "Spin up Stream-F (Gumroad cohorts)", "author": "revenue-agent", "votes_for": 3, "votes_against": 2, "state": "open"},
+    {"id": "prop_1", "title": "Open Studio tier waitlist publicly", "author": "sovereign-orchestrator", "votes_for": 4, "votes_against": 1, "state": "open"},
+    {"id": "prop_2", "title": "Pause Faceless Video until B-roll license resolved", "author": "cost-guard", "votes_for": 6, "votes_against": 0, "state": "passed"},
+    {"id": "prop_3", "title": "Spin up Stream-F (POD Designer → Etsy)", "author": "pod-designer", "votes_for": 3, "votes_against": 2, "state": "open"},
 ]
 
 _BOOKS = [
@@ -299,6 +336,17 @@ async def list_agents() -> list[dict]:
     return _AGENTS
 
 
+@app.get("/api/agents/fleet-stats")
+async def fleet_stats() -> dict:
+    total = len(_AGENTS)
+    active = sum(1 for a in _AGENTS if a["status"] == "active")
+    runs = sum(a["run_count"] for a in _AGENTS)
+    successes = sum(a["success_count"] for a in _AGENTS)
+    fleet_success = round((successes / runs) * 100) if runs else 0
+    return {"total": total, "active": active, "total_runs": runs,
+            "fleet_success_rate": fleet_success}
+
+
 @app.post("/api/agents/{agent_id}/execute")
 async def execute_agent(agent_id: str) -> dict:
     agent = next((a for a in _AGENTS if a["id"] == agent_id), None)
@@ -380,7 +428,7 @@ async def cycle_status() -> dict[str, Any]:
 
 @app.get("/api/sovereign/status")
 async def sovereign_status() -> dict:
-    return {"id": "sovereign-v1", "model": "gemini/gemini-2.0-flash",
+    return {"id": "sovereign-orchestrator", "model": "gemini/gemini-2.0-flash",
             "next_cycle_in_min": 47, "decisions_today": len(_SOVEREIGN_DECISIONS),
             "current_objective": "Reach $25k milestone — currently 22.4% complete.",
             "safety": {"daily_tokens_used": 18420, "daily_token_cap": 80000,
@@ -471,7 +519,7 @@ async def advisor_ask(body: dict) -> dict:
             "Based on the last 14 days, your Stream-C (digital product) is your highest-leverage channel. "
             "Suggest pushing Scout opportunity #4017 through Content → Video → Social, gated on Guard."
         ),
-        "agent": "sovereign-v1",
+        "agent": "sovereign-orchestrator",
         "at": datetime.now(timezone.utc).isoformat(),
     }
 

@@ -51,7 +51,7 @@ export default function Overview() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5" data-testid="overview-kpis">
         <Metric label="revenue last 14d" value={`$${Math.round(totalRev).toLocaleString()}`} delta="+12% vs prior" testId="kpi-revenue" />
-        <Metric label="agents online" value={`${onlineAgents}/${agents.length}`} delta="6 specialists + 1 sovereign" testId="kpi-agents" />
+        <Metric label="agents online" value={`${onlineAgents}/${agents.length}`} delta="11-agent fleet" testId="kpi-agents" />
         <Metric label="approvals pending" value={approvals.length} delta="3 low / 1 high" tone="warn" testId="kpi-approvals" />
         <Metric label="proof-of-work" value={pow ? `${Math.round(pow.score * 100)}%` : "—"} delta={pow ? `${pow.uptime_pct}% uptime` : null} testId="kpi-pow" />
         <Metric label="$25k unlock progress" value={`${pct}%`} delta={ledger ? `$${Math.round(ledger.earned_usd).toLocaleString()} / $25,000` : null} tone="sov" testId="kpi-ledger" />
@@ -148,8 +148,8 @@ export default function Overview() {
         </div>
       </section>
 
-      {/* Agent grid */}
-      <section className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-testid="overview-agents">
+      {/* Agent fleet snapshot */}
+      <section className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="overview-agents">
         {agents.map((a) => (
           <div key={a.id} className={a.tier === "sovereign" ? "sov-card p-5" : "ent-card p-5"}>
             <div className="flex items-center justify-between">
@@ -159,14 +159,14 @@ export default function Overview() {
                 ) : (
                   <Cpu className="h-3.5 w-3.5 text-ok" />
                 )}
-                {a.name}
+                <span className="truncate">{a.name}</span>
               </span>
               <StatusBadge status={a.status} />
             </div>
-            <div className="mt-1 text-[11px] text-ink-faint">{a.tier === "sovereign" ? "orchestrator" : "specialist"}</div>
+            <div className="mt-1 text-[11px] text-ink-faint">{a.category || (a.tier === "sovereign" ? "orchestrator" : "specialist")}</div>
             <div className="mt-3 flex items-center justify-between text-[11px]">
               <span><span className="text-ok">{Math.round(a.success_rate * 100)}%</span> success</span>
-              <span><span className="text-ok">{a.runs_today}</span> runs</span>
+              <span><span className="text-ok">{(a.run_count || a.runs_today).toLocaleString()}</span> runs</span>
             </div>
           </div>
         ))}

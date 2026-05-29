@@ -1,12 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Radar, Pencil, Film, Megaphone, DollarSign, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  Crown, ShieldCheck, FileText, Briefcase, GraduationCap, Radar, Film,
+  Palette, Link as LinkIcon, Stethoscope, DollarSign, Bot, ArrowRight,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { getAgents } from "../lib/api";
 
-const ICONS = { scout: Radar, content: Pencil, video: Film, social: Megaphone, revenue: DollarSign, guard: ShieldCheck };
+const ICONS = {
+  "sovereign-orchestrator": Crown,
+  "cost-guard": ShieldCheck,
+  "content-generation": FileText,
+  "proposal-engine": Briefcase,
+  "lifelong-catch-correct": GraduationCap,
+  "seo-scout": Radar,
+  "faceless-video": Film,
+  "pod-designer": Palette,
+  "affiliate-link": LinkIcon,
+  "health-oracle": Stethoscope,
+  "procurement-scout": Radar,
+};
 
 const STATUS_TONE = {
+  active: "text-ok",
   online: "text-ok",
   thinking: "text-ok-soft animate-pulse",
   paused: "text-yellow-400",
@@ -27,7 +43,7 @@ export default function AgentsShowcase() {
           <div className="md:col-span-8">
             <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// the mesh</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
-              Seven specialists.<br />
+              Eleven specialists.<br />
               <span className="text-ok">One company.</span>
             </h2>
           </div>
@@ -39,7 +55,7 @@ export default function AgentsShowcase() {
 
         <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((a, i) => {
-            const Icon = ICONS[a.id] || Radar;
+            const Icon = ICONS[a.id] || Bot;
             return (
               <motion.div
                 key={a.id}
@@ -59,15 +75,11 @@ export default function AgentsShowcase() {
                   </span>
                 </div>
                 <h3 className="mt-5 font-display text-xl tracking-tight">{a.name}</h3>
-                <div className="mt-1 text-[11px] uppercase tracking-widest text-ink-faint">{a.role}</div>
-                <p className="mt-4 text-sm leading-relaxed text-ink-muted">{a.description}</p>
+                <div className="mt-1 text-[11px] uppercase tracking-widest text-ink-faint">{a.category || a.type}</div>
+                <p className="mt-4 text-sm leading-relaxed text-ink-muted">{a.mission || a.description}</p>
                 <div className="mt-5 flex items-center justify-between border-t border-line pt-4 text-[11px] text-ink-muted">
-                  <span>
-                    <span className="text-ok">{Math.round(a.success_rate * 100)}%</span> success
-                  </span>
-                  <span>
-                    <span className="text-ok">{a.runs_today}</span> runs today
-                  </span>
+                  <span><span className="text-ok">{Math.round(a.success_rate * 100)}%</span> success</span>
+                  <span><span className="text-ok">{a.run_count?.toLocaleString() ?? a.runs_today}</span> runs</span>
                   <span>{a.last_run}</span>
                 </div>
               </motion.div>
@@ -81,7 +93,7 @@ export default function AgentsShowcase() {
             className="inline-flex items-center gap-2 border border-line bg-bg-panel px-5 py-3 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-ok hover:text-ok"
             data-testid="agents-open-mesh"
           >
-            See the full mesh in the command center <ArrowRight className="h-4 w-4" />
+            See the full fleet in the command center <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

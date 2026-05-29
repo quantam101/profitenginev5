@@ -49,11 +49,11 @@ production already-here-dashboard codebase.
 ## What's implemented (Jan 2026)
 - [x] AST merger CLI · 15/15 pytest pass
 - [x] AHD ↔ PEV5 merge applied — 4 files paired · 2 upgrades · 32 new defs pulled into `/app/backend/services/` + `/app/runtime/` (originals `.bak`)
-- [x] 27 backend endpoints, 41/41 pytest pass
-- [x] 7-agent mesh: **Sovereign · Trend Scout · Content Generator · Faceless Video Script · Social Publisher · Revenue Tracker · Infrastructure Guardian** — each with mission, status, success rate, cycle interval and model attribution
-- [x] 18 dashboard pages with the AHD command-OS aesthetic
-- [x] React launch site with 7-AGENT MESH hero, AHD-style stats, problem cards, agents showcase, dashboard preview, engine playground, pricing, roadmap, FAQ, waitlist
-- [x] Next.js mirror at `/app/app/page.tsx`
+- [x] 28 backend endpoints (added `/api/agents/fleet-stats`)
+- [x] **11-agent fleet** preserved exactly as in pev5's original: Sovereign Orchestrator · Cost Guard · Content Generation · Proposal Engine · Lifelong Catch and Correct · SEO Scout · Faceless Video · POD Designer · Affiliate Link · Health Oracle · Procurement Scout. Total runs 3,191 · fleet success 98%.
+- [x] 18 dashboard pages with AHD command-OS aesthetic merged on top — Agent Command Center matches user's spec pixel-for-pixel (title, subtitle, 4 KPIs, 11 cards, status/category badges, Execute button, Runs / Success rate / Recent fails columns)
+- [x] React launch site with 11-AGENT FLEET hero, AHD-derived sections (problem, dashboard preview, AST engine playground, pricing, roadmap, FAQ, waitlist)
+- [x] Next.js mirror at `/app/app/page.tsx` for production deploy
 - [x] **56/56 tests pass · `retest_needed: false`** (testing agent iteration_3)
 
 ## Backlog (P1)
