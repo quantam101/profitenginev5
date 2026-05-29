@@ -69,7 +69,9 @@ jobs:
           MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
           EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
-        run: python -m pytest backend/tests/test_backend_api.py backend/tests/test_distillation.py -v
+        # test_distillation.py uses MongoDB directly (no backend HTTP server needed)
+        # test_backend_api.py requires a running backend — run in Stage 3 e2e instead
+        run: python -m pytest backend/tests/test_distillation.py -v
 
   # ── Stage 3: e2e — Playwright against running stack ────────────
   e2e:
