@@ -19,8 +19,8 @@ function Counter({ value, label, prefix = "", testId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
-    <div className="border border-line bg-bg-surface px-6 py-8" data-testid={testId}>
-      <div className="font-display text-4xl tracking-tighter text-acid md:text-5xl">
+    <div className="border border-line bg-bg-panel px-6 py-8" data-testid={testId}>
+      <div className="font-display text-4xl tracking-tighter text-ok md:text-5xl">
         {prefix}
         {Math.floor(shown).toLocaleString()}
       </div>

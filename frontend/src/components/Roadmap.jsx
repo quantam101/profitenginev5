@@ -35,7 +35,7 @@ const ITEMS = [
 ];
 
 const ICONS = { done: CheckCircle2, active: CircleDot, next: Circle };
-const TONE = { done: "text-acid", active: "text-acid animate-pulse", next: "text-ink-faint" };
+const TONE = { done: "text-ok", active: "text-ok animate-pulse", next: "text-ink-faint" };
 
 export default function Roadmap() {
   return (
@@ -43,10 +43,10 @@ export default function Roadmap() {
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-12 grid items-end gap-6 md:grid-cols-12">
           <div className="md:col-span-8">
-            <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// roadmap</div>
+            <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// roadmap</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
               Where the<br />
-              <span className="text-acid">engine</span> is heading.
+              <span className="text-ok">engine</span> is heading.
             </h2>
           </div>
           <p className="max-w-md text-sm text-ink-muted md:col-span-4">
@@ -61,11 +61,11 @@ export default function Roadmap() {
             return (
               <li
                 key={it.quarter}
-                className="bg-bg-surface p-6"
+                className="bg-bg-panel p-6"
                 data-testid={`roadmap-${it.state}-${i}`}
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-widest text-acid">{it.quarter}</span>
+                  <span className="text-[11px] uppercase tracking-widest text-ok">{it.quarter}</span>
                   <Icon className={`h-4 w-4 ${TONE[it.state]}`} strokeWidth={2} />
                 </div>
                 <h3 className="font-display text-base leading-tight tracking-tight">{it.title}</h3>

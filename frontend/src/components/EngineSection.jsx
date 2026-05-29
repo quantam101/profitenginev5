@@ -77,10 +77,10 @@ export default function EngineSection() {
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-12 grid items-end gap-6 md:grid-cols-12">
           <div className="md:col-span-8">
-            <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// under the hood</div>
+            <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// under the hood</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
               v5 self-upgrades<br />
-              <span className="text-acid">function by function.</span>
+              <span className="text-ok">function by function.</span>
             </h2>
             <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-muted">
               Every release, ProfitEngine's AST merger compares the v5 codebase to the
@@ -96,8 +96,8 @@ export default function EngineSection() {
                 data-testid={`engine-lang-${l}`}
                 className={`border px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
                   lang === l
-                    ? "border-acid bg-acid text-black shadow-glowSm"
-                    : "border-line bg-bg-surface text-ink-muted hover:border-acid hover:text-acid"
+                    ? "border-ok bg-ok text-black shadow-glow"
+                    : "border-line bg-bg-panel text-ink-muted hover:border-ok hover:text-ok"
                 }`}
               >
                 {l === "python" ? "python" : "js / ts"}
@@ -113,14 +113,14 @@ export default function EngineSection() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <p className="text-xs text-ink-muted">
-            <span className="text-acid">tip:</span> v5 swaps a baseline function only when the
+            <span className="text-ok">tip:</span> v5 swaps a baseline function only when the
             candidate's quality score is strictly higher.
           </p>
           <button
             onClick={runMerge}
             disabled={loading}
             data-testid="engine-merge-btn"
-            className="inline-flex items-center gap-2 border border-acid bg-acid px-6 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-acid-soft disabled:opacity-60"
+            className="inline-flex items-center gap-2 border border-ok bg-ok px-6 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-ok-soft disabled:opacity-60"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             {loading ? "merging..." : "run merge"}
@@ -134,18 +134,18 @@ export default function EngineSection() {
             className="mt-10 grid gap-px bg-line lg:grid-cols-3"
             data-testid="engine-result"
           >
-            <div className="bg-bg-surface p-6 lg:col-span-2">
+            <div className="bg-bg-panel p-6 lg:col-span-2">
               <div className="mb-4 flex items-center justify-between text-[11px] uppercase tracking-widest text-ink-muted">
                 <span>// merged output</span>
-                <span className="text-acid">{result.merged.split("\n").length} lines</span>
+                <span className="text-ok">{result.merged.split("\n").length} lines</span>
               </div>
               <pre className="max-h-[420px] overflow-auto bg-black/40 p-4 text-xs leading-relaxed text-ink" data-testid="merged-output">
                 {result.merged}
               </pre>
             </div>
-            <div className="bg-bg-surface p-6">
+            <div className="bg-bg-panel p-6">
               <div className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-widest text-ink-muted">
-                <GitMerge className="h-3.5 w-3.5 text-acid" /> upgrades
+                <GitMerge className="h-3.5 w-3.5 text-ok" /> upgrades
               </div>
               {result.upgrades.length === 0 ? (
                 <p className="text-sm text-ink-muted">No swaps — v5 baseline already wins.</p>
@@ -154,9 +154,9 @@ export default function EngineSection() {
                   {result.upgrades.map((u) => (
                     <li key={u.name} className="border border-line bg-bg p-3" data-testid={`upgrade-${u.name}`}>
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-acid">{u.name}</span>
+                        <span className="font-mono text-sm text-ok">{u.name}</span>
                         <span className="inline-flex items-center gap-1 text-[11px] text-ink-muted">
-                          <TrendingUp className="h-3 w-3 text-acid" />
+                          <TrendingUp className="h-3 w-3 text-ok" />
                           {u.base} → {u.target}
                         </span>
                       </div>
@@ -170,7 +170,7 @@ export default function EngineSection() {
               {result.added_imports?.length > 0 && (
                 <div className="mt-6">
                   <div className="mb-2 text-[11px] uppercase tracking-widest text-ink-muted">// imports added</div>
-                  <ul className="space-y-1 font-mono text-xs text-acid">
+                  <ul className="space-y-1 font-mono text-xs text-ok">
                     {result.added_imports.map((imp) => (
                       <li key={imp}>+ {imp}</li>
                     ))}
@@ -187,7 +187,7 @@ export default function EngineSection() {
 
 function Editor({ label, value, onChange, testId }) {
   return (
-    <div className="flex flex-col bg-bg-surface">
+    <div className="flex flex-col bg-bg-panel">
       <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[11px] uppercase tracking-widest text-ink-muted">
         <span>{label}</span>
         <span className="text-ink-faint">{value.split("\n").length} ln</span>

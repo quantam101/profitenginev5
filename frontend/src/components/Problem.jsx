@@ -29,10 +29,10 @@ export default function Problem() {
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-16 grid items-end gap-6 md:grid-cols-12">
           <div className="md:col-span-8">
-            <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// the gap</div>
+            <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// the gap</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
               AI tools generate.<br />
-              <span className="text-acid">Businesses orchestrate.</span>
+              <span className="text-ok">Businesses orchestrate.</span>
             </h2>
           </div>
           <p className="max-w-md text-sm text-ink-muted md:col-span-4">
@@ -51,13 +51,13 @@ export default function Problem() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: i * 0.06 }}
-                className="bg-bg-surface p-8"
+                className="bg-bg-panel p-8"
                 data-testid={`problem-card-${i}`}
               >
-                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center border border-line bg-bg text-acid">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center border border-line bg-bg text-ok">
                   <Icon className="h-5 w-5" strokeWidth={1.5} />
                 </div>
-                <div className="font-display text-4xl tracking-tighter text-acid">{it.stat}</div>
+                <div className="font-display text-4xl tracking-tighter text-ok">{it.stat}</div>
                 <h3 className="mt-2 font-display text-lg tracking-tight">{it.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-ink-muted">{it.body}</p>
               </motion.div>

@@ -39,10 +39,10 @@ export default function DashboardPreview() {
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-16 grid items-end gap-6 md:grid-cols-12">
           <div className="md:col-span-8">
-            <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// command center</div>
+            <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// command center</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
               The dashboard from<br />
-              <span className="text-acid">already-here</span> — now in v5.
+              <span className="text-ok">already-here</span> — now in v5.
             </h2>
             <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-muted">
               We ported the production command center we built for already-here-llc straight into
@@ -52,7 +52,7 @@ export default function DashboardPreview() {
           </div>
           <Link
             to="/dashboard"
-            className="inline-flex items-center justify-center gap-2 border border-acid bg-acid px-5 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-acid-soft md:col-span-4 md:justify-self-end"
+            className="inline-flex items-center justify-center gap-2 border border-ok bg-ok px-5 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-ok-soft md:col-span-4 md:justify-self-end"
             data-testid="preview-open-cta"
           >
             Open dashboard <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
@@ -66,22 +66,22 @@ export default function DashboardPreview() {
               <Link
                 key={p.to}
                 to={p.to}
-                className="group flex items-center justify-between gap-6 bg-bg-surface p-8 transition-colors hover:bg-bg-elev"
+                className="group flex items-center justify-between gap-6 bg-bg-panel p-8 transition-colors hover:bg-bg-elev"
                 data-testid={`preview-card-${i}`}
               >
                 <div className="flex items-start gap-5">
-                  <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center border border-line bg-bg text-acid transition-colors group-hover:border-acid">
+                  <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center border border-line bg-bg text-ok transition-colors group-hover:border-ok">
                     <Icon className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                   <div>
                     <h3 className="font-display text-lg tracking-tight">{p.title}</h3>
                     <p className="mt-2 max-w-sm text-sm leading-relaxed text-ink-muted">{p.desc}</p>
-                    <div className="mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-acid">
+                    <div className="mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-ok">
                       {p.metric}
                     </div>
                   </div>
                 </div>
-                <ArrowRight className="hidden h-5 w-5 shrink-0 text-ink-muted transition-colors group-hover:text-acid md:block" />
+                <ArrowRight className="hidden h-5 w-5 shrink-0 text-ink-muted transition-colors group-hover:text-ok md:block" />
               </Link>
             );
           })}

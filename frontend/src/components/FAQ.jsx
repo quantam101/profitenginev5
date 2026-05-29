@@ -35,10 +35,10 @@ export default function FAQ() {
     <section id="faq" className="border-b border-line py-24 md:py-32" data-testid="faq-section">
       <div className="mx-auto max-w-4xl px-6 md:px-10">
         <div className="mb-12">
-          <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// FAQ</div>
+          <div className="mb-4 text-[11px] uppercase tracking-widest text-ok">// FAQ</div>
           <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
             Questions<br />
-            <span className="text-acid">we keep getting.</span>
+            <span className="text-ok">we keep getting.</span>
           </h2>
         </div>
         <ul className="border-t border-line">
@@ -48,12 +48,12 @@ export default function FAQ() {
               <li key={it.q} className="border-b border-line" data-testid={`faq-${i}`}>
                 <button
                   onClick={() => setOpen(isOpen ? -1 : i)}
-                  className="flex w-full items-center justify-between gap-6 py-6 text-left transition-colors hover:text-acid"
+                  className="flex w-full items-center justify-between gap-6 py-6 text-left transition-colors hover:text-ok"
                   data-testid={`faq-trigger-${i}`}
                 >
                   <span className="font-display text-base tracking-tight md:text-lg">{it.q}</span>
                   {isOpen ? (
-                    <Minus className="h-5 w-5 shrink-0 text-acid" strokeWidth={2} />
+                    <Minus className="h-5 w-5 shrink-0 text-ok" strokeWidth={2} />
                   ) : (
                     <Plus className="h-5 w-5 shrink-0 text-ink-muted" strokeWidth={2} />
                   )}

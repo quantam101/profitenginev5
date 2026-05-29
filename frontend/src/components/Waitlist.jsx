@@ -38,12 +38,12 @@ export default function Waitlist() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="border border-line bg-bg-surface p-10 md:p-16"
+          className="border border-line bg-bg-panel p-10 md:p-16"
         >
-          <div className="mb-3 text-[11px] uppercase tracking-widest text-acid">// closed beta</div>
+          <div className="mb-3 text-[11px] uppercase tracking-widest text-ok">// closed beta</div>
           <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
             Run the v5 stack.<br />
-            <span className="text-acid">Ship a business.</span>
+            <span className="text-ok">Ship a business.</span>
           </h2>
           <p className="mt-4 max-w-xl text-sm text-ink-muted">
             We're onboarding operators one cohort at a time. Drop your email + the use case you want
@@ -52,12 +52,12 @@ export default function Waitlist() {
 
           {position !== null ? (
             <div
-              className="mt-10 flex items-center gap-4 border border-acid bg-bg p-6 shadow-glowSm"
+              className="mt-10 flex items-center gap-4 border border-ok bg-bg p-6 shadow-glow"
               data-testid="waitlist-success"
             >
-              <CheckCircle2 className="h-8 w-8 text-acid" strokeWidth={1.5} />
+              <CheckCircle2 className="h-8 w-8 text-ok" strokeWidth={1.5} />
               <div>
-                <div className="font-display text-2xl text-acid">#{position}</div>
+                <div className="font-display text-2xl text-ok">#{position}</div>
                 <div className="text-xs text-ink-muted">
                   You're on the v5 launchlist. Watch {email} for your invite + onboarding doc.
                 </div>
@@ -67,7 +67,7 @@ export default function Waitlist() {
             <form onSubmit={submit} className="mt-10 grid gap-5 md:grid-cols-2" data-testid="waitlist-form">
               <div className="md:col-span-2">
                 <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">&gt; email</label>
-                <div className="flex items-center border-b border-line focus-within:border-acid">
+                <div className="flex items-center border-b border-line focus-within:border-ok">
                   <Mail className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
                   <input
                     required
@@ -86,7 +86,7 @@ export default function Waitlist() {
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="indie operator, agency, fund..."
-                  className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-acid"
+                  className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-ok"
                   data-testid="waitlist-role-input"
                 />
               </div>
@@ -96,7 +96,7 @@ export default function Waitlist() {
                   value={useCase}
                   onChange={(e) => setUseCase(e.target.value)}
                   placeholder="newsletter, affiliate stack, micro-SaaS..."
-                  className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-acid"
+                  className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-ok"
                   data-testid="waitlist-usecase-input"
                 />
               </div>
@@ -104,7 +104,7 @@ export default function Waitlist() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex items-center gap-2 border border-acid bg-acid px-6 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-acid-soft disabled:opacity-60"
+                  className="inline-flex items-center gap-2 border border-ok bg-ok px-6 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-ok-soft disabled:opacity-60"
                   data-testid="waitlist-submit"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
