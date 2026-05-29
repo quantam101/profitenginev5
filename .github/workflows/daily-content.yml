@@ -1,4 +1,4 @@
-name: Daily Content Publisher
+﻿name: Daily Content Publisher
 
 # Publishes one SEO article per day to GitHub Pages (quantam101/content)
 # using Groq's free llama-3.3-70b-versatile model.
@@ -40,6 +40,7 @@ jobs:
       - name: Publish article
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content

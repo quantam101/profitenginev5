@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Standalone article generator + publisher for ProfitEngine.
 
@@ -97,21 +97,20 @@ The article should be 800-1200 words, include:
 
 
 # ── Groq generation ────────────────────────────────────────────────────────────
-def generate_article(topic: str) -> Dict[str, Any]:
-    if not GROQ_KEY:
-        sys.exit("❌ GROQ_API_KEY not set")
-    print(f"[AI] Generating article: {topic}")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+
+def _call_groq(prompt: str) -> str:
+    """Call Groq API. Raises on failure."""
     resp = httpx.post(
         GROQ_URL,
-        headers={
-            "Authorization": f"Bearer {GROQ_KEY}",
-            "Content-Type": "application/json",
-        },
+        headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
         json={
             "model": GROQ_MODEL,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": ARTICLE_PROMPT.format(topic=topic)},
+                {"role": "user", "content": prompt},
             ],
             "max_tokens": 3000,
             "temperature": 0.7,
@@ -119,7 +118,46 @@ def generate_article(topic: str) -> Dict[str, Any]:
         timeout=120,
     )
     resp.raise_for_status()
-    raw = resp.json()["choices"][0]["message"]["content"].strip()
+    return resp.json()["choices"][0]["message"]["content"].strip()
+
+
+def _call_gemini(prompt: str) -> str:
+    """Call Gemini Flash API. Raises on failure."""
+    resp = httpx.post(
+        f"{GEMINI_URL}?key={GEMINI_KEY}",
+        headers={"Content-Type": "application/json"},
+        json={
+            "contents": [
+                {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
+            ],
+            "generationConfig": {"maxOutputTokens": 3072, "temperature": 0.7},
+        },
+        timeout=120,
+    )
+    resp.raise_for_status()
+    parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    return "".join(p.get("text", "") for p in parts).strip()
+
+
+def generate_article(topic: str) -> Dict[str, Any]:
+    if not GROQ_KEY and not GEMINI_KEY:
+        sys.exit("❌ Neither GROQ_API_KEY nor GEMINI_API_KEY is set")
+    print(f"[AI] Generating article: {topic}")
+    prompt = ARTICLE_PROMPT.format(topic=topic)
+    # Try Groq first; fall back to Gemini on rate-limit or error
+    raw = ""
+    if GROQ_KEY:
+        try:
+            raw = _call_groq(prompt)
+            print("[AI] Provider: Groq")
+        except Exception as e:
+            print(f"[AI] Groq failed ({e}), trying Gemini...")
+    if not raw and GEMINI_KEY:
+        raw = _call_gemini(prompt)
+        print("[AI] Provider: Gemini")
+    # Strip markdown code fences if model wrapped in them
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
     # Strip markdown code fences if model wrapped in them
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
