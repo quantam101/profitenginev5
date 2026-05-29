@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from typing import Literal
 
-Provider = Literal["gemini", "deepseek", "openrouter", "anthropic", "openai"]
+Provider = Literal["gemini", "deepseek", "openrouter", "anthropic", "openai", "groq"]
 
 
 def _has_key(provider: Provider) -> bool:
@@ -27,6 +27,7 @@ def _has_key(provider: Provider) -> bool:
         "openrouter": os.environ.get("OPENROUTER_API_KEY"),
         "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
         "openai": os.environ.get("OPENAI_API_KEY"),
+        "groq": os.environ.get("GROQ_API_KEY"),
     }.get(provider))
 
 
@@ -94,6 +95,15 @@ async def _call_openai(*, model: str, system: str, prompt: str, max_tokens: int)
     )
 
 
+async def _call_groq(*, model: str, system: str, prompt: str, max_tokens: int) -> str:
+    """Groq Cloud — free tier, OpenAI-compatible, very fast inference."""
+    return await _call_openai_compatible(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=os.environ["GROQ_API_KEY"],
+        model=model, system=system, prompt=prompt, max_tokens=max_tokens,
+    )
+
+
 async def _call_anthropic(*, model: str, system: str, prompt: str, max_tokens: int) -> str:
     from anthropic import AsyncAnthropic
     client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -112,6 +122,7 @@ _DISPATCH = {
     "openrouter": _call_openrouter,
     "openai": _call_openai,
     "anthropic": _call_anthropic,
+    "groq": _call_groq,
 }
 
 
@@ -127,7 +138,7 @@ async def call_llm(
         raise RuntimeError(
             f"No credentials for provider '{provider}'. "
             f"Set the matching API key env var "
-            f"(GEMINI_API_KEY / DEEPSEEK_API_KEY / OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY)."
+            f"(GEMINI_API_KEY / DEEPSEEK_API_KEY / OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY)."
         )
     fn = _DISPATCH[provider]
     return await fn(model=model, system=system, prompt=prompt, max_tokens=max_tokens)
