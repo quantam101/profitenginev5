@@ -187,26 +187,8 @@ async def fleet_stats() -> dict:
             "fleet_success_rate": fleet_success}
 
 
-@app.post("/api/agents/{agent_id}/execute")
-async def execute_agent(agent_id: str) -> dict:
-    agent = next((a for a in _AGENTS if a["id"] == agent_id), None)
-    if not agent:
-        raise HTTPException(status_code=404, detail="agent not found")
-
-    # Persist queued row FIRST so the dashboard can show it instantly
-    run_id = str(uuid.uuid4())
-    queued_at = datetime.now(timezone.utc).isoformat()
-    await db.agent_runs.insert_one({
-        "id": run_id, "agent_id": agent_id, "agent_name": agent["name"],
-        "status": "queued", "queued_at": queued_at,
-    })
-    await ws_hub.broadcast("agent.run.queued", {
-        "agent_id": agent_id, "agent_name": agent["name"], "run_id": run_id,
-    })
-
-    # Real work — route the agent's mission through the Distiller for
-    # token-efficient LLM output. Cheap tier handles most agents, expert tier
-    # auto-escalates only when the model flags requires_expert.
+def _build_agent_brief(agent: dict) -> tuple[str, str, str]:
+    """Compose the (system, prompt, schema_hint) tuple for an agent cycle."""
     system = (
         f"You are {agent['name']} inside the ProfitEngineV5 enterprise "
         f"controlled-autonomy platform. Your mission: {agent['mission']} "
@@ -222,6 +204,45 @@ async def execute_agent(agent_id: str) -> dict:
     )
     schema = ('{"headline": string, "findings": string[], "next_action": string, '
               '"confidence": number, "requires_expert": boolean}')
+    return system, prompt, schema
+
+
+def _fallback_run_result(agent_name: str, exc: Exception):
+    """Return a (output, result_shim) pair when the LLM transport fails."""
+    output = {
+        "error": str(exc),
+        "headline": f"{agent_name} run deferred",
+        "findings": ["LLM transport failed — fixture-only output returned"],
+        "next_action": "retry after backoff",
+        "confidence": 0.0,
+    }
+    result = type("R", (), {
+        "tier": "fallback", "cost_usd": 0.0, "saved_usd": 0.0,
+        "tokens_in": 0, "tokens_out": 0, "latency_ms": 0,
+        "cache_hit": False, "notes": [],
+    })()
+    return output, result
+
+
+@app.post("/api/agents/{agent_id}/execute")
+async def execute_agent(agent_id: str) -> dict:
+    agent = next((a for a in _AGENTS if a["id"] == agent_id), None)
+    if not agent:
+        raise HTTPException(status_code=404, detail="agent not found")
+
+    # 1) Persist queued row + broadcast — dashboard sees the run instantly.
+    run_id = str(uuid.uuid4())
+    queued_at = datetime.now(timezone.utc).isoformat()
+    await db.agent_runs.insert_one({
+        "id": run_id, "agent_id": agent_id, "agent_name": agent["name"],
+        "status": "queued", "queued_at": queued_at,
+    })
+    await ws_hub.broadcast("agent.run.queued", {
+        "agent_id": agent_id, "agent_name": agent["name"], "run_id": run_id,
+    })
+
+    # 2) Real LLM work through the Distiller cascade.
+    system, prompt, schema = _build_agent_brief(agent)
     try:
         result = await distiller.run(DistillRequest(
             task=f"agent.execute.{agent_id}",
@@ -229,19 +250,11 @@ async def execute_agent(agent_id: str) -> dict:
         ))
         output = result.output if isinstance(result.output, dict) else {"raw": str(result.output)}
         status = "completed"
-        notes = result.notes
     except Exception as exc:  # noqa: BLE001 — never break the dashboard
-        output = {"error": str(exc),
-                  "headline": f"{agent['name']} run deferred",
-                  "findings": ["LLM transport failed — fixture-only output returned"],
-                  "next_action": "retry after backoff",
-                  "confidence": 0.0}
-        result = type("R", (), {"tier": "fallback", "cost_usd": 0.0,
-                                "saved_usd": 0.0, "tokens_in": 0, "tokens_out": 0,
-                                "latency_ms": 0, "cache_hit": False})()
+        output, result = _fallback_run_result(agent["name"], exc)
         status = "errored"
-        notes = []
 
+    # 3) Persist final state + broadcast completion.
     completed_at = datetime.now(timezone.utc).isoformat()
     update = {
         "status": status, "completed_at": completed_at,
@@ -252,12 +265,11 @@ async def execute_agent(agent_id: str) -> dict:
         "tokens_out": getattr(result, "tokens_out", 0),
         "latency_ms": getattr(result, "latency_ms", 0),
         "cache_hit": getattr(result, "cache_hit", False),
-        "notes": notes,
+        "notes": getattr(result, "notes", []),
     }
     await db.agent_runs.update_one({"id": run_id}, {"$set": update})
     await ws_hub.broadcast("agent.run.completed", {
-        "agent_id": agent_id, "run_id": run_id, "tier": result.tier,
-        "status": status,
+        "agent_id": agent_id, "run_id": run_id, "tier": result.tier, "status": status,
     })
     return {"agent_id": agent_id, "run_id": run_id, "status": status,
             "queued_at": queued_at, "completed_at": completed_at,

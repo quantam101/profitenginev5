@@ -94,6 +94,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "referral_code": body.referral_code or "",
             "email": body.email or "",
         }
+        # Init for static-analyzer safety — except-branch raises, but explicit
+        # initialization removes any "may be undefined on all paths" warning.
+        session = None
         try:
             session = await _stripe(request).create_checkout_session(
                 CheckoutSessionRequest(
@@ -106,6 +109,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             )
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=502, detail=f"stripe error: {exc}") from exc
+        if session is None:  # defensive — Stripe SDK contract guarantees a session
+            raise HTTPException(status_code=502, detail="stripe returned no session")
 
         # MANDATORY: persist transaction BEFORE returning to frontend
         await db.payment_transactions.insert_one({
@@ -161,10 +166,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def stripe_webhook(request: Request) -> dict:
         body = await request.body()
         sig = request.headers.get("Stripe-Signature", "")
+        event = None
         try:
             event = await _stripe(request).handle_webhook(body, sig)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400, detail=f"bad webhook: {exc}") from exc
+        if event is None:
+            raise HTTPException(status_code=400, detail="webhook handler returned no event")
         await db.stripe_events.insert_one({
             "id": str(uuid.uuid4()),
             "event_id": event.event_id,

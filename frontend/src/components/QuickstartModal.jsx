@@ -4,8 +4,8 @@ import { X, ArrowRight, Cpu, Brain, ShieldAlert, Sparkles, Rocket, Check } from 
 const STEPS = [
   {
     icon: Cpu,
-    title: "Meet your 11-agent fleet",
-    body: "The Sovereign Orchestrator + 10 specialists are already running. Open Agents to see live cycle counts and the missions each one owns.",
+    title: "Meet your 20-agent fleet",
+    body: "The Prime Orchestrator + 19 specialists are already running. Open AI Agents to see live cycle counts and the missions each one owns.",
     cta: { label: "Open Agents", to: "/dashboard/agents" },
   },
   {
@@ -36,12 +36,21 @@ const STEPS = [
 
 const KEY = "pev5.quickstart.seen";
 
+// NOTE: this is a UX preference flag ("user has dismissed the onboarding modal"),
+// NOT a credential. localStorage is the correct store for non-sensitive UX state.
 export function shouldAutoOpenQuickstart() {
-  try { return !localStorage.getItem(KEY); } catch { return false; }
+  try { return !localStorage.getItem(KEY); }
+  catch (err) {
+    console.warn("[quickstart] localStorage read failed:", err?.message || err);
+    return false;
+  }
 }
 
 export function markQuickstartSeen() {
-  try { localStorage.setItem(KEY, "1"); } catch { /* noop */ }
+  try { localStorage.setItem(KEY, "1"); }
+  catch (err) {
+    console.warn("[quickstart] localStorage write failed:", err?.message || err);
+  }
 }
 
 export default function QuickstartModal({ open, onClose }) {
@@ -85,9 +94,9 @@ export default function QuickstartModal({ open, onClose }) {
         </p>
 
         <div className="mt-6 flex gap-2">
-          {STEPS.map((_, idx) => (
+          {STEPS.map((s, idx) => (
             <span
-              key={idx}
+              key={s.title}
               className={`h-1.5 flex-1 rounded-soft transition-colors ${idx <= i ? "bg-ok" : "bg-line"}`}
             />
           ))}

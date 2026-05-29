@@ -27,19 +27,25 @@ export default function Overview() {
   const [quickstart, setQuickstart] = useState(false);
   const [autonomy, setAutonomy] = useState(null);
 
+  // Module-level imports are stable across renders, so this effect intentionally
+  // runs once on mount. We use allSettled so one failure doesn't block the rest,
+  // and log unexpected errors instead of swallowing them silently.
   useEffect(() => {
-    getRevenue(14).then(setRevenue).catch(() => {});
-    getAgents().then(setAgents).catch(() => {});
-    getApprovals().then(setApprovals).catch(() => {});
-    getStats().then(setStats).catch(() => {});
-    getLedgerProgress().then(setLedger).catch(() => {});
-    getSovereignStatus().then(setSov).catch(() => {});
-    getSovereignDecisions().then(setDecisions).catch(() => {});
-    getProofOfWork().then(setPow).catch(() => {});
-    getAutonomy().then(setAutonomy).catch(() => {});
+    let cancelled = false;
+    const safe = (label, p, setter) =>
+      p.then((r) => { if (!cancelled) setter(r); })
+       .catch((err) => console.warn(`[Overview] ${label} failed:`, err?.message || err));
+    safe("revenue", getRevenue(14), setRevenue);
+    safe("agents", getAgents(), setAgents);
+    safe("approvals", getApprovals(), setApprovals);
+    safe("stats", getStats(), setStats);
+    safe("ledger", getLedgerProgress(), setLedger);
+    safe("sovereign", getSovereignStatus(), setSov);
+    safe("decisions", getSovereignDecisions(), setDecisions);
+    safe("proof-of-work", getProofOfWork(), setPow);
+    safe("autonomy", getAutonomy(), setAutonomy);
     if (shouldAutoOpenQuickstart()) setQuickstart(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
   }, []);
 
   const totalRev = revenue.reduce((s, p) => s + p.amount, 0);
@@ -89,7 +95,7 @@ export default function Overview() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5" data-testid="overview-kpis">
         <Metric label="revenue last 14d" value={`$${Math.round(totalRev).toLocaleString()}`} delta="+12% vs prior" testId="kpi-revenue" />
-        <Metric label="agents online" value={`${onlineAgents}/${agents.length}`} delta="11-agent fleet" testId="kpi-agents" />
+        <Metric label="agents online" value={`${onlineAgents}/${agents.length}`} delta={`${agents.length}-agent fleet`} testId="kpi-agents" />
         <Metric label="approvals pending" value={approvals.length} delta="3 low / 1 high" tone="warn" testId="kpi-approvals" />
         <Metric label="proof-of-work" value={pow ? `${Math.round(pow.score * 100)}%` : "—"} delta={pow ? `${pow.uptime_pct}% uptime` : null} testId="kpi-pow" />
         <Metric label="$25k unlock progress" value={`${pct}%`} delta={ledger ? `$${Math.round(ledger.earned_usd).toLocaleString()} / $25,000` : null} tone="sov" testId="kpi-ledger" />

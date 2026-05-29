@@ -79,19 +79,22 @@ export const getDistillationStats = () => api.get("/distillation/stats").then((r
 export function subscribeCycle(onEvent) {
   const wsUrl = (BACKEND_URL || "").replace(/^http/, "ws") + "/api/ws/cycle";
   let ws;
-  // eslint-disable-next-line no-unused-vars
-  let closed = false;
   try {
     ws = new WebSocket(wsUrl);
     ws.onmessage = (e) => {
-      try { onEvent(JSON.parse(e.data)); } catch { /* ignore parse */ }
+      try { onEvent(JSON.parse(e.data)); }
+      catch (err) { console.warn("[ws] malformed event:", err?.message || err); }
     };
-    ws.onerror = () => { /* silent — page still works without WS */ };
-  } catch {
+    ws.onerror = (err) => {
+      // Page still works without WS — but log so we can diagnose flakiness.
+      console.warn("[ws] error event:", err?.type || "unknown");
+    };
+  } catch (err) {
+    console.warn("[ws] connect failed:", err?.message || err);
     return () => {};
   }
   return () => {
-    closed = true;
-    try { ws && ws.close(); } catch { /* noop */ }
+    try { ws && ws.close(); }
+    catch (err) { console.warn("[ws] close failed:", err?.message || err); }
   };
 }

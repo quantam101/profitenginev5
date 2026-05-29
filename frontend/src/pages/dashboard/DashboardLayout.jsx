@@ -50,11 +50,18 @@ export default function DashboardLayout() {
   const [cycle, setCycle] = useState(null);
   const [sov, setSov] = useState(null);
   const { pathname } = useLocation();
+  // Refetch cycle + sovereign status on every route change. getCycleStatus
+  // and getSovereignStatus are stable module-level imports — depending on
+  // pathname alone is correct.
   useEffect(() => {
-    getCycleStatus().then(setCycle).catch(() => setCycle(null));
-    getSovereignStatus().then(setSov).catch(() => setSov(null));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    getCycleStatus()
+      .then((r) => { if (!cancelled) setCycle(r); })
+      .catch((e) => { console.warn("[Layout] cycle:", e?.message || e); setCycle(null); });
+    getSovereignStatus()
+      .then((r) => { if (!cancelled) setSov(r); })
+      .catch((e) => { console.warn("[Layout] sov:", e?.message || e); setSov(null); });
+    return () => { cancelled = true; };
   }, [pathname]);
 
   return (

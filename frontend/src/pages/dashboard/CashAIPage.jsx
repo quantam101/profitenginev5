@@ -92,9 +92,12 @@ export default function CashAIPage() {
   const [liveEvent, setLiveEvent] = useState(null);
 
   const refresh = useCallback(() => {
-    getCashLastDecision().then(setDecision).catch(() => {});
-    getCashAuditTrail(20).then(setTrail).catch(() => {});
-    getAgents().then(setAgents).catch(() => {});
+    getCashLastDecision().then(setDecision)
+      .catch((e) => console.warn("[CashAI] last-decision:", e?.message || e));
+    getCashAuditTrail(20).then(setTrail)
+      .catch((e) => console.warn("[CashAI] audit-trail:", e?.message || e));
+    getAgents().then(setAgents)
+      .catch((e) => console.warn("[CashAI] agents:", e?.message || e));
   }, []);
 
   useEffect(() => {

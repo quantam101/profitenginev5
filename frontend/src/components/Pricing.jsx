@@ -11,7 +11,7 @@ const TIERS = [
     price: "$0",
     cadence: "open core",
     features: [
-      "All 11 agents, local-only",
+      "All 20 agents, local-only",
       "Single project / workspace",
       "Community discord",
       "Self-host on your VPS",
