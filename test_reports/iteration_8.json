@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 8 verification complete. All targeted changes work end-to-end: (1) /api/launch/social-proof returns ONLY real Mongo counts (operators_joined=6 = db.waitlist.count, agent_runs_total=24 = db.agent_runs.count, cycles_ran_total=14 = db.cycle_events.count, merges_total=26 = db.merge_events.count, paid_subscribers=0) — no +312/+3191/+1842/+12 anchored baselines anywhere; (2) POST /api/agents/{id}/execute now runs the real Distiller cascade synchronously and returns status='completed' (never 'queued') with tier in {cheap,cache}, structured output (headline/findings[]/next_action/confidence), cost_usd>0 on first call, cost_usd=0 on cache hit, completes in 1.5-1.8s for cheap tier; (3) /og.png served by frontend static handler with HTTP 200, content-type image/png, content-length 47651 (47KB); (4) og:image/twitter:image/og:image:width=1200/og:image:height=630 meta tags present in rendered DOM; (5) Social Proof Rail in the Hero now renders '6 / 28 / 14 / 0' (real Mongo data) — no anchored baselines visible. All 85 pytest pass. All regressions green (Stripe checkout returns cs_test_* URL, GET /api/agents returns 20, WS /api/ws/cycle emits hello frame, /api/cash/last-decision pinned to apr_004 conf=0.97 risk=high).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "review request body", "issue": "Request statement said 'All 100 pytest pass'; actual test count is 85 (matches iteration_7 baseline of 85). No new pytest tests were added in iteration 8. Existing tests test_execute_persists_run, test_execute_known_agent, test_social_proof_shape were UPDATED in place — pytest count unchanged."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_launch.py",
+    "/app/backend/tests/test_cash_ai.py",
+    "/app/backend/tests/test_backend_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "social-proof now returns the exact Mongo counts with no offset addition (6/24/14/26/0). Verified by direct pymongo query against db.profitengine matching the API response 1:1.",
+    "Agent execute synchronous path: revenue-intelligence completes in ~1.6s, sales-execution first call ~1.6s cheap, second call ~0.1s cache (tier='cache', cost_usd=0.0, saved_usd populated). Even slow LLM path stays under the 30s SLA. Errored-fallback try/except shape was not exercised live (LLM was healthy throughout) but code-reviewed and looks correct.",
+    "/og.png is a real Pillow-rendered 1200x630 branded PNG, 47651 bytes, content-type image/png, cache-control no-store (good for iterating during launch). Served by the React static handler so Twitter/LinkedIn crawlers will fetch it cleanly.",
+    "All four og:* and three twitter:* meta tags confirmed in the live rendered DOM via Playwright querySelector ('og:image'=/og.png, 'og:image:width'=1200, 'og:image:height'=630, 'twitter:image'=/og.png). These are visible to bot crawlers immediately on first paint (they are in index.html, not injected by React).",
+    "Social Proof Rail visually verified at bottom of Hero: '6 OPERATORS JOINED · 28 AGENT RUNS - ALL-TIME · 14 CYCLES COMPLETED · 0 PAID - COHORT 1'. Note: agent_runs displayed 28 because my four POST /api/agents/{id}/execute test calls incremented the count by 4 (from 24 to 28) — confirms the counter is wired to live Mongo data, not a static baseline.",
+    "Endpoint naming nit: the request refers to '/api/cash-ai/last-decision' but the actual route in server.py:574 is '/api/cash/last-decision' (no -ai). Both routes were tested; only the documented /api/cash/last-decision works (returns apr_004). Worth aligning the request wording or adding a /api/cash-ai/ alias if external consumers expect that path.",
+    "Regression suite (85 tests) runs in 20.8s. test_execute_persists_run and test_execute_known_agent correctly expect status in {completed, errored} now. test_social_proof_shape no longer asserts the 312/3191/1842/12 baselines.",
+    "build_og_image.py is re-runnable (idempotent) — re-generating won't change the binary unless the source text/fonts change. Good for CI."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "none — all endpoints open per /app/memory/test_credentials.md",
+  "seed_data_creation": "None. Four agent execute POSTs incremented db.agent_runs by 4 (24->28) — this is intentional real-data behavior, not test pollution.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "85 pytest pass. Iteration 8 made three real changes: (a) anchored baselines removed from /api/launch/social-proof — values are now raw Mongo counts (db.waitlist, db.agent_runs, db.cycle_events, db.merge_events); expect them to creep upward as agents run. (b) POST /api/agents/{id}/execute is now SYNCHRONOUS real-LLM via the Distiller cascade — returns 200 with status='completed' (or 'errored' on LLM failure) and structured output, NOT status='queued'. First call typically tier='cheap' (~1.5s, cost_usd ~1.5e-05), repeat with identical inputs tier='cache' (cost_usd=0). 404 still returned for unknown agent id. (c) /og.png is a real 47KB 1200x630 Pillow-rendered PNG served by the frontend static handler; og:image and twitter:image meta tags in index.html point to /og.png. Regression: Stripe checkout (cs_test_*), 20 agents, WS hello frame, Cash AI apr_004 pinning all still green. Note the actual cash route is /api/cash/last-decision (NOT /api/cash-ai/last-decision)."
+}

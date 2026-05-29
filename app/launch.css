@@ -1,0 +1,142 @@
+/* ProfitEngine v5 launchpad — TokenForge-style neon terminal */
+:root {
+  --bg:#050505;
+  --surface:#0C0C0C;
+  --elev:#141414;
+  --ink:#F3F4F6;
+  --muted:#9CA3AF;
+  --faint:#4B5563;
+  --line:#1F2937;
+  --acid:#00FF41;
+  --acid-soft:#CCFF00;
+}
+
+.launch {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  min-height: 100vh;
+}
+.launch a { color: inherit; text-decoration: none; }
+.launch ::selection { background: var(--acid); color: black; }
+.launch h1, .launch h2, .launch h3 {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* Nav */
+.l-nav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--line);
+  background: rgba(5,5,5,.85); backdrop-filter: blur(8px);
+}
+.l-logo { font-family: 'Space Mono', monospace; font-size: 18px; }
+.l-logo .acid { color: var(--acid); }
+.l-nav .links { display: flex; gap: 24px; font-size: 12px; color: var(--muted); }
+.l-nav .links a:hover { color: var(--acid); }
+.l-cta {
+  display: inline-block; padding: 10px 18px; background: var(--acid); color: black;
+  font-weight: 700; font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+  border: 1px solid var(--acid); box-shadow: 0 0 14px rgba(0,255,65,.4);
+  transition: background .15s;
+}
+.l-cta:hover { background: var(--acid-soft); }
+
+/* Hero */
+.hero { padding: 80px 0 96px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(31,41,55,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(31,41,55,.45) 1px, transparent 1px);
+  background-size: 48px 48px; opacity: .4; pointer-events: none;
+}
+.hero-grid { display: grid; grid-template-columns: 1fr; gap: 48px; position: relative; }
+@media (min-width: 900px) { .hero-grid { grid-template-columns: 1.2fr 1fr; align-items: end; } }
+.tag {
+  display: inline-flex; gap: 8px; align-items: center;
+  border: 1px solid var(--line); background: var(--surface);
+  padding: 4px 12px; font-size: 11px; color: var(--muted);
+}
+.tag .dot { width: 6px; height: 6px; background: var(--acid); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.hero h1 { font-size: clamp(40px, 6vw, 80px); line-height: .95; margin-top: 24px; }
+.hero h1 .acid { color: var(--acid); }
+.hero p { color: var(--muted); margin-top: 20px; max-width: 560px; line-height: 1.6; font-size: 15px; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+.cta-secondary {
+  display: inline-block; padding: 12px 20px; border: 1px solid var(--line);
+  font-weight: 700; font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+  transition: border-color .15s, color .15s;
+}
+.cta-secondary:hover { border-color: var(--acid); color: var(--acid); }
+
+.cycle-panel { border: 1px solid var(--line); background: var(--surface); }
+.cycle-panel header { padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); display: flex; justify-content: space-between; }
+.cycle-panel .step { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.cycle-panel .step:last-child { border-bottom: none; }
+.cycle-panel .name { color: var(--ink); }
+.cycle-panel .idx { color: var(--faint); margin-right: 12px; }
+.cycle-panel .done { color: var(--acid); }
+.cycle-panel .running { color: var(--acid-soft); animation: pulse 1.2s infinite; }
+.cycle-panel .queued { color: var(--faint); }
+.cycle-panel footer { padding: 10px 16px; border-top: 1px solid var(--line); background: rgba(0,0,0,.4); font-size: 11px; color: var(--muted); }
+
+/* Sections */
+.section { padding: 88px 0; border-bottom: 1px solid var(--line); }
+.section .eyebrow { color: var(--acid); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.section h2 { font-size: clamp(28px, 4vw, 48px); margin-top: 12px; line-height: 1.05; }
+.section h2 .acid { color: var(--acid); }
+
+/* Agents grid */
+.agents-grid { display: grid; grid-template-columns: 1fr; gap: 1px; background: var(--line); margin-top: 48px; }
+@media (min-width: 700px) { .agents-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .agents-grid { grid-template-columns: repeat(3, 1fr); } }
+.agent-card { background: var(--surface); padding: 28px; transition: background .2s; }
+.agent-card:hover { background: var(--elev); }
+.agent-card .head { display: flex; justify-content: space-between; align-items: flex-start; font-size: 11px; text-transform: uppercase; letter-spacing: .15em; }
+.agent-card h3 { font-size: 20px; margin-top: 18px; }
+.agent-card .role { color: var(--faint); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; margin-top: 4px; }
+.agent-card .desc { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 14px; }
+.agent-card .stats { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 18px; padding-top: 14px; font-size: 11px; color: var(--muted); }
+.agent-card .stats .acid { color: var(--acid); }
+
+/* Pricing */
+.pricing-grid { display: grid; grid-template-columns: 1fr; gap: 1px; background: var(--line); margin-top: 48px; }
+@media (min-width: 800px) { .pricing-grid { grid-template-columns: repeat(3, 1fr); } }
+.tier { background: var(--surface); padding: 32px; display: flex; flex-direction: column; position: relative; }
+.tier.featured { background: var(--elev); box-shadow: 0 0 14px rgba(0,255,65,.3); }
+.tier .badge {
+  position: absolute; top: -12px; left: 28px;
+  background: var(--acid); color: black; padding: 2px 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+}
+.tier h3 { font-size: 24px; }
+.tier .price { display: flex; align-items: baseline; gap: 4px; margin-top: 14px; }
+.tier .price .num { font-family: 'Space Mono', monospace; font-size: 36px; color: var(--acid); }
+.tier .price .cad { color: var(--muted); font-size: 12px; }
+.tier ul { list-style: none; padding: 0; margin: 28px 0; flex: 1; }
+.tier li { padding-left: 22px; position: relative; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.tier li::before { content: "✓"; position: absolute; left: 0; color: var(--acid); }
+.tier .cta { text-align: center; }
+.tier-cta-primary { display: block; padding: 12px; background: var(--acid); color: black; font-weight: 700; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; }
+.tier-cta-secondary { display: block; padding: 12px; border: 1px solid var(--line); font-weight: 700; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; }
+.tier-cta-secondary:hover { border-color: var(--acid); color: var(--acid); }
+
+/* Waitlist */
+.waitlist { background: var(--surface); border: 1px solid var(--line); padding: 56px; }
+.waitlist input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--line); padding: 14px 0; color: var(--ink); font-family: inherit; font-size: 14px; outline: none; }
+.waitlist input:focus { border-color: var(--acid); }
+.waitlist label { display: block; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); margin-top: 24px; }
+
+/* Footer */
+.footer { padding: 56px 0 32px; background: var(--surface); border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.footer .row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; }
+.footer h4 { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 400; }
+.footer ul { list-style: none; padding: 0; margin: 0; }
+.footer li { margin-bottom: 8px; }
+.footer a:hover { color: var(--acid); }
+.footer .bot { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 24px; margin-top: 40px; font-size: 11px; color: var(--faint); }
+.footer .bot .acid { color: var(--acid); }
