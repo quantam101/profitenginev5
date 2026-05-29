@@ -142,7 +142,7 @@ app.include_router(build_enterprise_router(db))
 
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "profitengine-v5",
+    return {"ok": True, "status": "ok", "service": "profitengine-v5",
             "time": datetime.now(timezone.utc).isoformat()}
 
 
