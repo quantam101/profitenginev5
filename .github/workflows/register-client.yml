@@ -1,0 +1,58 @@
+name: Register First Client
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Client email address'
+        required: true
+        default: 'dispatch@alreadyherellc.com'
+      role:
+        description: 'Client role'
+        required: false
+        default: 'client'
+      use_case:
+        description: 'Use case description'
+        required: false
+        default: 'Already Here LLC — field service dispatch and content publishing, Cohort 1 client'
+
+jobs:
+  register:
+    name: Register client on waitlist
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Register client via backend API
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            opc@129.146.167.73 \
+            "cd /home/opc/profitenginev5 && \
+             docker compose exec -T backend python3 -c \
+             \"import urllib.request,json,sys
+payload = json.dumps({
+  'email': '${{ github.event.inputs.email }}',
+  'role': '${{ github.event.inputs.role }}',
+  'use_case': '${{ github.event.inputs.use_case }}'
+}).encode()
+req = urllib.request.Request('http://localhost:8001/api/waitlist', data=payload, method='POST')
+req.add_header('Content-Type', 'application/json')
+with urllib.request.urlopen(req, timeout=10) as r:
+  d = json.loads(r.read())
+  print('Registered:', json.dumps(d, indent=2))
+  print('Position:', d.get('position'))
+  print('ID:', d.get('id'))
+\"" 2>&1

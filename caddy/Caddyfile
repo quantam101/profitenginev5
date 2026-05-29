@@ -4,11 +4,15 @@
 
 # Bare-IP health probe — CI and monitoring can hit http://129.146.167.73/health
 # without needing a TLS cert or DNS. Caddy handles this on port 80 only.
+# NOTE: the catch-all redir MUST be inside a handle {} block so Caddy treats it
+# as "else" — a bare redir fires before handle matches in Caddy v2.
 :80 {
   handle /health {
     respond `{"ok":true,"caddy":"up"}` 200
   }
-  redir https://{host}{uri} 308
+  handle {
+    redir https://{host}{uri} 308
+  }
 }
 
 {$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
