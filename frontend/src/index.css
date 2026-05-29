@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  background: #050505;
+  color: #F3F4F6;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+::selection { background: #00FF41; color: #050505; }
+
+/* Subtle grain noise overlay */
+.noise::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+}
+
+/* Grid backdrop */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(31, 41, 55, 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 41, 55, 0.45) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+
+/* Terminal blink */
+@keyframes blink { 50% { opacity: 0; } }
+.cursor { display: inline-block; width: 0.6ch; background: #00FF41; animation: blink 1s steps(1) infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0C0C0C; }
+::-webkit-scrollbar-thumb { background: #1F2937; }
+::-webkit-scrollbar-thumb:hover { background: #00FF41; }
+
+textarea, input { font-family: "JetBrains Mono", ui-monospace, monospace; }
