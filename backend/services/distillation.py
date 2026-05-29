@@ -31,8 +31,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.chat import LlmChat, UserMessage  # noqa: F401 — used by provider fallback
 from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from backend.services.llm_provider import call_llm
 
 # ── Tier definitions ───────────────────────────────────────────
 Tier = Literal["cache", "cheap", "expensive"]

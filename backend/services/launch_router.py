@@ -19,9 +19,10 @@ from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 
-from emergentintegrations.payments.stripe.checkout import (
+from emergentintegrations.payments.stripe.checkout import (  # noqa: F401 — kept for emergent transport fallback
     StripeCheckout, CheckoutSessionRequest,
 )
+from backend.services.stripe_transport import StripeTransport
 
 
 # ── Server-defined packages (frontend NEVER picks the amount) ──
@@ -66,10 +67,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter()
     api_key = os.environ.get("STRIPE_API_KEY", "")
 
-    def _stripe(req: Request) -> StripeCheckout:
-        host_url = str(req.base_url).rstrip("/")
-        return StripeCheckout(api_key=api_key,
-                              webhook_url=f"{host_url}/api/webhook/stripe")
+    def _stripe(req: Request) -> StripeTransport:
+        return StripeTransport(api_key=api_key)
 
     # ── Catalog (so the frontend can render prices without hardcoding) ──
     @router.get("/api/checkout/packages")
@@ -99,13 +98,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         session = None
         try:
             session = await _stripe(request).create_checkout_session(
-                CheckoutSessionRequest(
-                    amount=float(pkg["amount"]),
-                    currency=pkg["currency"],
-                    success_url=success_url,
-                    cancel_url=cancel_url,
-                    metadata=metadata,
-                )
+                amount=float(pkg["amount"]),
+                currency=pkg["currency"],
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata=metadata,
             )
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=502, detail=f"stripe error: {exc}") from exc

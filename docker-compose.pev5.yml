@@ -1,0 +1,58 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes: ["mongo-data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports: ["8001:8001"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URL: "mongodb://mongo:27017"
+      DB_NAME: "profitengine"
+      # Off-Emergent: set ANTHROPIC_API_KEY + GEMINI_API_KEY in your .env
+      # On-Emergent: set EMERGENT_LLM_KEY (auto-detected as fallback)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
+      DISTILLATION_CHEAP_MODEL: ${DISTILLATION_CHEAP_MODEL:-gemini-2.0-flash}
+      DISTILLATION_CHEAP_PROVIDER: ${DISTILLATION_CHEAP_PROVIDER:-gemini}
+      DISTILLATION_EXPENSIVE_MODEL: ${DISTILLATION_EXPENSIVE_MODEL:-claude-sonnet-4-5-20250929}
+      DISTILLATION_EXPENSIVE_PROVIDER: ${DISTILLATION_EXPENSIVE_PROVIDER:-anthropic}
+      DISTILLATION_CACHE_TTL_HOURS: ${DISTILLATION_CACHE_TTL_HOURS:-168}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      COHORT_TOTAL_SEATS: ${COHORT_TOTAL_SEATS:-100}
+      COHORT_LABEL: ${COHORT_LABEL:-Cohort 1}
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8001}
+    restart: unless-stopped
+    ports: ["3000:80"]
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo-data:

@@ -1,0 +1,24 @@
+# Railway service config — run alongside a Railway MongoDB plugin.
+# Frontend: deploy /app/frontend as a separate Railway service (build cmd: `yarn build`, start cmd: `npx serve -s build -l 3000`)
+# OR use Vercel for the frontend and only deploy the backend here.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "uvicorn backend.server:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Required env vars to set in the Railway dashboard:
+#   MONGO_URL              → from Railway MongoDB plugin
+#   DB_NAME                → profitengine
+#   ANTHROPIC_API_KEY      → your direct Anthropic key
+#   GEMINI_API_KEY         → your direct Google AI Studio key
+#   STRIPE_API_KEY         → sk_live_... (live) or sk_test_... (test)
+#   STRIPE_WEBHOOK_SECRET  → whsec_... from Stripe Dashboard → Webhooks
+#   COHORT_TOTAL_SEATS     → 100
+#   COHORT_LABEL           → "Cohort 1"
