@@ -10,42 +10,37 @@ import { getCycleStatus, getSovereignStatus } from "../../lib/api";
 
 const NAV_GROUPS = [
   {
-    label: "Command",
-    links: [
-      { to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true, testId: "sidebar-overview" },
-      { to: "/dashboard/sovereign", label: "Sovereign", icon: Crown, sov: true, testId: "sidebar-sovereign" },
-      { to: "/dashboard/cash-ai", label: "Cash AI", icon: Brain, sov: true, testId: "sidebar-cash-ai" },
-      { to: "/dashboard/agents", label: "Agents", icon: Cpu, testId: "sidebar-agents" },
-      { to: "/dashboard/approvals", label: "Approvals", icon: ShieldAlert, testId: "sidebar-approvals" },
-      { to: "/dashboard/advisor", label: "Advisor", icon: MessageCircleQuestion, testId: "sidebar-advisor" },
-    ],
-  },
-  {
     label: "Operations",
     links: [
+      { to: "/dashboard", label: "Command Center", icon: LayoutDashboard, end: true, testId: "sidebar-overview" },
+      { to: "/dashboard/sovereign", label: "Sovereign", icon: Crown, sov: true, testId: "sidebar-sovereign" },
+      { to: "/dashboard/cash-ai", label: "Cash AI", icon: Brain, sov: true, testId: "sidebar-cash-ai" },
+      { to: "/dashboard/agents", label: "AI Agents", icon: Cpu, testId: "sidebar-agents" },
+      { to: "/dashboard/approvals", label: "Approval Queue", icon: ShieldAlert, testId: "sidebar-approvals" },
+      { to: "/dashboard/advisor", label: "Advisor", icon: MessageCircleQuestion, testId: "sidebar-advisor" },
       { to: "/dashboard/scout", label: "Scout", icon: Radar, testId: "sidebar-scout" },
-      { to: "/dashboard/content", label: "Content", icon: FileText, testId: "sidebar-content" },
-      { to: "/dashboard/revenue", label: "Revenue", icon: BarChart3, testId: "sidebar-revenue" },
-      { to: "/dashboard/books", label: "Books", icon: BookOpen, testId: "sidebar-books" },
-    ],
-  },
-  {
-    label: "Infrastructure",
-    links: [
-      { to: "/dashboard/deployments", label: "Deployments", icon: Server, testId: "sidebar-deployments" },
-      { to: "/dashboard/builds", label: "Builds", icon: GitBranch, testId: "sidebar-builds" },
-      { to: "/dashboard/audit", label: "Audit Log", icon: ScrollText, testId: "sidebar-audit" },
-      { to: "/dashboard/proposals", label: "Proposals", icon: Vote, testId: "sidebar-proposals" },
-    ],
-  },
-  {
-    label: "Governance",
-    links: [
-      { to: "/dashboard/proof-of-work", label: "Proof of Work", icon: Award, testId: "sidebar-pow" },
+      { to: "/dashboard/content", label: "Content Factory", icon: FileText, testId: "sidebar-content" },
       { to: "/dashboard/analytics", label: "Analytics", icon: LineChart, testId: "sidebar-analytics" },
+    ],
+  },
+  {
+    label: "Revenue",
+    links: [
+      { to: "/dashboard/revenue", label: "Income Streams", icon: BarChart3, testId: "sidebar-revenue" },
+      { to: "/dashboard/proof-of-work", label: "Proof of Work", icon: Award, testId: "sidebar-pow" },
+      { to: "/dashboard/proposals", label: "Proposals", icon: Vote, testId: "sidebar-proposals" },
+      { to: "/dashboard/books", label: "Books & Audio", icon: BookOpen, testId: "sidebar-books" },
       { to: "/dashboard/distillation", label: "Distillation", icon: Sparkles, testId: "sidebar-distillation" },
-      { to: "/dashboard/cost", label: "Cost", icon: DollarSign, testId: "sidebar-cost" },
-      { to: "/dashboard/secrets", label: "Secrets", icon: KeyRound, testId: "sidebar-secrets" },
+      { to: "/dashboard/cost", label: "Pricing & Pay In", icon: DollarSign, testId: "sidebar-cost" },
+    ],
+  },
+  {
+    label: "System",
+    links: [
+      { to: "/dashboard/builds", label: "Build Registry", icon: GitBranch, testId: "sidebar-builds" },
+      { to: "/dashboard/deployments", label: "Deployments", icon: Server, testId: "sidebar-deployments" },
+      { to: "/dashboard/audit", label: "Audit Log", icon: ScrollText, testId: "sidebar-audit" },
+      { to: "/dashboard/secrets", label: "Secrets Vault", icon: KeyRound, testId: "sidebar-secrets" },
     ],
   },
 ];

@@ -12,8 +12,11 @@ import Roadmap from "../components/Roadmap";
 import FAQ from "../components/FAQ";
 import Waitlist from "../components/Waitlist";
 import Footer from "../components/Footer";
+import CohortBar from "../components/CohortBar";
+import { useReferralCapture } from "../lib/referral";
 
 export default function LandingPage() {
+  useReferralCapture();
   return (
     <>
       <Nav />
@@ -31,6 +34,7 @@ export default function LandingPage() {
         <Waitlist />
       </main>
       <Footer />
+      <CohortBar />
     </>
   );
 }

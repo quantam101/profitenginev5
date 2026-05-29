@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Activity, Copy, Check } from "lucide-react";
+import ShareKit from "./ShareKit";
+import SocialProofRail from "./SocialProofRail";
 
 const TYPED = "$ pe v5 cycle run --autonomous";
 
@@ -91,6 +93,7 @@ export default function Hero() {
               Meet the agents <Activity className="h-4 w-4" strokeWidth={2} />
             </a>
           </div>
+          <ShareKit />
         </motion.div>
 
         <motion.div
@@ -101,6 +104,9 @@ export default function Hero() {
         >
           <CyclePanel />
         </motion.div>
+      </div>
+      <div className="relative mx-auto max-w-7xl px-6 md:px-10">
+        <SocialProofRail />
       </div>
     </section>
   );

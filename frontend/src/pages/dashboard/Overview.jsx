@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Area, AreaChart } from "recharts";
-import { ArrowUpRight, ShieldAlert, Cpu, Crown, Award, DollarSign } from "lucide-react";
+import { ArrowUpRight, ShieldAlert, Cpu, Crown, Award, DollarSign, BookOpen } from "lucide-react";
 import { PageHeader, Metric, StatusBadge } from "./_shared";
 import {
   getRevenue, getAgents, getApprovals, getStats, getLedgerProgress, getSovereignStatus,
   getSovereignDecisions, getProofOfWork,
 } from "../../lib/api";
+import QuickstartModal, { shouldAutoOpenQuickstart } from "../../components/QuickstartModal";
 
 function riskTone(risk) {
   if (risk === "high") return "text-danger";
@@ -23,6 +24,7 @@ export default function Overview() {
   const [sov, setSov] = useState(null);
   const [decisions, setDecisions] = useState([]);
   const [pow, setPow] = useState(null);
+  const [quickstart, setQuickstart] = useState(false);
 
   useEffect(() => {
     getRevenue(14).then(setRevenue).catch(() => {});
@@ -33,6 +35,7 @@ export default function Overview() {
     getSovereignStatus().then(setSov).catch(() => {});
     getSovereignDecisions().then(setDecisions).catch(() => {});
     getProofOfWork().then(setPow).catch(() => {});
+    if (shouldAutoOpenQuickstart()) setQuickstart(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -43,8 +46,34 @@ export default function Overview() {
 
   return (
     <div className="px-6 py-10 md:px-10" data-testid="overview-page">
+      <QuickstartModal open={quickstart} onClose={() => setQuickstart(false)} />
+
+      {/* AHD-style status strip */}
+      <div className="mb-6 flex flex-wrap items-center gap-3" data-testid="status-strip">
+        <div className="inline-flex items-center gap-2 border border-ok/40 bg-ok/5 px-3 py-1.5 text-[11px] uppercase tracking-widest text-ok" data-testid="status-systems">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ok" /> all systems operational
+        </div>
+        <div className="inline-flex items-center gap-2 border border-line bg-bg-panel px-3 py-1.5 text-[11px] uppercase tracking-widest text-ink-muted" data-testid="status-cost">
+          <DollarSign className="h-3 w-3 text-ok" strokeWidth={2} /> $0/mo fixed cost
+        </div>
+        <div className="inline-flex items-center gap-2 border border-sov/40 bg-sov/5 px-3 py-1.5 text-[11px] uppercase tracking-widest text-sov-soft" data-testid="status-unlock">
+          <Award className="h-3 w-3" strokeWidth={2} />
+          $25k unlock · <span className="text-ink">{pct}%</span>
+        </div>
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={() => setQuickstart(true)}
+            className="inline-flex items-center gap-1.5 border border-line bg-bg-panel px-3 py-1.5 text-[11px] uppercase tracking-widest text-ink-muted hover:border-ok hover:text-ok"
+            data-testid="reopen-quickstart"
+          >
+            <BookOpen className="h-3 w-3" strokeWidth={2} /> re-open quickstart
+          </button>
+        </div>
+      </div>
+
       <PageHeader
-        eyebrow="// overview"
+        eyebrow="// command center"
         title="Today's autopilot."
         subtitle="Live state of the Command OS across revenue, agents, approvals and Sovereign decisions. Updated every cycle tick."
       />

@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import LandingPage from "./pages/LandingPage";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import AgentsPage from "./pages/dashboard/AgentsPage";
@@ -42,6 +43,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Overview />} />
             <Route path="sovereign" element={<SovereignPage />} />

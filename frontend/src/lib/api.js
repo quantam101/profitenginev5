@@ -47,6 +47,21 @@ export const getAnalytics = () => api.get("/analytics").then((r) => r.data);
 export const postMerge = (b) => api.post("/merge", b).then((r) => r.data);
 export const getDemoReport = () => api.get("/demo").then((r) => r.data);
 
+// Launch marketing
+export const getSocialProof = () => api.get("/launch/social-proof").then((r) => r.data);
+export const getCohort = () => api.get("/launch/cohort").then((r) => r.data);
+export const trackReferral = (code, landing_path = null) =>
+  api.post("/referral/track", { code, landing_path }).then((r) => r.data);
+export const getReferralStats = (code) => api.get(`/referral/stats/${code}`).then((r) => r.data);
+
+// Stripe checkout
+export const listPackages = () => api.get("/checkout/packages").then((r) => r.data);
+export const createCheckout = (b) => api.post("/checkout/session", b).then((r) => r.data);
+export const checkoutStatus = (sessionId) =>
+  api.get(`/checkout/status/${sessionId}`).then((r) => r.data);
+export const mySubscription = (email) =>
+  api.get(`/subscriptions/me?email=${encodeURIComponent(email)}`).then((r) => r.data);
+
 // Cash AI
 export const getCashLastDecision = () => api.get("/cash/last-decision").then((r) => r.data);
 export const getCashAuditTrail = (limit = 20) => api.get(`/cash/audit-trail?limit=${limit}`).then((r) => r.data);

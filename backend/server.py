@@ -38,6 +38,7 @@ from code_merger.scoring import score_python_function  # noqa: E402
 from backend.services.distillation import Distiller, DistillRequest  # noqa: E402
 from backend import fixtures as fx  # noqa: E402
 from backend.services.ws_hub import ws_hub  # noqa: E402
+from backend.services.launch_router import build_router as build_launch_router  # noqa: E402
 
 
 MONGO_URL = os.environ["MONGO_URL"]
@@ -129,6 +130,9 @@ _revenue_series = fx.revenue_series
 app = FastAPI(title="ProfitEngine v5 API", version="0.5.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
+
+# Stripe checkout + launch marketing endpoints
+app.include_router(build_launch_router(db))
 
 
 @app.get("/api/health")
