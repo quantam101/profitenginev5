@@ -40,8 +40,7 @@ jobs:
         run: npm run ci:all
         env:
           CI: "true"
-          ANTHROPIC_API_KEY: "sk-ant-stub-for-ci"
-          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
+          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'stub-emergent-ci-key' }}
       - name: Unit tests (code_merger)
         run: python -m pytest code_merger/tests/ -v
       - name: Unit tests (backend distillation)
