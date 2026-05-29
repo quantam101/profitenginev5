@@ -119,6 +119,7 @@ upsert_env N8N_BASIC_AUTH_PASSWORD "${N8N_BASIC_AUTH_PASSWORD:-ProfitEngine2026}
 # Required non-secret config
 upsert_env POSTGRES_DB       "profitengine"
 upsert_env POSTGRES_USER     "profitengine"
+upsert_env BACKEND_API_URL   "${BACKEND_API_URL:-http://backend:8001}"
 PG_PASS="$(grep -E "^POSTGRES_PASSWORD=" "$ENV_FILE" | cut -d= -f2-)"
 if [[ -z "$PG_PASS" ]]; then
   upsert_env POSTGRES_PASSWORD "$(openssl rand -hex 24)"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasWebhookAccess } from '../../../../lib/webhookAuth';
+import { createDispatchProof } from '../../../../lib/proofPublish';
 
 interface DispatchPayload {
   dispatchId: string;
@@ -46,8 +47,22 @@ export async function POST(req: NextRequest) {
       submittedAt: body.submittedAt ?? new Date().toISOString(),
     };
 
-    try {
-      const res = await fetch(`${RUNTIME}/execute`, {
+    // ── ProofPublish: append-only dispatch proof record (fire-and-forget) ────
+    const [proofResult] = await Promise.allSettled([
+      createDispatchProof(
+        {
+          dispatchId: record.dispatchId,
+          fullName: record.fullName,
+          company: record.company,
+          siteCity: record.siteCity,
+          serviceType: record.serviceType,
+          submittedAt: record.submittedAt,
+          source: record.source,
+        },
+        'alreadyherellc',
+      ),
+      // Sovereign orchestrator notification (non-blocking)
+      fetch(`${RUNTIME}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -58,13 +73,16 @@ export async function POST(req: NextRequest) {
           actor: 'webhook-dispatch',
         }),
         signal: AbortSignal.timeout(15000),
-      });
-      await res.body?.cancel();
-    } catch {
-      // Runtime may be offline; record is still returned
-    }
+      }).then((r) => r.body?.cancel()),
+    ]);
 
-    return NextResponse.json({ ok: true, record }, { status: 201 });
+    const proof =
+      proofResult.status === 'fulfilled' ? proofResult.value : null;
+
+    return NextResponse.json(
+      { ok: true, record, proof: proof ?? undefined },
+      { status: 201 },
+    );
   } catch {
     return NextResponse.json(
       { ok: false, error: 'invalid_payload' },

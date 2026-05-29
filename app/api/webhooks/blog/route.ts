@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasWebhookAccess } from '../../../../lib/webhookAuth';
+import { createBlogProof } from '../../../../lib/proofPublish';
 
 const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
 
@@ -41,8 +42,21 @@ export async function POST(req: NextRequest) {
       source: body.source ?? 'alreadyherellc.com',
     };
 
-    try {
-      const res = await fetch(`${RUNTIME}/execute`, {
+    // ── ProofPublish: SHA-256 manifest + receipt (fire-and-forget) ──────────
+    // Run proof creation and runtime cross-post concurrently.
+    // Neither failure blocks the 201 response — the webhook ack is priority.
+    const proofContent = body.content ?? body.excerpt ?? body.title;
+    const [proofResult] = await Promise.allSettled([
+      createBlogProof(proofContent, {
+        title: body.title,
+        slug: body.slug,
+        tags: [body.category ?? 'field-service'],
+        category: body.category,
+        url: body.url,
+        clientId: 'alreadyherellc',
+      }),
+      // Runtime cross-post (non-blocking)
+      fetch(`${RUNTIME}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,13 +73,16 @@ export async function POST(req: NextRequest) {
           actor: 'webhook-blog',
         }),
         signal: AbortSignal.timeout(15000),
-      });
-      await res.body?.cancel();
-    } catch {
-      // Runtime may be offline; record is still returned
-    }
+      }).then((r) => r.body?.cancel()),
+    ]);
 
-    return NextResponse.json({ ok: true, record }, { status: 201 });
+    const proof =
+      proofResult.status === 'fulfilled' ? proofResult.value : null;
+
+    return NextResponse.json(
+      { ok: true, record, proof: proof ?? undefined },
+      { status: 201 },
+    );
   } catch {
     return NextResponse.json(
       { ok: false, error: 'invalid_payload' },
