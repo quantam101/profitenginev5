@@ -28,10 +28,8 @@ async def db():
 
 @pytest.fixture
 def distiller(db):
-    # Tests mock _call → no real LLM, no real key needed. Use a placeholder
-    # from env or fall back to a clearly-test-only marker the linter accepts.
-    api_key = os.environ.get("TEST_DISTILLER_KEY", "")
-    return Distiller(db, api_key=api_key)
+    # Distiller reads providers/models from env vars; no api_key constructor arg.
+    return Distiller(db)
 
 
 # ── pure helpers ──────────────────────────────────────────────
