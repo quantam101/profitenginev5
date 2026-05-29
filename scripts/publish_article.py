@@ -101,13 +101,16 @@ GEMINI_KEY = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
 GEMINI_MODEL = os.getenv("GMAOS_GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
-# Groq models in priority order — fall through if one hits a rate limit
-GROQ_MODELS = [
-    os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile"),
-    "llama-3.1-8b-instant",          # faster, lower quota usage
+# Groq models in priority order — fall through if one hits a rate limit.
+# llama-3.1-8b-instant is tried first: higher daily token allowance on free tier.
+# llama-3.3-70b is second: better quality but tighter daily token quota.
+_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODELS: List[str] = list(dict.fromkeys([
+    "llama-3.1-8b-instant",          # high quota, fast, good JSON fidelity
+    _GROQ_DEFAULT,                    # env-configured (default: 70b versatile)
     "gemma2-9b-it",                   # alternative free model
-    "mixtral-8x7b-32768",             # mixtral fallback
-]
+    "llama3-8b-8192",                 # legacy 8b name alias
+]))
 
 
 import time as _time  # noqa: E402
@@ -384,11 +387,13 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
+    # follow_redirects=True handles 301/302 at the GraphQL endpoint
     r = httpx.post(
-        "https://gql.hashnode.com/",
+        "https://gql.hashnode.com",  # no trailing slash avoids a 301 redirect
         headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
         json={"query": query, "variables": {"input": payload}},
         timeout=30,
+        follow_redirects=True,
     )
     r.raise_for_status()
     data = r.json()
