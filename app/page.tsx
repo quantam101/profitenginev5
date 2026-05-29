@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import './launch.css';
 
 export const metadata: Metadata = {
@@ -37,10 +38,10 @@ export default function LaunchPage() {
       <nav className="l-nav">
         <a href="#top" className="l-logo">PROFIT<span className="acid">ENGINE</span> <span style={{color:'var(--faint)',fontSize:12}}>v5</span></a>
         <div className="links">
-          <a href="#agents">// agents</a>
-          <a href="/command-center">// dashboard</a>
-          <a href="#pricing">// pricing</a>
-          <a href="#waitlist">// beta</a>
+          <a href="#agents">{'// agents'}</a>
+          <Link href="/command-center">{'// dashboard'}</Link>
+          <a href="#pricing">{'// pricing'}</a>
+          <a href="#waitlist">{'// beta'}</a>
         </div>
         <a href="#waitlist" className="l-cta">Get early access</a>
       </nav>
@@ -53,7 +54,7 @@ export default function LaunchPage() {
               <h1>Ship an<br /><span className="acid">autonomous</span><br />content business.</h1>
               <p>ProfitEngine v5 runs a 24/7 mesh of six AI agents — Scout, Content, Video, Social, Revenue and Guard — that find niches, produce assets, distribute, monetize and stay compliant. You approve the moves. The engine ships them.</p>
               <div className="cta-row">
-                <a href="/command-center" className="l-cta">Open command center →</a>
+                <Link href="/command-center" className="l-cta">Open command center →</Link>
                 <a href="#agents" className="cta-secondary">Meet the agents</a>
               </div>
             </div>
@@ -76,7 +77,7 @@ export default function LaunchPage() {
 
       <section id="agents" className="section">
         <div className="shell">
-          <div className="eyebrow">// the mesh</div>
+          <div className="eyebrow">{'// the mesh'}</div>
           <h2>Six specialists.<br /><span className="acid">One company.</span></h2>
           <p style={{color:'var(--muted)',maxWidth:560,marginTop:16}}>Each agent owns one job and shares state through the cycle bus. The result is a small staff of expert collaborators, not a single overworked LLM prompt.</p>
           <div className="agents-grid">
@@ -101,7 +102,7 @@ export default function LaunchPage() {
 
       <section id="pricing" className="section">
         <div className="shell">
-          <div className="eyebrow">// pricing</div>
+          <div className="eyebrow">{'// pricing'}</div>
           <h2>Run it free.<br />Pay when it earns.</h2>
           <div className="pricing-grid">
             {TIERS.map(t => (
@@ -122,9 +123,9 @@ export default function LaunchPage() {
       <section id="waitlist" className="section">
         <div className="shell">
           <div className="waitlist" data-testid="waitlist">
-            <div className="eyebrow">// closed beta</div>
+            <div className="eyebrow">{'// closed beta'}</div>
             <h2 style={{marginTop:12}}>Run the v5 stack.<br /><span className="acid">Ship a business.</span></h2>
-            <p style={{color:'var(--muted)',maxWidth:540,marginTop:14}}>We're onboarding operators one cohort at a time. Email us the use case you want the engine to run — invites go out weekly.</p>
+            <p style={{color:'var(--muted)',maxWidth:540,marginTop:14}}>We&apos;re onboarding operators one cohort at a time. Email us the use case you want the engine to run — invites go out weekly.</p>
             <a
               href="mailto:beta@profitengine.dev?subject=ProfitEngine%20v5%20beta&body=Use%20case%3A%20%0ARole%3A%20%0ARepo%20(optional)%3A%20"
               className="l-cta"
@@ -145,15 +146,15 @@ export default function LaunchPage() {
               <p style={{maxWidth:360,marginTop:12,lineHeight:1.6}}>Six-agent autonomous content engine, open core. Built by the team behind already-here-llc-dashboard. The same cockpit, now self-upgrading.</p>
             </div>
             <div>
-              <h4>// product</h4>
+              <h4>{'// product'}</h4>
               <ul>
                 <li><a href="#agents">Agents</a></li>
-                <li><a href="/command-center">Dashboard</a></li>
+                <li><Link href="/command-center">Dashboard</Link></li>
                 <li><a href="#pricing">Pricing</a></li>
               </ul>
             </div>
             <div>
-              <h4>// resources</h4>
+              <h4>{'// resources'}</h4>
               <ul>
                 <li><a href="https://github.com/quantam101/profitenginev5" target="_blank" rel="noreferrer">GitHub</a></li>
                 <li><a href="https://github.com/quantam101/already-here-dashboard" target="_blank" rel="noreferrer">already-here</a></li>
