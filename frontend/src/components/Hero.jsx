@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, GitMerge, Copy, Check } from "lucide-react";
+import { ArrowRight, Activity, Copy, Check } from "lucide-react";
 
-const TYPED = "$ npx profitengine repo ./base ./target -o ./merged";
+const TYPED = "$ pe v5 cycle run --autonomous";
 
 export default function Hero() {
   const [typed, setTyped] = useState("");
@@ -14,7 +15,7 @@ export default function Hero() {
       i++;
       setTyped(TYPED.slice(0, i));
       if (i >= TYPED.length) clearInterval(interval);
-    }, 40);
+    }, 55);
     return () => clearInterval(interval);
   }, []);
 
@@ -37,20 +38,20 @@ export default function Hero() {
         >
           <div className="mb-6 inline-flex items-center gap-2 border border-line bg-bg-surface px-3 py-1 text-[11px] text-ink-muted">
             <span className="h-1.5 w-1.5 animate-pulse bg-acid" />
-            <span>v0.1 PUBLIC ALPHA · AST-NATIVE</span>
+            <span>v5 · CLOSED BETA · 6-AGENT MESH</span>
           </div>
           <h1
             className="font-display text-5xl leading-[0.95] tracking-tighter md:text-7xl"
             data-testid="hero-title"
           >
-            Merge the<br />
-            <span className="text-acid">best</span> of every<br />
-            codebase.
+            Ship an<br />
+            <span className="text-acid">autonomous</span><br />
+            content business.
           </h1>
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-ink-muted md:text-base">
-            ProfitEngine reads two repos as Abstract Syntax Trees, scores every function on
-            robustness, typing and complexity, then auto-upgrades the weaker one — function
-            by function. Python &amp; JS/TS. No prompts, no LLM hallucinations.
+            ProfitEngine v5 runs a 24/7 mesh of six AI agents — Scout, Content, Video, Social,
+            Revenue and Guard — that find niches, produce assets, distribute, monetize and stay
+            compliant. You approve the moves. The engine ships them.
           </p>
 
           <div
@@ -73,19 +74,19 @@ export default function Hero() {
           </div>
 
           <div className="mt-8 flex flex-wrap gap-4">
-            <a
-              href="#playground"
+            <Link
+              to="/dashboard"
               className="inline-flex items-center gap-2 border border-acid bg-acid px-5 py-3 text-xs font-bold uppercase tracking-widest text-black shadow-glow transition-colors hover:bg-acid-soft"
-              data-testid="hero-try-playground"
+              data-testid="hero-open-dashboard"
             >
-              Try the playground <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-            </a>
+              Open command center <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+            </Link>
             <a
-              href="#demo"
+              href="#agents"
               className="inline-flex items-center gap-2 border border-line bg-transparent px-5 py-3 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:border-acid hover:text-acid"
-              data-testid="hero-see-demo"
+              data-testid="hero-meet-agents"
             >
-              See real merge report <GitMerge className="h-4 w-4" strokeWidth={2} />
+              Meet the agents <Activity className="h-4 w-4" strokeWidth={2} />
             </a>
           </div>
         </motion.div>
@@ -96,41 +97,58 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="md:col-span-5"
         >
-          <CodeRain />
+          <CyclePanel />
         </motion.div>
       </div>
     </section>
   );
 }
 
-function CodeRain() {
-  const before = `def parse(data):
-    return data`;
-  const after = `import json
-
-def parse(data: str) -> dict:
-    """Parse a JSON blob safely."""
-    try:
-        return json.loads(data)
-    except Exception:
-        return {}`;
-
+function CyclePanel() {
+  const steps = [
+    { name: "scout", state: "done", ms: "412ms" },
+    { name: "content", state: "done", ms: "9.8s" },
+    { name: "video", state: "running", ms: "—" },
+    { name: "social", state: "queued", ms: "—" },
+    { name: "revenue", state: "queued", ms: "—" },
+    { name: "guard", state: "queued", ms: "—" },
+  ];
   return (
     <div className="relative">
       <div className="absolute -inset-4 bg-acid/5 blur-2xl" />
       <div className="relative border border-line bg-bg-surface">
         <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[10px] uppercase tracking-widest text-ink-muted">
-          <span>service.py</span>
+          <span>cycle.run · #4017</span>
           <span className="flex items-center gap-2 text-acid">
-            <span className="h-1.5 w-1.5 animate-pulse bg-acid" /> merging
+            <span className="h-1.5 w-1.5 animate-pulse bg-acid" /> live
           </span>
         </div>
-        <div className="grid grid-cols-2 divide-x divide-line text-[12px] leading-6">
-          <pre className="overflow-hidden p-4 text-ink-muted line-through decoration-red-500/60">{before}</pre>
-          <pre className="overflow-hidden p-4 text-acid">{after}</pre>
-        </div>
+        <ul className="divide-y divide-line">
+          {steps.map((s, i) => (
+            <li key={s.name} className="flex items-center justify-between px-4 py-3 text-xs">
+              <div className="flex items-center gap-3">
+                <span className="text-ink-faint">0{i + 1}</span>
+                <span className="font-mono lowercase">{s.name}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-ink-faint">{s.ms}</span>
+                <span
+                  className={
+                    s.state === "done"
+                      ? "text-acid"
+                      : s.state === "running"
+                      ? "animate-pulse text-acid-soft"
+                      : "text-ink-faint"
+                  }
+                >
+                  ● {s.state}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
         <div className="border-t border-line bg-black/40 px-4 py-2 text-[11px] text-ink-muted">
-          <span className="text-acid">↑ score 0.0 → 4.5</span> · +try/except · +docstring · +types
+          <span className="text-acid">guard:</span> waiting on human approval for outbound asset
         </div>
       </div>
     </div>

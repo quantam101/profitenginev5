@@ -1,14 +1,13 @@
 import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import Nav from "./components/Nav";
-import Hero from "./components/Hero";
-import Stats from "./components/Stats";
-import Features from "./components/Features";
-import Playground from "./components/Playground";
-import DemoReport from "./components/DemoReport";
-import Pricing from "./components/Pricing";
-import Waitlist from "./components/Waitlist";
-import Footer from "./components/Footer";
+import LandingPage from "./pages/LandingPage";
+import DashboardLayout from "./pages/dashboard/DashboardLayout";
+import Overview from "./pages/dashboard/Overview";
+import AgentsPage from "./pages/dashboard/AgentsPage";
+import ApprovalsPage from "./pages/dashboard/ApprovalsPage";
+import RevenuePage from "./pages/dashboard/RevenuePage";
+import ContentPage from "./pages/dashboard/ContentPage";
 
 export default function App() {
   return (
@@ -26,17 +25,18 @@ export default function App() {
           },
         }}
       />
-      <Nav />
-      <main className="relative z-10">
-        <Hero />
-        <Stats />
-        <Features />
-        <Playground />
-        <DemoReport />
-        <Pricing />
-        <Waitlist />
-      </main>
-      <Footer />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Overview />} />
+            <Route path="agents" element={<AgentsPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="revenue" element={<RevenuePage />} />
+            <Route path="content" element={<ContentPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }

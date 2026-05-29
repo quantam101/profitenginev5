@@ -3,47 +3,47 @@ import { Check, Zap } from "lucide-react";
 
 const TIERS = [
   {
-    name: "Hobby",
+    name: "Operator",
     price: "$0",
-    cadence: "open source",
+    cadence: "open core",
     features: [
-      "Unlimited local CLI runs",
-      "Python + JS/TS merge",
-      "AST quality scoring",
-      "GitHub Action template",
+      "All six agents, local-only",
+      "Single project / workspace",
+      "Community discord",
+      "Self-host on your VPS",
     ],
-    cta: "pip install profitengine",
-    href: "https://github.com/quantam101",
+    cta: "Clone the repo",
+    href: "https://github.com/quantam101/profitenginev5",
     accent: false,
   },
   {
-    name: "Pro",
-    price: "$29",
-    cadence: "/ dev / month",
+    name: "Studio",
+    price: "$149",
+    cadence: "/ workspace / mo",
     features: [
-      "Everything in Hobby",
-      "Hosted playground & API",
-      "Pull-request bot for repos",
-      "Custom scoring weights",
-      "Priority discord support",
+      "Hosted command center",
+      "Approvals via mobile push",
+      "Up to 5 connected channels",
+      "Revenue routing presets",
+      "Email + Discord priority",
     ],
-    cta: "Join waitlist",
+    cta: "Get early access",
     href: "#waitlist",
     accent: true,
     tag: "Most popular",
   },
   {
-    name: "Enterprise",
+    name: "Holding",
     price: "Custom",
     cadence: "annual",
     features: [
-      "Self-hosted on your VPC",
+      "Multi-workspace org",
       "SSO + audit log",
-      "Bulk repo migrations",
-      "Compliance review pipeline",
+      "Custom Guard policy DSL",
+      "White-label brand mode",
       "Dedicated engineer slot",
     ],
-    cta: "Talk to founder",
+    cta: "Talk to the team",
     href: "#waitlist",
     accent: false,
   },
@@ -57,13 +57,13 @@ export default function Pricing() {
           <div className="md:col-span-8">
             <div className="mb-4 text-[11px] uppercase tracking-widest text-acid">// pricing</div>
             <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
-              Free to run.<br />
-              Pay when it ships.
+              Run it free.<br />
+              Pay when it earns.
             </h2>
           </div>
           <p className="max-w-md text-sm text-ink-muted md:col-span-4">
-            The CLI is open source forever. Paid tiers add hosted infra, PR automation and
-            enterprise controls.
+            The full engine is open core — clone it, run it, hack it. Paid tiers add hosted
+            cockpit, mobile approvals and org controls.
           </p>
         </div>
 
@@ -96,6 +96,8 @@ export default function Pricing() {
               </ul>
               <a
                 href={tier.href}
+                target={tier.href.startsWith("http") ? "_blank" : undefined}
+                rel={tier.href.startsWith("http") ? "noreferrer" : undefined}
                 className={`mt-8 inline-flex items-center justify-center border px-5 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
                   tier.accent
                     ? "border-acid bg-acid text-black shadow-glowSm hover:bg-acid-soft"

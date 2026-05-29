@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 2 — end-to-end test of ProfitEngine v5 (post-pivot). Backend: 15 API tests + 15 CLI tests = 30/30 PASS via REACT_APP_BACKEND_URL. All new dashboard endpoints (/api/agents, /api/approvals, /api/content/recent, /api/revenue/series, /api/cycle/status) verified, plus /api/health (service=profitengine-v5), /api/stats (new shape: revenue_30d/posts_published/agents_online/devs_joined), /api/waitlist (idempotent + 422 on bad email), /api/merge (python+js with upgrades, 400 on bad syntax), /api/score, /api/demo. Frontend: Landing renders all sections, FAQ toggles, engine merge button produces engine-result, JS lang switch fires, waitlist signup returns position. Dashboard (/dashboard) fully integrated — sidebar nav works for all 5 links, KPIs populated from API, 6 agents grid, 4 approvals, revenue 7d range click works, content 5 rows render, approve-button toggles state (toast confirms 'Approved apr_001'). Cycle-pill renders state/step/approval. Hero CTA navigates to /dashboard. NO critical bugs. Several MINOR data-testid naming mismatches vs. review_request spec (testids exist but under different names — components functional).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "testid_mismatches_vs_spec": [
+      {"component": "AgentsShowcase.jsx", "expected_testid": "agents-showcase", "actual": "section testid absent; only per-card agent-card-* (x6) exist", "priority": "LOW"},
+      {"component": "DashboardPreview.jsx", "expected_testid": "dashboard-preview", "actual": "section testid absent", "priority": "LOW"},
+      {"component": "Footer.jsx", "expected_testid": "footer", "actual": "uses site-footer", "priority": "LOW"},
+      {"component": "Pricing.jsx", "expected_testid": "pricing-tier-operator|studio|holding", "actual": "per-tier testid missing; only pricing-section exists", "priority": "LOW"},
+      {"component": "Roadmap.jsx", "expected_testid": "roadmap-quarter-{i}", "actual": "uses roadmap-{state}-{i} (e.g., roadmap-done-0); only 4 items found, not 5", "priority": "LOW"},
+      {"component": "EngineSection.jsx", "expected_testid": "engine-upgrades / engine-merged-output / engine-base-editor", "actual": "engine-result wraps all output; granular testids missing", "priority": "LOW"},
+      {"component": "ApprovalsPage.jsx", "expected_testid": "approval-status-{id} badge", "actual": "state updates correctly (sonner toast 'Approved apr_001') but no per-row status badge testid for assertion", "priority": "LOW"}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_backend_api.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/code_merger/tests/"
+  ],
+  "action_items": [
+    "(Optional, LOW) Align landing data-testid attributes with the spec in the review_request: add agents-showcase, dashboard-preview, footer (rename from site-footer), pricing-tier-{operator,studio,holding}, roadmap-quarter-{i}. Functionality is correct — this is naming only.",
+    "(Optional, LOW) Add granular testids to EngineSection (engine-upgrades, engine-merged-output, engine-base-editor) to enable finer UI assertions.",
+    "(Optional, LOW) Add per-row data-testid=approval-status-{id} that flips to 'approved' after click so tests can assert the swap without relying on the toast."
+  ],
+  "critical_code_review_comments": [
+    "/api/stats devs_joined adds +312 baseline to db count — correct per product spec but worth noting for analytics.",
+    "Revenue series uses random.Random(42) seed so output is deterministic across calls — good for testing.",
+    "All endpoints use Pydantic v2 schemas with EmailStr + Literal enums; HTTP statuses are correct (400 syntax/range, 422 bad input).",
+    "Overview.jsx uses .catch(()=>{}) silent error handler — fine for demo, but in production these should surface a toast on failure.",
+    "Mongo _id is never returned (Pydantic response_model gates it) — safe."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_backend_api.py (rewritten for new v5 endpoint surface)"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 API tests + 15/15 CLI pytest = 30/30)",
+    "frontend": "100% functional (all flows work end-to-end); ~85% testid spec coverage"
+  },
+  "test_credentials": "None — endpoints are open.",
+  "seed_data_creation": "Test created waitlist rows prefixed TEST_ (UUID-suffixed) and a handful of merge_events rows. Safe to drop.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_backend_api.py (run: cd /app && python -m pytest backend/tests/test_backend_api.py code_merger/tests/ -v). REACT_APP_BACKEND_URL is read from /app/frontend/.env as fallback. /api/stats fields are now revenue_30d/posts_published/agents_online/devs_joined (no longer files_merged_total/repos_analyzed — those were iter-1 schema). Dashboard data loads ~1s after route mount — always wait_for_timeout(1500) before asserting KPIs. The previously-seen blank dashboard screenshot was a timing artefact, not a bug.",
+  "rca of the issue": "No bugs found. Initial dashboard screenshot showed zero values because the screenshot was taken before useEffect promises resolved; subsequent test with a 2.5s wait confirmed full integration. The data-testid mismatches are spec-vs-implementation naming differences and do not affect product behaviour."
+}

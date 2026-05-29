@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Github, Terminal } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Github, Terminal, ArrowUpRight } from "lucide-react";
 
 const links = [
-  { id: "features", label: "// features" },
-  { id: "playground", label: "// playground" },
-  { id: "demo", label: "// demo" },
+  { id: "agents", label: "// agents" },
+  { id: "preview", label: "// dashboard" },
+  { id: "engine", label: "// engine" },
   { id: "pricing", label: "// pricing" },
+  { id: "roadmap", label: "// roadmap" },
 ];
 
 export default function Nav() {
@@ -26,7 +28,7 @@ export default function Nav() {
         <a href="#top" className="flex items-center gap-2 font-display text-lg tracking-tight">
           <Terminal className="h-5 w-5 text-acid" strokeWidth={1.5} />
           <span>PROFIT<span className="text-acid">ENGINE</span></span>
-          <span className="ml-1 text-xs text-ink-faint">v0.1</span>
+          <span className="ml-1 text-xs text-ink-faint">v5</span>
         </a>
         <nav className="hidden gap-6 text-xs text-ink-muted md:flex">
           {links.map((l) => (
@@ -41,8 +43,15 @@ export default function Nav() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard"
+            className="hidden items-center gap-1 text-xs text-ink-muted transition-colors hover:text-acid md:inline-flex"
+            data-testid="nav-launch-app"
+          >
+            launch app <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Link>
           <a
-            href="https://github.com/quantam101"
+            href="https://github.com/quantam101/profitenginev5"
             target="_blank"
             rel="noreferrer"
             className="text-ink-muted transition-colors hover:text-acid"
@@ -55,7 +64,7 @@ export default function Nav() {
             className="border border-acid bg-acid px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-black shadow-glowSm transition-colors hover:bg-acid-soft"
             data-testid="nav-cta-waitlist"
           >
-            Join waitlist
+            Get early access
           </a>
         </div>
       </div>

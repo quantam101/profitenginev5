@@ -7,7 +7,7 @@ import { joinWaitlist } from "../lib/api";
 export default function Waitlist() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
-  const [repo, setRepo] = useState("");
+  const [useCase, setUseCase] = useState("");
   const [position, setPosition] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,9 +16,13 @@ export default function Waitlist() {
     if (!email.trim()) return;
     setLoading(true);
     try {
-      const data = await joinWaitlist({ email: email.trim(), role: role || null, repo_url: repo || null });
+      const data = await joinWaitlist({
+        email: email.trim(),
+        role: role || null,
+        use_case: useCase || null,
+      });
       setPosition(data.position);
-      toast.success(`You're #${data.position} on the launchlist.`);
+      toast.success(`You're #${data.position} on the v5 launchlist.`);
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Failed to join — check your email.");
     } finally {
@@ -38,12 +42,12 @@ export default function Waitlist() {
         >
           <div className="mb-3 text-[11px] uppercase tracking-widest text-acid">// closed beta</div>
           <h2 className="font-display text-4xl leading-tight tracking-tighter md:text-5xl">
-            Get early access.<br />
-            <span className="text-acid">Ship faster.</span>
+            Run the v5 stack.<br />
+            <span className="text-acid">Ship a business.</span>
           </h2>
           <p className="mt-4 max-w-xl text-sm text-ink-muted">
-            We're inviting senior engineers one cohort at a time. Drop your email + the repo you'd
-            most like to merge — we'll route invites in order.
+            We're onboarding operators one cohort at a time. Drop your email + the use case you want
+            the engine to run — we'll route invites in order.
           </p>
 
           {position !== null ? (
@@ -55,16 +59,14 @@ export default function Waitlist() {
               <div>
                 <div className="font-display text-2xl text-acid">#{position}</div>
                 <div className="text-xs text-ink-muted">
-                  You're on the launchlist. Watch {email} for your invite.
+                  You're on the v5 launchlist. Watch {email} for your invite + onboarding doc.
                 </div>
               </div>
             </div>
           ) : (
             <form onSubmit={submit} className="mt-10 grid gap-5 md:grid-cols-2" data-testid="waitlist-form">
               <div className="md:col-span-2">
-                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">
-                  &gt; email
-                </label>
+                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">&gt; email</label>
                 <div className="flex items-center border-b border-line focus-within:border-acid">
                   <Mail className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
                   <input
@@ -79,27 +81,23 @@ export default function Waitlist() {
                 </div>
               </div>
               <div>
-                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">
-                  &gt; role (optional)
-                </label>
+                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">&gt; role (optional)</label>
                 <input
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="staff engineer, indie hacker..."
+                  placeholder="indie operator, agency, fund..."
                   className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-acid"
                   data-testid="waitlist-role-input"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">
-                  &gt; repo url (optional)
-                </label>
+                <label className="mb-2 block text-[11px] uppercase tracking-widest text-ink-muted">&gt; use case (optional)</label>
                 <input
-                  value={repo}
-                  onChange={(e) => setRepo(e.target.value)}
-                  placeholder="github.com/you/your-repo"
+                  value={useCase}
+                  onChange={(e) => setUseCase(e.target.value)}
+                  placeholder="newsletter, affiliate stack, micro-SaaS..."
                   className="w-full border-b border-line bg-transparent px-3 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-acid"
-                  data-testid="waitlist-repo-input"
+                  data-testid="waitlist-usecase-input"
                 />
               </div>
               <div className="md:col-span-2">
