@@ -195,16 +195,49 @@ def generate_article(topic: str) -> Dict[str, Any]:
             print(f"[AI] Gemini failed ({e})")
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
-    # Strip markdown code fences if model wrapped in them
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
-    # Try strict parse first; fall back to lenient (handles stray control chars)
-    try:
-        article = json.loads(raw)
-    except json.JSONDecodeError:
-        article = json.loads(raw, strict=False)
+    article = _parse_article_json(raw)
     print(f"[OK] Article generated: {article['title']}")
     return article
+
+
+def _parse_article_json(raw: str) -> Dict[str, Any]:
+    """Parse LLM JSON output with multiple fallback strategies."""
+    # 1. Strip markdown code fences
+    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    # 2. Remove invalid control characters (keep \n \r \t)
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", cleaned)
+    # 3. Try strict parse
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+    # 4. Lenient parse (accepts \n in strings)
+    try:
+        return json.loads(cleaned, strict=False)
+    except json.JSONDecodeError:
+        pass
+    # 5. Extract the outermost JSON object via regex (handles trailing junk)
+    m = re.search(r"\{[\s\S]*\}", cleaned)
+    if m:
+        candidate = m.group(0)
+        try:
+            return json.loads(candidate, strict=False)
+        except json.JSONDecodeError:
+            pass
+    # 6. Last resort: synthesize a minimal article from the raw text
+    print("[WARN] JSON parse failed — synthesizing minimal article from raw text")
+    title_m = re.search(r'"title"\s*:\s*"([^"]+)"', raw)
+    slug_m  = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
+    title   = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
+    slug    = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
+    return {
+        "title": title,
+        "slug": slug,
+        "meta_description": f"Discover {title}",
+        "tags": ["ai", "passiveincome", "automation"],
+        "body": raw[:8000],  # publish the raw output as-is if parsing fully fails
+    }
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
