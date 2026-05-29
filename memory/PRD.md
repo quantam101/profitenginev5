@@ -65,34 +65,52 @@ Live verified: **82.58% savings vs all-Claude baseline** over 10 runs.
 ## What's implemented
 - [x] AST merger CLI · 15/15 pytest pass
 - [x] AHD ↔ PEV5 merge applied · 32 new defs pulled in
-- [x] **41 backend endpoints** (33 + 8 new launch/Stripe/referral)
-- [x] **11-agent fleet** preserved exactly
-- [x] 19 dashboard pages, sidebar renamed to **AHD taxonomy** (Operations · Revenue · System)
+- [x] **44 backend endpoints** (33 + 8 launch + 3 enterprise)
+- [x] **20-agent enterprise fleet** — 11 original ops + 9 enterprise MVP (Motivation Engine, Revenue Intelligence, Offer Engineering, Sales Execution, Cash Conversion, Learning Agent, Analytics Agent, Codex Optimization, Audit Agent); Sovereign renamed to **Prime Orchestrator**, Lifelong agent renamed to **Failure Analysis Agent**
+- [x] **Autonomy levels L0–L5** — default **L3 Bounded Autonomy** · persisted to Mongo · GET/PUT endpoints · status-strip pill
+- [x] **Lifelong Catch & Correct panel** at `/dashboard/lifelong` with the exact 8-field issue schema
+- [x] **Enterprise manifest** at `/api/enterprise/manifest` (system, objectives, revenue equation, loop)
+- [x] **Safer enterprise phrasing** — Hero/landing/Pricing avoid "true ASI / military grade / 100% autonomous / guaranteed revenue", use "controlled autonomy / zero-trust hardened / revenue-capacity optimization"
+- [x] 20 dashboard pages, AHD-taxonomy sidebar (Operations · Revenue · System)
 - [x] **Cash AI page** (highest-confidence open approval) + live WS pill
 - [x] **Persistence + WebSocket** — agent runs, approval decisions, cycle events to Mongo, broadcast via `WS /api/ws/cycle`
-- [x] **Distillation engine** — 82.58% live LLM cost savings (Gemini Flash → Claude Sonnet 4.6 cascade)
-- [x] **Command Center status strip** — All Systems Operational · $0/mo Fixed Cost · $25K Unlock % · Re-open Quickstart
-- [x] **Quickstart 5-step walkthrough modal** — auto-opens for new operators, re-openable anytime
-- [x] **Stripe Checkout (test mode)** — Studio $149/mo · Studio Annual $1490 · Holding $2500 reservation
-  - Server-defined packages (frontend never picks price), `/api/checkout/session`, polling `/api/checkout/status/{id}`, webhook `/api/webhook/stripe`, idempotent subscription grants
-- [x] **/checkout/success page** with 8-attempt polling and Mongo `payment_transactions` + `subscriptions` persistence
-- [x] **Viral launch kit**:
-  - **Social Proof Rail** — live counters (operators, runs, cycles, paid)
-  - **Cohort Bar** — sticky FOMO "94 of 100 seats remaining · closes Jun 12"
-  - **Share Kit** — X / LinkedIn / Copy link buttons on Hero
-  - **Referral system** — `?ref=CODE` capture + localStorage + forwarded into checkout metadata for lifetime attribution
-  - **OG / Twitter meta tags** for polished share previews
-  - **Live Proof of Work showcase** on landing — 99.9% uptime, 81% distillation savings, $9,623 30d revenue, all pulled from real APIs
-- [x] **5-stage CI/CD pipeline** + k6 smoke
-- [x] **Server.py decomposed** — fixtures.py + launch_router.py + distillation.py
-- [x] **77/77 tests pass** (iteration_6)
+- [x] **Distillation engine** — 82.58% live LLM cost savings
+- [x] **Command Center status strip** — Systems Operational · $0/mo · $25k unlock · Autonomy L3 · Re-open Quickstart
+- [x] **Quickstart 5-step modal** — auto-opens first visit, re-openable
+- [x] **Stripe Checkout (test mode)** — Studio $149/mo · Annual $1490 · Holding $2500 + idempotent subscriptions + webhook
+- [x] **Viral launch kit** — Share Kit / Social Proof Rail / Cohort Bar / referral system / OG meta tags
+- [x] **Deployment gate** — `yarn verify` (lint + env:check + test + build) blocks deploy if missing vars or server secrets leak to client bundle
+- [x] **6-stage CI/CD pipeline** + k6 smoke + frontend verify
+- [x] **85/85 tests pass** (iteration_7)
+
+## Enterprise doctrine
+- North-star target: **$1M/day revenue capacity** (capacity, not guarantee)
+- **Daily Revenue = Qualified Demand × Conversion Rate × AOV × Purchase Frequency × Fulfillment Capacity × Profit Margin** — every agent must improve at least one variable
+- Failure = diagnose → learn → correct → rebuild → retest → distill → execute with higher efficiency
+- Approval required for: spending money, bulk outreach, contracts, payment changes, production deploys, sensitive data access, security changes, private-data training
 
 ## Backlog (P1)
-- Push `/app` to `quantam101/profitenginev5` via "Save to Github"
-- Wire `POST /api/waitlist` from the Next.js launch (currently `mailto:` fallback)
-- Split server.py into `backend/routers/{cash_ai,distillation,merger,ops}.py` (server.py is at ~617 lines)
-- Add Stripe checkout for Studio tier (test key already in pod env)
-- Connector registry UI
+- **Save to Github** → push `/app` to `quantam101/profitenginev5`
+- **Stripe live mode** + production webhook endpoint registration
+- **Real agent runtime** for the 9 enterprise MVP agents (currently fixture-shaped)
+- **Operator referral dashboard** `/dashboard/referrals` with click + commission ledger
+- **OG share image** at `/app/frontend/public/og.png`
+- **Stripe Customer Portal** for self-serve subscription management
+- **Email magnet** (free playbook PDF) for top-of-funnel capture
+
+## Backlog (P2 — enterprise blueprint stretch)
+- **LangGraph or custom parallel orchestrator** runtime (replace fixture agent simulation)
+- **Postgres + pgvector** migration (currently MongoDB)
+- **Clerk / Auth0** auth swap with RBAC (currently no auth)
+- **Sentry + OpenTelemetry** wiring for production observability
+- **Connector registry UI** (YAML already exists at `/app/connectors/registry.yaml`)
+- **Full 18-agent dashboards** — one dedicated UI per agent
+- **Mobile PWA** + React Native shell
+- **A11y suite** (axe + Playwright a11y), Lighthouse perf checks in CI
+- **k6 thresholds enforced** at p95<500ms, error<1%
+- **Backup/restore runbook** + Mongo daily snapshots
+- **API contract tests** via Zod schemas shared with frontend
+- **GitHub Action**: weekly `code_merger repo` PR with auto comment
 
 ## Backlog (P2)
 - GitHub Action that runs `code_merger repo` on every PR + posts diff comment
