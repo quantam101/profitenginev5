@@ -203,6 +203,23 @@ git pull --ff-only || {
   git reset --hard origin/main
 }
 
+# ── open OS-level firewall (OCI Oracle Linux ships with firewalld blocking everything) ──
+log "Opening ports 80 and 443 in OS firewall …"
+if command -v firewall-cmd &>/dev/null; then
+  sudo firewall-cmd --permanent --add-service=http  --add-service=https 2>/dev/null || true
+  sudo firewall-cmd --reload 2>/dev/null || true
+  log "firewalld: http + https allowed"
+elif command -v ufw &>/dev/null; then
+  sudo ufw allow http  2>/dev/null || true
+  sudo ufw allow https 2>/dev/null || true
+  log "ufw: http + https allowed"
+else
+  # Raw iptables fallback
+  sudo iptables -I INPUT -p tcp --dport 80  -j ACCEPT 2>/dev/null || true
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+  log "iptables: ports 80/443 inserted"
+fi
+
 # ── free build cache before rebuilding (prevents disk-full failures) ──────
 log "Pruning Docker build cache …"
 docker buildx prune -af --filter type=exec.cachemount 2>/dev/null || true
@@ -216,7 +233,7 @@ fi
 
 # ── rebuild and restart containers ────────────────────────────────────────
 log "Rebuilding Docker images …"
-docker compose build web runtime
+docker compose build web runtime backend
 
 log "Restarting services (ollama is opt-in; use --profile local-llm to enable) …"
 docker compose up -d --remove-orphans
@@ -235,6 +252,13 @@ for i in $(seq 1 30); do
   docker compose exec -T runtime python3 -c \
     "import urllib.request,sys; r=urllib.request.urlopen('http://web:3000/api/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
     > /dev/null 2>&1 && { log "Web healthy."; break; } || sleep 2
+done
+
+log "Waiting for FastAPI backend …"
+for i in $(seq 1 30); do
+  docker compose exec -T backend python3 -c \
+    "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8001/api/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
+    > /dev/null 2>&1 && { log "Backend healthy."; break; } || sleep 2
 done
 
 log ""

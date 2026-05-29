@@ -2,6 +2,15 @@
   email {$ACME_EMAIL}
 }
 
+# Bare-IP health probe — CI and monitoring can hit http://129.146.167.73/health
+# without needing a TLS cert or DNS. Caddy handles this on port 80 only.
+:80 {
+  handle /health {
+    respond `{"ok":true,"caddy":"up"}` 200
+  }
+  redir https://{host}{uri} 308
+}
+
 {$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
   encode gzip zstd
   reverse_proxy web:3000
