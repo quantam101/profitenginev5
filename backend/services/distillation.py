@@ -162,6 +162,19 @@ def _try_parse_json(text: str) -> tuple[Any, bool]:
     return text, False
 
 
+@dataclass
+class _RunRecord:
+    """Single distillation-run accounting payload (collapses 9 params)."""
+    tier: "Tier"
+    task: str
+    tokens_in: int
+    tokens_out: int
+    cost: float
+    baseline: float
+    cache_hit: bool
+    latency_ms: int
+
+
 # ── Engine ─────────────────────────────────────────────────────
 class Distiller:
     """Token-efficient LLM router with cache + tiering + JSON parsing."""
@@ -239,11 +252,11 @@ class Distiller:
         if cached:
             latency = int((time.monotonic() - started) * 1000)
             baseline = (tokens_in + cached.get("tokens_out", 0)) / 1000 * _BASELINE_COST_PER_1K
-            await self._record_run(
+            await self._record_run(_RunRecord(
                 tier="cache", task=req.task, tokens_in=tokens_in,
                 tokens_out=cached.get("tokens_out", 0), cost=0.0,
                 baseline=baseline, cache_hit=True, latency_ms=latency,
-            )
+            ))
             return DistillResult(
                 tier="cache",
                 output=cached.get("output"),
@@ -283,11 +296,11 @@ class Distiller:
                 latency = int((time.monotonic() - started) * 1000)
                 await self._cache_put(key, {"output": parsed, "raw": raw,
                                             "tokens_out": tokens_out, "tier": "cheap"})
-                await self._record_run(
+                await self._record_run(_RunRecord(
                     tier="cheap", task=req.task, tokens_in=tokens_in,
                     tokens_out=tokens_out, cost=cost, baseline=baseline,
                     cache_hit=False, latency_ms=latency,
-                )
+                ))
                 return DistillResult(
                     tier="cheap", output=parsed, raw=raw, cache_hit=False,
                     tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost,
@@ -306,11 +319,11 @@ class Distiller:
         if cached:
             latency = int((time.monotonic() - started) * 1000)
             baseline = (tokens_in + cached.get("tokens_out", 0)) / 1000 * _BASELINE_COST_PER_1K
-            await self._record_run(
+            await self._record_run(_RunRecord(
                 tier="cache", task=req.task, tokens_in=tokens_in,
                 tokens_out=cached.get("tokens_out", 0), cost=0.0,
                 baseline=baseline, cache_hit=True, latency_ms=latency,
-            )
+            ))
             return DistillResult(
                 tier="cache", output=cached.get("output"), raw=cached.get("raw", ""),
                 cache_hit=True, tokens_in=tokens_in,
@@ -339,11 +352,11 @@ class Distiller:
         if ok:
             await self._cache_put(exp_key, {"output": parsed, "raw": raw,
                                             "tokens_out": tokens_out, "tier": "expensive"})
-        await self._record_run(
+        await self._record_run(_RunRecord(
             tier="expensive", task=req.task, tokens_in=tokens_in,
             tokens_out=tokens_out, cost=cost, baseline=baseline,
             cache_hit=False, latency_ms=latency,
-        )
+        ))
         return DistillResult(
             tier="expensive", output=parsed, raw=raw, cache_hit=False,
             tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost,
@@ -352,16 +365,14 @@ class Distiller:
         )
 
     # ── Accounting ──
-    async def _record_run(self, *, tier: Tier, task: str, tokens_in: int,
-                          tokens_out: int, cost: float, baseline: float,
-                          cache_hit: bool, latency_ms: int) -> None:
+    async def _record_run(self, rec: _RunRecord) -> None:
         await self.db.distillation_runs.insert_one({
-            "tier": tier, "task": task,
-            "tokens_in": tokens_in, "tokens_out": tokens_out,
-            "cost_usd": round(cost, 6),
-            "baseline_cost_usd": round(baseline, 6),
-            "saved_usd": round(max(0.0, baseline - cost), 6),
-            "cache_hit": cache_hit, "latency_ms": latency_ms,
+            "tier": rec.tier, "task": rec.task,
+            "tokens_in": rec.tokens_in, "tokens_out": rec.tokens_out,
+            "cost_usd": round(rec.cost, 6),
+            "baseline_cost_usd": round(rec.baseline, 6),
+            "saved_usd": round(max(0.0, rec.baseline - rec.cost), 6),
+            "cache_hit": rec.cache_hit, "latency_ms": rec.latency_ms,
             "at": datetime.now(timezone.utc).isoformat(),
         })
 

@@ -10,6 +10,17 @@ import {
 import QuickstartModal, { shouldAutoOpenQuickstart } from "../../components/QuickstartModal";
 import { logger } from "../../lib/logger";
 
+// Module-level chart styling constants — keeps Recharts from receiving fresh
+// object refs on every render (which triggers needless reconciliation passes).
+const CHART_TICK = { fill: "#64748b", fontSize: 10 };
+const CHART_TOOLTIP = {
+  background: "#0f1423",
+  border: "1px solid rgba(34,197,94,0.3)",
+  fontSize: 11,
+  borderRadius: 8,
+};
+const TICK_DATE_FMT = (d) => d.slice(5);
+
 function riskTone(risk) {
   if (risk === "high") return "text-danger";
   if (risk === "medium") return "text-warn";
@@ -174,9 +185,9 @@ export default function Overview() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
-                <YAxis tick={{ fill: "#64748b", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "#0f1423", border: "1px solid rgba(34,197,94,0.3)", fontSize: 11, borderRadius: 8 }} />
+                <XAxis dataKey="date" tick={CHART_TICK} tickFormatter={TICK_DATE_FMT} />
+                <YAxis tick={CHART_TICK} />
+                <Tooltip contentStyle={CHART_TOOLTIP} />
                 <Area type="monotone" dataKey="amount" stroke="#22c55e" fill="url(#rev)" strokeWidth={1.75} />
               </AreaChart>
             </ResponsiveContainer>

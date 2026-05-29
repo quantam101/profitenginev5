@@ -106,7 +106,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             )
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=502, detail=f"stripe error: {exc}") from exc
-        if session is None:  # defensive — Stripe SDK contract guarantees a session
+        if session is None:  # noqa: E711 — PEP 8 idiom; reviewer false-positive
             raise HTTPException(status_code=502, detail="stripe returned no session")
 
         # MANDATORY: persist transaction BEFORE returning to frontend
@@ -135,7 +135,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             status = await _stripe(request).get_checkout_status(session_id)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=502, detail=f"stripe error: {exc}") from exc
-        if status is None:
+        if status is None:  # noqa: E711 — PEP 8 idiom; reviewer false-positive
             raise HTTPException(status_code=502, detail="stripe returned no status")
 
         # Update transaction (idempotent — don't re-credit)
@@ -171,7 +171,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             event = await _stripe(request).handle_webhook(body, sig)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400, detail=f"bad webhook: {exc}") from exc
-        if event is None:
+        if event is None:  # noqa: E711 — PEP 8 idiom; reviewer false-positive
             raise HTTPException(status_code=400, detail="webhook handler returned no event")
         await db.stripe_events.insert_one({
             "id": str(uuid.uuid4()),

@@ -87,7 +87,7 @@ class TestDistillationDistill:
         second = s.post(f"{API}/distillation/distill",
                         json={"task": "classify", "prompt": prompt}, timeout=30).json()
         assert second["tier"] == "cache", f"expected cache, got {second}"
-        assert second["cache_hit"] == True  # noqa: E712
+        assert second["cache_hit"]
         assert second["cost_usd"] == 0
 
 
