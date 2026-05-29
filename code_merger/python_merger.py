@@ -18,8 +18,6 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass, field
-from typing import Optional
-
 from .scoring import score_python_function, ScoreBreakdown
 
 

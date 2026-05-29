@@ -1,6 +1,4 @@
 """CLI smoke tests."""
-import sys
-from pathlib import Path
 from code_merger.cli import main
 
 

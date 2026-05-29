@@ -47,7 +47,7 @@ def test_repo_merge_pairs_by_basename(tmp_path):
 
 def test_repo_merge_exact_paths_skips_when_paths_differ(tmp_path):
     base, target, out = _setup(tmp_path)
-    report = merge_repositories(base, target, out, match_by_basename=False)
+    merge_repositories(base, target, out, match_by_basename=False)
     merged_py = out / "backend" / "service.py"
     # service.py won't match because paths differ; lib.js does match.
     assert not merged_py.exists()

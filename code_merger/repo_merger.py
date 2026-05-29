@@ -12,7 +12,6 @@ import json
 import os
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Optional
 
 from .python_merger import merge_python_files
 from .js_merger import merge_js_files
