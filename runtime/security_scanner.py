@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from typing import List
@@ -48,6 +48,7 @@ _IGNORED_RELATIVE = {
     "runtime/agent_impls/content_pipeline.py",
     "tests/test_core.py",
     ".env.example",
+    "CONTINUATION.md",
     "DEPLOYMENT.md",
     ".github/workflows/deploy.yml",
     ".github/workflows/cycle.yml",
