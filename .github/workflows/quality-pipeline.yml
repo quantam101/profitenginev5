@@ -151,17 +151,27 @@ jobs:
     needs: integration
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})' --quiet"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
 
       - name: Boot backend
-        env: { MONGO_URL: mongodb://localhost:27017, DB_NAME: pe_perf }
+        env:
+          MONGO_URL: mongodb://localhost:27017
+          DB_NAME: pe_perf
+          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
         run: |
           pip install -r backend/requirements.txt
           uvicorn backend.server:app --host 0.0.0.0 --port 8001 &
-          sleep 4
+          for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
 
       - name: Install k6
         run: |
