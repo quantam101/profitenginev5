@@ -65,8 +65,18 @@ Live verified: **82.58% savings vs all-Claude baseline** over 10 runs.
 ## What's implemented
 - [x] AST merger CLI · 15/15 pytest pass
 - [x] AHD ↔ PEV5 merge applied · 32 new defs pulled in
+- [x] **Real agent execution** — `POST /api/agents/{id}/execute` runs synchronous LLM via Distiller cascade, returns structured output (`headline`, `findings`, `next_action`, `confidence`), persists `completed`/`errored` status (never `queued` placeholder). Typical first-call cost ~$0.000015, repeats free via cache.
+- [x] **No placeholders in counters** — `/api/launch/social-proof` returns only real Mongo counts (no anchored baselines)
+- [x] **Branded OG share image** at `/og.png` (1200×630, 47KB, Pillow-rendered) + `og:image` / `twitter:image` meta tags
 - [x] **44 backend endpoints** (33 + 8 launch + 3 enterprise)
-- [x] **20-agent enterprise fleet** — 11 original ops + 9 enterprise MVP (Motivation Engine, Revenue Intelligence, Offer Engineering, Sales Execution, Cash Conversion, Learning Agent, Analytics Agent, Codex Optimization, Audit Agent); Sovereign renamed to **Prime Orchestrator**, Lifelong agent renamed to **Failure Analysis Agent**
+- [x] **20-agent enterprise fleet** — 11 original + 9 enterprise MVP; Sovereign renamed to **Prime Orchestrator**
+- [x] **Autonomy Levels L0–L5** — default L3 Bounded Autonomy
+- [x] **Lifelong Catch & Correct panel** with the 8-field issue schema
+- [x] **Enterprise manifest** at `/api/enterprise/manifest`
+- [x] **Safer enterprise phrasing** throughout — no banned phrases
+- [x] **Cash AI page**, persistence + WS, distillation engine (82.58% savings)
+- [x] Command Center status strip · Quickstart modal · viral launch kit · Stripe Checkout · referral system · 6-stage CI/CD with deployment gate
+- [x] **85/85 tests pass** (iteration_8)
 - [x] **Autonomy levels L0–L5** — default **L3 Bounded Autonomy** · persisted to Mongo · GET/PUT endpoints · status-strip pill
 - [x] **Lifelong Catch & Correct panel** at `/dashboard/lifelong` with the exact 8-field issue schema
 - [x] **Enterprise manifest** at `/api/enterprise/manifest` (system, objectives, revenue equation, loop)
