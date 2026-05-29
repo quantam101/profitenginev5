@@ -43,8 +43,8 @@ export default function AdvisorPage() {
         </div>
       </form>
       <div className="mt-6 space-y-4">
-        {log.map((m, i) => (
-          <div key={i} className="space-y-2" data-testid={`advisor-msg-${i}`}>
+        {log.map((m) => (
+          <div key={m.at} className="space-y-2" data-testid={`advisor-msg-${m.at}`}>
             <div className="ent-card p-4 text-sm"><span className="text-ink-faint text-[11px] uppercase tracking-widest">you</span><p className="mt-1">{m.question}</p></div>
             <div className="sov-card p-4 text-sm"><span className="text-sov-soft text-[11px] uppercase tracking-widest">{m.agent}</span><p className="mt-1">{m.answer}</p></div>
           </div>

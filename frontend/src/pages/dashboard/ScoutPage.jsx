@@ -7,7 +7,8 @@ export default function ScoutPage() {
   const [opps, setOpps] = useState([]);
   useEffect(() => {
     getScoutOpps().then(setOpps).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="px-6 py-10 md:px-10" data-testid="scout-page">

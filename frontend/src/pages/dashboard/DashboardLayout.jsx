@@ -55,7 +55,8 @@ export default function DashboardLayout() {
   useEffect(() => {
     getCycleStatus().then(setCycle).catch(() => setCycle(null));
     getSovereignStatus().then(setSov).catch(() => setSov(null));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return (

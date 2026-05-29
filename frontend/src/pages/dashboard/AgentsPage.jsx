@@ -43,7 +43,8 @@ export default function AgentsPage() {
   useEffect(() => {
     getAgents().then(setAgents).catch(() => {});
     getFleetStats().then(setFleet).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const run = async (id) => {

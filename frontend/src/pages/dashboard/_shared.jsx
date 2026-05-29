@@ -13,8 +13,15 @@ export function PageHeader({ eyebrow, title, subtitle, action }) {
   );
 }
 
+function metricTone(tone) {
+  if (tone === "danger") return "text-danger";
+  if (tone === "sov") return "text-sov-soft";
+  if (tone === "warn") return "text-warn";
+  return "text-ok";
+}
+
 export function Metric({ label, value, delta, tone = "ok", testId }) {
-  const toneCls = tone === "danger" ? "text-danger" : tone === "sov" ? "text-sov-soft" : tone === "warn" ? "text-warn" : "text-ok";
+  const toneCls = metricTone(tone);
   return (
     <div className="metric" data-testid={testId}>
       <div className="label">{label}</div>

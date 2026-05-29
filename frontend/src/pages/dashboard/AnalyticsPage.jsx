@@ -9,8 +9,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     getAnalytics().then(setAn).catch(() => {});
     getRevenue(30).then(setSeries).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
   const channels = an ? Object.entries(an.channel_split).map(([k, v]) => ({ channel: k, pct: Math.round(v * 100) })) : [];
   return (
     <div className="px-6 py-10 md:px-10" data-testid="analytics-page">

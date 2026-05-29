@@ -33,7 +33,8 @@ export default function Overview() {
     getSovereignStatus().then(setSov).catch(() => {});
     getSovereignDecisions().then(setDecisions).catch(() => {});
     getProofOfWork().then(setPow).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalRev = revenue.reduce((s, p) => s + p.amount, 0);
@@ -175,12 +176,18 @@ export default function Overview() {
   );
 }
 
+function rowTone({ good, bad, warn }) {
+  if (bad) return "text-danger";
+  if (warn) return "text-warn";
+  if (good) return "text-ok";
+  return "text-ink";
+}
+
 function Row({ label, value, good, bad, warn }) {
-  const tone = bad ? "text-danger" : warn ? "text-warn" : good ? "text-ok" : "text-ink";
   return (
     <div className="flex items-center justify-between border-b border-line pb-2 last:border-b-0">
       <span className="text-ink-muted text-xs uppercase tracking-widest">{label}</span>
-      <span className={`font-mono text-sm font-semibold ${tone}`}>{value}</span>
+      <span className={`font-mono text-sm font-semibold ${rowTone({ good, bad, warn })}`}>{value}</span>
     </div>
   );
 }

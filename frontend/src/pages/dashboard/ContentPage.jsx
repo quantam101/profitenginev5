@@ -7,7 +7,8 @@ export default function ContentPage() {
   const [content, setContent] = useState([]);
   useEffect(() => {
     getContent().then(setContent).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="px-6 py-10 md:px-10" data-testid="content-page">

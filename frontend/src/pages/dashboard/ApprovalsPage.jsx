@@ -11,7 +11,8 @@ export default function ApprovalsPage() {
   const [resolved, setResolved] = useState({});
   useEffect(() => {
     getApprovals().then(setApprovals).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const decide = async (id, decision) => {

@@ -12,13 +12,15 @@ export default function RevenuePage() {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     getRevenue(days).then(setSeries).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [days]);
   useEffect(() => {
     getRevenueStreams().then(setStreams).catch(() => {});
     getRevenueStats().then(setStats).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
   const total = series.reduce((s, p) => s + p.amount, 0);
   const avg = series.length ? total / series.length : 0;
   const max = series.reduce((m, p) => (p.amount > m ? p.amount : m), 0);
