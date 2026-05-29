@@ -168,6 +168,8 @@ upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://profitengine
 [[ -n "${HASHNODE_PUB_ID:-}"      ]] && upsert_env HASHNODE_PUBLICATION_ID "${HASHNODE_PUB_ID}"
 [[ -n "${MEDIUM_API_KEY:-}"       ]] && upsert_env MEDIUM_API_KEY          "${MEDIUM_API_KEY}"
 [[ -n "${MEDIUM_AUTHOR_ID:-}"     ]] && upsert_env MEDIUM_AUTHOR_ID        "${MEDIUM_AUTHOR_ID}"
+[[ -n "${TELEGRAM_BOT_TOKEN:-}"   ]] && upsert_env TELEGRAM_BOT_TOKEN      "${TELEGRAM_BOT_TOKEN}"
+[[ -n "${TELEGRAM_CHAT_ID:-}"     ]] && upsert_env TELEGRAM_CHAT_ID        "${TELEGRAM_CHAT_ID}"
 
 # Auto-generate WEBHOOK_SECRET if not set
 if ! grep -qE "^WEBHOOK_SECRET=.+" "$ENV_FILE"; then

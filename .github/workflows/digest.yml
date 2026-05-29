@@ -1,0 +1,31 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 07:00 UTC every day
+  workflow_dispatch: {}    # manual trigger from Actions tab ("Run workflow")
+
+jobs:
+  digest:
+    name: Send morning digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Run digest on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            opc@129.146.167.73 \
+            "cd ~/profitenginev5 && \
+             docker compose exec -T runtime python -m runtime.agent_impls.daily_digest"
