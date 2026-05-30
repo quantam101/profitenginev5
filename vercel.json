@@ -2,5 +2,8 @@
   "framework": "nextjs",
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "env": {
+    "RUNTIME_API_URL": "https://api.profitengine.alreadyherellc.com"
+  }
 }

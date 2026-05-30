@@ -198,12 +198,61 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://app.profitengine.dev
+      url: https://profitengine-tau.vercel.app
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy (wire to Vercel/Fly/Railway here)
+
+      # Vercel auto-deploys on push to main via GitHub integration.
+      # Wait up to ~3 min for the new deployment to become live, then verify.
+      - name: Wait for Vercel production deployment
         run: |
-          echo "::notice::Wire this step to your provider (e.g. vercel deploy --prod)."
-      - name: Post-deploy canary smoke
+          PROD_URL="https://profitengine-tau.vercel.app/api/health"
+          echo "Polling $PROD_URL for up to 180s..."
+          for i in $(seq 1 18); do
+            STATUS=$(curl -sf --max-time 10 "$PROD_URL" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('ok','?'))" 2>/dev/null || echo "err")
+            echo "  attempt $i: ok=$STATUS"
+            if [ "$STATUS" = "True" ] || [ "$STATUS" = "true" ]; then
+              echo "::notice::Vercel production health check passed on attempt $i"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Vercel production did not become healthy within 180s"
+          exit 1
+
+      - name: Canary smoke — zero-cost policy enforced
         run: |
-          echo "Would curl https://app.profitengine.dev/api/health 5x with 2s spacing."
+          curl -sf --max-time 10 "https://profitengine-tau.vercel.app/api/health" \
+            | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d.get('ok') == True, f'health ok!=true: {d}'
+          assert d.get('paidAdaptersEnabled') == False, f'paidAdaptersEnabled should be false: {d}'
+          print('PASS: zero-cost policy enforced, health ok')
+          "
+
+      - name: Canary smoke — runtime API reachable
+        run: |
+          STATUS=$(curl -sf --max-time 10 \
+            "https://api.profitengine.alreadyherellc.com/health" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null \
+            || echo "unreachable")
+          echo "Runtime health: $STATUS"
+          if [ "$STATUS" = "ok" ]; then
+            echo "::notice::Runtime API healthy"
+          else
+            echo "::warning::Runtime API unreachable — OCI server may be down"
+          fi
+
+      - name: Canary smoke — distillation status
+        run: |
+          curl -sf --max-time 10 \
+            "https://profitengine-tau.vercel.app/api/distillation/status" \
+            | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d.get('ok') == True, f'distillation status failed: {d}'
+          assert d.get('stageCount', 0) >= 1, f'no stages found: {d}'
+          print(f'PASS: distillation ok, stages={d[\"stageCount\"]}, parallelEnabled={d[\"parallelEnabled\"]}')
+          "

@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // so buildHealthPayload() can read them from process.cwd() at runtime.
   experimental: {
     outputFileTracingIncludes: {
+      '/api/distillation/status': ['config/distillation.yaml'],
+      '/api/agents/parallel': ['agents/registry.yaml'],
       '/api/health': [
         'eaos.config.yaml',
         'agents/registry.yaml',
