@@ -13,8 +13,9 @@ from __future__ import annotations
 from datetime import date
 from typing import List
 
-# ── 90 topics covering: passive income, AI tools, freelancing,
-#    blogging, affiliate marketing, hosting, SaaS, automation ──────────────────
+# ── 120 topics covering: passive income, AI tools, freelancing, blogging,
+#    affiliate marketing, hosting, SaaS, automation, AND IT field service /
+#    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
     # AI tools for income
     "Best Free AI Tools to Build Passive Income Streams in 2026",
@@ -123,6 +124,40 @@ TOPICS: List[str] = [
     "Building a Price Comparison Tool and Earning Affiliate Commissions",
     "How to Launch a Product on Product Hunt and Get 500 Users",
     "The Indie Hacker Roadmap: From $0 to $1000 MRR in 2026",
+
+    # ── IT Field Service & MSP (aligned with Already Here LLC) ────────────────
+    # These topics bring in commercial IT clients and drive affiliate revenue
+    # from networking gear, VoIP systems, and MSP software.
+    "How to Find a Reliable IT Field Service Company in Phoenix AZ",
+    "Managed IT Services vs Break-Fix: Which Is Right for Your Business?",
+    "Commercial Network Cabling Cost Guide: What to Budget in 2026",
+    "Best VoIP Phone Systems for Small Business in 2026 (Honest Review)",
+    "How to Set Up a Structured Cabling System for a New Office",
+    "PBX vs Hosted VoIP: What Most IT Vendors Won't Tell You",
+    "IT Support SLA Guide: What Response Times Should Your Contract Guarantee?",
+    "How to Choose a Commercial Electrician for Low-Voltage Wiring",
+    "Cat6 vs Cat6A vs Fiber: Which Cabling Is Right for Your Business?",
+    "Network Infrastructure Checklist for Opening a New Office or Branch",
+    "How AI Is Changing IT Field Service Dispatch and Scheduling",
+    "Best IT Ticketing Systems for Small MSPs in 2026 (Ranked by Value)",
+    "How to Write an IT Service Contract That Protects Your Business",
+    "Security Camera Cabling Guide: IP vs Analog for Commercial Buildings",
+    "How to Troubleshoot a Slow Business Network Without Calling IT",
+    "Access Control Systems for Commercial Buildings: A Buyer's Guide",
+    "What Is a Network Assessment and Why Every Business Needs One",
+    "The True Cost of IT Downtime for Small Businesses in 2026",
+    "How to Migrate Your Business Phone System to VoIP Without Downtime",
+    "Top Reasons to Hire a Local IT Field Service Company vs a National MSP",
+    "IT Budgeting for Small Business: How Much to Spend on Technology",
+    "Patch Panel vs Direct-Run Cabling: Pros and Cons for Small Offices",
+    "How to Prepare Your Office for a Network Infrastructure Upgrade",
+    "Best Unmanaged vs Managed Switches for Small Business Networks",
+    "IT Support Pricing Guide: What Is a Fair Rate for On-Site Service?",
+    "How to Set Up a Guest Wi-Fi Network That Keeps Your Business Safe",
+    "Commercial AV Installation: What to Ask Your IT Contractor",
+    "Digital Signage Installation Guide for Retail and Commercial Spaces",
+    "How to Document Your IT Infrastructure So Any Technician Can Support It",
+    "Field Service Automation: How Modern MSPs Schedule and Dispatch Technicians",
 ]
 
 
