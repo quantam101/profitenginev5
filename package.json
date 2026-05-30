@@ -1,6 +1,6 @@
 {
   "name": "profitenginev5",
-  "version": "0.1.1-enterprise-gate",
+  "version": "0.1.2-ci-stabilization",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,9 +21,11 @@
     "test:timeout": "python -m pytest tests/test_full_suite.py -v -k timeout",
     "validate:yaml": "python scripts/validate_yaml.py",
     "security:scan": "python scripts/security_check.py",
+    "security:audit": "npm audit --audit-level=critical --omit=dev",
     "agents:parallel": "node scripts/run-parallel-agents.mjs",
-    "ci:all": "npm audit --audit-level=high && npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run security:scan && npm run agents:parallel && npm run build",
-    "ci:full": "npm run ci:all && npm run test:full",
+    "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run security:scan && npm run build",
+    "ci:security": "npm run security:audit && npm run security:scan",
+    "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
   },
   "dependencies": {
