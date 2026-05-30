@@ -1,7 +1,7 @@
-﻿name: Daily Content Publisher
+name: Daily Content Publisher
 
 # Publishes one SEO article per day to GitHub Pages (quantam101/content)
-# using Groq's free llama-3.3-70b-versatile model.
+# using free-tier AI providers with failover.
 # Zero infrastructure required — runs entirely on GitHub's free CI runners.
 # Topics rotate from scripts/article_topics.py (90-topic cycle).
 
