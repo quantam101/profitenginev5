@@ -33,33 +33,47 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Build JSON payload
+      - name: Register client via backend Docker network IP
         env:
           CLIENT_EMAIL: ${{ github.event.inputs.email }}
           CLIENT_ROLE: ${{ github.event.inputs.role }}
           CLIENT_USE_CASE: ${{ github.event.inputs.use_case }}
         run: |
-          python3 -c "
+          # Build JSON payload on the runner (env vars → no injection risk)
+          PAYLOAD=$(python3 -c "
           import json, os
           print(json.dumps({
             'email':    os.environ['CLIENT_EMAIL'],
             'role':     os.environ.get('CLIENT_ROLE', 'client'),
             'use_case': os.environ.get('CLIENT_USE_CASE', ''),
           }))
-          " > /tmp/payload.json
-          echo "Payload: $(cat /tmp/payload.json)"
+          ")
+          echo "Payload: $PAYLOAD"
 
-      - name: Register client via backend container
-        run: |
+          # SCP payload to server
+          echo "$PAYLOAD" > /tmp/payload.json
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             /tmp/payload.json opc@129.146.167.73:/tmp/waitlist_payload.json
 
+          # On the OCI host: get backend container's Docker network IP,
+          # then call it directly with curl (avoids docker exec stdin issues)
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && \
-             cat /tmp/waitlist_payload.json | \
-             docker compose exec -T backend \
-               curl -sf -X POST http://localhost:8001/api/waitlist \
-               -H 'Content-Type: application/json' --data @- && \
-             rm -f /tmp/waitlist_payload.json"
+            opc@129.146.167.73 <<'SSHEOF'
+            set -e
+            cd /home/opc/profitenginev5
+
+            # Find the backend container's IP on the compose network
+            BACKEND_IP=$(docker inspect \
+              $(docker compose ps -q backend) \
+              --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+              | head -1)
+            echo "Backend container IP: $BACKEND_IP"
+
+            # Call the waitlist API directly from the host via Docker network
+            RESULT=$(curl -sf -X POST "http://${BACKEND_IP}:8001/api/waitlist" \
+              -H "Content-Type: application/json" \
+              -d @/tmp/waitlist_payload.json)
+            echo "Result: $RESULT"
+            rm -f /tmp/waitlist_payload.json
+          SSHEOF
