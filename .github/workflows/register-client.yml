@@ -14,7 +14,7 @@ on:
       use_case:
         description: 'Use case description'
         required: false
-        default: 'Already Here LLC — field service dispatch and content publishing, Cohort 1 client'
+        default: 'Already Here LLC - field service dispatch and content publishing, Cohort 1'
 
 jobs:
   register:
@@ -31,28 +31,35 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -l -f ~/.ssh/deploy_key
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Register client via backend API
+      - name: Build JSON payload
+        env:
+          CLIENT_EMAIL: ${{ github.event.inputs.email }}
+          CLIENT_ROLE: ${{ github.event.inputs.role }}
+          CLIENT_USE_CASE: ${{ github.event.inputs.use_case }}
         run: |
+          python3 -c "
+          import json, os
+          print(json.dumps({
+            'email':    os.environ['CLIENT_EMAIL'],
+            'role':     os.environ.get('CLIENT_ROLE', 'client'),
+            'use_case': os.environ.get('CLIENT_USE_CASE', ''),
+          }))
+          " > /tmp/payload.json
+          echo "Payload: $(cat /tmp/payload.json)"
+
+      - name: Register client via backend container
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            /tmp/payload.json opc@129.146.167.73:/tmp/waitlist_payload.json
+
           ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
             opc@129.146.167.73 \
             "cd /home/opc/profitenginev5 && \
-             docker compose exec -T backend python3 -c \
-             \"import urllib.request,json,sys
-payload = json.dumps({
-  'email': '${{ github.event.inputs.email }}',
-  'role': '${{ github.event.inputs.role }}',
-  'use_case': '${{ github.event.inputs.use_case }}'
-}).encode()
-req = urllib.request.Request('http://localhost:8001/api/waitlist', data=payload, method='POST')
-req.add_header('Content-Type', 'application/json')
-with urllib.request.urlopen(req, timeout=10) as r:
-  d = json.loads(r.read())
-  print('Registered:', json.dumps(d, indent=2))
-  print('Position:', d.get('position'))
-  print('ID:', d.get('id'))
-\"" 2>&1
+             cat /tmp/waitlist_payload.json | \
+             docker compose exec -T backend \
+               curl -sf -X POST http://localhost:8001/api/waitlist \
+               -H 'Content-Type: application/json' --data @- && \
+             rm -f /tmp/waitlist_payload.json"
