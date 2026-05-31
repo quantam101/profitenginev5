@@ -127,7 +127,7 @@ export default function LaunchPage() {
             <h2 style={{marginTop:12}}>Run the v5 stack.<br /><span className="acid">Ship a business.</span></h2>
             <p style={{color:'var(--muted)',maxWidth:540,marginTop:14}}>We&apos;re onboarding operators one cohort at a time. Email us the use case you want the engine to run — invites go out weekly.</p>
             <a
-              href="mailto:beta@profitengine.dev?subject=ProfitEngine%20v5%20beta&body=Use%20case%3A%20%0ARole%3A%20%0ARepo%20(optional)%3A%20"
+              href="mailto:dispatch@alreadyherellc.com?subject=ProfitEngine%20v5%20beta&body=Use%20case%3A%20%0ARole%3A%20%0ARepo%20(optional)%3A%20"
               className="l-cta"
               style={{marginTop: 28, display: 'inline-block'}}
               data-testid="waitlist-mail"
