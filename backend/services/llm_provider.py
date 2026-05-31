@@ -2,6 +2,8 @@
 
 Free-tier and low-cost provider strategy:
 
+0. **LM Studio** — local OpenAI-compatible server (localhost:1234), highest priority.
+   Zero cost, completely offline. Env: LM_STUDIO_BASE_URL, LM_STUDIO_MODEL.
 1. **Gemini Flash** — Google AI Studio (free tier: 15 RPM, 1M tok/day forever).
    Used for the cheap distillation tier. Key: GEMINI_API_KEY.
 2. **DeepSeek Chat** — OpenAI-compatible API, very cheap.
@@ -17,10 +19,19 @@ from __future__ import annotations
 import os
 from typing import Literal
 
-Provider = Literal["gemini", "deepseek", "openrouter", "anthropic", "openai", "groq"]
+Provider = Literal["lmstudio", "gemini", "deepseek", "openrouter", "anthropic", "openai", "groq"]
+
+
+def _lmstudio_enabled() -> bool:
+    """True when LM Studio is configured or explicitly enabled."""
+    if os.environ.get("LM_STUDIO_BASE_URL", "").strip():
+        return True
+    return os.environ.get("LM_STUDIO_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _has_key(provider: Provider) -> bool:
+    if provider == "lmstudio":
+        return _lmstudio_enabled()
     return bool({
         "gemini": os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"),
         "deepseek": os.environ.get("DEEPSEEK_API_KEY"),
@@ -29,6 +40,27 @@ def _has_key(provider: Provider) -> bool:
         "openai": os.environ.get("OPENAI_API_KEY"),
         "groq": os.environ.get("GROQ_API_KEY"),
     }.get(provider))
+
+
+async def _call_lmstudio(*, model: str, system: str, prompt: str, max_tokens: int) -> str:
+    """LM Studio local server — OpenAI-compatible API at localhost:1234. No key needed."""
+    base_url = os.environ.get("LM_STUDIO_BASE_URL", "http://localhost:1234/v1").rstrip("/")
+    resolved_model = (
+        os.environ.get("LM_STUDIO_MODEL", "").strip()
+        or model
+        or "local-model"
+    )
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key="lm-studio", base_url=base_url)
+    msg = await client.chat.completions.create(
+        model=resolved_model,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    return msg.choices[0].message.content or ""
 
 
 async def _call_gemini(*, model: str, system: str, prompt: str, max_tokens: int) -> str:
@@ -117,6 +149,7 @@ async def _call_anthropic(*, model: str, system: str, prompt: str, max_tokens: i
 
 # Map provider name → (callable, default-model-env-var, hardcoded-default)
 _DISPATCH = {
+    "lmstudio": _call_lmstudio,
     "gemini": _call_gemini,
     "deepseek": _call_deepseek,
     "openrouter": _call_openrouter,
@@ -138,7 +171,8 @@ async def call_llm(
         raise RuntimeError(
             f"No credentials for provider '{provider}'. "
             f"Set the matching API key env var "
-            f"(GEMINI_API_KEY / DEEPSEEK_API_KEY / OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY)."
+            f"(LM_STUDIO_BASE_URL / GEMINI_API_KEY / DEEPSEEK_API_KEY / "
+            f"OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY)."
         )
     fn = _DISPATCH[provider]
     return await fn(model=model, system=system, prompt=prompt, max_tokens=max_tokens)
