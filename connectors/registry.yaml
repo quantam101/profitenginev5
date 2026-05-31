@@ -21,6 +21,16 @@ connectors:
     permissions: [run_local_workflow]
 
   # ── Free external inference ──────────────────────────────────────────────
+  tokenforge_api:
+    state: free_external
+    enabled: true
+    permissions: [remote_inference, proxy_llm]
+    cache_ttl: 3600
+    monthly_token_budget: 50000
+    endpoint: https://api.tokenforge.io/api/proxy/chat
+    key_env: TOKENFORGE_API_KEY
+    notes: "50k free tokens/month; 1hr ISR cache protects budget"
+
   groq_api:
     state: free_external
     enabled: true
