@@ -55,7 +55,7 @@ api.{$SITE_DOMAIN} {
 
 api.alreadyherellc.com {
   encode gzip zstd
-  reverse_proxy localhost:8000
+  reverse_proxy host.docker.internal:8000
 
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
