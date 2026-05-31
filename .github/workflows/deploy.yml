@@ -121,6 +121,40 @@ jobs:
              REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -100
              rm -f /tmp/deploy_env.sh"
 
+      - name: Start TokenForge backend
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
+            opc@129.146.167.73 \
+            "set -e
+             TF=/opt/tokenforge
+             if [ ! -d \$TF/.git ]; then
+               sudo mkdir -p \$TF && sudo chown opc:opc \$TF
+               git clone https://github.com/quantam101/Token.git \$TF
+             else
+               cd \$TF && git pull origin main || true
+             fi
+             mkdir -p \$TF/backend
+             cat > /tmp/tf.env <<ENV
+MONGO_URL=mongodb://mongo:27017
+DB_NAME=tokenforge
+JWT_SECRET=${JWT_SECRET:-changeme_set_jwt_secret_in_profitenginev5_secrets}
+GROQ_API_KEY=${GROQ_API_KEY}
+GOOGLE_API_KEY=${GEMINI_API_KEY}
+CORS_ORIGINS=https://forge.alreadyherellc.com,http://localhost:3000
+LLM_POLLINATIONS_FALLBACK=true
+ENV
+             sudo cp /tmp/tf.env \$TF/backend/.env
+             cd \$TF
+             sudo docker compose up -d --build --remove-orphans backend mongo 2>&1 | tail -20
+             echo TokenForge backend started"
+
       - name: Verify health
         run: |
           sleep 15
