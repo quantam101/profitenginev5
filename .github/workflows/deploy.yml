@@ -128,6 +128,19 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
+          # Build tf.env locally then scp — avoids heredoc-at-col-0 YAML parse error
+          JWT="${JWT_SECRET:-changeme_set_jwt_secret_in_profitenginev5_secrets}"
+          {
+            echo "MONGO_URL=mongodb://mongo:27017"
+            echo "DB_NAME=tokenforge"
+            echo "JWT_SECRET=${JWT}"
+            echo "GROQ_API_KEY=${GROQ_API_KEY}"
+            echo "GOOGLE_API_KEY=${GEMINI_API_KEY}"
+            echo "CORS_ORIGINS=https://forge.alreadyherellc.com,http://localhost:3000"
+            echo "LLM_POLLINATIONS_FALLBACK=true"
+          } > /tmp/tf.env
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            /tmp/tf.env opc@129.146.167.73:/tmp/tf.env
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
             -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
@@ -141,15 +154,6 @@ jobs:
                cd \$TF && git pull origin main || true
              fi
              mkdir -p \$TF/backend
-             cat > /tmp/tf.env <<ENV
-MONGO_URL=mongodb://mongo:27017
-DB_NAME=tokenforge
-JWT_SECRET=${JWT_SECRET:-changeme_set_jwt_secret_in_profitenginev5_secrets}
-GROQ_API_KEY=${GROQ_API_KEY}
-GOOGLE_API_KEY=${GEMINI_API_KEY}
-CORS_ORIGINS=https://forge.alreadyherellc.com,http://localhost:3000
-LLM_POLLINATIONS_FALLBACK=true
-ENV
              sudo cp /tmp/tf.env \$TF/backend/.env
              cd \$TF
              sudo docker compose up -d --build --remove-orphans backend mongo 2>&1 | tail -20
