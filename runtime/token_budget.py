@@ -47,10 +47,16 @@ def _e(key: str, default: int) -> int:
 
 
 _DEFAULTS: Dict[str, Tuple[int, int]] = {
-    "ollama":               (2_048,  512),
-    "groq":                 (4_096, 1_024),
-    "gemini":               (8_192, 2_048),
-    "claude_api":          (16_384, 4_096),
+    # ── Local (zero cost) ─────────────────────────────────────────────────
+    "lmstudio":             (4_096, 1_024),   # depends on loaded model ctx
+    "ollama":               (2_048,  512),    # small local model; limited ctx
+    # ── Free cloud ───────────────────────────────────────────────────────
+    "groq":                 (4_096, 1_024),   # free tier rate-limits; 700+ tok/s
+    "huggingface":          (4_096, 1_024),   # free, rate-limited per model
+    "gemini":               (8_192, 2_048),   # 1M ctx but free tier throttled
+    # ── Paid / safety-net ────────────────────────────────────────────────
+    "claude_api":          (16_384, 4_096),   # best quality; paid fallback
+    "pollinations":         (2_048,  512),    # public fallback; keep minimal
     "deterministic_fallback":(1_024,  256),
 }
 
