@@ -1,0 +1,23 @@
+name: Revenue Report — Daily $25K Tracker
+
+on:
+  schedule:
+    - cron: '30 8 * * *'   # 08:30 UTC daily (after ops-monitor)
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Post revenue snapshot to GitHub
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run revenue report
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: python scripts/revenue_report.py
