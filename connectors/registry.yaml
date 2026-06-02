@@ -94,13 +94,3 @@ connectors:
     state: optional_paid_disabled
     enabled: false
     permissions: []
-
-  devin:
-    state: optional_paid_disabled
-    enabled: false
-    permissions: []
-
-  manus:
-    state: optional_paid_disabled
-    enabled: false
-    permissions: []
