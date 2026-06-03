@@ -23,15 +23,20 @@ Optional:
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
+import pathlib
 import re
 import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
+
+# Make runtime.eaos importable when running from repo root on CI
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -483,6 +488,28 @@ def main() -> None:
         medium_url = publish_medium(article, canonical_url)
     except Exception as exc:
         print(f"[FAIL] Medium publish failed: {exc}")
+
+    # 5. EAOS Social Blast — posts to all configured platforms simultaneously
+    if canonical_url:
+        try:
+            from runtime.eaos.social_engine import ProductionSocialEngine
+            tags = article.get("tags", [])
+            title_text = article["title"]
+            thread_tweets = [
+                f"New post: {title_text} {canonical_url}",
+                f"Read more on GitHub Pages, Dev.to, and Hashnode → {canonical_url}",
+                "#ProfitEngine #AIContent #PassiveIncome #AlreadyHereLLC",
+            ]
+            engine = ProductionSocialEngine()
+            asyncio.run(engine.publish_all_platforms(
+                text=title_text,
+                url=canonical_url,
+                tags=tags[:5],
+                thread_tweets=thread_tweets,
+            ))
+            print("[OK] EAOS social blast dispatched")
+        except Exception as exc:
+            print(f"[WARN] EAOS social blast skipped: {exc}")
 
     print("\n== Summary ==")
     print(f"Title   : {article['title']}")
