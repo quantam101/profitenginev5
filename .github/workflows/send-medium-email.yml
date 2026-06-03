@@ -8,62 +8,10 @@ jobs:
     name: Send email to Medium API team
     runs-on: ubuntu-latest
     steps:
-      - name: Write send script
-        run: |
-          cat > /tmp/send_email.py << 'PYEOF'
-import smtplib, os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-
-gmail_user = os.environ.get("GMAIL_USER", "alreadyherellc@gmail.com")
-app_password = os.environ.get("GMAIL_APP_PASSWORD", "")
-if not app_password:
-    raise SystemExit("GMAIL_APP_PASSWORD not set")
-
-body = (
-    "Hi Medium team,\n\n"
-    "My name is Stephen, founder of Already Here LLC. I am building ProfitEngine v5, "
-    "an automated content publishing platform that helps small business owners and indie "
-    "builders create and distribute SEO-optimized articles across multiple platforms.\n\n"
-    "We would like to integrate Medium's API to publish our generated content directly to "
-    "our Medium publication. We are currently live on GitHub Pages, Dev.to, and Hashnode. "
-    "Medium is the final distribution channel we want to activate.\n\n"
-    "Details:\n"
-    "- Company: Already Here LLC\n"
-    "- Website: https://profitengine.alreadyherellc.com\n"
-    "- Use case: Automated cross-posting of original long-form articles (1,000-1,500 words) "
-    "on AI tools, passive income, and developer productivity\n"
-    "- Scopes needed: basicProfile, publishPost\n"
-    "- Publishing frequency: 1-3 articles per day\n"
-    "- Contact email: dispatch@alreadyherellc.com\n\n"
-    "We publish original content with proper FTC disclosures and canonical URLs. "
-    "All articles are written by our AI pipeline using Groq/Gemini with human editorial oversight.\n\n"
-    "Would you be able to grant us a clientId and clientSecret, or confirm whether a "
-    "self-issued integration token from Settings > Integration Tokens covers the publishPost "
-    "scope for our account?\n\n"
-    "Thank you for your time.\n\n"
-    "Best,\n"
-    "Stephen\n"
-    "Already Here LLC\n"
-    "dispatch@alreadyherellc.com\n"
-    "https://profitengine.alreadyherellc.com"
-)
-
-msg = MIMEMultipart("alternative")
-msg["Subject"] = "API Access Request - ProfitEngine v5 / Already Here LLC"
-msg["From"] = f"Stephen - Already Here LLC <{gmail_user}>"
-msg["To"] = "yourfriends@medium.com"
-msg["Reply-To"] = "dispatch@alreadyherellc.com"
-msg.attach(MIMEText(body, "plain"))
-
-with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-    server.login(gmail_user, app_password)
-    server.sendmail(gmail_user, "yourfriends@medium.com", msg.as_string())
-print("SUCCESS: Email sent to yourfriends@medium.com")
-PYEOF
+      - uses: actions/checkout@v4
 
       - name: Send email
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: python3 /tmp/send_email.py
+        run: python3 scripts/send_medium_email.py

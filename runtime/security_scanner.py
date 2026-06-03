@@ -37,7 +37,7 @@ _IGNORED_RELATIVE = {
     "docs/AFFILIATE_SETUP.md",
 }
 
-_IGNORED_DIRS = {".git", "node_modules", ".next", "__pycache__", ".pytest_cache"}
+_IGNORED_DIRS = {".git", "node_modules", ".next", "__pycache__", ".pytest_cache", ".claude"}
 
 
 def scan_text(text: str) -> List[str]:
