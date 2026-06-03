@@ -22,7 +22,7 @@ class IPCMessage:
 
 
 class SharedMemoryEventBus:
-    def __init__(self, filepath: str = "/tmp/eaos_ipc_ring.bus", size_bytes: int = 1024 * 1024):
+    def __init__(self, filepath: str = "/tmp/eaos_ipc_ring.bus", size_bytes: int = 1024 * 1024):  # noqa: S108
         self.filepath   = filepath
         self.size       = size_bytes
         self._seq       = 0

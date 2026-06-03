@@ -34,7 +34,7 @@ class UltimateVideoEngine:
 
     def _check_ffmpeg(self) -> bool:
         try:
-            subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)  # noqa: S603,S607
             return True
         except (subprocess.CalledProcessError, FileNotFoundError):
             logger.warning("[VideoEngine] ffmpeg not found — video compilation disabled")
@@ -94,7 +94,7 @@ class UltimateVideoEngine:
             "-c:v", "libx264", "-preset", "veryfast", "-t", str(duration), clip_path,
         ]
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
         except Exception as exc:
             logger.warning(f"[VideoEngine] FFmpeg slideshow failed: {exc}")
             with open(clip_path, "wb") as f:
@@ -127,7 +127,7 @@ class UltimateVideoEngine:
             "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", output,
         ]
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
             logger.info(f"[VideoEngine] Master compiled → {output}")
         except Exception as exc:
             logger.error(f"[VideoEngine] Compile failed: {exc}")
