@@ -15,6 +15,7 @@ const AGENTS = [
   { id: 'social', name: 'Social', role: 'Distribution & engagement', status: 'online', desc: 'Schedules posts, replies to comments and reroutes traffic to revenue assets.', success: 97, runs: 64 },
   { id: 'revenue', name: 'Revenue', role: 'Monetization controller', status: 'online', desc: 'Routes traffic across affiliate links, digital products and ad inventory.', success: 92, runs: 24 },
   { id: 'guard', name: 'Guard', role: 'Compliance & risk', status: 'paused', desc: 'Reviews every outbound asset for policy, IP and brand-safety violations.', success: 100, runs: 6 },
+  { id: 'ai-vp', name: 'AI VP', role: 'Cash work command', status: 'active', desc: 'Ranks trailer, courier, field-tech, low-voltage and follow-up work by cash value, fit, urgency and approval status.', success: 96, runs: 12 },
 ];
 
 const TIERS = [
@@ -25,6 +26,7 @@ const TIERS = [
 
 const CYCLE = [
   { name: 'scout', state: 'done', ms: '412ms' },
+  { name: 'cash desk', state: 'running', ms: 'live' },
   { name: 'content', state: 'done', ms: '9.8s' },
   { name: 'video', state: 'running', ms: '—' },
   { name: 'social', state: 'queued', ms: '—' },
@@ -39,22 +41,24 @@ export default function LaunchPage() {
         <a href="#top" className="l-logo">PROFIT<span className="acid">ENGINE</span> <span style={{color:'var(--faint)',fontSize:12}}>v5</span></a>
         <div className="links">
           <a href="#agents">{'// agents'}</a>
+          <Link href="/ai-vp">{'// ai vp'}</Link>
           <Link href="/command-center">{'// dashboard'}</Link>
           <a href="#pricing">{'// pricing'}</a>
           <a href="#waitlist">{'// beta'}</a>
         </div>
-        <a href="#waitlist" className="l-cta">Get early access</a>
+        <Link href="/ai-vp" className="l-cta">Open AI VP</Link>
       </nav>
 
       <header id="top" className="hero">
         <div className="shell">
           <div className="hero-grid">
             <div>
-              <span className="tag"><span className="dot" /> v5 · CLOSED BETA · 6-AGENT MESH</span>
+              <span className="tag"><span className="dot" /> v5 · CLOSED BETA · AI VP CASH DESK LIVE</span>
               <h1>Ship an<br /><span className="acid">autonomous</span><br />content business.</h1>
-              <p>ProfitEngine v5 runs a 24/7 mesh of six AI agents — Scout, Content, Video, Social, Revenue and Guard — that find niches, produce assets, distribute, monetize and stay compliant. You approve the moves. The engine ships them.</p>
+              <p>ProfitEngine v5 now includes the AI VP Cash Desk: a cash-priority operating layer that ranks trailer, courier, field-tech, low-voltage and follow-up work, prepares compliant action packets, and holds final submission behind approval.</p>
               <div className="cta-row">
-                <Link href="/command-center" className="l-cta">Open command center →</Link>
+                <Link href="/ai-vp" className="l-cta">Open AI VP Cash Desk →</Link>
+                <Link href="/command-center" className="cta-secondary">Open command center</Link>
                 <a href="#agents" className="cta-secondary">Meet the agents</a>
               </div>
             </div>
@@ -69,7 +73,7 @@ export default function LaunchPage() {
                   <span><span style={{color:'var(--faint)',marginRight:12}}>{s.ms}</span><span className={s.state}>● {s.state}</span></span>
                 </div>
               ))}
-              <footer><span style={{color:'var(--acid)'}}>guard:</span> waiting on human approval for outbound asset</footer>
+              <footer><span style={{color:'var(--acid)'}}>guard:</span> final apply/post/send actions require human approval</footer>
             </div>
           </div>
         </div>
@@ -78,7 +82,7 @@ export default function LaunchPage() {
       <section id="agents" className="section">
         <div className="shell">
           <div className="eyebrow">{'// the mesh'}</div>
-          <h2>Six specialists.<br /><span className="acid">One company.</span></h2>
+          <h2>Seven specialists.<br /><span className="acid">One company.</span></h2>
           <p style={{color:'var(--muted)',maxWidth:560,marginTop:16}}>Each agent owns one job and shares state through the cycle bus. The result is a small staff of expert collaborators, not a single overworked LLM prompt.</p>
           <div className="agents-grid">
             {AGENTS.map(a => (
@@ -107,7 +111,7 @@ export default function LaunchPage() {
           <div className="pricing-grid">
             {TIERS.map(t => (
               <div key={t.name} className={`tier ${t.primary ? 'featured' : ''}`} data-testid={`tier-${t.name.toLowerCase()}`}>
-                {t.badge && <span className="badge">⚡ {t.badge}</span>}
+                {t.badge && <span className="badge">{t.badge}</span>}
                 <h3>{t.name}</h3>
                 <div className="price"><span className="num">{t.price}</span><span className="cad">{t.cad}</span></div>
                 <ul>{t.features.map(f => <li key={f}>{f}</li>)}</ul>
@@ -143,12 +147,13 @@ export default function LaunchPage() {
           <div className="row">
             <div>
               <div className="l-logo">PROFIT<span className="acid">ENGINE</span> <span style={{color:'var(--faint)'}}>v5</span></div>
-              <p style={{maxWidth:360,marginTop:12,lineHeight:1.6}}>Six-agent autonomous content engine, open core. Built by the team behind already-here-llc-dashboard. The same cockpit, now self-upgrading.</p>
+              <p style={{maxWidth:360,marginTop:12,lineHeight:1.6}}>Six-agent autonomous content engine plus AI VP Cash Desk. Built for approval-gated execution, daily cash work, and self-upgrading operations.</p>
             </div>
             <div>
               <h4>{'// product'}</h4>
               <ul>
                 <li><a href="#agents">Agents</a></li>
+                <li><Link href="/ai-vp">AI VP Cash Desk</Link></li>
                 <li><Link href="/command-center">Dashboard</Link></li>
                 <li><a href="#pricing">Pricing</a></li>
               </ul>
@@ -164,7 +169,7 @@ export default function LaunchPage() {
           </div>
           <div className="bot">
             <span>© 2026 ProfitEngine · Open core, MIT.</span>
-            <span className="acid">v5.0 — closed beta</span>
+            <span className="acid">v5.1 — AI VP integrated</span>
           </div>
         </div>
       </footer>
