@@ -182,7 +182,7 @@ export default function CashDeskClient() {
 
       <div className="cd-grid two">
         <section className="cd-card">
-          <h2>Today's ranked work</h2>
+          <h2>Today&apos;s ranked work</h2>
           <div className="cd-list">
             {ranked.map((lead) => (
               <article key={lead.id} className="cd-lead">
