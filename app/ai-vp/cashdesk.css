@@ -1,0 +1,179 @@
+.cashdesk {
+  min-height: 100vh;
+  background: radial-gradient(circle at 10% 0%, rgba(90, 162, 255, 0.18), transparent 30rem), #050914;
+  color: #eef5ff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cashdesk a { color: inherit; text-decoration: none; }
+
+.cd-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #26364f;
+  background: rgba(5, 9, 20, 0.86);
+  backdrop-filter: blur(8px);
+}
+
+.cd-logo { font-weight: 800; letter-spacing: 0.12em; }
+.cd-nav div { display: flex; gap: 12px; color: #9fb0c6; font-size: 13px; }
+.cd-nav a:hover { color: #5aa2ff; }
+
+.cd-shell {
+  width: min(1220px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
+.cd-hero {
+  border: 1px solid #26364f;
+  border-radius: 16px;
+  background: rgba(14, 23, 38, 0.86);
+  padding: clamp(24px, 5vw, 54px);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.26);
+}
+
+.cd-kicker {
+  display: inline-flex;
+  border: 1px solid #26364f;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #9fb0c6;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+}
+
+.cd-hero h1 {
+  margin: 18px 0 10px;
+  font-size: clamp(34px, 7vw, 72px);
+  line-height: 0.96;
+}
+
+.cd-hero p {
+  max-width: 760px;
+  color: #9fb0c6;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.cd-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.cd-metrics article,
+.cd-card {
+  border: 1px solid #26364f;
+  border-radius: 14px;
+  background: rgba(14, 23, 38, 0.88);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+}
+
+.cd-metrics article { padding: 18px; }
+.cd-metrics span { display: block; color: #9fb0c6; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+.cd-metrics strong { display: block; margin-top: 8px; font-size: 30px; }
+
+.cd-grid { display: grid; gap: 18px; margin-top: 18px; }
+.cd-grid.two { grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr); }
+@media (max-width: 920px) { .cd-grid.two { grid-template-columns: 1fr; } }
+
+.cd-card { padding: 20px; }
+.cd-card h2 { margin: 0 0 16px; font-size: 22px; }
+.cd-card h3 { margin: 0; }
+
+.cd-list { display: grid; gap: 14px; }
+.cd-lead,
+.cd-approval {
+  border: 1px solid #26364f;
+  border-radius: 12px;
+  background: rgba(3, 7, 18, 0.5);
+  padding: 16px;
+}
+
+.cd-lead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+}
+@media (max-width: 700px) { .cd-lead { grid-template-columns: 1fr; } }
+
+.cd-pill {
+  display: inline-flex;
+  border: 1px solid #5aa2ff;
+  color: #9cc9ff;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cd-lead h3 { margin-top: 10px; }
+.cd-lead p,
+.cd-approval p { color: #9fb0c6; line-height: 1.55; margin: 8px 0 0; }
+.cd-action { color: #eef5ff !important; }
+
+.cd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 150px;
+  align-items: stretch;
+}
+
+.cd-side strong { font-size: 24px; }
+.cd-side small { color: #9fb0c6; }
+
+.cd-side a,
+.cd-form button,
+.cd-approval button {
+  border: 1px solid #5aa2ff;
+  border-radius: 8px;
+  background: #5aa2ff;
+  color: #031020;
+  font-weight: 800;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.cd-approval div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.cd-approval span { color: #fbbf24; font-weight: 800; }
+.cd-approval button:nth-child(2) { background: transparent; color: #fb7185; border-color: #fb7185; }
+
+.cd-form { display: grid; gap: 12px; }
+.cd-form label { display: grid; gap: 6px; color: #9fb0c6; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cd-form input,
+.cd-form textarea,
+.cd-form select,
+.cd-side select {
+  width: 100%;
+  border: 1px solid #26364f;
+  border-radius: 8px;
+  background: #030712;
+  color: #eef5ff;
+  padding: 11px 12px;
+}
+.cd-form textarea { min-height: 92px; resize: vertical; }
+
+.cd-copy {
+  width: 100%;
+  min-height: 260px;
+  margin: 10px 0 18px;
+  border: 1px solid #26364f;
+  border-radius: 10px;
+  background: #030712;
+  color: #eef5ff;
+  padding: 14px;
+  line-height: 1.45;
+}
+.cd-copy.small { min-height: 130px; }
