@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { MongoClient } from "mongodb";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-05-27.dahlia",
-});
+// Lazy-initialized so build-time evaluation with empty env vars doesn't throw
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY ?? "";
+    if (!key) throw new Error("STRIPE_SECRET_KEY not set");
+    _stripe = new Stripe(key, { apiVersion: "2026-05-27.dahlia" });
+  }
+  return _stripe;
+}
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 const MONGO_URI = process.env.MONGODB_URL ?? process.env.MONGO_URL ?? "";
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(body, sig, WEBHOOK_SECRET);
   } catch (err) {
     console.error("Stripe signature verification failed:", err);
     return NextResponse.json(
