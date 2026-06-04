@@ -43,7 +43,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GH_BASE = "https://api.github.com"
 DEVTO_BASE = "https://dev.to/api"
 
-GROQ_MODEL = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")  # overridden by GROQ_MODELS list below
 GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
@@ -111,10 +111,10 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_M
 # llama-3.3-70b is second: better quality but tighter daily token quota.
 _GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_MODELS: List[str] = list(dict.fromkeys([
+    _GROQ_DEFAULT,                    # env-configured (default: 70b) — best quality for long articles
+    "qwen-qwq-32b",                   # reasoning model — excellent structured JSON, strong SEO content
     "llama-3.1-8b-instant",          # high quota, fast, good JSON fidelity
-    _GROQ_DEFAULT,                    # env-configured (default: 70b versatile)
     "gemma2-9b-it",                   # alternative free model
-    "llama3-8b-8192",                 # legacy 8b name alias
 ]))
 
 

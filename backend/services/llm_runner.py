@@ -139,7 +139,12 @@ def _gemini(prompt: str, system: Optional[str], max_tokens: int) -> str:
 
 def _call_fast(prompt: str, system: Optional[str], max_tokens: int) -> str:
     errs = []
-    for fn in [lambda: _groq(prompt, system, 'gemma2-9b-it', max_tokens), lambda: _openrouter(prompt, system, 'google/gemma-2-9b-it', max_tokens), lambda: _gemini(prompt, system, max_tokens)]:
+    for fn in [
+        lambda: _groq(prompt, system, 'llama-3.1-8b-instant', max_tokens),
+        lambda: _groq(prompt, system, 'gemma2-9b-it', max_tokens),
+        lambda: _openrouter(prompt, system, 'qwen/qwen3-8b:free', max_tokens),
+        lambda: _gemini(prompt, system, max_tokens),
+    ]:
         try:
             return fn()
         except Exception as e:
@@ -148,7 +153,13 @@ def _call_fast(prompt: str, system: Optional[str], max_tokens: int) -> str:
 
 def _call_full(prompt: str, system: Optional[str], max_tokens: int) -> str:
     errs = []
-    for fn in [lambda: _groq(prompt, system, 'llama-3.3-70b-versatile', max_tokens), lambda: _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct', max_tokens), lambda: _gemini(prompt, system, max_tokens)]:
+    for fn in [
+        lambda: _groq(prompt, system, 'llama-3.3-70b-versatile', max_tokens),
+        lambda: _groq(prompt, system, 'qwen-qwq-32b', max_tokens),
+        lambda: _gemini(prompt, system, max_tokens),
+        lambda: _openrouter(prompt, system, 'qwen/qwen3-30b-a3b', max_tokens),
+        lambda: _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct', max_tokens),
+    ]:
         try:
             return fn()
         except Exception as e:
@@ -332,18 +343,28 @@ def _failover_providers() -> list[tuple[str, str, str]]:
     ds = os.environ.get('DEEPSEEK_API_KEY', '').strip()
     qw = os.environ.get('QWEN_API_KEY', '').strip()
     or_ = os.environ.get('OPENROUTER_API_KEY', '').strip()
+    # Tier 1 — Groq free: fastest, zero cost, high quality
     if gr:
-        providers.append(('groq', 'llama-3.3-70b-versatile', gr))
-        providers.append(('groq', 'llama-3.1-8b-instant', gr))
+        providers.append(('groq', 'llama-3.3-70b-versatile', gr))   # best quality on free tier
+        providers.append(('groq', 'qwen-qwq-32b', gr))               # reasoning model, excellent JSON/content
+        providers.append(('groq', 'llama-3.1-8b-instant', gr))       # high quota, fast fallback
+    # Tier 2 — Gemini free: large context, multimodal capable
     if gm:
         providers.append(('gemini', 'gemini-2.5-flash', gm))
-    if ms:
-        providers.append(('mistral', 'mistral-small-latest', ms))
-        providers.append(('codestral', 'codestral-latest', ms))
+    # Tier 3 — OpenRouter: Qwen3 MoE (3.8B active params, near-70B quality)
+    if or_:
+        providers.append(('openrouter', 'qwen/qwen3-30b-a3b', or_))
+        providers.append(('openrouter', 'qwen/qwen3-8b:free', or_))
+    # Tier 4 — DeepSeek: cheap, strong reasoning
     if ds:
         providers.append(('deepseek', 'deepseek-chat', ds))
+    # Tier 5 — Mistral
+    if ms:
+        providers.append(('mistral', 'mistral-small-latest', ms))
+    # Tier 6 — Qwen direct API
     if qw:
         providers.append(('qwen', 'qwen-plus', qw))
+    # Tier 7 — final fallback
     if or_:
         providers.append(('openrouter', 'openai/gpt-4o-mini', or_))
     if gm:
