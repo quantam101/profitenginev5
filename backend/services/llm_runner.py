@@ -2,7 +2,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 from services.distillation_service import cache_lookup, cache_store, distill_text, estimate_tokens
 'use strict' if False else None
 '\nbackend/services/llm_runner.py — ProfitEngine v5.0\nPython LLM orchestrator mirroring core/llm/index.js.\nGroq → OpenRouter → Gemini failover chain.\nCircuit breaker per provider, daily token budget, request dedup.\n'
@@ -170,18 +169,22 @@ async def llm_complete(system: str, user: str, *, max_tokens: int=1500, temperat
     Raises HTTPException(502) only when ALL configured providers fail.
     Raises HTTPException(503) when no providers are configured.
     """
+    import asyncio
     providers = _failover_providers()
     if not providers:
-        raise HTTPException(status_code=503, detail='No LLM keys configured. Set GROQ_API_KEY or EMERGENT_LLM_KEY in .env.')
+        raise HTTPException(status_code=503, detail='No LLM keys configured. Set GROQ_API_KEY or GEMINI_API_KEY in .env.')
     last_error: Exception | None = None
     for provider, model, api_key in providers:
         try:
             logger.debug('llm_complete: trying provider=%s model=%s', provider, model)
-            import uuid as _uuid
-            sid = f'{session_id}-{_uuid.uuid4().hex[:8]}'
-            chat = LlmChat(api_key=api_key, session_id=sid, system_message=system)
-            chat.with_model(provider, model)
-            response = await chat.send_message(UserMessage(text=user))
+            if provider == 'groq':
+                response = await asyncio.to_thread(_groq, user, system, model, max_tokens)
+            elif provider == 'gemini':
+                response = await asyncio.to_thread(_gemini, user, system, max_tokens)
+            elif provider in ('openrouter', 'mistral', 'deepseek', 'codestral', 'qwen'):
+                response = await asyncio.to_thread(_openrouter, user, system, model, max_tokens)
+            else:
+                continue
             if response:
                 logger.info('llm_complete: success provider=%s model=%s', provider, model)
                 return response
@@ -281,9 +284,7 @@ async def run_cached(db, provider: str, model: str, system_msg: str, prompt: str
     Returns the raw LLM response string. Caller is responsible for parsing it.
     On cache hit, no LLM call is made and the budget is not charged.
     """
-    api_key = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('GROQ_API_KEY') or ''
-    if not api_key:
-        raise HTTPException(status_code=503, detail='No LLM key configured (set EMERGENT_LLM_KEY or GROQ_API_KEY)')
+    import asyncio
     model_id = f'{provider}/{model}'
     distilled_prompt = distill_text(prompt)
     try:
@@ -296,11 +297,14 @@ async def run_cached(db, provider: str, model: str, system_msg: str, prompt: str
         return hit['response']
     estimated = estimate_tokens(distilled_prompt) + estimate_tokens(system_msg)
     await check_daily_budget(db, expected_tokens=estimated)
-    chat = LlmChat(api_key=api_key, session_id=session_id, system_message=system_msg)
-    chat.with_model(provider, model)
     response: str = ""
     try:
-        response = await chat.send_message(UserMessage(text=distilled_prompt))
+        if provider == 'groq':
+            response = await asyncio.to_thread(_groq, distilled_prompt, system_msg, model, 1500)
+        elif provider == 'gemini':
+            response = await asyncio.to_thread(_gemini, distilled_prompt, system_msg, 1500)
+        else:
+            response = await asyncio.to_thread(_openrouter, distilled_prompt, system_msg, model, 1500)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f'LLM call failed: {e}') from e
     await _record_call(db, tokens_in=estimated, tokens_out=estimate_tokens(response), cache_hit=False)
@@ -323,7 +327,7 @@ def _failover_providers() -> list[tuple[str, str, str]]:
     """
     providers: list[tuple[str, str, str]] = []
     gr = os.environ.get('GROQ_API_KEY', '').strip()
-    lm = os.environ.get('EMERGENT_LLM_KEY', '').strip()
+    gm = os.environ.get('GEMINI_API_KEY', '').strip()
     ms = os.environ.get('MISTRAL_API_KEY', '').strip()
     ds = os.environ.get('DEEPSEEK_API_KEY', '').strip()
     qw = os.environ.get('QWEN_API_KEY', '').strip()
@@ -331,8 +335,8 @@ def _failover_providers() -> list[tuple[str, str, str]]:
     if gr:
         providers.append(('groq', 'llama-3.3-70b-versatile', gr))
         providers.append(('groq', 'llama-3.1-8b-instant', gr))
-    if lm:
-        providers.append(('gemini', 'gemini-2.5-flash', lm))
+    if gm:
+        providers.append(('gemini', 'gemini-2.5-flash', gm))
     if ms:
         providers.append(('mistral', 'mistral-small-latest', ms))
         providers.append(('codestral', 'codestral-latest', ms))
@@ -342,6 +346,6 @@ def _failover_providers() -> list[tuple[str, str, str]]:
         providers.append(('qwen', 'qwen-plus', qw))
     if or_:
         providers.append(('openrouter', 'openai/gpt-4o-mini', or_))
-    if lm:
-        providers.append(('gemini', 'gemini-1.5-flash', lm))
+    if gm:
+        providers.append(('gemini', 'gemini-1.5-flash', gm))
     return providers
