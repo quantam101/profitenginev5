@@ -19,9 +19,9 @@ REPO_DIR="${REPO_DIR:-/home/opc/profitenginev5}"
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Disk thresholds (KB)
-THRESHOLD_WARN_KB=5242880    # 5 GB  → prune exec.cachemount layers
-THRESHOLD_AGG_KB=3145728     # 3 GB  → prune ALL build cache
-THRESHOLD_CRIT_KB=2097152    # 2 GB  → prune ALL unused images + volumes
+THRESHOLD_WARN_KB=8388608    # 8 GB  → prune ALL build cache (early, ~73% on 30GB)
+THRESHOLD_AGG_KB=5242880     # 5 GB  → prune unused images too
+THRESHOLD_CRIT_KB=3145728    # 3 GB  → prune ALL unused images + volumes
 
 # Ollama: only these models are kept; others are removed (distillation: prefer small quant)
 OLLAMA_KEEP=("llama3.1:8b" "qwen2.5:7b" "phi3.5:3.8b" "llama3.2:3b")
@@ -85,19 +85,24 @@ emit info "event=container_prune result=$(echo "$CTPRUNE" | tr -s ' ')"
 IMGPRUNE=$(docker image prune -f 2>&1 | tr '\n' ' ' | cut -c1-120)
 emit info "event=dangling_image_prune result=$(echo "$IMGPRUNE" | tr -s ' ')"
 
-# ── 5. Prune exec.cachemount build cache (safe — does not affect image layers) ─
-docker buildx prune -f --filter type=exec.cachemount 2>/dev/null || true
-emit info "event=buildcache_prune type=exec.cachemount"
+# ── 5. Always prune ALL build cache (safe — does not affect running containers) ─
+# Use both builder and buildx to cover all Docker BuildKit configurations
+CACHE_BEFORE=$(docker system df --format "{{.Type}} {{.Size}}" 2>/dev/null | grep "Build Cache" || echo "")
+docker builder prune -f 2>/dev/null || true
+docker buildx prune -af 2>/dev/null || true
+CACHE_AFTER=$(docker system df --format "{{.Type}} {{.Size}}" 2>/dev/null | grep "Build Cache" || echo "")
+emit info "event=buildcache_prune before='${CACHE_BEFORE}' after='${CACHE_AFTER}'"
 
 # ── 6. Threshold-based aggressive pruning ─────────────────────────────────────
 if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_WARN_KB}" ]]; then
-  emit warn "event=disk_warn avail_gb=${AVAIL_GB} action=full_buildcache_prune"
-  docker buildx prune -af 2>/dev/null || true
+  emit warn "event=disk_warn avail_gb=${AVAIL_GB} action=full_buildcache_and_image_prune"
+  docker builder prune -af 2>/dev/null || true
+  docker image prune -f 2>/dev/null || true
 fi
 
 if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_AGG_KB}" ]]; then
-  emit warn "event=disk_agg avail_gb=${AVAIL_GB} action=all_buildcache_prune"
-  docker buildx prune -af 2>/dev/null || true
+  emit warn "event=disk_agg avail_gb=${AVAIL_GB} action=unused_images_prune"
+  docker image prune -af 2>/dev/null || true
 fi
 
 if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_CRIT_KB}" ]]; then
