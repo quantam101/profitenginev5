@@ -157,8 +157,9 @@ def _call_full(prompt: str, system: Optional[str], max_tokens: int) -> str:
         lambda: _groq(prompt, system, 'llama-3.3-70b-versatile', max_tokens),
         lambda: _groq(prompt, system, 'qwen-qwq-32b', max_tokens),
         lambda: _gemini(prompt, system, max_tokens),
-        lambda: _openrouter(prompt, system, 'qwen/qwen3-30b-a3b', max_tokens),
-        lambda: _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct', max_tokens),
+        lambda: _openrouter(prompt, system, 'qwen/qwen3-30b-a3b:free', max_tokens),
+        lambda: _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct:free', max_tokens),
+        lambda: _openrouter(prompt, system, 'qwen/qwen3-8b:free', max_tokens),
     ]:
         try:
             return fn()
@@ -192,7 +193,7 @@ async def llm_complete(system: str, user: str, *, max_tokens: int=1500, temperat
                 response = await asyncio.to_thread(_groq, user, system, model, max_tokens)
             elif provider == 'gemini':
                 response = await asyncio.to_thread(_gemini, user, system, max_tokens)
-            elif provider in ('openrouter', 'mistral', 'deepseek', 'codestral', 'qwen'):
+            elif provider == 'openrouter':
                 response = await asyncio.to_thread(_openrouter, user, system, model, max_tokens)
             else:
                 continue
@@ -315,7 +316,9 @@ async def run_cached(db, provider: str, model: str, system_msg: str, prompt: str
         elif provider == 'gemini':
             response = await asyncio.to_thread(_gemini, distilled_prompt, system_msg, 1500)
         else:
-            response = await asyncio.to_thread(_openrouter, distilled_prompt, system_msg, model, 1500)
+            # Ensure model has :free suffix for OpenRouter zero-cost enforcement
+            safe_model = model if ':free' in model or not model.startswith(('qwen/', 'meta-llama/', 'google/')) else f'{model}:free'
+            response = await asyncio.to_thread(_openrouter, distilled_prompt, system_msg, safe_model, 1500)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f'LLM call failed: {e}') from e
     await _record_call(db, tokens_in=estimated, tokens_out=estimate_tokens(response), cache_hit=False)
@@ -332,41 +335,29 @@ async def daily_usage_history(db, days: int=14) -> list[dict]:
 
 def _failover_providers() -> list[tuple[str, str, str]]:
     """
-    Build the ordered provider list from available env vars.
-    Returns list of (provider_name, model_id, api_key).
-    Priority: Groq (fastest, free) → Gemini Flash → Mistral → DeepSeek → OpenRouter
+    Zero-cost failover chain — all models are free tier only.
+    Priority: Groq (free, fastest) → Gemini (free tier) → OpenRouter :free models
+    Paid providers (DeepSeek, Mistral, Qwen direct, gpt-4o-mini) are excluded
+    to enforce max_cost_usd=0.
     """
     providers: list[tuple[str, str, str]] = []
     gr = os.environ.get('GROQ_API_KEY', '').strip()
     gm = os.environ.get('GEMINI_API_KEY', '').strip()
-    ms = os.environ.get('MISTRAL_API_KEY', '').strip()
-    ds = os.environ.get('DEEPSEEK_API_KEY', '').strip()
-    qw = os.environ.get('QWEN_API_KEY', '').strip()
     or_ = os.environ.get('OPENROUTER_API_KEY', '').strip()
-    # Tier 1 — Groq free: fastest, zero cost, high quality
+    # Groq — always free, rate-limited but generous daily quota
     if gr:
-        providers.append(('groq', 'llama-3.3-70b-versatile', gr))   # best quality on free tier
-        providers.append(('groq', 'qwen-qwq-32b', gr))               # reasoning model, excellent JSON/content
-        providers.append(('groq', 'llama-3.1-8b-instant', gr))       # high quota, fast fallback
-    # Tier 2 — Gemini free: large context, multimodal capable
+        providers.append(('groq', 'llama-3.3-70b-versatile', gr))
+        providers.append(('groq', 'qwen-qwq-32b', gr))
+        providers.append(('groq', 'llama-3.1-8b-instant', gr))
+        providers.append(('groq', 'gemma2-9b-it', gr))
+    # Gemini free tier — 1500 req/day, generous context
     if gm:
         providers.append(('gemini', 'gemini-2.5-flash', gm))
-    # Tier 3 — OpenRouter: Qwen3 MoE (3.8B active params, near-70B quality)
-    if or_:
-        providers.append(('openrouter', 'qwen/qwen3-30b-a3b', or_))
-        providers.append(('openrouter', 'qwen/qwen3-8b:free', or_))
-    # Tier 4 — DeepSeek: cheap, strong reasoning
-    if ds:
-        providers.append(('deepseek', 'deepseek-chat', ds))
-    # Tier 5 — Mistral
-    if ms:
-        providers.append(('mistral', 'mistral-small-latest', ms))
-    # Tier 6 — Qwen direct API
-    if qw:
-        providers.append(('qwen', 'qwen-plus', qw))
-    # Tier 7 — final fallback
-    if or_:
-        providers.append(('openrouter', 'openai/gpt-4o-mini', or_))
-    if gm:
         providers.append(('gemini', 'gemini-1.5-flash', gm))
+    # OpenRouter :free models — rate-limited community tier, zero cost
+    if or_:
+        providers.append(('openrouter', 'qwen/qwen3-30b-a3b:free', or_))
+        providers.append(('openrouter', 'qwen/qwen3-8b:free', or_))
+        providers.append(('openrouter', 'meta-llama/llama-3.3-70b-instruct:free', or_))
+        providers.append(('openrouter', 'google/gemma-2-9b-it:free', or_))
     return providers
