@@ -1,6 +1,7 @@
 """
 EAOS Social Engine — Multi-platform posting with offline SQLite cache.
-Platforms: X/Twitter (OAuth 1.0a), LinkedIn, Reddit, TikTok, Telegram.
+Platforms: X/Twitter (OAuth 1.0a), LinkedIn, Reddit, TikTok, Telegram,
+           Facebook Pages, Instagram (Graph API), YouTube.
 Falls back to local journal if network is down; auto-retries on restore.
 """
 import os
@@ -282,6 +283,153 @@ async def _post_tiktok(post: SocialPost) -> bool:
         return False
 
 
+# ── Facebook Pages ────────────────────────────────────────────────────────
+async def _post_facebook(post: SocialPost) -> bool:
+    page_id    = os.environ.get("FB_PAGE_ID", "")
+    page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
+    if not page_id or not page_token:
+        return False
+    try:
+        message = post.text_content[:2000]
+        extra   = post.extra or {}
+        payload: Dict[str, Any] = {"message": message, "access_token": page_token}
+        if extra.get("url"):
+            payload["link"] = extra["url"]
+        body = urllib.parse.urlencode(payload).encode()
+        req  = urllib.request.Request(
+            f"https://graph.facebook.com/v21.0/{page_id}/feed",
+            data=body, method="POST")
+        resp = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        logger.info(f"[Facebook] Posted: {resp.get('id','?')}")
+        return True
+    except Exception as exc:
+        logger.error(f"[Facebook] Post failed: {exc}")
+        return False
+
+
+# ── Instagram (Graph API) ──────────────────────────────────────────────────
+async def _post_instagram(post: SocialPost) -> bool:
+    ig_user_id = os.environ.get("IG_USER_ID", "")
+    page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
+    if not ig_user_id or not page_token:
+        return False
+    try:
+        extra   = post.extra or {}
+        caption = post.text_content[:2200]
+        base    = "https://graph.facebook.com/v21.0"
+
+        if post.media_path and post.media_path.endswith(".mp4"):
+            # Reel upload
+            params = urllib.parse.urlencode({
+                "media_type": "REELS",
+                "video_url": extra.get("video_url", ""),
+                "caption": caption,
+                "access_token": page_token,
+            }).encode()
+            req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
+            data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        else:
+            # Image post — use a hosted image URL or skip
+            img_url = extra.get("image_url", "")
+            if not img_url:
+                logger.info("[Instagram] No image_url provided — skipping")
+                return False
+            params = urllib.parse.urlencode({
+                "image_url": img_url,
+                "caption": caption,
+                "access_token": page_token,
+            }).encode()
+            req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
+            data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+
+        creation_id = data.get("id", "")
+        if not creation_id:
+            return False
+        # Publish the container
+        pub_params = urllib.parse.urlencode({
+            "creation_id": creation_id,
+            "access_token": page_token,
+        }).encode()
+        pub_req = urllib.request.Request(f"{base}/{ig_user_id}/media_publish",
+                                          data=pub_params, method="POST")
+        pub_data = json.loads(urllib.request.urlopen(pub_req, timeout=30).read())
+        logger.info(f"[Instagram] Published: {pub_data.get('id','?')}")
+        return True
+    except Exception as exc:
+        logger.error(f"[Instagram] Post failed: {exc}")
+        return False
+
+
+# ── YouTube ────────────────────────────────────────────────────────────────
+async def _post_youtube(post: SocialPost) -> bool:
+    client_id     = os.environ.get("YOUTUBE_CLIENT_ID", "")
+    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
+    refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
+    if not all([client_id, client_secret, refresh_token]):
+        return False
+    if not post.media_path or not os.path.exists(post.media_path):
+        logger.info("[YouTube] No video file — skipping")
+        return False
+    try:
+        # Refresh access token
+        token_body = urllib.parse.urlencode({
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }).encode()
+        token_req  = urllib.request.Request("https://oauth2.googleapis.com/token",
+                                             data=token_body, method="POST",
+                                             headers={"Content-Type": "application/x-www-form-urlencoded"})
+        token_data = json.loads(urllib.request.urlopen(token_req, timeout=15).read())
+        access_token = token_data.get("access_token", "")
+        if not access_token:
+            logger.error("[YouTube] Failed to refresh access token")
+            return False
+
+        extra = post.extra or {}
+        metadata = json.dumps({
+            "snippet": {
+                "title": post.text_content[:100],
+                "description": extra.get("description", post.text_content[:5000]),
+                "tags": extra.get("tags", ["ProfitEngine", "PassiveIncome", "AI", "AlreadyHereLLC"]),
+                "categoryId": "28",  # Science & Technology
+            },
+            "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False},
+        }).encode()
+
+        # Resumable upload
+        init_req = urllib.request.Request(
+            "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
+            data=metadata, method="POST",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json; charset=UTF-8",
+                "X-Upload-Content-Type": "video/mp4",
+                "X-Upload-Content-Length": str(os.path.getsize(post.media_path)),
+            })
+        with urllib.request.urlopen(init_req, timeout=15) as r:
+            upload_url = r.headers.get("Location", "")
+
+        if not upload_url:
+            logger.error("[YouTube] No upload URL received")
+            return False
+
+        with open(post.media_path, "rb") as vf:
+            video_bytes = vf.read()
+        upload_req = urllib.request.Request(upload_url, data=video_bytes, method="PUT",
+            headers={"Content-Type": "video/mp4",
+                     "Content-Length": str(len(video_bytes)),
+                     "Authorization": f"Bearer {access_token}"})
+        result = json.loads(urllib.request.urlopen(upload_req, timeout=300).read())
+        video_id = result.get("id", "")
+        logger.info(f"[YouTube] Uploaded: https://youtube.com/watch?v={video_id}")
+        return True
+    except Exception as exc:
+        logger.error(f"[YouTube] Upload failed: {exc}")
+        return False
+
+
 # ── Main Engine ────────────────────────────────────────────────────────────
 
 class ProductionSocialEngine:
@@ -300,12 +448,15 @@ class ProductionSocialEngine:
             self.journal.cache(post)
             return
         dispatch = {
-            "X":        _post_twitter,
-            "TWITTER":  _post_twitter,
-            "LINKEDIN": _post_linkedin,
-            "REDDIT":   _post_reddit,
-            "TELEGRAM": _post_telegram,
-            "TIKTOK":   _post_tiktok,
+            "X":         _post_twitter,
+            "TWITTER":   _post_twitter,
+            "LINKEDIN":  _post_linkedin,
+            "REDDIT":    _post_reddit,
+            "TELEGRAM":  _post_telegram,
+            "TIKTOK":    _post_tiktok,
+            "FACEBOOK":  _post_facebook,
+            "INSTAGRAM": _post_instagram,
+            "YOUTUBE":   _post_youtube,
         }
         fn = dispatch.get(post.platform.upper())
         if not fn:
@@ -326,16 +477,26 @@ class ProductionSocialEngine:
         linkedin_msg = f"{text[:600]}\n\n{url}\n\n{hashtags}"
         reddit_title = text[:300]
 
+        fb_msg  = f"{text[:600]}\n\n{url}\n\n{hashtags}"
+        yt_desc = f"{text}\n\n{url}\n\n{hashtags}\n\nAlready Here LLC — AI-powered automation for small business."
+
         platform_posts = [
             SocialPost(None, "TELEGRAM", telegram_msg),
             SocialPost(None, "LINKEDIN", linkedin_msg),
+            SocialPost(None, "FACEBOOK", fb_msg, extra={"url": url}),
             SocialPost(None, "REDDIT",   reddit_title, extra={"url": url, "subreddit": "passive_income"}),
+            SocialPost(None, "INSTAGRAM", f"{text[:200]}\n\n{hashtags}",
+                       extra={"url": url, "image_url": f"https://quantam101.github.io/content/assets/og.png"}),
         ]
         if thread_tweets:
             platform_posts.append(SocialPost(None, "X", thread_tweets[0],
                                               extra={"thread_tweets": thread_tweets}))
         if video_path:
             platform_posts.append(SocialPost(None, "TIKTOK", text[:150], media_path=video_path))
+            platform_posts.append(SocialPost(None, "YOUTUBE", text[:100], media_path=video_path,
+                                              extra={"description": yt_desc,
+                                                     "tags": [t.replace("-","") for t in (tags or [])[:8]] +
+                                                              ["ProfitEngine","PassiveIncome","AI","AlreadyHereLLC"]}))
 
         await asyncio.gather(*[self.publish(p) for p in platform_posts])
 
