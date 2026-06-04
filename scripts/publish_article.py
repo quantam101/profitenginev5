@@ -58,11 +58,32 @@ MEDIUM_AUTHOR_ID = os.getenv("MEDIUM_AUTHOR_ID", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 AMAZON_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20").strip()
 
+_CMDOS_BASE = os.getenv("CMDOS_BASE_URL", "https://app.alreadyherellc.com").rstrip("/")
+
+
+def _fetch_cmdos_topic() -> Optional[str]:
+    """Pull the next queued topic from Already Here Growth Command OS."""
+    try:
+        import urllib.request as _req
+        r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)
+        data = json.loads(r.read())
+        topics = data.get("topics", [])
+        if topics:
+            print(f"[ContentSync] Using Growth Command OS topic: {topics[0]['topic']}")
+            return topics[0]["topic"]
+    except Exception as e:
+        print(f"[ContentSync] Dashboard unreachable, using rotation: {e}")
+    return None
+
+
 def _default_topic() -> str:
-    """Pick today's topic from the rotation list, or use ARTICLE_TOPIC env override."""
+    """Pull from Growth Command OS queue first, then ARTICLE_TOPIC env, then rotation."""
     override = os.getenv("ARTICLE_TOPIC", "").strip()
     if override:
         return override
+    cmdos_topic = _fetch_cmdos_topic()
+    if cmdos_topic:
+        return cmdos_topic
     try:
         # Import sibling module without package install
         import importlib.util, pathlib
@@ -536,6 +557,32 @@ def main() -> None:
     if medium_url:
         print(f"Medium  : {medium_url}")
     print("=" * 50)
+
+    # Notify Growth Command OS that article was published
+    if canonical_url:
+        try:
+            import urllib.request as _req
+            payload = json.dumps({
+                "title": article["title"],
+                "topic": DEFAULT_TOPIC,
+                "canonical_url": canonical_url,
+                "devto_url": devto_url or "",
+                "medium_url": medium_url or "",
+                "hashnode_url": hashnode_url or "",
+                "platforms": (["github_pages"]
+                              + (["devto"] if devto_url else [])
+                              + (["medium"] if medium_url else [])
+                              + (["hashnode"] if hashnode_url else [])),
+            }).encode()
+            _req.urlopen(
+                _req.Request(f"{_CMDOS_BASE}/api/content-sync/published",
+                             data=payload, method="POST",
+                             headers={"Content-Type": "application/json"}),
+                timeout=8,
+            )
+            print("[ContentSync] Published article logged to Growth Command OS")
+        except Exception as e:
+            print(f"[ContentSync] Could not log to dashboard (non-fatal): {e}")
 
 
 if __name__ == "__main__":

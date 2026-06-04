@@ -55,6 +55,7 @@ jobs:
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           PYTHONUTF8: "1"
           # EAOS Social credentials — add these secrets to enable each platform
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
