@@ -35,6 +35,8 @@ _IGNORED_RELATIVE = {
     "DEPLOY.md",
     "docs/LAUNCH_CHECKLIST.md",
     "docs/AFFILIATE_SETUP.md",
+    "backend/services/byok_service.py",   # BYOK key validation patterns — not real keys
+    "backend/services/token_optimizer.py",
 }
 
 _IGNORED_DIRS = {".git", "node_modules", ".next", "__pycache__", ".pytest_cache", ".claude"}
