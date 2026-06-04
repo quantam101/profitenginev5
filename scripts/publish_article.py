@@ -327,8 +327,8 @@ def publish_github(filename: str, content: str, commit_msg: str) -> str:
     html_url = r.json().get("content", {}).get("html_url", "")
     print(f"[OK] Published to GitHub Pages: {html_url}")
     pages_url = f"https://{GH_OWNER}.github.io/{GH_REPO}"
-    # Return the rendered post URL (Jekyll renders posts under /year/month/day/slug)
-    return f"{pages_url}/posts/{filename.replace('.md', '.html')}"
+    # Jekyll permalink: pretty — posts render as /posts/slug/
+    return f"{pages_url}/posts/{filename.replace('.md', '')}/"
 
 
 # ── Dev.to publish ─────────────────────────────────────────────────────────────
@@ -340,10 +340,10 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     meta = article.get("meta_description", "")
     body = article.get("body", "")
     raw_tags: List[str] = article.get("tags", [])
-    # Dev.to requires: lowercase, alphanumeric only, max 20 chars, no spaces
+    # Dev.to requires: lowercase, alphanumeric + hyphens only, max 20 chars
     clean_tags: List[str] = []
     for t in raw_tags:
-        sanitized = re.sub(r'[^a-z0-9]', '', t.lower().replace(' ', '').replace('-', ''))[:20]
+        sanitized = re.sub(r'[^a-z0-9-]', '', t.lower().replace(' ', '-'))[:20].strip('-')
         if sanitized and sanitized not in clean_tags:
             clean_tags.append(sanitized)
     tags = clean_tags[:4]
@@ -364,7 +364,9 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
         json=payload,
         timeout=30,
     )
-    r.raise_for_status()
+    if not r.is_success:
+        print(f"[FAIL] Dev.to {r.status_code}: {r.text[:300]}")
+        r.raise_for_status()
     url = r.json().get("url", "")
     print(f"[OK] Published to Dev.to: {url}")
     return url
@@ -394,13 +396,15 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
     """
     # follow_redirects=True handles 301/302 at the GraphQL endpoint
     r = httpx.post(
-        "https://gql.hashnode.com",  # no trailing slash avoids a 301 redirect
-        headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
+        "https://gql.hashnode.com",
+        headers={"Authorization": f"Bearer {HASHNODE_KEY}", "Content-Type": "application/json"},
         json={"query": query, "variables": {"input": payload}},
         timeout=30,
         follow_redirects=True,
     )
-    r.raise_for_status()
+    if not r.is_success or not r.text.strip():
+        print(f"[FAIL] Hashnode {r.status_code}: {r.text[:300]}")
+        r.raise_for_status()
     data = r.json()
     if data.get("errors"):
         raise RuntimeError(f"Hashnode errors: {data['errors']}")
