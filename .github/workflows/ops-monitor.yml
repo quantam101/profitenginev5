@@ -5,6 +5,10 @@ on:
     - cron: '0 8 * * *'   # 08:00 UTC daily
   workflow_dispatch:
 
+permissions:
+  issues: write
+  contents: read
+
 concurrency:
   group: ops-monitor
   cancel-in-progress: false
