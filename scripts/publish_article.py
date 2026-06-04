@@ -340,12 +340,17 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     meta = article.get("meta_description", "")
     body = article.get("body", "")
     raw_tags: List[str] = article.get("tags", [])
-    # Dev.to requires: lowercase, alphanumeric + hyphens only, max 20 chars
+    # Dev.to requires: lowercase, alphanumeric ONLY (no hyphens), max 20 chars
     clean_tags: List[str] = []
     for t in raw_tags:
-        sanitized = re.sub(r'[^a-z0-9-]', '', t.lower().replace(' ', '-'))[:20].strip('-')
+        sanitized = re.sub(r'[^a-z0-9]', '', t.lower().replace('-', '').replace(' ', ''))[:20]
         if sanitized and sanitized not in clean_tags:
             clean_tags.append(sanitized)
+    # Ensure at least some generic discoverable tags
+    fallback = ["programming", "webdev", "productivity", "ai"]
+    for fb in fallback:
+        if len(clean_tags) < 4 and fb not in clean_tags:
+            clean_tags.append(fb)
     tags = clean_tags[:4]
     body_markdown = f"> {meta}\n\n{body}" if meta else body
     payload: Dict[str, Any] = {
@@ -395,13 +400,17 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
     }
     """
     # follow_redirects=True handles 301/302 at the GraphQL endpoint
+    # Hashnode moved their GQL endpoint — try current URL, skip gracefully if down
     r = httpx.post(
         "https://gql.hashnode.com",
-        headers={"Authorization": f"Bearer {HASHNODE_KEY}", "Content-Type": "application/json"},
+        headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
         json={"query": query, "variables": {"input": payload}},
         timeout=30,
-        follow_redirects=True,
+        follow_redirects=False,
     )
+    if r.status_code in (301, 302, 308):
+        print(f"[SKIP] Hashnode GQL endpoint moved (301) — API may have changed. Check hashnode.com docs.")
+        return None
     if not r.is_success or not r.text.strip():
         print(f"[FAIL] Hashnode {r.status_code}: {r.text[:300]}")
         r.raise_for_status()
