@@ -14,7 +14,11 @@ type LeadPayload = {
 const VALID_TYPES = new Set(['Trailer', 'Courier', 'Field Tech', 'Low Voltage', 'IT Support', 'Follow Up']);
 
 function sanitize(value: unknown, max = 500): string {
-  return String(value ?? '').replace(/[<>]/g, '').trim().slice(0, max);
+  return String(value ?? '').replace(/[<>"'`;&|]/g, '').trim().slice(0, max);
+}
+
+function containsInjection(value: string): boolean {
+  return /<script|onerror|onload|javascript:|data:/i.test(value);
 }
 
 function scoreLead(payload: Required<Pick<LeadPayload, 'pay' | 'miles'>> & { urgency: number; fit: number; probability: number }) {
@@ -50,6 +54,10 @@ export async function POST(request: NextRequest) {
 
   if (!title) {
     return NextResponse.json({ ok: false, error: 'Lead title is required.' }, { status: 400 });
+  }
+
+  if (containsInjection(String(body.title ?? ''))) {
+    return NextResponse.json({ ok: false, error: 'Invalid characters in title.' }, { status: 400 });
   }
 
   if (!VALID_TYPES.has(type)) {
