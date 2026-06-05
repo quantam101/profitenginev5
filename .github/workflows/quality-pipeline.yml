@@ -167,7 +167,7 @@ jobs:
         env:
           MONGO_URL: mongodb://localhost:27017
           DB_NAME: pe_perf
-          EMERGENT_LLM_KEY: ${{ secrets.EMERGENT_LLM_KEY || 'sk-emergent-ci-stub' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'sk-test-ci-stub' }}
         run: |
           pip install -r backend/requirements.txt
           uvicorn backend.server:app --host 0.0.0.0 --port 8001 &

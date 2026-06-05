@@ -33,7 +33,7 @@
     "/app/backend/tests/test_launch.py (NEW — 9 tests for checkout/launch/referral/subscriptions)"
   ],
   "success_rate": {"backend": "100%", "frontend": "100%"},
-  "test_credentials": "none required — Stripe API key sk_test_emergent already in /app/backend/.env, EMERGENT_LLM_KEY already set.",
+  "test_credentials": "none required — Stripe API key sk_test_[removed] already in /app/backend/.env, [removed] already set.",
   "seed_data_creation": "Tests inserted into Mongo: payment_transactions (2 rows from Studio session creation + polling), referral_clicks (1 row for TEST_VIRAL2026, plus 2 for VIRAL2026 from landing visits). All test data is prefixed with TEST_ where applicable.",
   "retest_needed": false,
   "main_agent_can_self_test": true,

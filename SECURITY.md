@@ -23,7 +23,7 @@ therefore immune to XSS exfiltration.
 ## Server secrets
 
 Never commit:
-- `backend/.env` (Mongo URL, Stripe secret key, Anthropic key, Gemini key, Emergent LLM key)
+- `backend/.env` (Mongo URL, Stripe secret key, Anthropic key, Gemini key, [removed] LLM key)
 - Any file matching `*.env`, `*.key`, `*.pem`
 
 `frontend/scripts/check-env.js` blocks builds if any server-only secret is
@@ -32,8 +32,8 @@ detected in `frontend/.env`.
 ## Stripe
 
 - Backend uses `STRIPE_API_KEY` (`sk_*`). Auto-routes real Stripe keys through
-  the native SDK and the Emergent magic key (`sk_test_emergent`) through the
-  Emergent transport.
+  the native SDK and the [removed] magic key (`sk_test_[removed] through the
+  [removed] transport.
 - Webhook signatures verified via `STRIPE_WEBHOOK_SECRET` when using the
   native transport.
 - Frontend never sees the secret key. If Stripe Elements are added later,
@@ -42,7 +42,7 @@ detected in `frontend/.env`.
 
 ## LLM providers
 
-- `EMERGENT_LLM_KEY` works only inside the Emergent pod.
+- `[removed] works only inside the [removed] pod.
 - `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` (direct provider keys) work everywhere.
 - The Distiller auto-detects which key set is present (`llm_provider.py`).
 

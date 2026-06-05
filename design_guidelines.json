@@ -84,13 +84,13 @@
     "images": [
       {
         "category": "hero_bg_terminal",
-        "url": "https://static.prod-images.emergentagent.com/jobs/03007607-18b4-446a-b4d6-17aeeb64e908/images/0c1f4025fb2f0570f484283d75f6d34b32bb158305f21f60cd181a06e8e0f966.png",
+        "url": "https://static.prod-images.[removed]",
         "description": "Abstract dark mode background, cinematic terminal hacker aesthetic",
         "usage": "Use as an absolutely positioned background image in the Hero section with opacity-20 or opacity-30 and a black gradient overlay."
       },
       {
         "category": "ast_tree_graphic",
-        "url": "https://static.prod-images.emergentagent.com/jobs/03007607-18b4-446a-b4d6-17aeeb64e908/images/d99df2800c422abc86f70c6ac01cee721a67766d8f498455bc5552b19f73e228.png",
+        "url": "https://static.prod-images.[removed]",
         "description": "Abstract 3D rendering of an abstract syntax tree (AST) data structure",
         "usage": "Use in the feature section explaining the AST logic or next to the Playground."
       }

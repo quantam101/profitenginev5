@@ -8,7 +8,7 @@ httpx==0.28.1
 # ── database ─────────────────────────────────────────────────────────────────
 motor==3.6.0
 
-# ── LLM providers (direct SDKs — no emergentintegrations) ────────────────────
+# ── LLM providers (direct SDKs — no  ────────────────────
 anthropic>=0.40.0
 google-genai>=1.0.0
 openai>=1.0.0

@@ -1,8 +1,8 @@
-# Deploying ProfitEngine v5 outside Emergent
+# Deploying ProfitEngine v5 outside [removed]
 
 This codebase is **fully portable**. The integrations layer auto-detects
 your credentials and picks the right transport — no code changes needed
-to go from Emergent preview → production hosting.
+to go from [removed] preview → production hosting.
 
 ## Quick start (Docker, anywhere)
 
@@ -21,12 +21,12 @@ The stack comes up at:
 
 ## Provider migration matrix
 
-| Concern | On-Emergent | Off-Emergent |
+| Concern | On-[removed] | Off-[removed] |
 |---------|-------------|--------------|
-| LLM     | `EMERGENT_LLM_KEY` | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` |
-| Stripe  | `STRIPE_API_KEY=sk_test_emergent` | `STRIPE_API_KEY=sk_live_...` |
+| LLM     | `[removed] | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` |
+| Stripe  | `STRIPE_API_KEY=sk_test_[removed] | `STRIPE_API_KEY=sk_live_...` |
 | Mongo   | Pod-local | Mongo Atlas / Railway plugin / RDS |
-| Hosting | `*.preview.emergentagent.com` | Your domain |
+| Hosting | `*.preview.[removed] | Your domain |
 
 The Distiller (`backend/services/llm_provider.py`) and Stripe transport
 (`backend/services/stripe_transport.py`) detect which set of keys you
@@ -79,13 +79,13 @@ CI (`.github/workflows/ci.yml`) runs the same gate on every PR.
 Each deploy is immutable in Railway/Vercel — one-click rollback to any
 previous build. Mongo: take a snapshot before schema changes (`mongodump`).
 
-## What doesn't work off-Emergent
+## What doesn't work off-[removed]
 
-- The `EMERGENT_LLM_KEY` universal key only works inside the Emergent pod
+- The `[removed] universal key only works inside the [removed] pod
   → replace with `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` (already supported
   by the abstraction; just provide the keys).
-- The `*.preview.emergentagent.com` URL — you'll point your own domain instead.
-- Emergent's secret injection — use your hosting provider's secret manager.
+- The `*.preview.[removed] URL — you'll point your own domain instead.
+- [removed]'s secret injection — use your hosting provider's secret manager.
 
 Everything else (FastAPI + React + MongoDB + the 20-agent fleet + Cash AI
 + Distillation + Stripe Checkout + Launch kit) is platform-agnostic.
