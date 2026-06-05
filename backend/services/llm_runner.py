@@ -137,9 +137,34 @@ def _gemini(prompt: str, system: Optional[str], max_tokens: int) -> str:
         _trip('gemini')
         raise e
 
+def _gateway(prompt: str, system: Optional[str], max_tokens: int) -> str:
+    """Route through the LiteLLM hypervisor gateway when it's running (port 4000).
+    Falls through silently if the gateway is not available."""
+    gateway_url = os.environ.get("GATEWAY_URL", "")
+    master_key  = os.environ.get("LITELLM_MASTER_KEY", "")
+    if not gateway_url:
+        raise RuntimeError("gateway:not_configured")
+    headers = {"Authorization": f"Bearer {master_key}"} if master_key else {}
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.append({"role": "user", "content": prompt})
+    try:
+        resp = requests.post(
+            f"{gateway_url.rstrip('/')}/v1/chat/completions",
+            json={"model": "autonomous-intelligence-mesh", "messages": msgs, "max_tokens": max_tokens},
+            headers=headers, timeout=20,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        raise RuntimeError(f"gateway:unavailable:{e}") from e
+
+
 def _call_fast(prompt: str, system: Optional[str], max_tokens: int) -> str:
     errs = []
     for fn in [
+        lambda: _gateway(prompt, system, max_tokens),          # hypervisor gateway first
         lambda: _groq(prompt, system, 'llama-3.1-8b-instant', max_tokens),
         lambda: _groq(prompt, system, 'gemma2-9b-it', max_tokens),
         lambda: _openrouter(prompt, system, 'qwen/qwen3-8b:free', max_tokens),
@@ -154,6 +179,7 @@ def _call_fast(prompt: str, system: Optional[str], max_tokens: int) -> str:
 def _call_full(prompt: str, system: Optional[str], max_tokens: int) -> str:
     errs = []
     for fn in [
+        lambda: _gateway(prompt, system, max_tokens),          # hypervisor gateway first
         lambda: _groq(prompt, system, 'llama-3.3-70b-versatile', max_tokens),
         lambda: _groq(prompt, system, 'qwen-qwq-32b', max_tokens),
         lambda: _gemini(prompt, system, max_tokens),

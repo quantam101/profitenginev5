@@ -1,0 +1,81 @@
+# LiteLLM Gateway — Zero-cost routing matrix
+# Priority order: Groq (free, fastest) → Gemini Flash (free tier) → OpenRouter :free
+# All models are free tier only — enforces max_cost_usd=0
+
+model_list:
+  # Tier 1 — Groq (free, ~500 tokens/sec)
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: "os.environ/GROQ_API_KEY"
+      rpm: 30
+      tpm: 6000
+      timeout: 15
+
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: groq/qwen-qwq-32b
+      api_key: "os.environ/GROQ_API_KEY"
+      rpm: 30
+      tpm: 6000
+      timeout: 15
+
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: "os.environ/GROQ_API_KEY"
+      rpm: 30
+      tpm: 14400
+      timeout: 10
+
+  # Tier 2 — Gemini Flash (free tier: 1500 req/day)
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+      rpm: 15
+      tpm: 1000000
+      timeout: 20
+
+  # Tier 3 — OpenRouter :free community models
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: openrouter/qwen/qwen3-30b-a3b:free
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      rpm: 20
+      timeout: 30
+
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      rpm: 20
+      timeout: 30
+
+  # Tier 4 — Local Ollama (air-gapped fallback, OCI Linux host)
+  # Uses host network gateway IP, not host.docker.internal (Linux-incompatible)
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: ollama/llama3.1:8b
+      api_base: "http://172.17.0.1:11434"  # Docker bridge gateway on Linux
+      tpm: 999999
+      timeout: 60
+
+router_settings:
+  routing_strategy: latency-based-routing  # routes to fastest responding provider
+  redis_host: "state_cache"
+  redis_port: 6379
+  allowed_fails: 2          # trip circuit breaker after 2 failures (not 1)
+  cooldown_time: 30
+  failover_on_429: true
+  retry_policy:
+    ContentPolicyViolationError:
+      num_retries: 1
+    RateLimitError:
+      num_retries: 3
+
+general_settings:
+  master_key: "os.environ/LITELLM_MASTER_KEY"
+  store_model_in_db: false
+  max_budget: 0             # hard zero-spend cap
+  budget_duration: 30d
