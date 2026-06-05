@@ -44,6 +44,11 @@ jobs:
         run: |
           python3 - <<'PYEOF'
 import asyncio, json, os, sys, pathlib
+
+# Guard: exit cleanly if not triggered via workflow_dispatch (no inputs set)
+if not os.environ.get('AGENT_TYPE'):
+    print('[EAOS] Skipped — no AGENT_TYPE set. Trigger manually via workflow_dispatch.')
+    sys.exit(0)
 sys.path.insert(0, str(pathlib.Path(".").resolve()))
 from runtime.eaos.cluster_master import ClusterTaskQueue
 
@@ -63,7 +68,7 @@ else:
     print(f"[Cluster] Enqueued {agent_type}::{directive} → task_id={tid}")
 
 print(f"\nNote: The cluster_master daemon on the OCI server picks up queued tasks.")
-print(f"Verify at: ubuntu@129.146.167.73  →  cat datacenter/eaos_cluster.db")
+print(f"Verify at: opc@129.146.167.73  →  cat datacenter/eaos_cluster.db")
 PYEOF
 
       - name: Summary
