@@ -60,3 +60,26 @@ No partial "looks good" status is acceptable.
 - OCI server: `ubuntu@129.146.167.73`
 - Deploy key (public): `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions`
 - Add via OCI Console → Instance → Edit → SSH keys
+
+## Context Mesh Engine — Token Optimization Rules
+
+### Symbol Extraction (90% token reduction)
+When analyzing code, use the `dispatch_parallel_context` MCP tool instead of reading full files.
+```
+Tool: dispatch_parallel_context
+Args: { repoPath: "<path>", symbolIdentifier: "<function/class name>", lang: "auto" }
+```
+
+### Search Tools (use in order)
+| Task | Tool |
+|------|------|
+| Find symbol across repo | `dispatch_parallel_context` |
+| High-volume code grep | `rg --smart-case` |
+| File structure mapping | `fd --type f` |
+| JSON filtering | `jq -c -r` |
+
+### Context Rules
+- Small files (<50 lines): read directly — no overhead
+- Large files (>200 lines): use `dispatch_parallel_context` to extract the specific symbol
+- Config/YAML/JSON files: read directly — AST not applicable
+- Full file reads allowed for: package.json, pyproject.toml, docker-compose.yml, .env.example
