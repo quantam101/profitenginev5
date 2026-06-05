@@ -36,7 +36,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           # Validate the key loaded correctly
           ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key is invalid — re-set SERVER_SSH_KEY secret"; exit 1; }
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Test SSH connectivity
         run: |
