@@ -57,7 +57,12 @@ MASTER_KEY       = os.environ.get("LITELLM_MASTER_KEY", "")
 WAL_DB_PATH      = os.environ.get("HYPERVISOR_DB",     "state_journal.db")
 VECTOR_HOST      = os.environ.get("VECTOR_HOST",       "localhost")
 VECTOR_PORT      = int(os.environ.get("VECTOR_PORT",   "6333"))
-VECTOR_DIM       = 384   # all-MiniLM-L6-v2 compatible; real embeddings — not 4
+VECTOR_DIM       = 384   # all-MiniLM-L6-v2 compatible
+
+# AGENT_MESH_OS integration — Redis broker for distributed state
+REDIS_URL        = os.environ.get("REDIS_URL", "")  # redis://:password@localhost:6379/0
+MESH_DB_PATH     = os.environ.get("MESH_STATE_DB",
+                   "/home/opc/agent_mesh_os/data/state/agent_mesh_state.db")
 
 _EXECUTOR = ThreadPoolExecutor(max_workers=4)
 

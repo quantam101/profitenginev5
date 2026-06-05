@@ -1,0 +1,62 @@
+# AGENT_MESH_OS — Production Compose
+# Requires .env with REDIS_PASSWORD and WORKDIR set.
+# Run: docker compose --env-file .env up -d
+
+services:
+
+  # ── Async Message Broker ──────────────────────────────────────────────────
+  redis-broker:
+    image: redis:7.2-alpine
+    container_name: am_os_redis_broker
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --port 6379
+      --bind 127.0.0.1
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 300 1
+    ports:
+      - "127.0.0.1:6379:6379"   # localhost-only — not exposed to internet
+    volumes:
+      - ${WORKDIR}/redis_data:/data
+    networks:
+      - agent_mesh_network
+    mem_limit: 1g        # compose v2 syntax — works without Swarm
+    cpus: "1.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Local Inference Failover Engine ──────────────────────────────────────
+  ollama-edge-engine:
+    image: ollama/ollama:0.6.5   # pinned — not :latest
+    container_name: am_os_ollama_edge
+    ports:
+      - "127.0.0.1:11434:11434"  # localhost-only
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=1    # 24GB OCI: only 1 model at a time
+      - OLLAMA_KEEP_ALIVE=5m
+    volumes:
+      - ${WORKDIR}/data/ollama:/root/.ollama
+    networks:
+      - agent_mesh_network
+    mem_limit: 16g       # 8B model needs ~8GB; leave headroom for other services
+    cpus: "3.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+networks:
+  agent_mesh_network:
+    driver: bridge

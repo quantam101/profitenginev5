@@ -52,19 +52,29 @@ model_list:
       rpm: 20
       timeout: 30
 
-  # Tier 4 — Local Ollama (air-gapped fallback, OCI Linux host)
-  # Uses host network gateway IP, not host.docker.internal (Linux-incompatible)
+  # Tier 4 — Local Ollama via AGENT_MESH_OS (air-gapped fallback)
+  # am_os_ollama_edge runs on the same OCI host, port 11434
   - model_name: autonomous-intelligence-mesh
     litellm_params:
-      model: ollama/llama3.1:8b
-      api_base: "http://172.17.0.1:11434"  # Docker bridge gateway on Linux
+      model: ollama/llama3.1:8b-instruct-q4_K_M
+      api_base: "http://172.17.0.1:11434"  # Docker bridge gateway (Linux)
+      tpm: 999999
+      timeout: 60
+
+  - model_name: autonomous-intelligence-mesh
+    litellm_params:
+      model: ollama/qwen2.5:7b-instruct-q4_K_M
+      api_base: "http://172.17.0.1:11434"
       tpm: 999999
       timeout: 60
 
 router_settings:
-  routing_strategy: latency-based-routing  # routes to fastest responding provider
-  redis_host: "state_cache"
+  routing_strategy: latency-based-routing
+  # Uses am_os_redis_broker from AGENT_MESH_OS when REDIS_URL is set,
+  # otherwise falls back to state_cache (profitenginev5 Redis)
+  redis_host: "os.environ/REDIS_HOST"
   redis_port: 6379
+  redis_password: "os.environ/REDIS_PASSWORD"
   allowed_fails: 2          # trip circuit breaker after 2 failures (not 1)
   cooldown_time: 30
   failover_on_429: true
