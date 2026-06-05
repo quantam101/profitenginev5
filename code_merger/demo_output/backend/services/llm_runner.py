@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+# emergentintegrations removed — use llm_runner.py direct providers
 from services.distillation_service import cache_lookup, cache_store, distill_text, estimate_tokens
 'use strict' if False else None
 '\nbackend/services/llm_runner.py — ProfitEngine v5.0\nPython LLM orchestrator mirroring core/llm/index.js.\nGroq → OpenRouter → Gemini failover chain.\nCircuit breaker per provider, daily token budget, request dedup.\n'

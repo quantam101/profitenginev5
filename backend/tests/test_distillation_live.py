@@ -1,6 +1,6 @@
 """Live HTTP tests for the Distillation engine against the public URL.
 
-These hit the real backend (and possibly the real LLM via emergentintegrations).
+These hit the real backend (and possibly the real LLM via the configured provider).
 We allow expensive/fallback tiers because LLM availability is environmental.
 """
 from __future__ import annotations
