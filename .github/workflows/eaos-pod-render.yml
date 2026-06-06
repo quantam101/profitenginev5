@@ -42,27 +42,7 @@ jobs:
           EAOS_POD_DB: ./datacenter/pod_cache.db
           TARGET_SKU: ${{ github.event.inputs.sku }}
           PYTHONUTF8: "1"
-        run: |
-          python3 - <<'PYEOF'
-import os, sys, pathlib
-sys.path.insert(0, str(pathlib.Path(".").resolve()))
-from runtime.eaos.image_factory import ProductionImageFactory, SKU_CATALOG
-
-factory = ProductionImageFactory()
-target = os.getenv("TARGET_SKU", "").strip()
-
-if target:
-    item = next((i for i in SKU_CATALOG if i["sku"] == target), None)
-    if not item:
-        print(f"SKU {target} not found"); sys.exit(1)
-    path = factory.construct_apparel_artwork(item["sku"], item["title"], item["subtitle"], item["palette"])
-    print(f"Rendered: {path}")
-else:
-    paths = factory.render_full_catalog()
-    print(f"Rendered {len(paths)} SKUs")
-    for p in paths:
-        print(f"  {p}")
-PYEOF
+        run: python3 scripts/eaos_pod_render.py
 
       - name: Push to Printify
         if: ${{ github.event.inputs.push_to_printify != 'false' }}
@@ -73,50 +53,7 @@ PYEOF
           EAOS_POD_DB: ./datacenter/pod_cache.db
           TARGET_SKU: ${{ github.event.inputs.sku }}
           PYTHONUTF8: "1"
-        run: |
-          python3 - <<'PYEOF'
-import asyncio, os, sys, pathlib, sqlite3
-sys.path.insert(0, str(pathlib.Path(".").resolve()))
-
-token = os.getenv("PRINTIFY_API_TOKEN", "").strip()
-shop_id = os.getenv("PRINTIFY_SHOP_ID", "").strip()
-
-if not token or not shop_id:
-    print("[Printify] PRINTIFY_API_TOKEN or PRINTIFY_SHOP_ID not set — skipping push")
-    sys.exit(0)
-
-from runtime.eaos.printify_client import push_product, BLUEPRINTS
-from runtime.eaos.image_factory import SKU_CATALOG
-
-db_path = os.getenv("EAOS_POD_DB", "./datacenter/pod_cache.db")
-pod_root = os.getenv("EAOS_POD_ROOT", "./datacenter/pod_factory")
-render_dir = os.path.join(pod_root, "render_cache")
-target_sku = os.getenv("TARGET_SKU", "").strip()
-
-catalog = [i for i in SKU_CATALOG if not target_sku or i["sku"] == target_sku]
-
-async def run():
-    pushed = 0
-    for item in catalog:
-        img_path = os.path.join(render_dir, f"{item['sku']}_artwork.png")
-        if not os.path.exists(img_path):
-            print(f"[Printify] {item['sku']} — artwork not found, skipping")
-            continue
-        ok = await push_product(
-            file_path=img_path,
-            meta={"title": item["title"], "subtitle": item["subtitle"],
-                  "product_type": "unisex_tee", "shop_id": shop_id},
-            token=token,
-        )
-        if ok:
-            pushed += 1
-            print(f"[Printify] {item['sku']} pushed ✓")
-        else:
-            print(f"[Printify] {item['sku']} push failed")
-    print(f"\nDone: {pushed}/{len(catalog)} products pushed to Printify")
-
-asyncio.run(run())
-PYEOF
+        run: python3 scripts/eaos_printify_push.py
 
       - name: Upload rendered artwork
         uses: actions/upload-artifact@v4
