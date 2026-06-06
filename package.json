@@ -23,6 +23,7 @@
     "security:scan": "python scripts/security_check.py",
     "security:audit": "npm audit --audit-level=critical --omit=dev",
     "agents:parallel": "node scripts/run-parallel-agents.mjs",
+    "edge:replay": "python scripts/edge_failover_replay.py",
     "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run security:scan && npm run build",
     "ci:security": "npm run security:audit && npm run security:scan",
     "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",

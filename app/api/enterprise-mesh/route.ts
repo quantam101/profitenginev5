@@ -29,8 +29,14 @@ export function GET() {
     failover: [
       'live_parallel_worker',
       'sqlite_wal_snapshot_cache',
+      'signed_edge_wal_queue',
       'deterministic_error_when_no_snapshot_exists',
     ],
+    edgeFailover: {
+      statusEndpoint: '/api/edge-failover',
+      localIngestCommand: 'python scripts/edge_failover_ingest.py',
+      localReplayCommand: 'python scripts/edge_failover_replay.py',
+    },
     proofGate: {
       thresholdUsd,
       verifiedRevenueUsd,
