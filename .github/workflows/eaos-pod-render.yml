@@ -108,6 +108,8 @@ async def run():
         ok = await push_product(
             file_path=img_path,
             meta={"title": item["title"], "subtitle": item["subtitle"],
+                  "etsy_title": item.get("etsy_title"), "description": item.get("description"),
+                  "tags": item.get("tags", []),
                   "product_type": "unisex_tee", "shop_id": shop_id},
             token=token,
         )

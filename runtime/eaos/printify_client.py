@@ -1,6 +1,4 @@
-"""
-EAOS Printify Client — Push rendered POD artwork to Printify as live products.
-"""
+"""EAOS Printify client - push rendered POD artwork to Printify."""
 import os
 import json
 import base64
@@ -33,12 +31,12 @@ def _upload_image(file_path: str, token: str) -> Optional[str]:
         "contents":  img_b64,
     }).encode()
     try:
-        req = urllib.request.Request(
+        req = urllib.request.Request(  # noqa: S310 - fixed Printify HTTPS API endpoint
             f"{PRINTIFY_API}/uploads/images.json",
             data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
-        resp = json.loads(urllib.request.urlopen(req, timeout=60).read())
+        resp = json.loads(urllib.request.urlopen(req, timeout=60).read())  # noqa: S310
         img_id = resp.get("id", "")
         logger.info(f"[Printify] Image uploaded: id={img_id}")
         return img_id
@@ -48,10 +46,11 @@ def _upload_image(file_path: str, token: str) -> Optional[str]:
 
 
 def _build_product_payload(title: str, description: str, img_id: str,
-                            blueprint: Dict) -> Dict[str, Any]:
+                            blueprint: Dict, tags: Optional[list[str]] = None) -> Dict[str, Any]:
     return {
         "title":       title,
         "description": description,
+        "tags": tags or [],
         "blueprint_id":       blueprint["blueprint_id"],
         "print_provider_id":  blueprint["print_provider_id"],
         "variants": [
@@ -73,7 +72,7 @@ def _build_product_payload(title: str, description: str, img_id: str,
 async def push_product(file_path: str, meta: Dict[str, Any], token: str) -> bool:
     shop_id = SHOP_ID or meta.get("shop_id", "")
     if not shop_id:
-        logger.warning("[Printify] PRINTIFY_SHOP_ID not set — skipping push")
+        logger.warning("[Printify] PRINTIFY_SHOP_ID not set - skipping push")
         return False
 
     img_id = _upload_image(file_path, token)
@@ -82,29 +81,30 @@ async def push_product(file_path: str, meta: Dict[str, Any], token: str) -> bool
 
     blueprint_key = meta.get("product_type", "unisex_tee")
     blueprint     = BLUEPRINTS.get(blueprint_key, BLUEPRINTS["unisex_tee"])
-    title         = meta.get("title", "Already Here LLC")
-    description   = meta.get("subtitle", "AI-Powered Profit Engine 2026")
-    payload       = _build_product_payload(title, description, img_id, blueprint)
+    title         = meta.get("etsy_title") or meta.get("title", "Already Here LLC")
+    description   = meta.get("description") or meta.get("subtitle", "Proof-first builder apparel")
+    tags          = meta.get("tags") or []
+    payload       = _build_product_payload(title, description, img_id, blueprint, tags)
 
     try:
         body = json.dumps(payload).encode()
-        req  = urllib.request.Request(
+        req  = urllib.request.Request(  # noqa: S310 - fixed Printify HTTPS API endpoint
             f"{PRINTIFY_API}/shops/{shop_id}/products.json",
             data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
-        resp = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        resp = json.loads(urllib.request.urlopen(req, timeout=30).read())  # noqa: S310
         product_id = resp.get("id", "")
         logger.info(f"[Printify] Product created: id={product_id} title='{title}'")
         # Publish immediately
-        pub_req = urllib.request.Request(
+        pub_req = urllib.request.Request(  # noqa: S310 - fixed Printify HTTPS API endpoint
             f"{PRINTIFY_API}/shops/{shop_id}/products/{product_id}/publish.json",
             data=json.dumps({"title": True, "description": True, "images": True,
                               "variants": True, "tags": True}).encode(),
             method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
-        urllib.request.urlopen(pub_req, timeout=15)
+        urllib.request.urlopen(pub_req, timeout=15)  # noqa: S310
         logger.info(f"[Printify] Product {product_id} published to store")
         return True
     except Exception as exc:
