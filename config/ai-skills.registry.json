@@ -1,0 +1,55 @@
+{
+  "system": {
+    "name": "ProfitEngineV5 Autonomous Skill Gateway",
+    "mode": "controlled_full_automation",
+    "direct_skill_execution_allowed": false,
+    "default_status": "quarantined",
+    "audit_required": true,
+    "offline_fallback_required": true,
+    "promotion_required": true
+  },
+  "automation_policy": {
+    "auto_select_skill": true,
+    "auto_route_allowed_tasks": true,
+    "auto_fallback": true,
+    "auto_audit": true,
+    "auto_eval": true,
+    "auto_promote_when_eval_passes": false,
+    "manual_review_required_for_high_risk": true
+  },
+  "allowed_actions": [
+    "reference_lookup",
+    "rag_design",
+    "inference_configuration_advice",
+    "security_configuration_review",
+    "workflow_analysis",
+    "agent_planning",
+    "code_review",
+    "documentation_generation"
+  ],
+  "restricted_actions": [
+    "sensitive_access_change",
+    "external_system_change",
+    "remote_environment_change",
+    "destructive_change",
+    "financial_action",
+    "mass_messaging_action",
+    "regulated_professional_decision",
+    "production_security_change"
+  ],
+  "skills": [
+    { "id": "rag-blueprint", "vendor": "nvidia", "status": "approved_reference", "risk": "medium", "auto_eligible": true, "allowed_actions": ["reference_lookup", "rag_design", "documentation_generation", "workflow_analysis"], "fallback": "local_rag_playbook" },
+    { "id": "nemoclaws-user-configure-security", "vendor": "nvidia", "status": "approved_reference", "risk": "medium", "auto_eligible": true, "allowed_actions": ["security_configuration_review", "reference_lookup", "agent_planning"], "fallback": "local_security_playbook" },
+    { "id": "nemoclaws-user-configure-inference", "vendor": "nvidia", "status": "approved_reference", "risk": "medium", "auto_eligible": true, "allowed_actions": ["inference_configuration_advice", "reference_lookup", "workflow_analysis"], "fallback": "local_inference_playbook" },
+    { "id": "nemoclaws-user-overview", "vendor": "nvidia", "status": "approved_reference", "risk": "low", "auto_eligible": true, "allowed_actions": ["reference_lookup", "documentation_generation"], "fallback": "local_summary_playbook" },
+    { "id": "nemoclaws-user-get-started", "vendor": "nvidia", "status": "sandbox_only", "risk": "high", "auto_eligible": false, "allowed_actions": ["reference_lookup", "documentation_generation"], "fallback": "local_sandbox_playbook" },
+    { "id": "nemoclaws-user-agent-skills", "vendor": "nvidia", "status": "sandbox_only", "risk": "high", "auto_eligible": false, "allowed_actions": ["reference_lookup", "agent_planning"], "fallback": "local_skill_design_playbook" },
+    { "id": "deepstream-dev", "vendor": "nvidia", "status": "held_for_later", "risk": "high", "auto_eligible": false, "allowed_actions": ["reference_lookup"], "fallback": "local_vision_playbook" },
+    { "id": "deepstream-import-vision-model", "vendor": "nvidia", "status": "held_for_later", "risk": "high", "auto_eligible": false, "allowed_actions": ["reference_lookup"], "fallback": "local_vision_import_playbook" },
+    { "id": "nemoclaws-user-deploy-remote", "vendor": "nvidia", "status": "blocked_until_approval", "risk": "critical", "auto_eligible": false, "allowed_actions": ["reference_lookup"], "fallback": "local_deployment_review_playbook" }
+  ],
+  "eval_gate": {
+    "required_checks": ["registry_loaded", "skill_auto_selection", "restricted_action_rejected", "high_risk_requires_review", "audit_written", "offline_fallback_operational", "promotion_gate_blocks_unqualified_skill"],
+    "promotion_path": ["quarantined", "approved_reference", "sandbox_only", "production_allowed_for_selected_tasks"]
+  }
+}
