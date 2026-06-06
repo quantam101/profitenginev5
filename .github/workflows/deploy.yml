@@ -1,8 +1,6 @@
 name: Deploy to OCI Server
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       fresh_build:
@@ -26,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up SSH
         run: |
@@ -39,12 +37,16 @@ jobs:
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Test SSH connectivity
+        id: ssh-preflight
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          if ! ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=15 \
             opc@129.146.167.73 \
-            "echo SSH_OK && hostname && df -h / | tail -1"
+            "echo SSH_OK && hostname && df -h / | tail -1"; then
+            echo "::error::SSH preflight failed. Update GitHub secret SERVER_SSH_KEY with the private key whose public key is in opc@129.146.167.73:~/.ssh/authorized_keys, or run scripts/bootstrap-server.sh on the OCI host to install the deploy key."
+            exit 255
+          fi
 
       - name: Upload deploy env
         env:
