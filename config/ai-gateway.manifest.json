@@ -1,0 +1,84 @@
+{
+  "system": {
+    "name": "ProfitEngineV5 Shared AI Gateway",
+    "mode": "controlled_autonomy",
+    "architecture": "declarative_parallel_multi_agent",
+    "availability_target": "never_useless_degrade_queue_recover_sync",
+    "deployment_standard": "production_grade",
+    "direct_model_calls_allowed": false,
+    "audit_required": true
+  },
+  "provider": {
+    "id": "nvidia_qwen_nvfp4",
+    "model": "nvidia/Qwen3.6-35B-A3B-NVFP4",
+    "status": "experimental",
+    "enabled_by_default": false,
+    "promotion_path": [
+      "experimental",
+      "internal_default_for_selected_tasks",
+      "production_allowed"
+    ],
+    "feature_flag": "AI_GATEWAY_ENABLE_NVIDIA_QWEN",
+    "base_url_env": "AI_GATEWAY_QWEN_BASE_URL",
+    "token_env": "AI_GATEWAY_NVIDIA_TOKEN",
+    "fallback_provider": "local_rules_fallback",
+    "circuit_breaker": {
+      "failure_threshold": 3,
+      "open_seconds": 300
+    }
+  },
+  "task_policy": {
+    "allowlist": [
+      "agent_planning",
+      "code_review",
+      "document_analysis",
+      "failure_analysis",
+      "internal_planning",
+      "offer_optimization",
+      "rag_answering",
+      "summarization",
+      "workflow_analysis",
+      "workflow_optimization"
+    ],
+    "blocked_high_risk": [
+      "autonomous_payment_action",
+      "bulk_outreach_send",
+      "credential_handling",
+      "customer_facing_unreviewed_answer",
+      "financial_trading_execution",
+      "legal_decision",
+      "medical_decision",
+      "production_deploy_without_review",
+      "security_change_without_review",
+      "tax_decision"
+    ]
+  },
+  "eval_gate": {
+    "required_checks": [
+      "allowlist_enforced",
+      "blocked_tasks_rejected",
+      "fallback_operational",
+      "audit_written",
+      "latency_recorded",
+      "cost_recorded",
+      "offline_mode_operational"
+    ],
+    "promotion_rule": "all_required_checks_pass"
+  },
+  "agents": {
+    "prime_orchestrator": { "parallel": true, "priority": "critical" },
+    "revenue_intelligence": { "parallel": true, "priority": "critical" },
+    "offer_engineering": { "parallel": true, "priority": "high" },
+    "sales_execution": { "parallel": true, "priority": "high" },
+    "cash_conversion": { "parallel": true, "priority": "critical" },
+    "product_builder": { "parallel": true, "priority": "high" },
+    "codex_optimization": { "parallel": true, "priority": "high" },
+    "failure_analysis": { "parallel": true, "priority": "critical" },
+    "learning": { "parallel": true, "priority": "high" },
+    "distillation": { "parallel": true, "priority": "high" },
+    "failover": { "parallel": true, "priority": "critical" },
+    "offline": { "parallel": true, "priority": "critical" },
+    "security": { "parallel": true, "priority": "critical" },
+    "audit": { "parallel": true, "priority": "critical" }
+  }
+}
