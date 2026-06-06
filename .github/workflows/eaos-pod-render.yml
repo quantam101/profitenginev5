@@ -4,6 +4,8 @@ name: EAOS — POD Render & Printify Push
 # live products to Printify. Runs weekly on Monday and on manual dispatch.
 
 on:
+  schedule:
+    - cron: '0 8 * * 1'
   workflow_dispatch:
     inputs:
       sku:
