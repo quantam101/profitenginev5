@@ -146,3 +146,13 @@ agents:
     forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
     approval_required_actions: [unlock_paid_offer]
     verifier_required: true
+
+  - id: motivation-engine
+    name: Motivation Engine Agent
+    version: 0.1.0
+    mission: Convert proof-first revenue objectives into daily execution priorities and anti-stall fallback actions.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
+    approval_required_actions: [external_publish, paid_offer_launch]
+    verifier_required: false

@@ -17,7 +17,9 @@ export function GET() {
   return NextResponse.json({
     ok: agents.length > 0,
     service: 'parallel-agent-runner',
-    mode: 'safe-local',
+    mode: 'registry_parallel_ready_with_python_mesh_cli',
+    runtimeCommand: 'npm run agents:parallel',
+    failover: ['live worker', 'SQLite WAL snapshot', 'deterministic fallback'],
     agentCount: agents.length,
     agents,
     generatedAt: new Date().toISOString(),
