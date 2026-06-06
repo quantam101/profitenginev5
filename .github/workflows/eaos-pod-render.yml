@@ -7,7 +7,8 @@ on:
   schedule:
     - cron: '0 8 * * 1'
   repository_dispatch:
-    types: ['eaos-pod-render']
+    types:
+      - eaos-pod-render
   workflow_dispatch:
     inputs:
       sku:
@@ -42,7 +43,7 @@ jobs:
         env:
           EAOS_POD_ROOT: ./datacenter/pod_factory
           EAOS_POD_DB: ./datacenter/pod_cache.db
-          TARGET_SKU: ${{ github.event.inputs.sku || github.event.client_payload.sku || '' }}
+          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
           PYTHONUTF8: "1"
         run: |
           python3 - <<'PYEOF'
@@ -67,13 +68,13 @@ else:
 PYEOF
 
       - name: Push to Printify
-        if: ${{ github.event.inputs.push_to_printify != 'false' && github.event.client_payload.push_to_printify != 'false' }}
+        if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
           PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           EAOS_POD_ROOT: ./datacenter/pod_factory
           EAOS_POD_DB: ./datacenter/pod_cache.db
-          TARGET_SKU: ${{ github.event.inputs.sku || github.event.client_payload.sku || '' }}
+          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
           PYTHONUTF8: "1"
         run: |
           python3 - <<'PYEOF'
