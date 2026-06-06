@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Bundle config/registry YAML files into serverless functions so runtime
+  // health/status routes can read them from process.cwd().
   outputFileTracingIncludes: {
     '/api/distillation/status': ['config/distillation.yaml'],
     '/api/agents/parallel': ['agents/registry.yaml'],
