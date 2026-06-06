@@ -95,3 +95,54 @@ agents:
     forbidden_actions: [paid_api_call, public_post, production_deploy, repo_merge]
     approval_required_actions: []
     verifier_required: false
+
+  # Profitability intelligence agents
+  - id: offer-scout
+    name: Offer Scout Agent
+    version: 0.1.0
+    mission: Rank POD, affiliate, and productized service offers by cash potential, proof gating, and fulfillment effort.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
+    approval_required_actions: [external_publish, paid_offer_launch]
+    verifier_required: false
+
+  - id: margin-guard
+    name: Margin Guard Agent
+    version: 0.1.0
+    mission: Calculate Etsy, Printify, Stripe, and fulfillment margins before any offer is published.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
+    approval_required_actions: [pricing_change, paid_offer_launch]
+    verifier_required: false
+
+  - id: listing-optimizer
+    name: Listing Optimizer Agent
+    version: 0.1.0
+    mission: Validate Etsy listing titles, descriptions, tags, and conversion rules against the local shop pack.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy]
+    approval_required_actions: [external_publish]
+    verifier_required: false
+
+  - id: traffic-agent
+    name: Traffic Agent
+    version: 0.1.0
+    mission: Convert listings and service offers into daily traffic assets for social, blog, short-form, and outreach channels.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy]
+    approval_required_actions: [external_publish, email_send]
+    verifier_required: false
+
+  - id: proof-ledger
+    name: Proof Ledger Agent
+    version: 0.1.0
+    mission: Track verified revenue against the $25,000 proof threshold and keep paid ProfitEngine offers locked until proof is reached.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
+    approval_required_actions: [unlock_paid_offer]
+    verifier_required: true
