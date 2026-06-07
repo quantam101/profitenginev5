@@ -74,11 +74,27 @@ services:
       N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
       N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:?N8N_BASIC_AUTH_USER is required}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:?N8N_BASIC_AUTH_PASSWORD is required}
+      TAYLOR_SERVER_URL: ${TAYLOR_SERVER_URL:-http://taylor:8001}
     volumes:
       - n8n_data:/home/node/.n8n
 
   # FastAPI backend — MongoDB Atlas, Stripe, distillation, referrals, waitlist.
   # Exposed at backend.alreadyherellc.com via Caddy (see caddy/Caddyfile).
+  taylor:
+    build:
+      context: .
+      dockerfile: Dockerfile.taylor
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TAYLOR_HOST: 0.0.0.0
+      TAYLOR_PORT: 8001
+      TAYLOR_DB_PATH: ${TAYLOR_DB_PATH:-/data/taylor.db}
+    expose:
+      - "8001"
+    volumes:
+      - taylor_data:/data
+
   backend:
     build:
       context: .
@@ -127,5 +143,6 @@ volumes:
   gmaos_data:
   postgres_data:
   n8n_data:
+  taylor_data:
   uptime_data:
   ollama_data:

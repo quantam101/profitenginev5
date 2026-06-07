@@ -1,0 +1,93 @@
+{
+  "name": "Taylor - Call Ended Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "taylor/call-ended",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "taylor-call-ended-webhook",
+      "name": "Receive Taylor call-ended event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "taylor-call-ended"
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TAYLOR_SERVER_URL || 'http://runtime:8001') + '/events/call-ended' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || $json) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "forward-to-taylor",
+      "name": "Forward event to Taylor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, forwarded: $json.ok === true, call_id: $json.call_id || null }) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to provider",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "Receive Taylor call-ended event": {
+      "main": [
+        [
+          {
+            "node": "Forward event to Taylor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward event to Taylor": {
+      "main": [
+        [
+          {
+            "node": "Respond to provider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "taylor-call-ended-webhook",
+  "tags": [
+    "taylor",
+    "voice",
+    "revenue"
+  ]
+}

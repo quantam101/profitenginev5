@@ -81,4 +81,4 @@ sleep 5
 log ""
 log "n8n workflows imported and activated."
 log "  n8n UI: http://$N8N_IP:5678"
-log "  Owner:  admin@alreadyherellc.com / ProfitEngine2026!"
+log "  Sign in with the N8N_BASIC_AUTH_USER and N8N_BASIC_AUTH_PASSWORD from the server .env."
