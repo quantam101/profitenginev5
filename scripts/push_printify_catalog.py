@@ -24,21 +24,26 @@ async def _run() -> int:
     target_sku = os.getenv("TARGET_SKU", "").strip()
     catalog = [item for item in SKU_CATALOG if not target_sku or item["sku"] == target_sku]
 
+    if target_sku and not catalog:
+        print(f"[Printify] ERROR: target SKU {target_sku!r} was not found in SKU_CATALOG")
+        return 1
+
     pushed = 0
     for item in catalog:
         img_path = render_dir / f"{item['sku']}_artwork.png"
         if not img_path.exists():
-            print(f"[Printify] {item['sku']} - artwork not found, skipping")
+            print(f"[Printify] {item['sku']} - artwork not found at {img_path}, skipping")
             continue
         ok = await push_product(
             file_path=str(img_path),
             meta={
+                "sku": item["sku"],
                 "title": item["title"],
                 "subtitle": item["subtitle"],
                 "etsy_title": item.get("etsy_title"),
                 "description": item.get("description"),
                 "tags": item.get("tags", []),
-                "product_type": "unisex_tee",
+                "product_type": item.get("product_type", "unisex_tee"),
                 "shop_id": shop_id,
             },
             token=token,
