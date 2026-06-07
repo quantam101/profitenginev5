@@ -68,7 +68,14 @@ api.alreadyherellc.com {
 
 backend.alreadyherellc.com {
   encode gzip zstd
-  reverse_proxy backend:8001
+
+  handle_path /taylor/* {
+    reverse_proxy taylor:8001
+  }
+
+  handle {
+    reverse_proxy backend:8001
+  }
 
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
