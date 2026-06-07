@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 EAOS video generation script — runs in GitHub Actions after daily-content publish.
-Generates a slideshow video from the latest article topic and uploads to TikTok if
-TIKTOK_ACCESS_TOKEN is set. Falls back gracefully if ffmpeg is unavailable.
+Generates a slideshow video from the latest article topic and uploads to configured
+video/social platforms. Falls back gracefully if ffmpeg is unavailable.
 """
 from __future__ import annotations
 
@@ -49,12 +49,28 @@ async def main() -> None:
 
     tiktok_token = os.getenv("TIKTOK_ACCESS_TOKEN", "")
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    youtube_ready = all([
+        os.getenv("YOUTUBE_CLIENT_ID", ""),
+        os.getenv("YOUTUBE_CLIENT_SECRET", ""),
+        os.getenv("YOUTUBE_REFRESH_TOKEN", ""),
+    ])
 
-    if tiktok_token or telegram_token:
+    if tiktok_token or telegram_token or youtube_ready:
         social = ProductionSocialEngine()
         caption = f"{TOPIC}\n\n#ProfitEngine #PassiveIncome #AITools #AlreadyHereLLC"
         if tiktok_token:
             await social.publish(SocialPost(None, "TIKTOK", caption, media_path=video_path))
+        if youtube_ready:
+            await social.publish(SocialPost(
+                None,
+                "YOUTUBE",
+                TOPIC[:100],
+                media_path=video_path,
+                extra={
+                    "description": f"{TOPIC}\n\n{CANONICAL_URL}\n\n{caption}",
+                    "tags": ["ProfitEngine", "PassiveIncome", "AITools", "AlreadyHereLLC"],
+                },
+            ))
         if telegram_token:
             await social.publish(SocialPost(None, "TELEGRAM", f"New video: {caption}"))
     else:

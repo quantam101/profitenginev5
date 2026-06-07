@@ -1,3 +1,4 @@
+# ruff: noqa: S310
 """
 EAOS Social Engine — Multi-platform posting with offline SQLite cache.
 Platforms: X/Twitter (OAuth 1.0a), LinkedIn, Reddit, TikTok, Telegram,
@@ -5,7 +6,6 @@ Platforms: X/Twitter (OAuth 1.0a), LinkedIn, Reddit, TikTok, Telegram,
 Falls back to local journal if network is down; auto-retries on restore.
 """
 import os
-import sys
 import json
 import hmac
 import time
@@ -16,7 +16,6 @@ import asyncio
 import logging
 import urllib.request
 import urllib.parse
-import urllib.error
 import urllib.error
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
@@ -109,16 +108,16 @@ def _twitter_auth_header(method: str, url: str, params: Dict) -> str:
     return header
 
 
-async def _post_twitter(post: SocialPost) -> bool:
+async def _post_twitter(post: SocialPost) -> Optional[bool]:
     api_key = os.environ.get("TWITTER_API_KEY", "")
     if not api_key:
         logger.info("[Twitter] No credentials — skip")
-        return False
+        return None
     url    = "https://api.twitter.com/2/tweets"
     body   = json.dumps({"text": post.text_content[:280]}).encode()
     header = _twitter_auth_header("POST", url, {})
     if not header:
-        return False
+        return None
     try:
         req = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": header, "Content-Type": "application/json"})
@@ -146,12 +145,12 @@ async def _post_twitter(post: SocialPost) -> bool:
 
 # ── LinkedIn ───────────────────────────────────────────────────────────────
 
-async def _post_linkedin(post: SocialPost) -> bool:
+async def _post_linkedin(post: SocialPost) -> Optional[bool]:
     token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
     urn   = os.environ.get("LINKEDIN_PERSON_URN", "")
     if not token or not urn:
         logger.info("[LinkedIn] No credentials — skip")
-        return False
+        return None
     url  = "https://api.linkedin.com/v2/ugcPosts"
     body = json.dumps({
         "author": urn,
@@ -178,7 +177,7 @@ async def _post_linkedin(post: SocialPost) -> bool:
 
 # ── Reddit ─────────────────────────────────────────────────────────────────
 
-async def _post_reddit(post: SocialPost) -> bool:
+async def _post_reddit(post: SocialPost) -> Optional[bool]:
     client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
     client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
     username      = os.environ.get("REDDIT_USERNAME", "")
@@ -186,7 +185,7 @@ async def _post_reddit(post: SocialPost) -> bool:
     subreddit     = (post.extra or {}).get("subreddit", "passive_income")
     if not all([client_id, client_secret, username, password]):
         logger.info("[Reddit] No credentials — skip")
-        return False
+        return None
     try:
         # OAuth
         creds = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
@@ -214,7 +213,7 @@ async def _post_reddit(post: SocialPost) -> bool:
             headers={"Authorization": f"bearer {token}", "User-Agent": "ProfitEngine/5.0"},
             method="POST",
         )
-        resp = urllib.request.urlopen(submit_req, timeout=15)
+        urllib.request.urlopen(submit_req, timeout=15)
         logger.info(f"[Reddit] r/{subreddit} post submitted")
         return True
     except Exception as exc:
@@ -224,12 +223,12 @@ async def _post_reddit(post: SocialPost) -> bool:
 
 # ── Telegram ───────────────────────────────────────────────────────────────
 
-async def _post_telegram(post: SocialPost) -> bool:
+async def _post_telegram(post: SocialPost) -> Optional[bool]:
     token   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:
         logger.info("[Telegram] No credentials — skip")
-        return False
+        return None
     try:
         url  = f"https://api.telegram.org/bot{token}/sendMessage"
         body = json.dumps({"chat_id": chat_id, "text": post.text_content[:4096],
@@ -246,14 +245,14 @@ async def _post_telegram(post: SocialPost) -> bool:
 
 # ── TikTok ─────────────────────────────────────────────────────────────────
 
-async def _post_tiktok(post: SocialPost) -> bool:
+async def _post_tiktok(post: SocialPost) -> Optional[bool]:
     token = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
     if not token:
         logger.info("[TikTok] No credentials — skip")
-        return False
+        return None
     if not post.media_path or not os.path.exists(post.media_path):
         logger.info("[TikTok] No video file — skip")
-        return False
+        return None
     logger.info(f"[TikTok] Uploading {post.media_path} (TikTok upload API)")
     # TikTok Content Posting API v2
     try:
@@ -284,11 +283,12 @@ async def _post_tiktok(post: SocialPost) -> bool:
 
 
 # ── Facebook Pages ────────────────────────────────────────────────────────
-async def _post_facebook(post: SocialPost) -> bool:
+async def _post_facebook(post: SocialPost) -> Optional[bool]:
     page_id    = os.environ.get("FB_PAGE_ID", "")
     page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
     if not page_id or not page_token:
-        return False
+        logger.info("[Facebook] No credentials - skip")
+        return None
     try:
         message = post.text_content[:2000]
         extra   = post.extra or {}
@@ -308,11 +308,12 @@ async def _post_facebook(post: SocialPost) -> bool:
 
 
 # ── Instagram (Graph API) ──────────────────────────────────────────────────
-async def _post_instagram(post: SocialPost) -> bool:
+async def _post_instagram(post: SocialPost) -> Optional[bool]:
     ig_user_id = os.environ.get("IG_USER_ID", "")
     page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
     if not ig_user_id or not page_token:
-        return False
+        logger.info("[Instagram] No credentials - skip")
+        return None
     try:
         extra   = post.extra or {}
         caption = post.text_content[:2200]
@@ -361,15 +362,16 @@ async def _post_instagram(post: SocialPost) -> bool:
 
 
 # ── YouTube ────────────────────────────────────────────────────────────────
-async def _post_youtube(post: SocialPost) -> bool:
+async def _post_youtube(post: SocialPost) -> Optional[bool]:
     client_id     = os.environ.get("YOUTUBE_CLIENT_ID", "")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
     if not all([client_id, client_secret, refresh_token]):
-        return False
+        logger.info("[YouTube] No credentials - skip")
+        return None
     if not post.media_path or not os.path.exists(post.media_path):
         logger.info("[YouTube] No video file — skipping")
-        return False
+        return None
     try:
         # Refresh access token
         token_body = urllib.parse.urlencode({
@@ -438,15 +440,12 @@ class ProductionSocialEngine:
 
     async def _is_online(self) -> bool:
         try:
-            urllib.request.urlopen("https://1.1.1.1", timeout=3)
+            urllib.request.urlopen("https://api.github.com", timeout=5)
             return True
         except Exception:
             return False
 
     async def publish(self, post: SocialPost) -> None:
-        if not await self._is_online():
-            self.journal.cache(post)
-            return
         dispatch = {
             "X":         _post_twitter,
             "TWITTER":   _post_twitter,
@@ -462,10 +461,13 @@ class ProductionSocialEngine:
         if not fn:
             logger.warning(f"Unknown platform: {post.platform}")
             return
+        if not await self._is_online():
+            self.journal.cache(post)
+            return
         ok = await fn(post)
         if ok and post.db_id:
             self.journal.clear(post.db_id)
-        elif not ok and not post.db_id:
+        elif ok is False and not post.db_id:
             self.journal.cache(post)
 
     async def publish_all_platforms(self, text: str, url: str, tags: List[str],
@@ -486,7 +488,7 @@ class ProductionSocialEngine:
             SocialPost(None, "FACEBOOK", fb_msg, extra={"url": url}),
             SocialPost(None, "REDDIT",   reddit_title, extra={"url": url, "subreddit": "passive_income"}),
             SocialPost(None, "INSTAGRAM", f"{text[:200]}\n\n{hashtags}",
-                       extra={"url": url, "image_url": f"https://quantam101.github.io/content/assets/og.png"}),
+                       extra={"url": url, "image_url": "https://quantam101.github.io/content/assets/og.png"}),
         ]
         if thread_tweets:
             platform_posts.append(SocialPost(None, "X", thread_tweets[0],
