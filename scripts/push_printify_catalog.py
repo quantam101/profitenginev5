@@ -16,8 +16,8 @@ async def _run() -> int:
     shop_id = os.getenv("PRINTIFY_SHOP_ID", "").strip()
 
     if not token or not shop_id:
-        print("[Printify] PRINTIFY_API_TOKEN or PRINTIFY_SHOP_ID not set - skipping push")
-        return 0
+        print("[Printify] ERROR: PRINTIFY_API_TOKEN and PRINTIFY_SHOP_ID are required")
+        return 1
 
     pod_root = os.getenv("EAOS_POD_ROOT", "./datacenter/pod_factory")
     render_dir = Path(pod_root) / "render_cache"

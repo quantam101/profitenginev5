@@ -53,27 +53,7 @@ jobs:
           EAOS_POD_DB: ./datacenter/pod_cache.db
           TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
           PYTHONUTF8: "1"
-        run: |
-          python3 - <<'PYEOF'
-          import os, sys, pathlib
-          sys.path.insert(0, str(pathlib.Path(".").resolve()))
-          from runtime.eaos.image_factory import ProductionImageFactory, SKU_CATALOG
-
-          factory = ProductionImageFactory()
-          target = os.getenv("TARGET_SKU", "").strip()
-
-          if target:
-              item = next((i for i in SKU_CATALOG if i["sku"] == target), None)
-              if not item:
-                  print(f"SKU {target} not found"); sys.exit(1)
-              path = factory.construct_apparel_artwork(item["sku"], item["title"], item["subtitle"], item["palette"])
-              print(f"Rendered: {path}")
-          else:
-              paths = factory.render_full_catalog()
-              print(f"Rendered {len(paths)} SKUs")
-              for p in paths:
-                  print(f"  {p}")
-          PYEOF
+        run: python3 scripts/render_pod_catalog.py
 
       - name: Push to Printify
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
