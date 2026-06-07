@@ -85,6 +85,8 @@ jobs:
           # daily digest
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          TELEGRAM_WEBHOOK_URL: https://backend.alreadyherellc.com/runtime/telegram/webhook
         run: |
           # Write secrets to a temp file and scp it to the server
           cat > /tmp/deploy_env.sh <<EOF
@@ -117,6 +119,8 @@ jobs:
           export TAYLOR_SERVER_URL="${TAYLOR_SERVER_URL}"
           export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
           export TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
+          export TELEGRAM_WEBHOOK_SECRET="${TELEGRAM_WEBHOOK_SECRET}"
+          export TELEGRAM_WEBHOOK_URL="${TELEGRAM_WEBHOOK_URL}"
           export RESEND_API_KEY="${RESEND_API_KEY}"
           EOF
           echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key, ${#MONGO_URL} char Mongo URL)"

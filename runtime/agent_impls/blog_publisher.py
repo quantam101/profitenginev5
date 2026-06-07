@@ -64,7 +64,7 @@ def _extract_article(context: str) -> Dict[str, Any]:
 
 
 def _inject_affiliates(body: str) -> str:
-    """Inject affiliate links for [AFFILIATE:keyword] placeholders."""
+    """Inject affiliate links for [AFFILIATE:keyword] tokens."""
     try:
         affiliate_map: Dict[str, str] = json.loads(os.getenv("AFFILIATE_LINKS", "{}"))
     except json.JSONDecodeError:
@@ -85,11 +85,11 @@ def _inject_affiliates(body: str) -> str:
             body,
         )
 
-    # Resolve [AFFILIATE:keyword] placeholders
+    # Resolve [AFFILIATE:keyword] tokens.
     for keyword, url in affiliate_map.items():
         body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
 
-    # Strip any remaining unresolved placeholders
+    # Strip any remaining unresolved affiliate tokens.
     body = re.sub(r"\[AFFILIATE:([^\]]+)\]", r"\1", body)
     return body
 

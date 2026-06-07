@@ -23,7 +23,7 @@ _SYSTEM = (
     "Write long-form, helpful, authoritative blog articles that rank on Google, "
     "provide genuine value, and naturally recommend relevant products. "
     "Target 1 000–1 500 words with clear H2/H3 subheadings. "
-    "Include 2-3 product/tool recommendations with [AFFILIATE:keyword] placeholders."
+    "Include 2-3 product/tool recommendations with [AFFILIATE:keyword] tokens."
     "\n\nOutput schema:"
     "\n{"
     '\n  "title": "<Full article title>",'

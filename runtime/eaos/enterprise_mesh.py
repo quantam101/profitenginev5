@@ -77,7 +77,7 @@ class SharedMemoryEventBus:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     bus = SharedMemoryEventBus()
-    bus.broadcast("SOCIAL", "POST_ARTICLE", {"title": "Test", "url": "https://example.com"})
+    bus.broadcast("SOCIAL", "POST_ARTICLE", {"title": "Test", "url": "https://alreadyherellc.com"})
     msg = bus.read_latest()
     logger.info(f"[Mesh] Read back: {msg}")
     bus.close()

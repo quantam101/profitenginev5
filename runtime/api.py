@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from .cycle_log import CycleLog
 from .registry import RegistryError, RuntimeRegistry
 from .sovereign_core import SovereignAutomationCore
+from .telegram_gateway import format_runtime_reply, parse_update, send_telegram_message, stable_embedding, verify_secret
 
 app = FastAPI(title="ProfitEngine Runtime API", version="0.1.0")
 registry = RuntimeRegistry()
@@ -69,6 +70,53 @@ def metrics() -> Dict[str, Any]:
     """Return aggregate execution statistics."""
     log = CycleLog()
     return log.metrics()
+
+
+@app.get("/telegram/health")
+def telegram_health() -> Dict[str, Any]:
+    import os
+
+    return {
+        "ok": True,
+        "service": "profitengine-telegram-gateway",
+        "bot_token_configured": bool(os.getenv("TELEGRAM_BOT_TOKEN", "").strip()),
+        "webhook_secret_configured": bool(os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()),
+    }
+
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request) -> Dict[str, Any]:
+    if not verify_secret(request.headers.get("x-telegram-bot-api-secret-token")):
+        raise HTTPException(status_code=403, detail="Invalid Telegram webhook secret")
+
+    update = await request.json()
+    command = parse_update(update)
+    if command is None:
+        return {"ok": True, "ignored": True}
+
+    if not command.should_execute:
+        sent = send_telegram_message(command.chat_id, command.objective)
+        return {"ok": True, "executed": False, "reply_sent": sent, "agent_id": command.agent_id}
+
+    payload = ExecuteRequest(
+        objective=command.objective,
+        system_declaration="Telegram command routed through ProfitEngine policy, cost guard, memory, and verifier.",
+        dynamic_context=f"Telegram command: {command.text}",
+        embedding_vector=stable_embedding(f"{command.agent_id}:{command.objective}"),
+        namespace="telegram",
+        agent_id=command.agent_id,
+        actor=command.actor,
+    )
+    result = execute(payload)
+    sent = send_telegram_message(command.chat_id, format_runtime_reply(result))
+    return {
+        "ok": True,
+        "executed": True,
+        "reply_sent": sent,
+        "agent_id": command.agent_id,
+        "status": result.get("status"),
+        "route_tier": result.get("route_tier"),
+    }
 
 
 @app.post("/execute")

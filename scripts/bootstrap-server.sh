@@ -189,6 +189,8 @@ upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://profitengine
 [[ -n "${MEDIUM_AUTHOR_ID:-}"     ]] && upsert_env MEDIUM_AUTHOR_ID        "${MEDIUM_AUTHOR_ID}"
 [[ -n "${TELEGRAM_BOT_TOKEN:-}"   ]] && upsert_env TELEGRAM_BOT_TOKEN      "${TELEGRAM_BOT_TOKEN}"
 [[ -n "${TELEGRAM_CHAT_ID:-}"     ]] && upsert_env TELEGRAM_CHAT_ID        "${TELEGRAM_CHAT_ID}"
+[[ -n "${TELEGRAM_WEBHOOK_URL:-}" ]] && upsert_env TELEGRAM_WEBHOOK_URL    "${TELEGRAM_WEBHOOK_URL}"
+[[ -n "${TELEGRAM_WEBHOOK_SECRET:-}" ]] && upsert_env TELEGRAM_WEBHOOK_SECRET "${TELEGRAM_WEBHOOK_SECRET}"
 
 # Auto-generate WEBHOOK_SECRET if not set
 if ! grep -qE "^WEBHOOK_SECRET=.+" "$ENV_FILE"; then
@@ -265,6 +267,13 @@ for i in $(seq 1 30); do
     "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8080/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
     > /dev/null 2>&1 && { log "Runtime healthy."; break; } || sleep 2
 done
+
+if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_WEBHOOK_URL:-}" && -n "${TELEGRAM_WEBHOOK_SECRET:-}" ]]; then
+  log "Configuring Telegram command webhook …"
+  docker compose exec -T runtime python3 scripts/setup-telegram-command-webhook.py || warn "Telegram webhook setup failed; check TELEGRAM_* secrets."
+else
+  warn "Telegram command webhook not configured; TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_URL, and TELEGRAM_WEBHOOK_SECRET are required."
+fi
 
 log "Waiting for web (Next.js) …"
 for i in $(seq 1 30); do
