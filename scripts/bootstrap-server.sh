@@ -60,6 +60,19 @@ fi
 # Accept CONTENT_REPO_TOKEN as alias for GITHUB_CONTENT_TOKEN (GitHub blocks GITHUB_ prefix in secrets)
 GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:-${CONTENT_REPO_TOKEN:-}}"
 
+# Reuse existing server .env values when GitHub Actions does not send a secret.
+existing_env() {
+  local key="$1"
+  [[ -f "$ENV_FILE" ]] || return 0
+  grep -E "^${key}=" "$ENV_FILE" | tail -1 | cut -d= -f2-
+}
+
+GROQ_API_KEY="${GROQ_API_KEY:-$(existing_env GROQ_API_KEY)}"
+GEMINI_API_KEY="${GEMINI_API_KEY:-$(existing_env GEMINI_API_KEY)}"
+GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:-$(existing_env GITHUB_CONTENT_TOKEN)}"
+GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD:-$(existing_env GMAIL_APP_PASSWORD)}"
+N8N_BASIC_AUTH_PASSWORD="${N8N_BASIC_AUTH_PASSWORD:-$(existing_env N8N_BASIC_AUTH_PASSWORD)}"
+
 # ── validate required secrets ───────────────────────────────────────────────
 required_secrets=(GROQ_API_KEY GEMINI_API_KEY GITHUB_CONTENT_TOKEN GMAIL_APP_PASSWORD)
 missing_secrets=()
