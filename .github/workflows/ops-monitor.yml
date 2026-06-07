@@ -40,8 +40,8 @@ jobs:
           }
 
           {
-            check "ProfitEngine Web"    "https://profitengine-tau.vercel.app"
-            check "ProfitEngine API"    "https://profitengine-tau.vercel.app/api/health"
+            check "ProfitEngine Web"    "https://www.alreadyherellc.com/profitengine"
+            check "ProfitEngine API"    "https://www.alreadyherellc.com/api/health"
             check "TokenForge API"      "https://api.alreadyherellc.com/api/health"
             check "TokenForge Frontend" "https://forge.alreadyherellc.com"
             check "Tradegate2"          "https://tradegate2.vercel.app"

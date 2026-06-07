@@ -20,7 +20,7 @@ const storeLinks = {
   etsy: 'https://www.etsy.com/shop/AlreadyHereLLC',
   printify: 'https://fly-culture-shop.printify.me',
   shopify: 'https://flydesignvault.com',
-  profitengine: 'https://profitengine-tau.vercel.app',
+  profitengine: 'https://www.alreadyherellc.com/profitengine',
   kdp: '/api/kdp-revenue',
 };
 

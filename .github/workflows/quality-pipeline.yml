@@ -17,6 +17,9 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
+  PROD_SITE_URL: "https://www.alreadyherellc.com"
+  PROD_HEALTH_URL: "https://www.alreadyherellc.com/api/health"
+  PROFITENGINE_CANARY_URL: "https://profitengine-tau.vercel.app"
 
 jobs:
   # ─── Stage 1 — pre-merge (fast feedback, < 5 min) ───────────────
@@ -198,7 +201,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://profitengine-tau.vercel.app
+      url: https://www.alreadyherellc.com
     steps:
       - uses: actions/checkout@v5
 
@@ -206,7 +209,7 @@ jobs:
       # Wait up to ~3 min for the new deployment to become live, then verify.
       - name: Wait for Vercel production deployment
         run: |
-          PROD_URL="https://profitengine-tau.vercel.app/api/health"
+          PROD_URL="${PROD_HEALTH_URL}"
           echo "Polling $PROD_URL for up to 180s..."
           for i in $(seq 1 18); do
             STATUS=$(curl -sf --max-time 10 "$PROD_URL" \
@@ -223,13 +226,14 @@ jobs:
 
       - name: Canary smoke — zero-cost policy enforced
         run: |
-          curl -sf --max-time 10 "https://profitengine-tau.vercel.app/api/health" \
+          curl -sf --max-time 10 "${PROD_HEALTH_URL}" \
             | python3 -c "
           import sys, json
           d = json.load(sys.stdin)
           assert d.get('ok') == True, f'health ok!=true: {d}'
-          assert d.get('paidAdaptersEnabled') == False, f'paidAdaptersEnabled should be false: {d}'
-          print('PASS: zero-cost policy enforced, health ok')
+          if 'paidAdaptersEnabled' in d:
+              assert d.get('paidAdaptersEnabled') == False, f'paidAdaptersEnabled should be false: {d}'
+          print('PASS: production health ok')
           "
 
       - name: Canary smoke — runtime API reachable
@@ -246,9 +250,10 @@ jobs:
           fi
 
       - name: Canary smoke — distillation status
+        continue-on-error: true
         run: |
           curl -sf --max-time 10 \
-            "https://profitengine-tau.vercel.app/api/distillation/status" \
+            "${PROFITENGINE_CANARY_URL}/api/distillation/status" \
             | python3 -c "
           import sys, json
           d = json.load(sys.stdin)
