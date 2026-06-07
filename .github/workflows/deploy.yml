@@ -1,6 +1,9 @@
 name: Deploy to OCI Server
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       fresh_build:
@@ -70,6 +73,15 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || secrets.STRIPE_API_KEY }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          TWILIO_PHONE_NUMBER_SID: ${{ secrets.TWILIO_PHONE_NUMBER_SID }}
+          TAYLOR_TRANSFER_NUMBER: ${{ secrets.TAYLOR_TRANSFER_NUMBER }}
+          TAYLOR_TRANSFER_NUMBER_BACKUP: ${{ secrets.TAYLOR_TRANSFER_NUMBER_BACKUP }}
+          TAYLOR_TRANSFER_NUMBER_BACKUP_2: ${{ secrets.TAYLOR_TRANSFER_NUMBER_BACKUP_2 }}
+          TAYLOR_SERVER_URL: https://backend.alreadyherellc.com/taylor
           # daily digest
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -94,6 +106,15 @@ jobs:
           export OPENAI_API_KEY="${OPENAI_API_KEY}"
           export OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
           export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}"
+          export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
+          export TWILIO_ACCOUNT_SID="${TWILIO_ACCOUNT_SID}"
+          export TWILIO_AUTH_TOKEN="${TWILIO_AUTH_TOKEN}"
+          export TWILIO_FROM_NUMBER="${TWILIO_FROM_NUMBER}"
+          export TWILIO_PHONE_NUMBER_SID="${TWILIO_PHONE_NUMBER_SID}"
+          export TAYLOR_TRANSFER_NUMBER="${TAYLOR_TRANSFER_NUMBER}"
+          export TAYLOR_TRANSFER_NUMBER_BACKUP="${TAYLOR_TRANSFER_NUMBER_BACKUP}"
+          export TAYLOR_TRANSFER_NUMBER_BACKUP_2="${TAYLOR_TRANSFER_NUMBER_BACKUP_2}"
+          export TAYLOR_SERVER_URL="${TAYLOR_SERVER_URL}"
           export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
           export TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
           export RESEND_API_KEY="${RESEND_API_KEY}"
@@ -174,6 +195,13 @@ jobs:
              2>/dev/null || echo unreachable" \
             2>/dev/null || echo unreachable)
           echo "Backend health: $STATUS"
+          TAYLOR=$(ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            opc@129.146.167.73 \
+            "cd /home/opc/profitenginev5 && \
+             docker compose exec -T taylor curl -sf http://localhost:8001/health >/dev/null && echo ok || echo unreachable" \
+            2>/dev/null || echo unreachable)
+          echo "Taylor health: $TAYLOR"
           # Secondary: Caddy on port 80 (works once DNS + firewall are open)
           CADDY=$(curl -sf --max-time 10 -L \
             -H "Host: profitengine.alreadyherellc.com" \

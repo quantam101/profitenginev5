@@ -149,6 +149,21 @@ upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 [[ -n "${DEEPSEEK_API_KEY:-}"       ]] && upsert_env DEEPSEEK_API_KEY       "${DEEPSEEK_API_KEY}"
 [[ -n "${RESEND_API_KEY:-}"         ]] && upsert_env RESEND_API_KEY         "${RESEND_API_KEY}"
 
+# Taylor voice agent / Twilio / Stripe Checkout links
+upsert_env TAYLOR_SERVER_URL              "${TAYLOR_SERVER_URL:-https://backend.alreadyherellc.com/taylor}"
+upsert_env TAYLOR_DB_PATH                 "${TAYLOR_DB_PATH:-/data/taylor.db}"
+upsert_env TAYLOR_PAYMENT_SUCCESS_URL     "${TAYLOR_PAYMENT_SUCCESS_URL:-https://alreadyherellc.com/payment-success}"
+upsert_env TAYLOR_PAYMENT_CANCEL_URL      "${TAYLOR_PAYMENT_CANCEL_URL:-https://alreadyherellc.com/payment-cancelled}"
+upsert_env OLLAMA_API_KEY                 "${OLLAMA_API_KEY:-ollama}"
+[[ -n "${STRIPE_SECRET_KEY:-}"                 ]] && upsert_env STRIPE_SECRET_KEY                 "${STRIPE_SECRET_KEY}"
+[[ -n "${TWILIO_ACCOUNT_SID:-}"                ]] && upsert_env TWILIO_ACCOUNT_SID                "${TWILIO_ACCOUNT_SID}"
+[[ -n "${TWILIO_AUTH_TOKEN:-}"                 ]] && upsert_env TWILIO_AUTH_TOKEN                 "${TWILIO_AUTH_TOKEN}"
+[[ -n "${TWILIO_FROM_NUMBER:-}"                ]] && upsert_env TWILIO_FROM_NUMBER                "${TWILIO_FROM_NUMBER}"
+[[ -n "${TWILIO_PHONE_NUMBER_SID:-}"           ]] && upsert_env TWILIO_PHONE_NUMBER_SID           "${TWILIO_PHONE_NUMBER_SID}"
+[[ -n "${TAYLOR_TRANSFER_NUMBER:-}"            ]] && upsert_env TAYLOR_TRANSFER_NUMBER            "${TAYLOR_TRANSFER_NUMBER}"
+[[ -n "${TAYLOR_TRANSFER_NUMBER_BACKUP:-}"     ]] && upsert_env TAYLOR_TRANSFER_NUMBER_BACKUP     "${TAYLOR_TRANSFER_NUMBER_BACKUP}"
+[[ -n "${TAYLOR_TRANSFER_NUMBER_BACKUP_2:-}"   ]] && upsert_env TAYLOR_TRANSFER_NUMBER_BACKUP_2   "${TAYLOR_TRANSFER_NUMBER_BACKUP_2}"
+
 # Backend config (safe defaults — no secrets)
 upsert_env DB_NAME                        "profitengine"
 upsert_env DISTILLATION_CHEAP_PROVIDER   "${DISTILLATION_CHEAP_PROVIDER:-gemini}"
@@ -234,7 +249,7 @@ fi
 
 # ── rebuild and restart containers ────────────────────────────────────────
 log "Rebuilding Docker images …"
-docker compose build web runtime backend
+docker compose build web runtime backend taylor
 
 log "Restarting services (ollama is opt-in; use --profile local-llm to enable) …"
 docker compose up -d --remove-orphans
