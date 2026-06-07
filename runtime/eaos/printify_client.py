@@ -40,6 +40,17 @@ def _upload_image(file_path: str, token: str) -> Optional[str]:
         img_id = resp.get("id", "")
         logger.info(f"[Printify] Image uploaded: id={img_id}")
         return img_id
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 403:
+            logger.error(
+                "[Printify] Image upload forbidden. "
+                "Regenerate PRINTIFY_API_TOKEN with uploads.write scope. "
+                f"Response: {detail[:300]}"
+            )
+        else:
+            logger.error(f"[Printify] Image upload failed HTTP {exc.code}: {detail[:300]}")
+        return None
     except Exception as exc:
         logger.error(f"[Printify] Image upload failed: {exc}")
         return None

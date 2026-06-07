@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -9,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 PRINTIFY_API = "https://api.printify.com/v1"
+REQUIRED_PUBLISH_SCOPES = {"shops.read", "products.read", "products.write", "uploads.write"}
 
 
 @dataclass(frozen=True)
@@ -38,7 +40,26 @@ def _config_from_env() -> PrintifyConfig:
     return PrintifyConfig(token=token, shop_id=shop_id)
 
 
+def token_scopes(token: str) -> set[str]:
+    parts = token.split(".")
+    if len(parts) < 2:
+        return set()
+    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(payload.encode()).decode("utf-8"))
+    except Exception:
+        return set()
+    scopes = decoded.get("scopes") or decoded.get("scope") or []
+    if isinstance(scopes, str):
+        return set(scopes.split())
+    if isinstance(scopes, list):
+        return {str(scope) for scope in scopes}
+    return set()
+
+
 def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
+    scopes = token_scopes(config.token)
+    missing_scopes = sorted(REQUIRED_PUBLISH_SCOPES - scopes) if scopes else []
     shops = _request("/shops.json", config)
     if not isinstance(shops, list):
         raise RuntimeError("Unexpected Printify shops response")
@@ -67,10 +88,17 @@ def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
             "published_or_visible": len(published),
             "sample_titles": [str(product.get("title", ""))[:100] for product in product_rows[:5]],
         },
+        "token": {
+            "scopes_decoded": sorted(scopes),
+            "required_for_publish": sorted(REQUIRED_PUBLISH_SCOPES),
+            "missing_for_publish": missing_scopes,
+        },
         "etsy_expected_shop": "https://www.etsy.com/shop/AlreadyHereLLC",
         "next_action": (
             "Connect this Printify shop to Etsy, then rerun EAOS POD Render & Printify Push."
             if disconnected
+            else "Create a new Printify token with uploads.write and products.write, then update PRINTIFY_API_TOKEN."
+            if missing_scopes
             else "Printify shop is connected; rerun push if Etsy listings are still missing."
         ),
     }
@@ -83,6 +111,13 @@ def main() -> int:
         if status["shop"]["disconnected"]:
             print("::error::Printify shop is disconnected from a sales channel. Connect Etsy in Printify before publishing.", file=sys.stderr)
             return 2
+        if status["token"]["missing_for_publish"]:
+            print(
+                "::error::Printify token is missing required publish scopes: "
+                + ", ".join(status["token"]["missing_for_publish"]),
+                file=sys.stderr,
+            )
+            return 3
         return 0
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
