@@ -152,7 +152,11 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           # Build tf.env locally then scp — avoids heredoc-at-col-0 YAML parse error
-          JWT="${JWT_SECRET:-changeme_set_jwt_secret_in_profitenginev5_secrets}"
+          if [ -z "${JWT_SECRET}" ]; then
+            echo "::warning::JWT_SECRET is not set; skipping TokenForge backend start"
+            exit 0
+          fi
+          JWT="${JWT_SECRET}"
           {
             echo "MONGO_URL=mongodb://mongo:27017"
             echo "DB_NAME=tokenforge"

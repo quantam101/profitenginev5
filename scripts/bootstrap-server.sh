@@ -114,7 +114,10 @@ upsert_env GMAIL_APP_PASSWORD     "${GMAIL_APP_PASSWORD}"
 upsert_env ALERT_EMAIL            "${ALERT_EMAIL:-stephen47@gmail.com}"
 upsert_env N8N_BASIC_AUTH_ACTIVE  "true"
 upsert_env N8N_BASIC_AUTH_USER    "${N8N_BASIC_AUTH_USER:-admin}"
-upsert_env N8N_BASIC_AUTH_PASSWORD "${N8N_BASIC_AUTH_PASSWORD:-ProfitEngine2026}"
+if [[ -z "${N8N_BASIC_AUTH_PASSWORD:-}" ]]; then
+  die "N8N_BASIC_AUTH_PASSWORD is required; refusing to deploy n8n with a default password"
+fi
+upsert_env N8N_BASIC_AUTH_PASSWORD "${N8N_BASIC_AUTH_PASSWORD}"
 
 # Required non-secret config
 upsert_env POSTGRES_DB       "profitengine"

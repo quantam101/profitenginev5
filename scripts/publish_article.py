@@ -119,7 +119,7 @@ The article should be 800-1200 words, include:
 - 5-7 sections with practical examples
 - A conclusion with a clear CTA
 - Natural keyword placement for SEO
-- No placeholder text — real, useful content"""
+- No unresolved tokens or filler text; publish real, useful content"""
 
 
 # ── Groq generation ────────────────────────────────────────────────────────────
@@ -271,14 +271,14 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
 def _inject_affiliates(body: str) -> str:
-    """Replace [AFFILIATE:keyword] placeholders with markdown links (or strip them)."""
+    """Replace [AFFILIATE:keyword] tokens with markdown links, then strip unresolved tokens."""
     try:
         affiliate_map: Dict[str, str] = json.loads(AFFILIATE_LINKS_JSON)
     except json.JSONDecodeError:
         affiliate_map = {}
     for keyword, url in affiliate_map.items():
         body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
-    # Strip any remaining unresolved placeholders
+    # Strip any remaining unresolved affiliate tokens.
     body = re.sub(r"\[AFFILIATE:([^\]]+)\]", r"\1", body)
     return body
 

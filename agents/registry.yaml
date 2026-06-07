@@ -53,7 +53,7 @@ agents:
   - id: content-gen
     name: Content Generation Agent
     version: 0.1.0
-    mission: Generate SEO-optimized long-form blog articles with affiliate link placeholders using the inference cascade.
+    mission: Generate SEO-optimized long-form blog articles with resolved affiliate link tokens using the inference cascade.
     max_cost_usd: 0
     allowed_connectors: [local_files, groq_api, gemini_api, ollama_local]
     forbidden_actions: [paid_api_call, production_deploy]

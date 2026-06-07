@@ -31,10 +31,10 @@ set -euo pipefail
 # ── YOUR KEYS (fill these in before running) ──────────────────────
 # Keys are in your Bitwarden vault and in GitHub Actions secrets.
 # Find them in: Downloads/COMPLETE_SETUP.sh  or  GitHub → Settings → Secrets
-GROQ_API_KEY="${GROQ_API_KEY:-<your-groq-key>}"
-GEMINI_API_KEY="${GEMINI_API_KEY:-<your-gemini-key>}"
-GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:-<your-github-pat>}"
-GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD:-<your-gmail-app-password>}"
+GROQ_API_KEY="${GROQ_API_KEY:?GROQ_API_KEY is required}"
+GEMINI_API_KEY="${GEMINI_API_KEY:?GEMINI_API_KEY is required}"
+GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN:?GITHUB_CONTENT_TOKEN is required}"
+GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD:?GMAIL_APP_PASSWORD is required}"
 AMAZON_PARTNER_TAG="${AMAZON_PARTNER_TAG:-alreadyhere-20}"
 DEVTO_API_KEY="${DEVTO_API_KEY:-}"
 HASHNODE_API_KEY="${HASHNODE_API_KEY:-}"
