@@ -39,11 +39,17 @@ jobs:
       - name: Install Pillow
         run: pip install pillow
 
+      - name: Show workflow version
+        run: |
+          echo "Workflow commit: $GITHUB_SHA"
+          git --no-pager log -1 --oneline
+
       - name: Validate Printify shop connection
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
           PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+          PRINTIFY_VERIFY_UPLOAD: "true"
         run: |
           python3 scripts/printify_shop_status.py | tee printify_status_before.json
 

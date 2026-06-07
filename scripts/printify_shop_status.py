@@ -32,6 +32,34 @@ def _request(path: str, config: PrintifyConfig) -> dict[str, Any] | list[dict[st
         raise RuntimeError(f"Printify API HTTP {exc.code}: {detail[:500]}") from exc
 
 
+def verify_upload_permission(config: PrintifyConfig) -> dict[str, Any]:
+    body = json.dumps({
+        "file_name": "profitengine-permission-check.png",
+        "contents": (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+            "AAAADUlEQVR42mP8z8BQDwAFgwJ/lM2GAAAAAABJRU5ErkJggg=="
+        ),
+    }).encode()
+    req = urllib.request.Request(  # noqa: S310 - fixed Printify HTTPS API endpoint
+        f"{PRINTIFY_API}/uploads/images.json",
+        data=body,
+        method="POST",
+        headers={"Authorization": f"Bearer {config.token}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+            data = json.loads(resp.read().decode("utf-8"))
+            return {"ok": True, "upload_id": data.get("id", "")}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        return {
+            "ok": False,
+            "status": exc.code,
+            "error": detail[:500],
+            "next_action": "Regenerate PRINTIFY_API_TOKEN with uploads.write scope and update the GitHub Actions secret.",
+        }
+
+
 def _config_from_env() -> PrintifyConfig:
     token = os.getenv("PRINTIFY_API_TOKEN", "").strip()
     shop_id = os.getenv("PRINTIFY_SHOP_ID", "").strip()
@@ -106,7 +134,10 @@ def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
 
 def main() -> int:
     try:
-        status = fetch_status(_config_from_env())
+        config = _config_from_env()
+        status = fetch_status(config)
+        if os.getenv("PRINTIFY_VERIFY_UPLOAD", "false").lower() == "true":
+            status["upload_permission"] = verify_upload_permission(config)
         print(json.dumps(status, indent=2))
         if status["shop"]["disconnected"]:
             print("::error::Printify shop is disconnected from a sales channel. Connect Etsy in Printify before publishing.", file=sys.stderr)
@@ -118,6 +149,12 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 3
+        if status.get("upload_permission", {}).get("ok") is False:
+            print(
+                "::error::Printify token cannot upload images. Regenerate PRINTIFY_API_TOKEN with uploads.write scope.",
+                file=sys.stderr,
+            )
+            return 4
         return 0
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
