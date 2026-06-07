@@ -2,12 +2,12 @@ name: Daily Content Publisher
 
 # Publishes one SEO article per day to GitHub Pages (quantam101/content)
 # using Groq's free llama-3.3-70b-versatile model.
-# Zero infrastructure required — runs entirely on GitHub's free CI runners.
+# Zero infrastructure required - runs entirely on GitHub's free CI runners.
 # Topics rotate from scripts/article_topics.py (90-topic cycle).
 
 on:
   schedule:
-    # 07:05 UTC daily — 5 min after n8n cron on the server (avoids overlap)
+    # 07:05 UTC daily - 5 min after n8n cron on the server (avoids overlap)
     - cron: '5 7 * * *'
   workflow_dispatch:
     inputs:
@@ -15,6 +15,14 @@ on:
         description: 'Article topic (leave blank for today''s rotation)'
         required: false
         default: ''
+      verify_only:
+        description: 'Verify publisher credentials without publishing'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   publish:
@@ -56,8 +64,9 @@ jobs:
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+          CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
           PYTHONUTF8: "1"
-          # EAOS Social credentials — add these secrets to enable each platform
+          # EAOS Social credentials - add these secrets to enable each platform
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}

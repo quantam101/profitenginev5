@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Standalone article generator + publisher for ProfitEngine.
 
@@ -19,12 +19,14 @@ Optional:
     GITHUB_CONTENT_DIR     — default: posts
     DEVTO_API_KEY          — from dev.to/settings/extensions
     ARTICLE_TOPIC          — override the default topic
+    CONTENT_VERIFY_ONLY    — true to verify credentials without publishing
     GMAOS_GROQ_MODEL       — default: llama-3.3-70b-versatile
 """
 from __future__ import annotations
 
 import asyncio
 import base64
+import importlib.util
 import json
 import os
 import pathlib
@@ -57,6 +59,7 @@ MEDIUM_KEY = os.getenv("MEDIUM_API_KEY", "").strip()
 MEDIUM_AUTHOR_ID = os.getenv("MEDIUM_AUTHOR_ID", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 AMAZON_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20").strip()
+VERIFY_ONLY = os.getenv("CONTENT_VERIFY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
 
 _CMDOS_BASE = os.getenv("CMDOS_BASE_URL", "https://app.alreadyherellc.com").rstrip("/")
 
@@ -65,7 +68,7 @@ def _fetch_cmdos_topic() -> Optional[str]:
     """Pull the next queued topic from Already Here Growth Command OS."""
     try:
         import urllib.request as _req
-        r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)
+        r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)  # noqa: S310
         data = json.loads(r.read())
         topics = data.get("topics", [])
         if topics:
@@ -86,7 +89,6 @@ def _default_topic() -> str:
         return cmdos_topic
     try:
         # Import sibling module without package install
-        import importlib.util, pathlib
         spec = importlib.util.spec_from_file_location(
             "article_topics",
             pathlib.Path(__file__).parent / "article_topics.py",
@@ -96,8 +98,6 @@ def _default_topic() -> str:
         return mod.pick_topic()
     except Exception:
         return "Best Free AI Tools to Build Passive Income Streams in 2026"
-
-DEFAULT_TOPIC = _default_topic()
 
 SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
 passive income, and digital automation. Write high-quality, helpful articles that
@@ -292,6 +292,173 @@ def _gh_headers() -> Dict[str, str]:
     }
 
 
+def _mask_configured(value: str) -> str:
+    return "configured" if value else "missing"
+
+
+def _verify_github_content() -> bool:
+    if not GH_TOKEN:
+        print("[VERIFY][FAIL] GitHub Pages: GITHUB_CONTENT_TOKEN missing")
+        return False
+    try:
+        r = httpx.get(
+            f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}",
+            headers=_gh_headers(),
+            timeout=20,
+        )
+        if r.is_success:
+            default_branch = r.json().get("default_branch", "")
+            print(f"[VERIFY][OK] GitHub Pages: {GH_OWNER}/{GH_REPO} reachable (default branch: {default_branch})")
+            return True
+        print(f"[VERIFY][FAIL] GitHub Pages {r.status_code}: {r.text[:240]}")
+    except Exception as exc:
+        print(f"[VERIFY][FAIL] GitHub Pages request failed: {exc}")
+    return False
+
+
+def _verify_devto() -> bool:
+    if not DEVTO_KEY:
+        print("[VERIFY][SKIP] Dev.to: DEVTO_API_KEY missing")
+        return True
+    try:
+        r = httpx.get(
+            f"{DEVTO_BASE}/users/me",
+            headers={"api-key": DEVTO_KEY, "Content-Type": "application/json"},
+            timeout=20,
+        )
+        if r.is_success:
+            user = r.json().get("username") or r.json().get("name") or "authenticated"
+            print(f"[VERIFY][OK] Dev.to: authenticated as {user}")
+            return True
+        print(f"[VERIFY][FAIL] Dev.to {r.status_code}: {r.text[:240]}")
+    except Exception as exc:
+        print(f"[VERIFY][FAIL] Dev.to request failed: {exc}")
+    return False
+
+
+def _verify_hashnode() -> bool:
+    if not HASHNODE_KEY or not HASHNODE_PUB_ID:
+        print(
+            "[VERIFY][SKIP] Hashnode: "
+            f"HASHNODE_API_KEY={_mask_configured(HASHNODE_KEY)}, "
+            f"HASHNODE_PUBLICATION_ID={_mask_configured(HASHNODE_PUB_ID)}"
+        )
+        return True
+    query = """
+    query VerifyHashnodePublisher($host: String!) {
+      publication(host: $host) { id title url }
+      me { id username }
+    }
+    """
+    # HASHNODE_PUBLICATION_ID is used by publishPost. Some accounts store the
+    # host instead, so validate auth with "me" and report publication lookup
+    # separately without blocking if the account uses ID-only publishing.
+    try:
+        r = httpx.post(
+            "https://gql.hashnode.com",
+            headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
+            json={"query": query, "variables": {"host": HASHNODE_PUB_ID}},
+            timeout=20,
+        )
+        if not r.is_success:
+            print(f"[VERIFY][FAIL] Hashnode {r.status_code}: {r.text[:240]}")
+            return False
+        data = r.json()
+        if data.get("errors"):
+            errors = json.dumps(data["errors"])[:240]
+            if "me" in errors.lower() or "authorization" in errors.lower() or "unauthorized" in errors.lower():
+                print(f"[VERIFY][FAIL] Hashnode auth error: {errors}")
+                return False
+            print(f"[VERIFY][WARN] Hashnode publication lookup warning: {errors}")
+        me = data.get("data", {}).get("me")
+        if me:
+            print(f"[VERIFY][OK] Hashnode: authenticated as {me.get('username') or me.get('id')}")
+            return True
+        print("[VERIFY][OK] Hashnode: API key accepted; publication will be validated on publish")
+        return True
+    except Exception as exc:
+        print(f"[VERIFY][FAIL] Hashnode request failed: {exc}")
+    return False
+
+
+def _verify_medium() -> bool:
+    if not MEDIUM_KEY or not MEDIUM_AUTHOR_ID:
+        print(
+            "[VERIFY][SKIP] Medium: "
+            f"MEDIUM_API_KEY={_mask_configured(MEDIUM_KEY)}, "
+            f"MEDIUM_AUTHOR_ID={_mask_configured(MEDIUM_AUTHOR_ID)}"
+        )
+        return True
+    try:
+        r = httpx.get(
+            "https://api.medium.com/v1/me",
+            headers={"Authorization": f"Bearer {MEDIUM_KEY}", "Accept": "application/json"},
+            timeout=20,
+        )
+        if not r.is_success:
+            print(f"[VERIFY][FAIL] Medium {r.status_code}: {r.text[:240]}")
+            return False
+        data = r.json().get("data", {})
+        actual_author_id = data.get("id", "")
+        if actual_author_id != MEDIUM_AUTHOR_ID:
+            print(
+                "[VERIFY][FAIL] Medium: MEDIUM_AUTHOR_ID does not match token user "
+                f"(expected {actual_author_id}, configured {MEDIUM_AUTHOR_ID})"
+            )
+            return False
+        print(f"[VERIFY][OK] Medium: authenticated as {data.get('username') or actual_author_id}")
+        return True
+    except Exception as exc:
+        print(f"[VERIFY][FAIL] Medium request failed: {exc}")
+    return False
+
+
+def _verify_ai_provider() -> bool:
+    if GROQ_KEY:
+        try:
+            r = httpx.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {GROQ_KEY}"},
+                timeout=20,
+            )
+            if r.is_success:
+                print("[VERIFY][OK] Groq: API key accepted")
+                return True
+            print(f"[VERIFY][FAIL] Groq {r.status_code}: {r.text[:240]}")
+            return False
+        except Exception as exc:
+            print(f"[VERIFY][FAIL] Groq request failed: {exc}")
+            return False
+    if GEMINI_KEY:
+        try:
+            model_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}"
+            r = httpx.get(f"{model_url}?key={GEMINI_KEY}", timeout=20)
+            if r.is_success:
+                print(f"[VERIFY][OK] Gemini: model reachable ({GEMINI_MODEL})")
+                return True
+            print(f"[VERIFY][FAIL] Gemini {r.status_code}: {r.text[:240]}")
+            return False
+        except Exception as exc:
+            print(f"[VERIFY][FAIL] Gemini request failed: {exc}")
+            return False
+    print("[VERIFY][FAIL] AI provider: neither GROQ_API_KEY nor GEMINI_API_KEY is configured")
+    return False
+
+
+def verify_publish_configuration() -> None:
+    print("== Content Publisher Verification ==")
+    checks = [
+        _verify_ai_provider(),
+        _verify_github_content(),
+        _verify_devto(),
+        _verify_hashnode(),
+        _verify_medium(),
+    ]
+    if not all(checks):
+        sys.exit("[VERIFY] Content publisher verification failed")
+    print("[VERIFY] Content publisher verification passed")
+
+
 def _get_sha(path: str) -> Optional[str]:
     try:
         r = httpx.get(
@@ -302,8 +469,8 @@ def _get_sha(path: str) -> Optional[str]:
         )
         if r.status_code == 200:
             return r.json().get("sha")
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[WARN] GitHub SHA lookup skipped for {path}: {exc}")
     return None
 
 
@@ -430,7 +597,7 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
         follow_redirects=False,
     )
     if r.status_code in (301, 302, 308):
-        print(f"[SKIP] Hashnode GQL endpoint moved (301) — API may have changed. Check hashnode.com docs.")
+        print("[SKIP] Hashnode GQL endpoint moved (301) — API may have changed. Check hashnode.com docs.")
         return None
     if not r.is_success or not r.text.strip():
         print(f"[FAIL] Hashnode {r.status_code}: {r.text[:300]}")
@@ -477,7 +644,11 @@ def publish_medium(article: Dict[str, Any], canonical_url: str) -> Optional[str]
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main() -> None:
-    topic = DEFAULT_TOPIC
+    if VERIFY_ONLY:
+        verify_publish_configuration()
+        return
+
+    topic = _default_topic()
     article = generate_article(topic)
 
     now = datetime.now(tz=timezone.utc)
@@ -564,7 +735,7 @@ def main() -> None:
             import urllib.request as _req
             payload = json.dumps({
                 "title": article["title"],
-                "topic": DEFAULT_TOPIC,
+                "topic": topic,
                 "canonical_url": canonical_url,
                 "devto_url": devto_url or "",
                 "medium_url": medium_url or "",
@@ -574,10 +745,13 @@ def main() -> None:
                               + (["medium"] if medium_url else [])
                               + (["hashnode"] if hashnode_url else [])),
             }).encode()
-            _req.urlopen(
-                _req.Request(f"{_CMDOS_BASE}/api/content-sync/published",
-                             data=payload, method="POST",
-                             headers={"Content-Type": "application/json"}),
+            _req.urlopen(  # noqa: S310
+                _req.Request(  # noqa: S310
+                    f"{_CMDOS_BASE}/api/content-sync/published",
+                    data=payload,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                ),
                 timeout=8,
             )
             print("[ContentSync] Published article logged to Growth Command OS")
