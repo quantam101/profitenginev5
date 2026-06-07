@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
+import { estimateKdpNetUsd, kdpRevenueOffers, type KdpRevenueOffer } from '../../../lib/kdp-revenue';
 
 const PROOF_THRESHOLD_USD = 25_000;
+
+type CoreOffer = {
+  id: string;
+  name: string;
+  stream: 'pod' | 'service' | 'affiliate' | 'saas';
+  price: number;
+  cost: number;
+  hours: number;
+  proofRequired: boolean;
+  cta: string;
+};
+
+type ProfitabilityOffer = CoreOffer | KdpRevenueOffer;
 
 const storeLinks = {
   etsy: 'https://www.etsy.com/shop/AlreadyHereLLC',
   printify: 'https://fly-culture-shop.printify.me',
   shopify: 'https://flydesignvault.com',
   profitengine: 'https://profitengine-tau.vercel.app',
+  kdp: '/api/kdp-revenue',
 };
 
-const offers = [
+const coreOffers: CoreOffer[] = [
   { id: 'etsy-pod-shirt', name: 'Proof-first builder apparel', stream: 'pod', price: 29.99, cost: 16.5, hours: 0.05, proofRequired: false, cta: storeLinks.etsy },
   { id: 'etsy-printify-build', name: 'Etsy/Printify store build', stream: 'service', price: 499, cost: 25, hours: 5, proofRequired: false, cta: 'mailto:dispatch@alreadyherellc.com?subject=Etsy%20Printify%20Store%20Build' },
   { id: 'stripe-payment-setup', name: 'Stripe payment setup', stream: 'service', price: 349, cost: 10, hours: 3, proofRequired: false, cta: 'mailto:dispatch@alreadyherellc.com?subject=Stripe%20Payment%20Setup' },
@@ -19,10 +34,14 @@ const offers = [
   { id: 'profitengine-hosted-beta', name: 'ProfitEngine hosted beta', stream: 'saas', price: 149, cost: 20, hours: 2, proofRequired: true, cta: `${storeLinks.profitengine}#waitlist` },
 ];
 
-function margin(offer: typeof offers[number]) {
+const offers: ProfitabilityOffer[] = [...coreOffers, ...kdpRevenueOffers];
+
+function margin(offer: ProfitabilityOffer) {
   const platformFee = offer.stream === 'pod' ? 0.2 + offer.price * 0.065 : 0;
-  const paymentFee = offer.price > 0 ? offer.price * 0.03 + 0.25 : 0;
-  const net = offer.price - offer.cost - platformFee - paymentFee;
+  const paymentFee = offer.price > 0 && offer.stream !== 'publishing' ? offer.price * 0.03 + 0.25 : 0;
+  const kdpRoyalty = offer.stream === 'publishing' ? estimateKdpNetUsd(offer) : null;
+  const net = kdpRoyalty ?? offer.price - offer.cost - platformFee - paymentFee;
+
   return {
     ...offer,
     estimatedPlatformFeeUsd: Number(platformFee.toFixed(2)),
@@ -39,6 +58,7 @@ export async function GET() {
     if (a.proofRequired !== b.proofRequired) return a.proofRequired ? 1 : -1;
     return b.netPerHourUsd - a.netPerHourUsd;
   });
+
   return NextResponse.json({
     proof: {
       thresholdUsd: PROOF_THRESHOLD_USD,
@@ -49,7 +69,7 @@ export async function GET() {
     },
     storeLinks,
     rankedOffers,
-    agents: ['offer-scout', 'margin-guard', 'listing-optimizer', 'traffic-agent', 'proof-ledger'],
-    immediateStreams: ['POD + Etsy/Printify', 'productized services', 'affiliate education content'],
+    agents: ['offer-scout', 'margin-guard', 'listing-optimizer', 'traffic-agent', 'proof-ledger', 'kdp-publisher-guard'],
+    immediateStreams: ['POD + Etsy/Printify', 'productized services', 'affiliate education content', 'Amazon KDP publishing assets'],
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
