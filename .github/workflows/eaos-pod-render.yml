@@ -1,7 +1,8 @@
 name: EAOS — POD Render & Printify Push
 
-# Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG) and pushes
-# live products to Printify. Runs weekly on Monday and on manual dispatch.
+# Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG).
+# Printify push is supported, but external Printify failures are non-fatal
+# unless strict_printify=true is selected on manual dispatch.
 
 on:
   schedule:
@@ -21,10 +22,16 @@ on:
         default: 'true'
         type: choice
         options: ['true', 'false']
+      strict_printify:
+        description: 'Fail workflow if Printify push or verification fails?'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
 
 jobs:
   render:
-    name: Render POD artwork + push to Printify
+    name: Render POD artwork + optional Printify push
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -50,8 +57,18 @@ jobs:
           PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
           PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           PRINTIFY_VERIFY_UPLOAD: "true"
+          STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
+          set +e
           python3 scripts/printify_shop_status.py | tee printify_status_before.json
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify shop validation failed under strict mode."
+              exit "$rc"
+            fi
+            echo "::warning::Printify shop validation failed; continuing because strict_printify=false."
+          fi
 
       - name: Render SKUs
         env:
@@ -69,18 +86,40 @@ jobs:
           EAOS_POD_ROOT: ./datacenter/pod_factory
           EAOS_POD_DB: ./datacenter/pod_cache.db
           TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
+          STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
           PYTHONUTF8: "1"
-        run: python3 scripts/push_printify_catalog.py
+        run: |
+          set +e
+          python3 scripts/push_printify_catalog.py
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify push failed under strict mode."
+              exit "$rc"
+            fi
+            echo "::warning::Printify push failed; rendered artwork remains available as a build artifact."
+          fi
 
       - name: Verify Printify products after push
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
           PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+          STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
+          set +e
           python3 scripts/printify_shop_status.py | tee printify_status_after.json
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify post-push verification failed under strict mode."
+              exit "$rc"
+            fi
+            echo "::warning::Printify post-push verification failed; continuing because strict_printify=false."
+          fi
 
       - name: Upload rendered artwork
+        if: always()
         uses: actions/upload-artifact@v5
         with:
           name: pod-artwork-${{ github.run_id }}
@@ -93,6 +132,7 @@ jobs:
         run: |
           echo "### EAOS POD Render" >> $GITHUB_STEP_SUMMARY
           echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "Strict Printify: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}" >> $GITHUB_STEP_SUMMARY
           echo "Printify dashboard: https://printify.com/app/store/products" >> $GITHUB_STEP_SUMMARY
           echo "Etsy shop: https://www.etsy.com/shop/AlreadyHereLLC" >> $GITHUB_STEP_SUMMARY
           if [ -f printify_status_before.json ]; then
