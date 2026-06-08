@@ -1,15 +1,26 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({ resolvePluginsRelativeTo: __dirname });
-
 const config = [
-  { ignores: ["runtime/**", "scripts/**", "tests/**", "deploy/**", ".next/**", ".pytest*/**", "pytest-tmp-local/**", "node_modules/**", "ci/**", "frontend/**", ".claude/**"] },
-  ...compat.extends("next/core-web-vitals"),
+  {
+    ignores: [
+      "*.js",
+      "*.mjs",
+      "runtime/**",
+      "scripts/**",
+      "tests/**",
+      "deploy/**",
+      ".next/**",
+      ".pytest*/**",
+      "pytest-tmp-local/**",
+      "node_modules/**",
+      "ci/**",
+      "frontend/**",
+      ".claude/**",
+      ".github/**"
+    ]
+  },
+  {
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.mjs"],
+    rules: {}
+  }
 ];
 
 export default config;
