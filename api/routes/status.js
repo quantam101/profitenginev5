@@ -10,6 +10,7 @@ const intel     = require('../../agents/intelligence');
 const pipeline  = require('../../pipeline');
 const workers   = require('../../workers');
 const revenue   = require('../../agents/revenue');
+const mongo     = require('../../core/mongo');
 
 router.get('/', (req, res) => {
   const all = state.getAll();
@@ -38,8 +39,42 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/revenue', (req, res) => {
-  res.json({ ok: true, monthly: revenue.getMonthly(), allTime: revenue.getAllTime() });
+router.get('/revenue', async (req, res) => {
+  const db = await mongo.getDb();
+  if (!db) {
+    // No Mongo configured/reachable — fall back to locally-recorded events
+    return res.json({ ok: true, source: 'local', monthly: revenue.getMonthly(), allTime: revenue.getAllTime() });
+  }
+  try {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const monthIso = monthStart.toISOString();
+
+    const paid = (extra = {}) => db.collection('payment_transactions')
+      .aggregate([
+        { $match: { payment_status: 'paid', ...extra } },
+        { $group: { _id: '$tier', total: { $sum: '$amount' } } },
+      ]).toArray();
+
+    const [monthlyRows, allTimeRows] = await Promise.all([
+      paid({ updated_at: { $gte: monthIso } }),
+      paid(),
+    ]);
+    const toShape = rows => {
+      const bySource = {};
+      let total = 0;
+      for (const r of rows) {
+        const src = r._id || 'unknown';
+        bySource[src] = (bySource[src] || 0) + r.total;
+        total += r.total;
+      }
+      return { total, bySource };
+    };
+    res.json({ ok: true, source: 'mongo:payment_transactions', monthly: toShape(monthlyRows), allTime: toShape(allTimeRows) });
+  } catch (err) {
+    res.json({ ok: true, source: 'local', monthly: revenue.getMonthly(), allTime: revenue.getAllTime(), warning: err.message });
+  }
 });
 
 router.get('/health', (req, res) => {

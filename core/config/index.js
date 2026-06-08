@@ -59,6 +59,10 @@ function build() {
     githubRepo:    env('GITHUB_REPO', 'already-here-llc'),
     githubBlogDir: env('GITHUB_BLOG_DIR', 'posts'),
 
+    // MongoDB (shared with backend/server.py — system of record for payments)
+    mongoUrl: env('MONGO_URL', ''),
+    dbName:   env('DB_NAME', ''),
+
     // Blog platforms
     devtoApiKey:           env('DEVTO_API_KEY', ''),
     hashnodeApiKey:        env('HASHNODE_API_KEY', ''),
