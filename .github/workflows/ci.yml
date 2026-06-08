@@ -44,11 +44,17 @@ jobs:
         run: npm run validate:yaml
       - name: Unit tests
         run: npm run test:unit
-      - name: Gateway tests
-        run: |
-          npm run test:integration
-          npm run test:ai-gateway
-          npm run test:skill-gateway
+      - name: Health contract test
+        run: npm run test:integration
+        env:
+          CI: "true"
+      - name: AI gateway test
+        run: npm run test:ai-gateway
+        env:
+          CI: "true"
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Skill gateway test
+        run: npm run test:skill-gateway
         env:
           CI: "true"
           GROQ_API_KEY: "stub-groq-ci-key"
