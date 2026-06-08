@@ -15,6 +15,7 @@ backups/
 secrets.env
 .profitengine-secrets
 .env.*
+.env*.local
 *.env
 credentials.json
 *.pem
