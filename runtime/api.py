@@ -47,6 +47,29 @@ class EnqueueRequest(BaseModel):
     priority: int = Field(default=1, ge=1, le=10)
 
 
+class NewsletterRequest(BaseModel):
+    headline: str = Field(min_length=5, max_length=200)
+    sections: List[Dict[str, str]] = Field(min_length=1, max_length=10)
+    tags: List[str] = Field(default_factory=list)
+    cta_url: str = Field(default="https://alreadyherellc.com")
+
+
+class CitySEORequest(BaseModel):
+    niches: List[str] = Field(default_factory=list)
+    tiers: List[str] = Field(default_factory=list)
+    limit: int = Field(default=25, ge=1, le=200)
+    dry_run: bool = Field(default=False)
+
+
+class ChatbotRequest(BaseModel):
+    business_name: str = Field(min_length=2, max_length=200)
+    contact_email: str = Field(min_length=5, max_length=200)
+    website_url: str = Field(min_length=10, max_length=500)
+    niche: str = Field(default="business", max_length=50)
+    tier: str = Field(default="starter")
+    send_email: bool = Field(default=True)
+
+
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or hashlib.sha256(f"{time.time_ns()}:{request.url.path}".encode()).hexdigest()[:16]
@@ -206,6 +229,145 @@ def eaos_health() -> Dict[str, Any]:
     master = get_master()
     engine = get_engine()
     return {**master.health(), "video_engine": engine.status()}
+
+
+@app.post("/newsletter/publish")
+def newsletter_publish(payload: NewsletterRequest) -> Dict[str, Any]:
+    """Publish a digest to Beehiiv (income stream 8 — newsletter)."""
+    from .beehiiv_client import publish_digest_from_sections
+    result = publish_digest_from_sections(
+        headline = payload.headline,
+        sections = payload.sections,
+        tags     = payload.tags or ["ai", "automation", "income"],
+        cta_url  = payload.cta_url,
+    )
+    return {
+        "ok":      result.ok,
+        "post_id": result.post_id,
+        "web_url": result.web_url,
+        "status":  result.status,
+        "error":   result.error,
+    }
+
+
+@app.get("/newsletter/stats")
+def newsletter_stats() -> Dict[str, Any]:
+    """Beehiiv publication stats: subscriber count, free/paid breakdown, MRR estimate."""
+    from .beehiiv_client import get_stats, get_subscribers
+    stats = get_stats()
+    subs  = get_subscribers()
+    return {**stats, "subscribers": subs}
+
+
+@app.post("/products/bootstrap")
+def products_bootstrap() -> Dict[str, Any]:
+    """Ensure all 5 Gumroad digital products exist (idempotent — income stream 3)."""
+    from .gumroad_client import bootstrap_catalog
+    results = bootstrap_catalog()
+    return {"ok": True, "products": results}
+
+
+@app.get("/products/revenue")
+def products_revenue() -> Dict[str, Any]:
+    """Gumroad revenue summary: month sales, MRR, product list."""
+    from .gumroad_client import revenue_summary
+    return revenue_summary()
+
+
+@app.post("/city-seo/generate")
+def city_seo_generate(payload: CitySEORequest) -> Dict[str, Any]:
+    """
+    Generate and commit city × niche SEO pages (income stream 10).
+    Set dry_run=true to preview without committing.
+    """
+    from .city_seo_engine import generate_batch
+    return generate_batch(
+        niches  = payload.niches or None,
+        tiers   = payload.tiers  or None,
+        limit   = payload.limit,
+        dry_run = payload.dry_run,
+    )
+
+
+@app.post("/chatbot/build")
+def chatbot_build(payload: ChatbotRequest) -> Dict[str, Any]:
+    """
+    Build a white-label AI chatbot for a local business (income stream 1).
+    Scrapes website, creates Chatbase bot, generates Stripe payment links,
+    sends onboarding email.
+    """
+    from .chatbot_builder import build_chatbot
+    result = build_chatbot(
+        business_name = payload.business_name,
+        contact_email = payload.contact_email,
+        website_url   = payload.website_url,
+        niche         = payload.niche,
+        tier          = payload.tier,
+        send_email    = payload.send_email,
+    )
+    return {
+        "ok":              result.ok,
+        "chatbot_id":      result.chatbot_id,
+        "embed_code":      result.embed_code,
+        "setup_url":       result.setup_url,
+        "subscription_url": result.subscription_url,
+        "error":           result.error,
+    }
+
+
+@app.get("/chatbot/revenue")
+def chatbot_revenue() -> Dict[str, Any]:
+    """Active chatbot retainer subscriptions and MRR from Stripe."""
+    from .chatbot_builder import revenue_pipeline_summary
+    return revenue_pipeline_summary()
+
+
+@app.get("/income/summary")
+def income_summary() -> Dict[str, Any]:
+    """
+    Aggregate revenue snapshot across all 10 income streams.
+    Returns MRR estimates and pipeline status for each stream.
+    """
+    summary: Dict[str, Any] = {"ok": True, "streams": {}}
+
+    # Stream 1: Chatbot retainers
+    try:
+        from .chatbot_builder import revenue_pipeline_summary
+        summary["streams"]["chatbot_retainers"] = revenue_pipeline_summary()
+    except Exception as exc:
+        summary["streams"]["chatbot_retainers"] = {"ok": False, "error": str(exc)}
+
+    # Stream 3: Digital products
+    try:
+        from .gumroad_client import revenue_summary
+        summary["streams"]["digital_products"] = revenue_summary()
+    except Exception as exc:
+        summary["streams"]["digital_products"] = {"ok": False, "error": str(exc)}
+
+    # Stream 8: Newsletter
+    try:
+        from .beehiiv_client import get_subscribers
+        summary["streams"]["newsletter"] = get_subscribers()
+    except Exception as exc:
+        summary["streams"]["newsletter"] = {"ok": False, "error": str(exc)}
+
+    # Stream 4: POD
+    try:
+        from .eaos.cluster_master import get_master
+        master = get_master()
+        stats  = master.queue.stats()
+        summary["streams"]["pod"] = {"ok": True, "queue": stats}
+    except Exception as exc:
+        summary["streams"]["pod"] = {"ok": False, "error": str(exc)}
+
+    # Stream 6: Video pipeline
+    try:
+        from .eaos.video_engine import get_engine
+        summary["streams"]["video"] = get_engine().status()
+    except Exception as exc:
+        summary["streams"]["video"] = {"ok": False, "error": str(exc)}
+
+    return summary
 
 
 @app.post("/execute")
