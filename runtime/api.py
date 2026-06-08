@@ -47,6 +47,15 @@ class EnqueueRequest(BaseModel):
     priority: int = Field(default=1, ge=1, le=10)
 
 
+class SocialDistributeRequest(BaseModel):
+    text:       str = Field(min_length=1, max_length=500)
+    full_text:  str = Field(default="", max_length=50000)
+    title:      str = Field(default="", max_length=300)
+    url:        str = Field(default="")
+    media_path: str = Field(default="")
+    platforms:  List[str] = Field(default_factory=list)
+
+
 class NewsletterRequest(BaseModel):
     headline: str = Field(min_length=5, max_length=200)
     sections: List[Dict[str, str]] = Field(min_length=1, max_length=10)
@@ -229,6 +238,73 @@ def eaos_health() -> Dict[str, Any]:
     master = get_master()
     engine = get_engine()
     return {**master.health(), "video_engine": engine.status()}
+
+
+@app.post("/social/distribute")
+async def social_distribute(payload: SocialDistributeRequest) -> Dict[str, Any]:
+    """
+    Distribute a post across all configured social platforms via the Python engine.
+    Platforms: X/Twitter, LinkedIn, Facebook, Instagram, TikTok, YouTube, Telegram.
+    Called by the Node.js pipeline after each article publish.
+    """
+    from .eaos.social_engine import ProductionSocialEngine, SocialPost
+    engine = ProductionSocialEngine()
+
+    requested = set(payload.platforms) if payload.platforms else {
+        "twitter", "linkedin", "facebook", "instagram", "tiktok", "youtube", "telegram"
+    }
+
+    post = SocialPost(
+        db_id        = None,
+        platform     = "multi",
+        text_content = payload.text,
+        media_path   = payload.media_path or None,
+        extra        = {
+            "title":       payload.title,
+            "url":         payload.url,
+            "full_text":   payload.full_text,
+            "description": payload.full_text[:500],
+            "tags":        ["AI", "automation", "AlreadyHereLLC", "passiveincome"],
+        },
+    )
+
+    results: Dict[str, Any] = {}
+    posted = 0
+
+    platform_map = {
+        "twitter":   "_post_twitter",
+        "linkedin":  "_post_linkedin",
+        "facebook":  "_post_facebook",
+        "instagram": "_post_instagram",
+        "tiktok":    "_post_tiktok",
+        "youtube":   "_post_youtube",
+        "telegram":  "_post_telegram",
+    }
+
+    for platform, method_name in platform_map.items():
+        if platform not in requested:
+            continue
+        try:
+            method = getattr(engine, method_name, None)
+            if method:
+                # Run blocking social calls in thread pool
+                import asyncio, functools
+                result = await asyncio.get_event_loop().run_in_executor(
+                    None, functools.partial(
+                        lambda m, p: asyncio.get_event_loop().run_until_complete(m(p))
+                        if asyncio.iscoroutinefunction(m) else m(p),
+                        method, post
+                    )
+                )
+                if result:
+                    posted += 1
+                results[platform] = "ok" if result else "skipped"
+            else:
+                results[platform] = "not_implemented"
+        except Exception as exc:
+            results[platform] = f"error: {str(exc)[:80]}"
+
+    return {"ok": True, "posted": posted, "platforms": results}
 
 
 @app.post("/newsletter/publish")
