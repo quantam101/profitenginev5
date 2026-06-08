@@ -139,6 +139,14 @@ app.include_router(build_launch_router(db))
 # Enterprise blueprint endpoints (autonomy, lifelong, manifest)
 app.include_router(build_enterprise_router(db))
 
+# ── G-MAOS mesh router ─────────────────────────────────────────────────
+try:
+    from runtime.gmaos.api import router as _gmaos_router
+    app.include_router(_gmaos_router)
+except Exception as _gmaos_err:
+    import logging as _log
+    _log.getLogger("server").warning("G-MAOS router not loaded: %s", _gmaos_err)
+
 
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
