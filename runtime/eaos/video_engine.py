@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import random
+import shutil
 import subprocess
 import tempfile
 import time
@@ -108,7 +109,7 @@ async def _with_backoff(coro_fn, *args, retries: int = 3, base: float = 2.0, cap
         except Exception as exc:
             if attempt == retries - 1:
                 raise
-            delay = min(base * (2 ** attempt) + random.uniform(0, 0.5), cap)
+            delay = min(base * (2 ** attempt) + random.uniform(0, 0.5), cap)  # noqa: S311 (jitter, not crypto)
             logger.warning(f"[VideoEngine] Attempt {attempt+1}/{retries} failed ({exc}); retry in {delay:.1f}s")
             await asyncio.sleep(delay)
 
@@ -116,7 +117,7 @@ async def _with_backoff(coro_fn, *args, retries: int = 3, base: float = 2.0, cap
 # ── Async subprocess (non-blocking FFmpeg) ─────────────────────────────────────
 
 async def _run_ffmpeg(*args: str, timeout: int = 120) -> bool:
-    cmd = ["ffmpeg", "-y", *args]
+    cmd = [shutil.which("ffmpeg") or "ffmpeg", "-y", *args]
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -137,9 +138,12 @@ async def _run_ffmpeg(*args: str, timeout: int = 120) -> bool:
 
 
 def _check_ffmpeg() -> bool:
+    ffmpeg_path = shutil.which("ffmpeg")
+    if not ffmpeg_path:
+        return False
     try:
-        subprocess.run(
-            ["ffmpeg", "-version"],
+        subprocess.run(  # noqa: S603 (ffmpeg_path resolved via shutil.which, not user input)
+            [ffmpeg_path, "-version"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=True,

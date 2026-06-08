@@ -312,7 +312,7 @@ def _create_openassistant_bot(
 # ── Platform 3: Custom widget fallback ────────────────────────────────────────
 
 def _create_custom_widget(business_name: str, niche: str) -> Dict[str, Any]:
-    bot_id     = hashlib.md5(f"{business_name}{niche}".encode()).hexdigest()[:12]
+    bot_id     = hashlib.md5(f"{business_name}{niche}".encode(), usedforsecurity=False).hexdigest()[:12]
     runtime_url = os.environ.get("RUNTIME_API_URL", "https://backend.alreadyherellc.com/runtime")
     embed_code = (
         f'<script src="{runtime_url}/widget.js" '
