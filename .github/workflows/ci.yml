@@ -13,7 +13,6 @@ env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
-  # ── Stage 1: pre-merge — lint + unit + types ───────────────────
   pre_merge:
     name: "Stage 1 — pre-merge (lint, unit, types)"
     runs-on: ubuntu-latest
@@ -32,20 +31,41 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r backend/requirements.txt
-          pip install ruff
+          pip install ruff pytest
       - name: Install Node deps
         run: npm ci
       - name: Ruff lint
         run: ruff check backend code_merger
-      - name: npm run ci:all
-        run: npm run ci:all
+      - name: Frontend lint
+        run: npx --no-install eslint app/ lib/ --max-warnings=0
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Validate YAML
+        run: npm run validate:yaml
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Gateway tests
+        run: |
+          npm run test:integration
+          npm run test:ai-gateway
+          npm run test:skill-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'stub-groq-ci-key' }}
-      - name: Unit tests (code_merger)
-        run: python -m pytest code_merger/tests/ -v
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Gateway evals
+        run: |
+          npm run eval:ai-gateway
+          npm run eval:skill-gateway
+        env:
+          CI: "true"
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Security scan
+        run: npm run security:scan
+      - name: Production build
+        run: npm run build
+        env:
+          CI: "true"
 
-  # ── Stage 2: integration — FastAPI + Mongo ─────────────────────
   integration:
     name: "Stage 2 — integration (API + Mongo)"
     runs-on: ubuntu-latest
@@ -69,12 +89,9 @@ jobs:
         env:
           MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'sk-test-ci-stub' }}
-        # test_distillation.py uses MongoDB directly (no backend HTTP server needed)
-        # test_backend_api.py requires a running backend — run in Stage 3 e2e instead
+          GROQ_API_KEY: "stub-groq-ci-key"
         run: python -m pytest backend/tests/test_distillation.py -v
 
-  # ── Stage 3: e2e — Playwright against running stack ────────────
   e2e:
     name: "Stage 3 — e2e (Playwright)"
     runs-on: ubuntu-latest
@@ -100,7 +117,7 @@ jobs:
         env:
           MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'sk-test-ci-stub' }}
+          GROQ_API_KEY: "stub-groq-ci-key"
         run: |
           cd /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
@@ -115,7 +132,6 @@ jobs:
           print('e2e smoke: ok')
           "
 
-  # ── Stage 4: performance / smoke (k6) ──────────────────────────
   performance:
     name: "Stage 4 — performance (k6)"
     runs-on: ubuntu-latest
@@ -134,7 +150,7 @@ jobs:
         env:
           MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'sk-test-ci-stub' }}
+          GROQ_API_KEY: "stub-groq-ci-key"
         run: |
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
           for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
@@ -148,9 +164,8 @@ jobs:
           BASE_URL: "http://localhost:8001"
         run: k6 run ci/load_smoke.js
 
-  # ── Stage 5: build + readiness gate ────────────────────────────
   deployment_gate:
-    name: "Stage 5 — deployment gate (yarn verify)"
+    name: "Stage 5 — deployment gate"
     runs-on: ubuntu-latest
     needs: [e2e, performance]
     steps:
@@ -163,11 +178,11 @@ jobs:
       - name: Frontend deployment gate
         run: |
           npm ci
-          npm run lint
+          npx --no-install eslint app/ lib/ --max-warnings=0
           npm run typecheck
           npm run build
       - name: Done
-        run: echo "deployment gate passed — lints, types, and production build succeeded."
+        run: echo "deployment gate passed"
 
   readiness:
     name: "Stage 6 — readiness gate"
