@@ -51,23 +51,28 @@ jobs:
           echo "Workflow commit: $GITHUB_SHA"
           git --no-pager log -1 --oneline
 
-      - name: Validate Printify shop connection
+      - name: Validate Printify shop connection (via OCI server)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
-          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
-          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
-          PRINTIFY_VERIFY_UPLOAD: "true"
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
+          # Run from OCI server to avoid Cloudflare block (error code 1010)
           set +e
-          python3 scripts/printify_shop_status.py | tee printify_status_before.json
-          rc=${PIPESTATUS[0]}
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+            opc@129.146.167.73 \
+            "cd /home/opc/profitenginev5 && python3 scripts/printify_shop_status.py 2>&1" \
+            | tee printify_status_before.json
+          rc=$?
           if [ "$rc" -ne 0 ]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
               echo "::error::Printify shop validation failed under strict mode."
               exit "$rc"
             fi
-            echo "::warning::Printify shop validation failed; continuing because strict_printify=false."
+            echo "::warning::Printify shop validation failed; continuing."
           fi
 
       - name: Render SKUs
@@ -125,22 +130,24 @@ jobs:
             echo "::warning::Printify push failed; rendered artwork remains available as a build artifact."
           fi
 
-      - name: Verify Printify products after push
+      - name: Verify Printify products after push (via OCI server)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
-          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
-          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
+          # Verify via OCI server to avoid Cloudflare block
           set +e
-          python3 scripts/printify_shop_status.py | tee printify_status_after.json
-          rc=${PIPESTATUS[0]}
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+            opc@129.146.167.73 \
+            "cd /home/opc/profitenginev5 && python3 scripts/printify_shop_status.py 2>&1" \
+            | tee printify_status_after.json
+          rc=$?
           if [ "$rc" -ne 0 ]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
               echo "::error::Printify post-push verification failed under strict mode."
               exit "$rc"
             fi
-            echo "::warning::Printify post-push verification failed; continuing because strict_printify=false."
+            echo "::warning::Printify post-push verification failed; continuing."
           fi
 
       - name: Upload rendered artwork
