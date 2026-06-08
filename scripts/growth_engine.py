@@ -86,8 +86,14 @@ def post_github_issue(title: str, body: str, labels: list[str]) -> str:
         },
         method="POST",
     )
-    result = json.loads(urllib.request.urlopen(req, timeout=10).read())
-    return result.get("html_url", "")
+    try:
+        result = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        return result.get("html_url", "")
+    except urllib.error.HTTPError as e:
+        print(f"[growth] GitHub Issues API error {e.code}: {e.read().decode()[:200]}")
+        print("[growth] Printing digest to stdout instead:")
+        print(body)
+        return ""
 
 
 def build_weekly_digest() -> str:

@@ -12,6 +12,10 @@ on:
         type: choice
         options: [full, content-only, leads-only]
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   growth:
     name: Weekly growth tasks

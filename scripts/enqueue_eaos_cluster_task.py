@@ -22,15 +22,17 @@ def main() -> int:
         return 1
 
     payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
-    payload = json.loads(payload_raw) if payload_raw.strip() else {}
+    extra = json.loads(payload_raw) if payload_raw.strip() else {}
+    # Merge directive into payload dict so ClusterTaskQueue.enqueue(agent_type, payload) works
+    payload = {"directive": directive, **extra}
     queue = ClusterTaskQueue()
 
     if agent_type == "ALL":
         for lane in ["VIDEO", "SOCIAL", "POD"]:
-            task_id = queue.enqueue(lane, directive, payload)
+            task_id = queue.enqueue(lane, payload)
             print(f"[Cluster] Enqueued {lane}::{directive} task_id={task_id}")
     else:
-        task_id = queue.enqueue(agent_type, directive, payload)
+        task_id = queue.enqueue(agent_type, payload)
         print(f"[Cluster] Enqueued {agent_type}::{directive} task_id={task_id}")
 
     print("The cluster_master daemon on the OCI server picks up queued tasks.")
