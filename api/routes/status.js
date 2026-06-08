@@ -9,6 +9,7 @@ const cfg       = require('../../core/config').get;
 const intel     = require('../../agents/intelligence');
 const pipeline  = require('../../pipeline');
 const workers   = require('../../workers');
+const revenue   = require('../../agents/revenue');
 
 router.get('/', (req, res) => {
   const all = state.getAll();
@@ -35,6 +36,10 @@ router.get('/', (req, res) => {
     workers:           workers.stats(),
     adaptive: { scanInterval: state.get('adaptiveScanInterval', cfg().scanIntervalMin), contentPerRun: state.get('adaptiveContentPerRun', cfg().contentPerRun) },
   });
+});
+
+router.get('/revenue', (req, res) => {
+  res.json({ ok: true, monthly: revenue.getMonthly(), allTime: revenue.getAllTime() });
 });
 
 router.get('/health', (req, res) => {

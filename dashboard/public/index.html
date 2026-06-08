@@ -144,13 +144,15 @@ let _data = {};
 
 async function load() {
   try {
-    const [status, posts, trends] = await Promise.all([
+    const [status, posts, trends, revenue] = await Promise.all([
       fetch('/api/status').then(r => r.json()),
       fetch('/api/posts').then(r => r.json()),
       fetch('/api/posts/trends').then(r => r.json()),
+      fetch('/api/status/revenue').then(r => r.json()).catch(() => null),
     ]);
-    _data = { status, posts, trends };
+    _data = { status, posts, trends, revenue };
     render(status, posts, trends);
+    renderRevenue(revenue);
     document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString();
     document.getElementById('sys-status').textContent = '● ONLINE';
     document.getElementById('sys-status').className = 'badge green';
@@ -159,6 +161,26 @@ async function load() {
     document.getElementById('sys-status').className = 'badge red';
     document.getElementById('last-update').textContent = e.message;
   }
+}
+
+function renderRevenue(rev) {
+  const tbody = document.getElementById('t-revenue');
+  if (!rev || !rev.ok) {
+    tbody.innerHTML = '<tr><td colspan="2" style="color:var(--muted)">Revenue data unavailable</td></tr>';
+    return;
+  }
+  const monthly = rev.monthly || { total: 0, bySource: {} };
+  const bySource = monthly.bySource || {};
+  const rows = Object.entries(bySource).sort((a, b) => b[1] - a[1]);
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="color:var(--muted)">No revenue recorded this month</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(([src, amt]) =>
+    `<tr><td>${src}</td><td>$${amt.toFixed(2)}</td></tr>`
+  ).join('') +
+    `<tr style="font-weight:600"><td>Total (this month)</td><td>$${monthly.total.toFixed(2)}</td></tr>` +
+    `<tr style="color:var(--muted)"><td>All-time</td><td>$${(rev.allTime?.total || 0).toFixed(2)}</td></tr>`;
 }
 
 function render(s, posts, trends) {
