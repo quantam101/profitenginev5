@@ -1,0 +1,68 @@
+{
+  "name": "Already Here — Taylor Call Logger",
+  "nodes": [
+    {
+      "id": "retell_webhook",
+      "name": "Retell Call Ended",
+      "type": "n8n-nodes-base.webhook",
+      "position": [100, 300],
+      "parameters": {
+        "path": "retell/call-ended",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "extract_data",
+      "name": "Extract Call Data",
+      "type": "n8n-nodes-base.set",
+      "position": [350, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "call_id",      "value": "={{ $json.data.call_id }}" },
+            { "name": "duration_sec", "value": "={{ $json.data.duration_ms / 1000 }}" },
+            { "name": "caller",       "value": "={{ $json.data.from_number }}" },
+            { "name": "outcome",      "value": "={{ $json.data.call_analysis?.call_summary || 'No summary' }}" },
+            { "name": "transferred",  "value": "={{ $json.data.call_analysis?.user_sentiment || 'unknown' }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "slack_call_log",
+      "name": "Log Call to Slack",
+      "type": "n8n-nodes-base.slack",
+      "position": [600, 200],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":telephone_receiver: *Taylor Call Completed*\nCaller: {{$json.caller}} | Duration: {{$json.duration_sec}}s\nOutcome: {{$json.outcome}}"
+      }
+    },
+    {
+      "id": "revenue_webhook",
+      "name": "Update Revenue Matrix",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [600, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8001/tool/book_appointment",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "call_id",  "value": "={{ $json.call_id }}" },
+            { "name": "caller",   "value": "={{ $json.caller }}" },
+            { "name": "outcome",  "value": "={{ $json.outcome }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Retell Call Ended":  { "main": [[{ "node": "Extract Call Data",         "type": "main", "index": 0 }]] },
+    "Extract Call Data":  { "main": [[
+      { "node": "Log Call to Slack",       "type": "main", "index": 0 },
+      { "node": "Update Revenue Matrix",   "type": "main", "index": 0 }
+    ]]}
+  },
+  "description": "Every time Taylor ends a call, this workflow logs the call summary to #revenue-ops and updates the revenue matrix database."
+}

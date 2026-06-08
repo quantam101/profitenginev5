@@ -1,0 +1,86 @@
+{
+  "name": "Already Here — Inbound Email Agent",
+  "nodes": [
+    {
+      "id": "trigger",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [100, 300],
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "filters": { "labelIds": ["INBOX"], "readStatus": "unread" }
+      }
+    },
+    {
+      "id": "classifier",
+      "name": "Email Classifier (Ollama)",
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "position": [350, 300],
+      "parameters": {
+        "model": "llama3.2",
+        "baseUrl": "http://localhost:11434",
+        "prompt": "Classify this email into ONE category: WORK_ORDER | PAYMENT_INQUIRY | SERVICE_REQUEST | VENDOR_RESPONSE | JUNK. Reply with ONLY the category word.\n\nSubject: {{$json.subject}}\nFrom: {{$json.from}}\nSnippet: {{$json.snippet}}"
+      }
+    },
+    {
+      "id": "router",
+      "name": "Route by Category",
+      "type": "n8n-nodes-base.switch",
+      "position": [600, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.text }}",
+        "rules": {
+          "rules": [
+            { "value2": "WORK_ORDER",       "output": 0 },
+            { "value2": "PAYMENT_INQUIRY",  "output": 1 },
+            { "value2": "SERVICE_REQUEST",  "output": 2 },
+            { "value2": "VENDOR_RESPONSE",  "output": 3 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "slack_work_order",
+      "name": "Alert Slack — Work Order",
+      "type": "n8n-nodes-base.slack",
+      "position": [850, 100],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":clipboard: *Work Order Email*\nFrom: {{$node['Gmail Trigger'].json.from}}\nSubject: {{$node['Gmail Trigger'].json.subject}}\nReply at: dispatch@alreadyherellc.com"
+      }
+    },
+    {
+      "id": "auto_reply_service",
+      "name": "Auto-Reply — Service Request",
+      "type": "n8n-nodes-base.gmail",
+      "position": [850, 300],
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $node['Gmail Trigger'].json.id }}",
+        "message": "Thank you for reaching out to Already Here LLC.\n\nWe have received your service request and our team will respond within 2 business hours.\n\nFor immediate assistance, please call 602-882-2920.\n\nVisit us at alreadyherellc.com to learn more about our services.\n\nAlready Here LLC\nStephen Franklin | VP of Operations\ndispatch@alreadyherellc.com | 602-882-2920\nalreadyherellc.com"
+      }
+    },
+    {
+      "id": "slack_vendor",
+      "name": "Alert Slack — Vendor Response",
+      "type": "n8n-nodes-base.slack",
+      "position": [850, 500],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":handshake: *Vendor Response Received*\nFrom: {{$node['Gmail Trigger'].json.from}}\nSubject: {{$node['Gmail Trigger'].json.subject}}\nCheck dispatch@alreadyherellc.com to reply."
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger":              { "main": [[{ "node": "Email Classifier (Ollama)", "type": "main", "index": 0 }]] },
+    "Email Classifier (Ollama)": { "main": [[{ "node": "Route by Category",          "type": "main", "index": 0 }]] },
+    "Route by Category":         { "main": [
+      [{ "node": "Alert Slack — Work Order",       "type": "main", "index": 0 }],
+      [{ "node": "Alert Slack — Work Order",       "type": "main", "index": 0 }],
+      [{ "node": "Auto-Reply — Service Request",   "type": "main", "index": 0 }],
+      [{ "node": "Alert Slack — Vendor Response",  "type": "main", "index": 0 }]
+    ]}
+  },
+  "description": "Monitors dispatch@alreadyherellc.com. Uses local Ollama to classify every inbound email. Routes to Slack alerts or auto-replies. Zero manual inbox monitoring needed."
+}

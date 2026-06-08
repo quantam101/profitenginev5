@@ -1,0 +1,75 @@
+{
+  "name": "Already Here — Deal Closed Automation",
+  "nodes": [
+    {
+      "id": "webhook_trigger",
+      "name": "Deal Closed Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [100, 300],
+      "parameters": {
+        "path": "deal-closed",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "slack_deals_won",
+      "name": "Post to #deals-won",
+      "type": "n8n-nodes-base.slack",
+      "position": [350, 200],
+      "parameters": {
+        "channel": "C0B8VN2RQBC",
+        "text": ":money_with_wings: *DEAL CLOSED*\n*{{$json.company}}* | `{{$json.service_type}}` | *${{$json.amount}}*\nLead #{{$json.lead_id}} | Phase: {{$json.phase_id}}\nTotal realized: ${{$json.total_realized}}"
+      }
+    },
+    {
+      "id": "slack_revenue_ops",
+      "name": "Post to #revenue-ops",
+      "type": "n8n-nodes-base.slack",
+      "position": [350, 400],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":bar_chart: *Pipeline Update* — ${{$json.amount}} closed | Gap: ${{$json.gap}} remaining"
+      }
+    },
+    {
+      "id": "send_thank_you",
+      "name": "Send Thank-You Email",
+      "type": "n8n-nodes-base.gmail",
+      "position": [600, 300],
+      "parameters": {
+        "toList": "={{ $json.contact_email }}",
+        "subject": "Thank You — Already Here LLC Service Confirmation",
+        "message": "Hi {{$json.contact_name}},\n\nThank you for choosing Already Here LLC. Your service is confirmed and our team is ready.\n\nIf you have any questions before your appointment, please reach us at 602-882-2920 or reply to this email.\n\nWe look forward to serving you.\n\nAlready Here LLC\nStephen Franklin | VP of Operations\ndispatch@alreadyherellc.com | 602-882-2920\nalreadyherellc.com"
+      }
+    },
+    {
+      "id": "wait_3_days",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "position": [850, 300],
+      "parameters": { "amount": 3, "unit": "days" }
+    },
+    {
+      "id": "followup_email",
+      "name": "Follow-Up Email",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1100, 300],
+      "parameters": {
+        "toList": "={{ $json.contact_email }}",
+        "subject": "How Did We Do? — Already Here LLC",
+        "message": "Hi {{$json.contact_name}},\n\nWe hope the {{$json.service_type}} service met your expectations.\n\nIf there is anything we can improve or any additional services you need, our team is ready.\n\nWe would also appreciate a Google review if the service was helpful — it goes a long way for a small business.\n\nAlready Here LLC\nStephen Franklin | VP of Operations\ndispatch@alreadyherellc.com | 602-882-2920\nalreadyherellc.com"
+      }
+    }
+  ],
+  "connections": {
+    "Deal Closed Webhook": { "main": [[
+      { "node": "Post to #deals-won",    "type": "main", "index": 0 },
+      { "node": "Post to #revenue-ops",  "type": "main", "index": 0 },
+      { "node": "Send Thank-You Email",  "type": "main", "index": 0 }
+    ]]},
+    "Send Thank-You Email": { "main": [[{ "node": "Wait 3 Days",    "type": "main", "index": 0 }]] },
+    "Wait 3 Days":          { "main": [[{ "node": "Follow-Up Email", "type": "main", "index": 0 }]] }
+  },
+  "description": "Fires when vp_dashboard.py records a won deal. Posts to Slack, sends thank-you email, then sends follow-up review request after 3 days. Fully automatic."
+}

@@ -1,0 +1,78 @@
+{
+  "name": "Already Here — LLM Health Monitor",
+  "nodes": [
+    {
+      "id": "schedule",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [100, 300],
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] }
+      }
+    },
+    {
+      "id": "check_taylor",
+      "name": "Check Taylor Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [350, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "http://taylor:8001/llm/status",
+        "timeout": 5000,
+        "continueOnFail": true
+      }
+    },
+    {
+      "id": "check_ollama",
+      "name": "Check Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [350, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:11434/api/tags",
+        "timeout": 3000,
+        "continueOnFail": true
+      }
+    },
+    {
+      "id": "evaluate",
+      "name": "Evaluate Status",
+      "type": "n8n-nodes-base.if",
+      "position": [600, 300],
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{ $json.active_provider }}", "operation": "isNotEmpty" }]
+        }
+      }
+    },
+    {
+      "id": "slack_ok",
+      "name": "Slack — All Good (suppress after 1st)",
+      "type": "n8n-nodes-base.slack",
+      "position": [850, 200],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":white_check_mark: Taylor LLM healthy — Active: *{{$json.active_provider}}* | {{$now.format('HH:mm')}} MST"
+      }
+    },
+    {
+      "id": "slack_alert",
+      "name": "Slack — ALERT All Providers Down",
+      "type": "n8n-nodes-base.slack",
+      "position": [850, 400],
+      "parameters": {
+        "channel": "C0B8VN2S89Y",
+        "text": ":rotating_light: *TAYLOR LLM ALERT* — All providers down or unreachable.\nTaylor cannot process calls intelligently. Calls will transfer to 602-882-2920.\n\nCheck: http://taylor:8001/llm/status\nFix: `pm2 restart taylor` or set API keys in agents/taylor/.env"
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes":    { "main": [[{ "node": "Check Taylor Health", "type": "main", "index": 0 }]] },
+    "Check Taylor Health": { "main": [[{ "node": "Evaluate Status",    "type": "main", "index": 0 }]] },
+    "Evaluate Status":    { "main": [
+      [{ "node": "Slack — All Good (suppress after 1st)", "type": "main", "index": 0 }],
+      [{ "node": "Slack — ALERT All Providers Down",      "type": "main", "index": 0 }]
+    ]}
+  },
+  "description": "Probes Taylor's LLM health every 5 minutes. Alerts #revenue-ops if all AI providers are down so you know calls are transferring to your cell."
+}

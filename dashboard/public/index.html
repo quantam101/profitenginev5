@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ProfitEngine v5.0 — Already Here LLC</title>
+<style>
+:root{--bg:#07070f;--s1:#0f0f1a;--s2:#161625;--b:#1e1e30;--acc:#7c3aed;--acc2:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--txt:#e2e8f0;--muted:#64748b;--font:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13px;min-height:100vh}
+header{background:var(--s1);border-bottom:1px solid var(--b);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.3px}
+header .meta{display:flex;gap:16px;align-items:center}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;gap:4px}
+.green{background:rgba(16,185,129,.15);color:var(--green)}
+.red{background:rgba(239,68,68,.15);color:var(--red)}
+.amber{background:rgba(245,158,11,.15);color:var(--amber)}
+.purple{background:rgba(124,58,237,.15);color:var(--acc)}
+.cyan{background:rgba(6,182,212,.15);color:var(--acc2)}
+main{max-width:1400px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpi{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px;transition:border-color .2s}
+.kpi:hover{border-color:var(--acc)}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:700;line-height:1}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.hbar{height:4px;border-radius:2px;background:var(--b);margin-top:8px;overflow:hidden}
+.hfill{height:100%;border-radius:2px;transition:width .6s ease}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.panel{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
+.panel h3{font-size:12px;font-weight:600;color:var(--acc2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--b);font-weight:500;font-size:11px}
+td{padding:6px 8px;border-bottom:1px solid var(--b);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-panel{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
+.ai-panel h3{font-size:12px;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px}
+#ai-msgs{min-height:80px;max-height:220px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
+.msg{padding:8px 12px;border-radius:8px;line-height:1.5;font-size:12px;max-width:90%}
+.msg.u{background:rgba(124,58,237,.2);align-self:flex-end}
+.msg.b{background:rgba(6,182,212,.1);align-self:flex-start;white-space:pre-wrap}
+.ai-row{display:flex;gap:8px}
+.ai-row input{flex:1;background:var(--bg);border:1px solid var(--b);border-radius:6px;padding:8px 12px;color:var(--txt);font-size:12px;outline:none;transition:border-color .2s}
+.ai-row input:focus{border-color:var(--acc)}
+.btn{background:var(--acc);color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-sm{font-size:11px;padding:5px 10px}
+.btn-cyan{background:var(--acc2)}
+.btn-green{background:var(--green)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.intel-summary{background:var(--s2);border-radius:8px;padding:12px;font-size:12px;color:var(--txt);line-height:1.6;margin-top:8px}
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:32px;margin-top:8px}
+.spark-bar{background:var(--acc);border-radius:2px 2px 0 0;flex:1;min-width:4px;transition:height .4s}
+footer{text-align:center;padding:20px;color:var(--muted);font-size:10px;border-top:1px solid var(--b);margin-top:16px}
+@media(max-width:900px){.row2,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ ProfitEngine v5.0</h1>
+  <div class="meta">
+    <span class="badge green" id="sys-status">● ONLINE</span>
+    <span style="color:var(--muted);font-size:11px" id="last-update">Loading...</span>
+  </div>
+</header>
+
+<main>
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Posts Generated</div><div class="kpi-value" id="k-gen">—</div><div class="kpi-sub">All time</div></div>
+    <div class="kpi"><div class="kpi-label">Posts Published</div><div class="kpi-value" id="k-pub">—</div><div class="kpi-sub">Blog platforms</div></div>
+    <div class="kpi"><div class="kpi-label">Social Posts</div><div class="kpi-value" id="k-soc">—</div><div class="kpi-sub">Mastodon · Reddit · Pinterest</div></div>
+    <div class="kpi"><div class="kpi-label">Trends Scanned</div><div class="kpi-value" id="k-trnd">—</div><div class="kpi-sub">Google + Reddit + DDG</div></div>
+    <div class="kpi"><div class="kpi-label">Health Score</div><div class="kpi-value" id="k-health">—</div><div class="hbar"><div class="hfill" id="health-fill" style="width:0%"></div></div></div>
+    <div class="kpi"><div class="kpi-label">Tokens Today</div><div class="kpi-value" id="k-tok">—</div><div class="kpi-sub" id="k-tok-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">DLQ Depth</div><div class="kpi-value" id="k-dlq">—</div><div class="kpi-sub">Dead letter queue</div></div>
+    <div class="kpi"><div class="kpi-label">Uptime</div><div class="kpi-value" id="k-up">—</div><div class="kpi-sub">minutes</div></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-sm" onclick="trigger('/api/status/cycle')">▶ Run Cycle</button>
+    <button class="btn btn-sm btn-cyan" onclick="trigger('/api/status/intelligence')">🧠 Intelligence</button>
+    <button class="btn btn-sm btn-green" onclick="load()">↻ Refresh</button>
+  </div>
+
+  <div class="row2">
+    <div class="panel">
+      <h3>Platform Stats</h3>
+      <table><thead><tr><th>Platform</th><th>Status</th><th>Success</th><th>Wins</th></tr></thead>
+      <tbody id="t-platforms"></tbody></table>
+    </div>
+    <div class="panel">
+      <h3>Live Trends <span id="trend-time" style="font-size:10px;color:var(--muted);font-weight:400"></span></h3>
+      <table><thead><tr><th>Topic</th><th>Niche</th><th>Score</th><th>Type</th></tr></thead>
+      <tbody id="t-trends"></tbody></table>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="panel">
+      <h3>Recent Publishes</h3>
+      <table><thead><tr><th>Title</th><th>Platforms</th><th>Time</th></tr></thead>
+      <tbody id="t-publishes"></tbody></table>
+    </div>
+    <div class="panel">
+      <h3>LLM Circuits</h3>
+      <table><thead><tr><th>Provider</th><th>Status</th><th>Failures</th></tr></thead>
+      <tbody id="t-circuits"></tbody></table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Intelligence Report <span id="intel-time" style="font-size:10px;color:var(--muted);font-weight:400"></span></h3>
+    <div class="intel-summary" id="intel-summary">No intelligence report yet — trigger from controls above.</div>
+  </div>
+
+  <div class="ai-panel">
+    <h3>Lifelong Catch &amp; Correct — AI Operations Advisor</h3>
+    <div id="ai-msgs">
+      <div class="msg b">ProfitEngine v5.0 advisor online. Ask me anything about performance, strategy, or optimization.</div>
+    </div>
+    <div class="ai-row">
+      <input type="text" id="ai-q" placeholder="e.g. Why is publish rate low? What niches should I add? How do I increase revenue?" onkeydown="if(event.key==='Enter')ask()">
+      <button class="btn" onclick="ask()">Ask</button>
+    </div>
+  </div>
+</main>
+
+  <div class="row2">
+    <div class="panel">
+      <h3>Worker Pool</h3>
+      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead>
+      <tbody id="t-workers"><tr><td colspan="2" style="color:var(--muted)">Loading...</td></tr></tbody></table>
+    </div>
+    <div class="panel">
+      <h3>Revenue This Month</h3>
+      <table><thead><tr><th>Source</th><th>Amount</th></tr></thead>
+      <tbody id="t-revenue"><tr><td colspan="2" style="color:var(--muted)">No revenue data yet</td></tr></tbody></table>
+    </div>
+  </div>
+<footer>ProfitEngine v5.0 — Already Here LLC &bull; alreadyherellc.com &bull; Auto-refresh 30s &bull; ASI-level automation</footer>
+
+<script>
+let _data = {};
+
+async function load() {
+  try {
+    const [status, posts, trends] = await Promise.all([
+      fetch('/api/status').then(r => r.json()),
+      fetch('/api/posts').then(r => r.json()),
+      fetch('/api/posts/trends').then(r => r.json()),
+    ]);
+    _data = { status, posts, trends };
+    render(status, posts, trends);
+    document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    document.getElementById('sys-status').textContent = '● ONLINE';
+    document.getElementById('sys-status').className = 'badge green';
+  } catch (e) {
+    document.getElementById('sys-status').textContent = '● ERROR';
+    document.getElementById('sys-status').className = 'badge red';
+    document.getElementById('last-update').textContent = e.message;
+  }
+}
+
+function render(s, posts, trends) {
+  document.getElementById('k-gen').textContent    = fmt(s.totalGenerated);
+  document.getElementById('k-pub').textContent    = fmt(s.totalPublished);
+  document.getElementById('k-soc').textContent    = fmt(s.totalSocial);
+  document.getElementById('k-trnd').textContent   = fmt(s.totalTrends);
+  document.getElementById('k-dlq').textContent    = fmt(s.dlqDepth);
+  document.getElementById('k-up').textContent     = fmt(s.uptime);
+  const tok = s.tokens || {};
+  document.getElementById('k-tok').textContent    = fmt(tok.total || 0);
+  document.getElementById('k-tok-sub').textContent = Object.entries(tok.byProvider||{}).map(([k,v])=>`${k}:${v}`).join(' | ');
+
+  const h = s.intelligenceReport?.healthScore || 0;
+  document.getElementById('k-health').textContent = h + '/100';
+  const fill = document.getElementById('health-fill');
+  fill.style.width = h + '%';
+  fill.style.background = h >= 70 ? 'var(--green)' : h >= 40 ? 'var(--amber)' : 'var(--red)';
+
+  // Platforms
+  document.getElementById('t-platforms').innerHTML = (s.platformStats||[]).map(p => `<tr>
+    <td>${p.name}</td>
+    <td><span class="badge ${p.enabled?'green':'red'}">${p.enabled?'ON':'OFF'}</span></td>
+    <td>${p.successRate}</td><td>${p.s||0}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">No data</td></tr>';
+
+  // Trends
+  document.getElementById('t-trends').innerHTML = (trends.latest||[]).slice(0,8).map(t => `<tr>
+    <td title="${t.title}">${(t.title||'').slice(0,38)}</td>
+    <td>${t.niche||'—'}</td>
+    <td><span class="badge ${(t.monetizationScore||0)>=80?'green':(t.monetizationScore||0)>=65?'amber':'red'}">${t.monetizationScore||'—'}</span></td>
+    <td style="color:var(--muted)">${(t.contentType||'').slice(0,14)}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">No trends yet</td></tr>';
+  if (trends.lastScan) document.getElementById('trend-time').textContent = new Date(trends.lastScan).toLocaleTimeString();
+
+  // Publishes
+  document.getElementById('t-publishes').innerHTML = (posts.log||[]).slice(-8).reverse().map(p => `<tr>
+    <td title="${p.title}">${(p.title||'').slice(0,38)}</td>
+    <td style="color:var(--acc2)">${(p.platforms||[]).join(', ')}</td>
+    <td style="color:var(--muted)">${p.ts?new Date(p.ts).toLocaleTimeString():'—'}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">No publishes yet</td></tr>';
+
+  // Workers
+  const ws = s.workers || {};
+  const workerHtml = `<tr><td>Queue Depth</td><td>${ws.queueDepth||0}</td></tr>
+    <tr><td>Tasks Done</td><td>${ws.tasksComplete||0}</td></tr>
+    <tr><td>Running</td><td><span class="badge ${ws.running?'amber':'green'}">${ws.running?'ACTIVE':'IDLE'}</span></td></tr>`;
+  const wt = document.getElementById('t-workers');
+  if (wt) wt.innerHTML = workerHtml;
+
+  // Circuits
+  document.getElementById('t-circuits').innerHTML = (s.circuits||[]).map(c => `<tr>
+    <td>${c.provider}</td>
+    <td><span class="badge ${c.open?'red':'green'}">${c.open?'OPEN':'OK'}</span></td>
+    <td>${c.failures}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">All circuits healthy</td></tr>';
+
+  // Intelligence
+  const rpt = s.intelligenceReport;
+  if (rpt) {
+    document.getElementById('intel-summary').textContent = rpt.executiveSummary || 'No summary';
+    if (rpt.generatedAt) document.getElementById('intel-time').textContent = 'Last: ' + new Date(rpt.generatedAt).toLocaleTimeString();
+  }
+}
+
+function fmt(n) { if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return String(n||0); }
+
+async function ask() {
+  const inp  = document.getElementById('ai-q');
+  const msgs = document.getElementById('ai-msgs');
+  const q    = inp.value.trim();
+  if (!q) return;
+  inp.value = '';
+  const uMsg = document.createElement('div'); uMsg.className = 'msg u'; uMsg.textContent = q; msgs.appendChild(uMsg);
+  const bMsg = document.createElement('div'); bMsg.className = 'msg b'; bMsg.textContent = 'Thinking...'; msgs.appendChild(bMsg);
+  msgs.scrollTop = msgs.scrollHeight;
+  try {
+    const res  = await fetch('/api/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q }) });
+    const data = await res.json();
+    bMsg.textContent = data.answer || data.error || 'No response';
+  } catch { bMsg.textContent = 'Advisor offline.'; }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function trigger(url) {
+  try { await fetch(url, { method: 'POST' }); setTimeout(load, 2000); } catch {}
+}
+
+load();
+setInterval(load, 30_000);
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+version: "3.8"
+
+# Already Here LLC — N8N Automation Hub
+# Runs free forever on OCI Always-Free tier (129.146.167.73)
+# Replaces Zapier. Orchestrates Taylor, outreach, Slack, Gmail, Stripe.
+#
+# Deploy: ssh ubuntu@129.146.167.73 && cd /opt/already-here && docker compose -f deploy/n8n/docker-compose.yml up -d
+
+services:
+
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=dispatch@alreadyherellc.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/letsencrypt
+    networks:
+      - already_here_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: n8n_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - already_here_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+      # Instance
+      N8N_HOST: ${N8N_HOST}                        # e.g. n8n.alreadyherellc.com
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://${N8N_HOST}/
+      # Auth
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_ADMIN_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_ADMIN_PASSWORD}
+      # Execution
+      EXECUTIONS_PROCESS: main
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 336               # 14 days
+      # Timezone
+      GENERIC_TIMEZONE: America/Phoenix
+      TZ: America/Phoenix
+      # Credentials encryption
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      # Already Here LLC integrations
+      GMAIL_USER: alreadyherellc@gmail.com
+      SLACK_REVENUE_CHANNEL: C0B8VN2S89Y
+      SLACK_DEALS_WON: C0B8VN2RQBC
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - already_here_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  # Taylor voice agent server — runs alongside N8N
+  taylor:
+    build:
+      context: ../../
+      dockerfile: agents/taylor/Dockerfile
+    container_name: taylor
+    restart: unless-stopped
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
+      RETELL_API_KEY: ${RETELL_API_KEY}
+      VAPI_API_KEY: ${VAPI_API_KEY}
+      TAYLOR_TRANSFER_NUMBER: "+16028822920"
+      TAYLOR_TRANSFER_NUMBER_BACKUP: "+16198066457"
+      TAYLOR_TRANSFER_NUMBER_BACKUP_2: "+16198849241"
+      MESH_DB_PATH: /data/production_mesh_edge.db
+      TAYLOR_PORT: 8001
+    volumes:
+      - pipeline_data:/data
+    networks:
+      - already_here_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.taylor.rule=Host(`${N8N_HOST}`) && PathPrefix(`/retell`,`/vapi`,`/tool`,`/health`)"
+      - "traefik.http.routers.taylor.entrypoints=websecure"
+      - "traefik.http.routers.taylor.tls.certresolver=letsencrypt"
+      - "traefik.http.services.taylor.loadbalancer.server.port=8001"
+
+volumes:
+  traefik_certs:
+  postgres_data:
+  n8n_data:
+  pipeline_data:
+
+networks:
+  already_here_net:
+    driver: bridge

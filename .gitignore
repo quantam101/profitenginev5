@@ -24,3 +24,7 @@ credentials.json
 
 # Claude Code local settings (may contain command history with secrets)
 .claude/
+
+# Runtime artifacts (regenerated, not source)
+*.db
+logs/
