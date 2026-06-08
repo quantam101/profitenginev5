@@ -587,17 +587,18 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
-    # follow_redirects=True handles 301/302 at the GraphQL endpoint
-    # Hashnode moved their GQL endpoint — try current URL, skip gracefully if down
+    # Hashnode uses Authorization: Bearer <token> as of their v2 API migration
+    # follow_redirects=True so 301 redirects are followed automatically
+    auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else f"Bearer {HASHNODE_KEY}"
     r = httpx.post(
         "https://gql.hashnode.com",
-        headers={"Authorization": HASHNODE_KEY, "Content-Type": "application/json"},
+        headers={"Authorization": auth_header, "Content-Type": "application/json"},
         json={"query": query, "variables": {"input": payload}},
         timeout=30,
-        follow_redirects=False,
+        follow_redirects=True,
     )
     if r.status_code in (301, 302, 308):
-        print("[SKIP] Hashnode GQL endpoint moved (301) — API may have changed. Check hashnode.com docs.")
+        print("[SKIP] Hashnode GQL endpoint moved — check hashnode.com API docs.")
         return None
     if not r.is_success or not r.text.strip():
         print(f"[FAIL] Hashnode {r.status_code}: {r.text[:300]}")
