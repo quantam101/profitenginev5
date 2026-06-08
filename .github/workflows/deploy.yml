@@ -42,14 +42,23 @@ jobs:
       - name: Test SSH connectivity
         id: ssh-preflight
         run: |
-          if ! ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=15 \
-            opc@129.146.167.73 \
-            "echo SSH_OK && hostname && df -h / | tail -1"; then
-            echo "::error::SSH preflight failed. Update GitHub secret SERVER_SSH_KEY with the private key whose public key is in opc@129.146.167.73:~/.ssh/authorized_keys, or run scripts/bootstrap-server.sh on the OCI host to install the deploy key."
-            exit 255
-          fi
+          # Retry up to 4 times with 15s back-off (OCI sshd can be slow under load)
+          for attempt in 1 2 3 4; do
+            if ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=10 \
+              -o ServerAliveCountMax=3 \
+              opc@129.146.167.73 \
+              "echo SSH_OK && hostname && df -h / | tail -1"; then
+              echo "SSH preflight passed on attempt $attempt"
+              exit 0
+            fi
+            echo "Attempt $attempt failed — retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::SSH preflight failed after 4 attempts. Update GitHub secret SERVER_SSH_KEY with the private key whose public key is in opc@129.146.167.73:~/.ssh/authorized_keys"
+          exit 255
 
       - name: Upload deploy env
         env:
