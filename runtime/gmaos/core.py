@@ -57,6 +57,7 @@ from .breaker   import BreakerRegistry, BreakerConfig
 from .metrics   import MeshMetrics, get_metrics
 from .executor  import execute_task
 from .watchdog  import Watchdog
+from .consensus import supermajority_vote, ConsensusResult
 
 log = logging.getLogger("gmaos.core")
 
@@ -194,6 +195,43 @@ class Mesh:
         await asyncio.gather(*coros)
 
         return [await futures[t.id] for t in tasks]
+
+    async def run_with_consensus(
+        self,
+        payload: dict,
+        agents: Sequence[str],
+        priority: TaskPriority = TaskPriority.HIGH,
+        timeout_sec: float = 60.0,
+        threshold: float = 0.67,
+    ) -> ConsensusResult:
+        """
+        Run the same payload through multiple agents in parallel, then apply
+        supermajority vote (default 2-of-3) over their outputs.
+
+        Parameters
+        ----------
+        payload     : Task input shared across all agents.
+        agents      : Agent IDs to dispatch (minimum 2; 3 recommended for quorum).
+        threshold   : Fraction of *total* agents required for quorum (default 0.67).
+
+        Returns
+        -------
+        ConsensusResult with the winning output and full vote metadata.
+        """
+        if not self._running:
+            await self.start()
+
+        tasks = [
+            Task(
+                agent=agent,
+                payload=payload,
+                priority=priority,
+                timeout_sec=timeout_sec,
+            )
+            for agent in agents
+        ]
+        results = await self.run(tasks)
+        return supermajority_vote(results, threshold=threshold)
 
     # ── fire-and-forget ───────────────────────────────────────────────────
 

@@ -102,6 +102,7 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           N8N_BASIC_AUTH_PASSWORD: ${{ secrets.N8N_BASIC_AUTH_PASSWORD }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || secrets.STRIPE_API_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
@@ -152,6 +153,7 @@ jobs:
           export TELEGRAM_WEBHOOK_URL="${TELEGRAM_WEBHOOK_URL}"
           export RESEND_API_KEY="${RESEND_API_KEY}"
           export N8N_BASIC_AUTH_PASSWORD="${N8N_BASIC_AUTH_PASSWORD}"
+          export HF_TOKEN="${HF_TOKEN}"
           EOF
           echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key, ${#MONGO_URL} char Mongo URL)"
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \

@@ -22,6 +22,7 @@ Or use the singleton:
 from .core import Mesh, get_mesh
 from .schema import Task, TaskPriority, MeshResult, AgentStatus
 from .metrics import metrics_text
+from .consensus import supermajority_vote, ConsensusResult
 
 __all__ = [
     "Mesh",
@@ -31,4 +32,6 @@ __all__ = [
     "MeshResult",
     "AgentStatus",
     "metrics_text",
+    "supermajority_vote",
+    "ConsensusResult",
 ]

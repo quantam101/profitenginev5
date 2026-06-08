@@ -237,3 +237,117 @@ def dispatch_default(objective: str, context: str = "") -> dict[str, Any]:
         "free-tier-cost-guard",
     ]
     return EnterpriseMesh().dispatch(agent_ids, objective, context)
+
+
+# ── ASI Mesh Engine — supermajority consensus wrapper ─────────────────────────
+
+# Default trio: high-quality reasoning agents from the registry.
+# Override via ASI_CONSENSUS_AGENTS env var (comma-separated agent IDs).
+_DEFAULT_ASI_AGENTS = [
+    "sovereign-orchestrator",
+    "local-research",
+    "free-tier-cost-guard",
+]
+
+
+class ASIMeshEngine:
+    """
+    Wraps the G-MAOS Mesh with ASI-style supermajority consensus.
+
+    Dispatches the same objective to N agents in parallel (default 3).
+    2-of-3 (67%) agreement is required to declare VERIFIED_CONSENSUS.
+    If quorum fails, the plurality winner is still returned with
+    status=DIVERGENCE_FLAGGED so the caller can decide to re-run or accept.
+
+    Never raises — returns a structured error dict on total failure.
+
+    Usage (async):
+        engine = ASIMeshEngine()
+        result = await engine.dispatch_consensus("Analyse margin for keyword X")
+
+    Usage (sync, e.g. from a Django/Flask view or a script):
+        result = asyncio.run(ASIMeshEngine().dispatch_consensus("..."))
+    """
+
+    def __init__(
+        self,
+        agents: list[str] | None = None,
+        threshold: float = 0.67,
+    ) -> None:
+        import os
+        env_agents = os.getenv("ASI_CONSENSUS_AGENTS", "").strip()
+        self._agents: list[str] = (
+            agents
+            or ([a.strip() for a in env_agents.split(",") if a.strip()] if env_agents else None)
+            or _DEFAULT_ASI_AGENTS
+        )
+        self._threshold = threshold
+
+    async def dispatch_consensus(
+        self,
+        objective: str,
+        context: str = "",
+        timeout_sec: float = 60.0,
+    ) -> dict[str, Any]:
+        """
+        Run consensus dispatch and return a serialisable result dict.
+
+        Keys in the returned dict
+        -------------------------
+        ok                  bool   — True when quorum was met
+        status              str    — VERIFIED_CONSENSUS | DIVERGENCE_FLAGGED | NO_QUORUM
+        output              str    — winning agent output
+        tier                str    — inference tier of the winner
+        winning_agent       str    — agent ID of the winner
+        majority_fingerprint str   — SHA-256[:16] of the winning output
+        agreement           str    — e.g. "2/3"
+        duration_ms         int    — wall-clock ms for the consensus round
+        agents              list   — per-agent result details
+        mesh_health         dict   — G-MAOS health snapshot
+        """
+        try:
+            from runtime.gmaos.core import get_mesh
+        except ImportError:
+            from .gmaos.core import get_mesh
+
+        mesh = await get_mesh()
+        payload = {
+            "objective": objective,
+            "context": context,
+            "prompt": objective,
+            "system": (
+                "You are a production ProfitEngine agent. "
+                "Execute the objective precisely. "
+                "Output only the result — no preamble."
+            ),
+        }
+
+        consensus = await mesh.run_with_consensus(
+            payload=payload,
+            agents=self._agents,
+            timeout_sec=timeout_sec,
+            threshold=self._threshold,
+        )
+
+        return {
+            "ok": consensus.quorum_met,
+            "status": consensus.status,
+            "output": consensus.winning_output,
+            "tier": consensus.winning_tier,
+            "winning_agent": consensus.winning_agent,
+            "majority_fingerprint": consensus.majority_fingerprint,
+            "agreement": f"{consensus.agreement_count}/{consensus.agent_count}",
+            "valid_agents": consensus.valid_count,
+            "duration_ms": consensus.duration_ms,
+            "agents": consensus.results,
+            "mesh_health": mesh.health(),
+        }
+
+
+async def dispatch_consensus_default(
+    objective: str,
+    context: str = "",
+    timeout_sec: float = 60.0,
+) -> dict[str, Any]:
+    """Module-level shortcut: consensus dispatch with default agent trio."""
+    return await ASIMeshEngine().dispatch_consensus(objective, context, timeout_sec)
