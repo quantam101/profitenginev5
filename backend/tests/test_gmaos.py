@@ -7,11 +7,8 @@ All tests are offline-safe: no real LLM calls, no Redis required.
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 import threading
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -88,8 +85,10 @@ class TestStateStore:
             except Exception as e:
                 errors.append(e)
         threads = [threading.Thread(target=write, args=(i,)) for i in range(50)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         assert not errors
 
 
@@ -227,7 +226,7 @@ class TestExecutor:
 
     @pytest.mark.asyncio
     async def test_circuit_open_serves_snapshot(self, store, limiter, breakers, metrics):
-        from runtime.gmaos.schema import Task, TaskStatus
+        from runtime.gmaos.schema import Task
 
         # Pre-populate snapshot
         store.save_snapshot("offline_agent", "cached result", "snapshot")
@@ -314,7 +313,6 @@ class TestMesh:
                     breakers=breakers, metrics=metrics)
         await mesh.start()
         try:
-            order = []
             bg   = Task(agent="bg",   payload={}, priority=TaskPriority.BACKGROUND,
                         _stub_response="bg")
             crit = Task(agent="crit", payload={}, priority=TaskPriority.CRITICAL,
