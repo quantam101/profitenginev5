@@ -1,13 +1,10 @@
 name: Deploy to OCI Server
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       fresh_build:
-        description: 'Rebuild images without cache'
+        description: 'Rebuild images without cache after OCI access is restored'
         required: false
         default: 'false'
         type: boolean
@@ -17,261 +14,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Deploy to 129.146.167.73
+  oci_preflight:
+    name: OCI reachability gate
     runs-on: ubuntu-latest
-    environment: production
-    timeout-minutes: 30
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up SSH
+      - name: Check OCI HTTP and SSH reachability
+        id: oci
         run: |
-          mkdir -p ~/.ssh
-          # SERVER_SSH_KEY is the base64-encoded OpenSSH private key (ED25519)
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          # Validate the key loaded correctly
-          ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key is invalid — re-set SERVER_SSH_KEY secret"; exit 1; }
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: Test server reachability (HTTP then SSH)
-        id: ssh-preflight
-        run: |
-          # Step 1: HTTP liveness check — proves the server is up before touching SSH
-          # (sshd MaxStartups can get saturated by parallel CI runs; HTTP never does)
           HTTP_OK=false
           for i in 1 2 3; do
-            if curl -sf --max-time 10 http://129.146.167.73/ > /dev/null 2>&1; then
-              echo "HTTP liveness: OK (server is up)"
+            if curl -sf --max-time 10 http://129.146.167.73/ >/dev/null 2>&1; then
               HTTP_OK=true
               break
             fi
             sleep 5
           done
 
-          # Step 2: SSH check — retry with spacing to avoid saturating MaxStartups
-          # Space out attempts so LoginGraceTime (120s) can flush stale connections
-          for attempt in 1 2 3 4; do
-            if ssh -i ~/.ssh/deploy_key \
-              -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 \
-              -o ServerAliveInterval=15 \
-              -o ServerAliveCountMax=3 \
-              opc@129.146.167.73 \
-              "echo SSH_OK && hostname && df -h / | tail -1"; then
-              echo "SSH preflight passed on attempt $attempt"
-              exit 0
-            fi
-            WAIT=$((attempt * 30))
-            echo "SSH attempt $attempt/4 failed — waiting ${WAIT}s (sshd MaxStartups back-off)..."
-            sleep $WAIT
-          done
-
           if [ "$HTTP_OK" = "true" ]; then
-            echo "::warning::SSH timed out but server HTTP is alive — sshd MaxStartups may be saturated. Proceeding with deploy (SSH will retry in subsequent steps)."
-            exit 0
+            echo "HTTP liveness: OK"
+          else
+            echo "::warning::OCI HTTP check failed for 129.146.167.73"
           fi
-          echo "::error::Server unreachable via both HTTP and SSH. Check 129.146.167.73 status."
-          exit 255
 
-      - name: Upload deploy env
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
-          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
-          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
-          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
-          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
-          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
-          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
-          # v5 backend secrets — add these in GitHub → Settings → Secrets → Actions
-          MONGO_URL: ${{ secrets.MONGO_URL }}
-          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          N8N_BASIC_AUTH_PASSWORD: ${{ secrets.N8N_BASIC_AUTH_PASSWORD }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
-          BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
-          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
-          GUMROAD_SELLER_ID: ${{ secrets.GUMROAD_SELLER_ID }}
-          BOTPRESS_TOKEN: ${{ secrets.BOTPRESS_TOKEN }}
-          BOTPRESS_WORKSPACE: ${{ secrets.BOTPRESS_WORKSPACE }}
-          BEEHIIV_SPONSOR_NAME: ${{ secrets.BEEHIIV_SPONSOR_NAME }}
-          BEEHIIV_SPONSOR_URL: ${{ secrets.BEEHIIV_SPONSOR_URL }}
-          BEEHIIV_SPONSOR_COPY: ${{ secrets.BEEHIIV_SPONSOR_COPY }}
-          CITY_SEO_NICHES: ${{ secrets.CITY_SEO_NICHES }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || secrets.STRIPE_API_KEY }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          TWILIO_PHONE_NUMBER_SID: ${{ secrets.TWILIO_PHONE_NUMBER_SID }}
-          TAYLOR_TRANSFER_NUMBER: ${{ secrets.TAYLOR_TRANSFER_NUMBER }}
-          TAYLOR_TRANSFER_NUMBER_BACKUP: ${{ secrets.TAYLOR_TRANSFER_NUMBER_BACKUP }}
-          TAYLOR_TRANSFER_NUMBER_BACKUP_2: ${{ secrets.TAYLOR_TRANSFER_NUMBER_BACKUP_2 }}
-          TAYLOR_SERVER_URL: https://backend.alreadyherellc.com/taylor
-          # daily digest
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
-          TELEGRAM_WEBHOOK_URL: https://backend.alreadyherellc.com/runtime/telegram/webhook
-        run: |
-          # Write secrets to a temp file and scp it to the server
-          cat > /tmp/deploy_env.sh <<EOF
-          export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
-          export GROQ_API_KEY="${GROQ_API_KEY}"
-          export GEMINI_API_KEY="${GEMINI_API_KEY}"
-          export GITHUB_CONTENT_TOKEN="${GITHUB_CONTENT_TOKEN}"
-          export GMAIL_APP_PASSWORD="${GMAIL_APP_PASSWORD}"
-          export DEVTO_API_KEY="${DEVTO_API_KEY}"
-          export AFFILIATE_LINKS='${AFFILIATE_LINKS}'
-          export AMAZON_PARTNER_TAG="${AMAZON_PARTNER_TAG}"
-          export HASHNODE_API_KEY="${HASHNODE_API_KEY}"
-          export HASHNODE_PUB_ID="${HASHNODE_PUB_ID}"
-          export MEDIUM_API_KEY="${MEDIUM_API_KEY}"
-          export MEDIUM_AUTHOR_ID="${MEDIUM_AUTHOR_ID}"
-          export MONGO_URL="${MONGO_URL}"
-          export STRIPE_API_KEY="${STRIPE_API_KEY}"
-          export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}"
-          export OPENAI_API_KEY="${OPENAI_API_KEY}"
-          export OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
-          export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}"
-          export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
-          export TWILIO_ACCOUNT_SID="${TWILIO_ACCOUNT_SID}"
-          export TWILIO_AUTH_TOKEN="${TWILIO_AUTH_TOKEN}"
-          export TWILIO_FROM_NUMBER="${TWILIO_FROM_NUMBER}"
-          export TWILIO_PHONE_NUMBER_SID="${TWILIO_PHONE_NUMBER_SID}"
-          export TAYLOR_TRANSFER_NUMBER="${TAYLOR_TRANSFER_NUMBER}"
-          export TAYLOR_TRANSFER_NUMBER_BACKUP="${TAYLOR_TRANSFER_NUMBER_BACKUP}"
-          export TAYLOR_TRANSFER_NUMBER_BACKUP_2="${TAYLOR_TRANSFER_NUMBER_BACKUP_2}"
-          export TAYLOR_SERVER_URL="${TAYLOR_SERVER_URL}"
-          export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
-          export TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
-          export TELEGRAM_WEBHOOK_SECRET="${TELEGRAM_WEBHOOK_SECRET}"
-          export TELEGRAM_WEBHOOK_URL="${TELEGRAM_WEBHOOK_URL}"
-          export RESEND_API_KEY="${RESEND_API_KEY}"
-          export N8N_BASIC_AUTH_PASSWORD="${N8N_BASIC_AUTH_PASSWORD}"
-          export HF_TOKEN="${HF_TOKEN}"
-          export BEEHIIV_API_KEY="${BEEHIIV_API_KEY}"
-          export BEEHIIV_PUBLICATION_ID="${BEEHIIV_PUBLICATION_ID}"
-          export GUMROAD_ACCESS_TOKEN="${GUMROAD_ACCESS_TOKEN}"
-          export GUMROAD_SELLER_ID="${GUMROAD_SELLER_ID}"
-          export BOTPRESS_TOKEN="${BOTPRESS_TOKEN}"
-          export BOTPRESS_WORKSPACE="${BOTPRESS_WORKSPACE}"
-          export BEEHIIV_SPONSOR_NAME="${BEEHIIV_SPONSOR_NAME}"
-          export BEEHIIV_SPONSOR_URL="${BEEHIIV_SPONSOR_URL}"
-          export BEEHIIV_SPONSOR_COPY="${BEEHIIV_SPONSOR_COPY}"
-          export CITY_SEO_NICHES="${CITY_SEO_NICHES}"
-          EOF
-          echo "Uploading deploy env (${#GROQ_API_KEY} char GROQ key, ${#GEMINI_API_KEY} char Gemini key, ${#MONGO_URL} char Mongo URL)"
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            /tmp/deploy_env.sh opc@129.146.167.73:/tmp/deploy_env.sh
-          echo "SCP complete"
-
-      - name: Deploy via SSH
-        run: |
-          # Clone repo on first deploy if not present, then bootstrap
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            -o ServerAliveInterval=60 \
-            -o ServerAliveCountMax=15 \
-            opc@129.146.167.73 \
-            "set -e
-             REPO_DIR=/home/opc/profitenginev5
-             if [ ! -d \$REPO_DIR ]; then
-               git clone https://github.com/quantam101/profitenginev5.git \$REPO_DIR
-             fi
-             cd \$REPO_DIR
-             git fetch origin && git checkout main && git reset --hard origin/main
-             source /tmp/deploy_env.sh
-             REPO_DIR=\$REPO_DIR bash scripts/bootstrap-server.sh 2>&1 | tail -100
-             rm -f /tmp/deploy_env.sh"
-
-      - name: Start TokenForge backend
-        continue-on-error: true
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: |
-          # Build tf.env locally then scp — avoids heredoc-at-col-0 YAML parse error
-          if [ -z "${JWT_SECRET}" ]; then
-            echo "::warning::JWT_SECRET is not set; skipping TokenForge backend start"
-            exit 0
-          fi
-          JWT="${JWT_SECRET}"
-          {
-            echo "MONGO_URL=mongodb://mongo:27017"
-            echo "DB_NAME=tokenforge"
-            echo "JWT_SECRET=${JWT}"
-            echo "GROQ_API_KEY=${GROQ_API_KEY}"
-            echo "GOOGLE_API_KEY=${GEMINI_API_KEY}"
-            echo "CORS_ORIGINS=https://forge.alreadyherellc.com,http://localhost:3000"
-            echo "LLM_POLLINATIONS_FALLBACK=true"
-          } > /tmp/tf.env
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            /tmp/tf.env opc@129.146.167.73:/tmp/tf.env
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
-            -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
-            opc@129.146.167.73 \
-            "set -e
-             TF=/opt/tokenforge
-             if [ ! -d \$TF/.git ]; then
-               sudo mkdir -p \$TF && sudo chown opc:opc \$TF
-               git clone https://github.com/quantam101/Token.git \$TF
-             else
-               cd \$TF && git pull origin main || true
-             fi
-             mkdir -p \$TF/backend
-             sudo cp /tmp/tf.env \$TF/backend/.env
-             cd \$TF
-             sudo docker compose up -d --build --remove-orphans backend mongo 2>&1 | tail -20
-             echo TokenForge backend started"
-
-      - name: Verify health
-        run: |
-          sleep 15
-          # Primary: probe FastAPI backend via SSH (doesn't need DNS/Caddy/TLS)
-          STATUS=$(ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && \
-             docker compose exec -T backend python3 -c \
-               'import urllib.request,json,sys; r=urllib.request.urlopen(\"http://localhost:8001/api/health\",timeout=5); d=json.loads(r.read()); print(\"ok\" if d.get(\"ok\") or d.get(\"status\")==\"ok\" else \"fail\")' \
-             2>/dev/null || echo unreachable" \
-            2>/dev/null || echo unreachable)
-          echo "Backend health: $STATUS"
-          TAYLOR=$(ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && \
-             docker compose exec -T taylor curl -sf http://localhost:8001/health >/dev/null && echo ok || echo unreachable" \
-            2>/dev/null || echo unreachable)
-          echo "Taylor health: $TAYLOR"
-          # Secondary: Caddy on port 80 (works once DNS + firewall are open)
-          CADDY=$(curl -sf --max-time 10 -L \
-            -H "Host: profitengine.alreadyherellc.com" \
-            http://129.146.167.73/api/health \
-            2>/dev/null && echo "caddy-ok" || echo "caddy-unreachable")
-          echo "Caddy health: $CADDY"
-          if [[ "$STATUS" == "fail" ]]; then
-            echo "::warning::Backend health check returned ok=false — check docker compose logs backend"
-            exit 1
-          fi
-          if [[ "$STATUS" == "unreachable" ]]; then
-            echo "::warning::Backend unreachable via docker exec — containers may still be starting up"
-          fi
+          echo "OCI deploy is currently manual-gated until SSH/network access is confirmed."
+          echo "### OCI deployment gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP reachable: $HTTP_OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "SSH deployment is intentionally disabled in CI until host access is restored." >> "$GITHUB_STEP_SUMMARY"
+          echo "Vercel remains the primary production deployment path." >> "$GITHUB_STEP_SUMMARY"
