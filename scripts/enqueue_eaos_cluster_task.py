@@ -7,37 +7,51 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+if not os.environ.get("EAOS_DB_PATH") and os.environ.get("EAOS_CLUSTER_DB"):
+    os.environ["EAOS_DB_PATH"] = os.environ["EAOS_CLUSTER_DB"]
+
 from runtime.eaos.cluster_master import ClusterTaskQueue
+
+VALID_LANES = ("VIDEO", "SOCIAL", "POD", "MESH")
 
 
 def main() -> int:
-    agent_type = os.environ.get("AGENT_TYPE", "").strip()
+    agent_type = os.environ.get("AGENT_TYPE", "").strip().upper()
     if not agent_type:
-        print("[EAOS] ERROR: AGENT_TYPE is required")
+        print("ERROR: AGENT_TYPE is required")
+        return 1
+
+    if agent_type != "ALL" and agent_type not in VALID_LANES:
+        print(f"ERROR: unsupported AGENT_TYPE {agent_type}")
         return 1
 
     directive = os.environ.get("DIRECTIVE", "").strip()
     if not directive:
-        print("[EAOS] ERROR: DIRECTIVE is required")
+        print("ERROR: DIRECTIVE is required")
         return 1
 
     payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
-    extra = json.loads(payload_raw) if payload_raw.strip() else {}
-    # Merge directive into payload dict so ClusterTaskQueue.enqueue(agent_type, payload) works
+    try:
+        extra = json.loads(payload_raw) if payload_raw.strip() else {}
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: payload_json must be valid JSON: {exc}")
+        return 2
+
+    if not isinstance(extra, dict):
+        print("ERROR: payload_json must be a JSON object")
+        return 2
+
     payload = {"directive": directive, **extra}
     queue = ClusterTaskQueue()
 
-    if agent_type == "ALL":
-        for lane in ["VIDEO", "SOCIAL", "POD"]:
-            task_id = queue.enqueue(lane, payload)
-            print(f"[Cluster] Enqueued {lane}::{directive} task_id={task_id}")
-    else:
-        task_id = queue.enqueue(agent_type, payload)
-        print(f"[Cluster] Enqueued {agent_type}::{directive} task_id={task_id}")
+    lanes = VALID_LANES if agent_type == "ALL" else (agent_type,)
+    for lane in lanes:
+        task_id = queue.enqueue(lane, payload)
+        print(f"[Cluster] Enqueued {lane}::{directive} task_id={task_id}")
 
     print("The cluster_master daemon on the OCI server picks up queued tasks.")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
