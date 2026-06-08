@@ -10,24 +10,22 @@ jobs:
     name: Send morning digest
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true   # OCI SSH outages must not block CI status
+    continue-on-error: true   # runtime outages must not block CI status
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
 
     steps:
-      - name: Set up SSH
+      - name: Trigger digest via runtime API
         run: |
-          mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: Run digest on server
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=15 \
-            opc@129.146.167.73 \
-            "cd ~/profitenginev5 && \
-             docker compose exec -T runtime python -m runtime.agent_impls.daily_digest" \
-          || echo "::warning::OCI server unreachable — digest skipped. Check server at 129.146.167.73"
+          code=$(curl -s -o /tmp/digest_response.json -w "%{http_code}" --max-time 60 \
+            -X POST "http://129.146.167.73/digest/run" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json")
+          echo "HTTP $code"
+          cat /tmp/digest_response.json || true
+          if [[ "$code" =~ ^2 ]]; then
+            echo "::notice::Digest triggered successfully (HTTP $code)"
+          else
+            echo "::warning::Digest trigger failed (HTTP $code) — runtime unreachable or misconfigured. Check http://129.146.167.73/digest/run"
+          fi

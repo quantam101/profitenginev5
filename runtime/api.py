@@ -466,3 +466,32 @@ def execute(payload: ExecuteRequest) -> Dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return asdict(result)
+
+
+def _check_webhook_token(request: Request) -> None:
+    """Shared-secret auth — mirrors the Bearer/x-profitengine-token pattern
+    used by app/api/ai-gateway and app/api/skill-gateway on the Vercel side,
+    so a single rotated PROFITENGINE_WEBHOOK_TOKEN secures both surfaces."""
+    import os
+    configured = os.environ.get("PROFITENGINE_WEBHOOK_TOKEN", "")
+    if not configured:
+        raise HTTPException(status_code=503, detail="PROFITENGINE_WEBHOOK_TOKEN not configured")
+    auth = request.headers.get("authorization", "")
+    bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    header_token = request.headers.get("x-profitengine-token", "")
+    if bearer != configured and header_token != configured:
+        raise HTTPException(status_code=401, detail="invalid or missing token")
+
+
+@app.post("/digest/run")
+def run_digest(request: Request) -> Dict[str, Any]:
+    """HTTP-reachable trigger for the daily digest, used by the
+    'Daily Digest' GitHub Actions workflow over HTTPS (via Caddy) instead of
+    SSH — port 22 to the OCI host is firewalled but HTTPS is reachable."""
+    _check_webhook_token(request)
+    from .agent_impls import daily_digest
+    try:
+        daily_digest.main()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"digest failed: {exc}") from exc
+    return {"ok": True, "service": "profitengine-runtime", "ran": "daily_digest"}
