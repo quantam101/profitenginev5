@@ -26,20 +26,17 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Register client via backend Docker network IP
+      # Switched off SSH/SCP — port 22 to the OCI host is subject to an
+      # automated probe-detection ban that also catches GitHub Actions runner
+      # IP ranges. The backend is reachable directly over HTTPS through Caddy
+      # at api.alreadyherellc.com (default route → backend:8001), so we can
+      # call /api/waitlist straight from the runner with no SSH involved.
+      - name: Register client via backend HTTPS API
         env:
           CLIENT_EMAIL: ${{ github.event.inputs.email }}
           CLIENT_ROLE: ${{ github.event.inputs.role }}
           CLIENT_USE_CASE: ${{ github.event.inputs.use_case }}
         run: |
-          # Build JSON payload on the runner (env vars → no injection risk)
           PAYLOAD=$(python3 -c "
           import json, os
           print(json.dumps({
@@ -50,30 +47,15 @@ jobs:
           ")
           echo "Payload: $PAYLOAD"
 
-          # SCP payload to server
-          echo "$PAYLOAD" > /tmp/payload.json
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            /tmp/payload.json opc@129.146.167.73:/tmp/waitlist_payload.json
+          HTTP_CODE=$(curl -s -o /tmp/register-response.json -w "%{http_code}" --max-time 30 \
+            -X POST "https://api.alreadyherellc.com/api/waitlist" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/register-response.json || true
 
-          # On the OCI host: get backend container's Docker network IP,
-          # then call it directly with curl (avoids docker exec stdin issues)
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
-            opc@129.146.167.73 <<'SSHEOF'
-            set -e
-            cd /home/opc/profitenginev5
-
-            # Find the backend container's IP on the compose network
-            BACKEND_IP=$(docker inspect \
-              $(docker compose ps -q backend) \
-              --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
-              | head -1)
-            echo "Backend container IP: $BACKEND_IP"
-
-            # Call the waitlist API directly from the host via Docker network
-            RESULT=$(curl -sf -X POST "http://${BACKEND_IP}:8001/api/waitlist" \
-              -H "Content-Type: application/json" \
-              -d @/tmp/waitlist_payload.json)
-            echo "Result: $RESULT"
-            rm -f /tmp/waitlist_payload.json
-          SSHEOF
+          if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
+            echo "::error::Registration failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          echo "::notice::Client registered successfully (HTTP $HTTP_CODE)"

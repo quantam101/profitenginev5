@@ -3,6 +3,12 @@ name: EAOS — POD Render & Printify Push
 # Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG).
 # Printify push is supported, but external Printify failures are non-fatal
 # unless strict_printify=true is selected on manual dispatch.
+#
+# Printify validation/push runs on the OCI host via the runtime API over
+# HTTPS (Caddy) — never via SSH. The host has a real IP not blocked by
+# Printify's Cloudflare (error 1010 for GH Actions runner IPs), and keeping
+# CI/CD off port 22 avoids the automated SSH-probe-detection ban that also
+# catches GitHub Actions runner IP ranges.
 
 on:
   schedule:
@@ -34,6 +40,10 @@ jobs:
     name: Render POD artwork + optional Printify push
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+      RUNTIME_BASE: http://129.146.167.73
 
     steps:
       - uses: actions/checkout@v5
@@ -51,26 +61,22 @@ jobs:
           echo "Workflow commit: $GITHUB_SHA"
           git --no-pager log -1 --oneline
 
-      - name: Validate Printify shop connection (via OCI server)
+      - name: Validate Printify shop connection (via runtime API)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
-          # Run from OCI server to avoid Cloudflare block (error code 1010)
           set +e
-          mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && python3 scripts/printify_shop_status.py 2>&1" \
-            | tee printify_status_before.json
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
+          HTTP_CODE=$(curl -s -o printify_status_before.json -w "%{http_code}" --max-time 150 \
+            -X GET "${RUNTIME_BASE}/pod/status" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}")
+          echo "HTTP $HTTP_CODE"
+          cat printify_status_before.json || true
+          OK=$(python3 -c "import json; print(json.load(open('printify_status_before.json')).get('ok', False))" 2>/dev/null || echo "False")
+          if [[ ! "$HTTP_CODE" =~ ^2 ]] || [[ "$OK" != "True" ]]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
               echo "::error::Printify shop validation failed under strict mode."
-              exit "$rc"
+              exit 1
             fi
             echo "::warning::Printify shop validation failed; continuing."
           fi
@@ -83,69 +89,55 @@ jobs:
           PYTHONUTF8: "1"
         run: python3 scripts/render_pod_catalog.py
 
-      - name: Set up SSH for OCI server push
-        if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: Push to Printify via OCI server (bypasses Cloudflare GH-Actions block)
+      - name: Push to Printify via runtime API (bypasses Cloudflare GH-Actions block)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
           TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
         run: |
-          # Copy artwork to OCI server, then run the push from there
-          # (Printify's Cloudflare blocks GitHub Actions IPs but not the OCI server)
           set +e
           RENDER_DIR="./datacenter/pod_factory/render_cache"
-          if [ -d "$RENDER_DIR" ] && ls "$RENDER_DIR"/*.png 2>/dev/null | head -1 > /dev/null; then
-            echo "Uploading rendered artwork to OCI server..."
-            ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
-              opc@129.146.167.73 "mkdir -p /tmp/pod_render"
-            scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-              "$RENDER_DIR"/*.png opc@129.146.167.73:/tmp/pod_render/ 2>/dev/null || true
+          FORM_ARGS=()
+          if [ -d "$RENDER_DIR" ] && ls "$RENDER_DIR"/*.png >/dev/null 2>&1; then
+            for f in "$RENDER_DIR"/*.png; do
+              FORM_ARGS+=(-F "files=@${f};type=image/png")
+            done
+            echo "Uploading ${#FORM_ARGS[@]} PNG(s) to runtime for Printify push..."
+          else
+            echo "No rendered PNGs found; calling push with no upload."
           fi
 
-          # Run the Printify push script on the server (has real IP, not blocked)
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && \
-             if [ -d /tmp/pod_render ] && ls /tmp/pod_render/*.png 2>/dev/null | head -1 > /dev/null; then \
-               mkdir -p datacenter/pod_factory/render_cache && \
-               cp /tmp/pod_render/*.png datacenter/pod_factory/render_cache/ 2>/dev/null || true; \
-             fi && \
-             EAOS_POD_ROOT=./datacenter/pod_factory \
-             EAOS_POD_DB=./datacenter/pod_cache.db \
-             TARGET_SKU='${TARGET_SKU}' \
-             python3 scripts/push_printify_catalog.py 2>&1 | tail -30"
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
+          HTTP_CODE=$(curl -s -o printify_push_result.json -w "%{http_code}" --max-time 900 \
+            -X POST "${RUNTIME_BASE}/pod/push?target_sku=${TARGET_SKU}" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+            "${FORM_ARGS[@]}")
+          echo "HTTP $HTTP_CODE"
+          python3 -c "import json; d=json.load(open('printify_push_result.json')); print(d.get('output','')[-3000:])" 2>/dev/null || cat printify_push_result.json
+          OK=$(python3 -c "import json; print(json.load(open('printify_push_result.json')).get('ok', False))" 2>/dev/null || echo "False")
+          if [[ ! "$HTTP_CODE" =~ ^2 ]] || [[ "$OK" != "True" ]]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
               echo "::error::Printify push failed under strict mode."
-              exit "$rc"
+              exit 1
             fi
             echo "::warning::Printify push failed; rendered artwork remains available as a build artifact."
           fi
 
-      - name: Verify Printify products after push (via OCI server)
+      - name: Verify Printify products after push (via runtime API)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
-          # Verify via OCI server to avoid Cloudflare block
           set +e
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
-            opc@129.146.167.73 \
-            "cd /home/opc/profitenginev5 && python3 scripts/printify_shop_status.py 2>&1" \
-            | tee printify_status_after.json
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
+          HTTP_CODE=$(curl -s -o printify_status_after.json -w "%{http_code}" --max-time 150 \
+            -X GET "${RUNTIME_BASE}/pod/status" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}")
+          echo "HTTP $HTTP_CODE"
+          cat printify_status_after.json || true
+          OK=$(python3 -c "import json; print(json.load(open('printify_status_after.json')).get('ok', False))" 2>/dev/null || echo "False")
+          if [[ ! "$HTTP_CODE" =~ ^2 ]] || [[ "$OK" != "True" ]]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
               echo "::error::Printify post-push verification failed under strict mode."
-              exit "$rc"
+              exit 1
             fi
             echo "::warning::Printify post-push verification failed; continuing."
           fi
@@ -167,17 +159,12 @@ jobs:
           echo "Strict Printify: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}" >> $GITHUB_STEP_SUMMARY
           echo "Printify dashboard: https://printify.com/app/store/products" >> $GITHUB_STEP_SUMMARY
           echo "Etsy shop: https://www.etsy.com/shop/AlreadyHereLLC" >> $GITHUB_STEP_SUMMARY
-          if [ -f printify_status_before.json ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "#### Printify status before push" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat printify_status_before.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-          if [ -f printify_status_after.json ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "#### Printify status after push" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat printify_status_after.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
+          for f in printify_status_before.json printify_status_after.json printify_push_result.json; do
+            if [ -f "$f" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "#### $f" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              cat "$f" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          done

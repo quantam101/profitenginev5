@@ -495,3 +495,106 @@ def run_digest(request: Request) -> Dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"digest failed: {exc}") from exc
     return {"ok": True, "service": "profitengine-runtime", "ran": "daily_digest"}
+
+
+class GuardRequest(BaseModel):
+    aggressive: bool = Field(default=False)
+
+
+@app.post("/guard/run")
+def run_guard(payload: GuardRequest, request: Request) -> Dict[str, Any]:
+    """HTTP-reachable trigger for scripts/docker-guard.sh — replaces the
+    SSH-exec path used by .github/workflows/docker-guard.yml. Same rationale
+    as /digest/run: keep CI/CD off port 22 entirely so SSH-probe-detection
+    bans on the OCI host never affect routine automation."""
+    import os
+    import subprocess
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    script = os.path.join(repo_dir, "scripts", "docker-guard.sh")
+    try:
+        proc = subprocess.run(
+            ["bash", script],
+            cwd=repo_dir,
+            env={**os.environ, "REPO_DIR": repo_dir, "AGGRESSIVE": "true" if payload.aggressive else "false"},
+            capture_output=True, text=True, timeout=600,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"guard failed: {exc}") from exc
+    return {"ok": proc.returncode == 0, "exit_code": proc.returncode, "output": proc.stdout + proc.stderr}
+
+
+@app.get("/pod/status")
+def pod_status(request: Request) -> Dict[str, Any]:
+    """HTTP-reachable Printify shop status check — runs scripts/printify_shop_status.py
+    on the OCI host (which has a real IP not blocked by Printify's Cloudflare,
+    unlike GitHub Actions runner IPs). Replaces the SSH-exec path used by
+    .github/workflows/eaos-pod-render.yml so port 22 stays untouched."""
+    import os
+    import subprocess
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    script = os.path.join(repo_dir, "scripts", "printify_shop_status.py")
+    try:
+        proc = subprocess.run(
+            ["python3", script],
+            cwd=repo_dir,
+            capture_output=True, text=True, timeout=120,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"status check failed: {exc}") from exc
+    return {"ok": proc.returncode == 0, "exit_code": proc.returncode, "output": proc.stdout + proc.stderr}
+
+
+@app.post("/pod/push")
+async def pod_push(request: Request) -> Dict[str, Any]:
+    """HTTP-reachable Printify push — accepts rendered PNG artwork as a
+    multipart upload, stages it into datacenter/pod_factory/render_cache on
+    the OCI host, then runs scripts/push_printify_catalog.py there (the host
+    has a real IP not blocked by Printify's Cloudflare). Replaces the
+    upload-via-SCP-then-SSH-exec path in .github/workflows/eaos-pod-render.yml.
+
+    Query params: target_sku (optional, defaults to all SKUs).
+    """
+    import os
+    import shutil
+    import subprocess
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    target_sku = request.query_params.get("target_sku", "")
+    render_dir = os.path.join(repo_dir, "datacenter", "pod_factory", "render_cache")
+    os.makedirs(render_dir, exist_ok=True)
+
+    form = await request.form()
+    saved = []
+    for key, value in form.multi_items():
+        filename = getattr(value, "filename", None)
+        if not filename or not filename.lower().endswith(".png"):
+            continue
+        safe_name = os.path.basename(filename)
+        dest = os.path.join(render_dir, safe_name)
+        with open(dest, "wb") as out:
+            shutil.copyfileobj(value.file, out)
+        saved.append(safe_name)
+
+    script = os.path.join(repo_dir, "scripts", "push_printify_catalog.py")
+    try:
+        proc = subprocess.run(
+            ["python3", script],
+            cwd=repo_dir,
+            env={
+                **os.environ,
+                "EAOS_POD_ROOT": "./datacenter/pod_factory",
+                "EAOS_POD_DB": "./datacenter/pod_cache.db",
+                "TARGET_SKU": target_sku,
+            },
+            capture_output=True, text=True, timeout=900,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"push failed: {exc}") from exc
+    return {
+        "ok": proc.returncode == 0,
+        "exit_code": proc.returncode,
+        "uploaded": saved,
+        "output": proc.stdout + proc.stderr,
+    }
