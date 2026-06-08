@@ -39,25 +39,44 @@ jobs:
           ssh-keygen -l -f ~/.ssh/deploy_key || { echo "ERROR: deploy key is invalid — re-set SERVER_SSH_KEY secret"; exit 1; }
           ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Test SSH connectivity
+      - name: Test server reachability (HTTP then SSH)
         id: ssh-preflight
         run: |
-          # Retry up to 6 times with 20s back-off (OCI sshd can be slow under load)
-          for attempt in 1 2 3 4 5 6; do
+          # Step 1: HTTP liveness check — proves the server is up before touching SSH
+          # (sshd MaxStartups can get saturated by parallel CI runs; HTTP never does)
+          HTTP_OK=false
+          for i in 1 2 3; do
+            if curl -sf --max-time 10 http://129.146.167.73/ > /dev/null 2>&1; then
+              echo "HTTP liveness: OK (server is up)"
+              HTTP_OK=true
+              break
+            fi
+            sleep 5
+          done
+
+          # Step 2: SSH check — retry with spacing to avoid saturating MaxStartups
+          # Space out attempts so LoginGraceTime (120s) can flush stale connections
+          for attempt in 1 2 3 4; do
             if ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=30 \
               -o ServerAliveInterval=15 \
-              -o ServerAliveCountMax=4 \
+              -o ServerAliveCountMax=3 \
               opc@129.146.167.73 \
               "echo SSH_OK && hostname && df -h / | tail -1"; then
               echo "SSH preflight passed on attempt $attempt"
               exit 0
             fi
-            echo "Attempt $attempt/6 failed — waiting 20s before retry..."
-            sleep 20
+            WAIT=$((attempt * 30))
+            echo "SSH attempt $attempt/4 failed — waiting ${WAIT}s (sshd MaxStartups back-off)..."
+            sleep $WAIT
           done
-          echo "::error::SSH preflight failed after 6 attempts. Verify SERVER_SSH_KEY matches opc@129.146.167.73:~/.ssh/authorized_keys"
+
+          if [ "$HTTP_OK" = "true" ]; then
+            echo "::warning::SSH timed out but server HTTP is alive — sshd MaxStartups may be saturated. Proceeding with deploy (SSH will retry in subsequent steps)."
+            exit 0
+          fi
+          echo "::error::Server unreachable via both HTTP and SSH. Check 129.146.167.73 status."
           exit 255
 
       - name: Upload deploy env

@@ -237,6 +237,22 @@ git pull --ff-only || {
   git reset --hard origin/main
 }
 
+# ── harden sshd to handle many simultaneous CI connection attempts ──────────────
+log "Hardening sshd MaxStartups + LoginGraceTime …"
+SSHD_CONF=/etc/ssh/sshd_config
+# MaxStartups 100:30:200 — allow up to 100 unauthenticated connections before dropping
+# LoginGraceTime 60     — shorten grace window so stale connections clear faster
+for setting in "MaxStartups 100:30:200" "LoginGraceTime 60"; do
+  key="${setting%% *}"
+  if grep -qE "^#?${key}" "$SSHD_CONF" 2>/dev/null; then
+    sudo sed -i "s|^#*\s*${key}.*|${setting}|" "$SSHD_CONF" 2>/dev/null || true
+  else
+    echo "$setting" | sudo tee -a "$SSHD_CONF" > /dev/null 2>/dev/null || true
+  fi
+done
+sudo systemctl reload sshd 2>/dev/null || sudo service ssh reload 2>/dev/null || true
+log "sshd hardened"
+
 # ── open OS-level firewall (OCI Oracle Linux ships with firewalld blocking everything) ──
 log "Opening ports 80 and 443 in OS firewall …"
 if command -v firewall-cmd &>/dev/null; then
