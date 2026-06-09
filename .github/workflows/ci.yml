@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - "devin/**"
   workflow_dispatch:
 
 env:
@@ -58,6 +57,10 @@ jobs:
         env:
           CI: "true"
           GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Opportunity intelligence test
+        run: npm run test:opportunity
+        env:
+          CI: "true"
       - name: Gateway evals
         run: |
           npm run eval:ai-gateway
