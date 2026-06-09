@@ -109,10 +109,12 @@ jobs:
           Run this on the OCI instance through console access or any working shell:
 
           ```bash
-          curl -fsSL https://raw.githubusercontent.com/quantam101/profitenginev5/main/scripts/oci-recover.sh | sudo bash
+          curl -fsSL -o /tmp/oci-recover.sh https://raw.githubusercontent.com/quantam101/profitenginev5/main/scripts/oci-recover.sh
+          sudo APP_DIR=/opt/profitenginev5 bash /tmp/oci-recover.sh
           ```
 
-          After recovery, re-run this workflow with the same host. If SSH becomes reachable, enable a real deployment job using repository secrets for SSH identity; do not hardcode credentials.
+          If the app checkout is not in `/opt/profitenginev5`, replace `APP_DIR` with the real path before running.
+          After recovery, re-run this workflow with the same host. If SSH becomes reachable, enable a credentialed deploy job using repository secrets for SSH identity; do not hardcode credentials.
           EOF
 
   deploy_blocked_until_ssh_restored:
