@@ -1,0 +1,36 @@
+opportunity_intelligence:
+  version: 1.0.0
+  runtime: local_first
+  external_execution_enabled: false
+  automatic_send_enabled: false
+  automatic_accept_enabled: false
+  approval_required_actions:
+    - platform_accept
+    - platform_counter
+    - external_email_send
+    - billing_or_account_change
+  scoring:
+    preferred_effective_hourly: 65
+    minimum_dispatch_value: 130
+    default_minimum_hours: 2
+    priority_radius_miles: 60
+    counter_floor_standard: 130
+    counter_floor_large_format: 175
+  suppression_keys:
+    - wo_number
+    - client_location_schedule
+    - signature
+    - buyer_message_digest
+  decision_states:
+    - PROCEED
+    - COUNTER
+    - HUMAN_APPROVAL
+    - DISCARD
+  durable_local_store:
+    engine: sqlite_wal
+    path_env: PROFITENGINE_OPPORTUNITY_DB
+  failover:
+    ai_required: false
+    deterministic_scoring_required: true
+    proposal_generation_required: true
+    audit_record_required: true
