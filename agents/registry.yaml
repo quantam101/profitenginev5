@@ -2,7 +2,7 @@ agents:
   - id: sovereign-orchestrator
     name: Sovereign Orchestrator
     version: 0.2.0
-    mission: Plan and execute profit-generating workflows using Ollama→Groq→Gemini→Claude→stub cascade.
+    mission: Plan and execute profit-generating workflows using Ollama→Groq→Gemini→Claude→deterministic fallback cascade.
     max_cost_usd: 0
     allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
     forbidden_actions: [any_cost, public_post, email_send, production_deploy, repo_merge]
@@ -88,7 +88,7 @@ agents:
       Analyze distilled Docker/Ollama health reports from the server.
       Identifies disk pressure, unhealthy containers, and oversized Ollama
       models, then produces a structured remediation plan using the inference
-      cascade (Ollama→Groq→stub, zero cost). Does not call Docker directly —
+      cascade (Ollama→Groq→deterministic fallback, zero cost). Does not call Docker directly —
       processes pre-collected output from scripts/docker-guard.sh.
     max_cost_usd: 0
     allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
@@ -155,4 +155,25 @@ agents:
     allowed_connectors: [local_files]
     forbidden_actions: [paid_api_call, public_post, production_deploy, payment_capture]
     approval_required_actions: [external_publish, paid_offer_launch]
+    verifier_required: false
+
+  # Field work and application intelligence agents
+  - id: job-signal-analyst
+    name: Job Signal Analyst Agent
+    version: 1.0.0
+    mission: Score authorized opportunity payloads against Already Here LLC margin, distance, scope, and risk policy.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, email_send, platform_accept, production_deploy, repo_merge]
+    approval_required_actions: [platform_counter, external_publish]
+    verifier_required: false
+
+  - id: proposal-optimizer
+    name: Proposal Optimizer Agent
+    version: 1.0.0
+    mission: Generate scope-controlled proposal and counter artifacts for human approval without sending externally.
+    max_cost_usd: 0
+    allowed_connectors: [local_files]
+    forbidden_actions: [paid_api_call, public_post, email_send, platform_accept, production_deploy, repo_merge]
+    approval_required_actions: [platform_counter, external_publish]
     verifier_required: false
