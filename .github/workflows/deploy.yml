@@ -8,37 +8,132 @@ on:
         required: false
         default: 'false'
         type: boolean
+      oci_host:
+        description: 'OCI public IP or DNS name to check'
+        required: false
+        default: '129.146.167.73'
+        type: string
 
 concurrency:
   group: deploy-production
   cancel-in-progress: true
+
+env:
+  DEFAULT_OCI_HOST: '129.146.167.73'
 
 jobs:
   oci_preflight:
     name: OCI reachability gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      host: ${{ steps.check.outputs.host }}
+      http_ok: ${{ steps.check.outputs.http_ok }}
+      https_ok: ${{ steps.check.outputs.https_ok }}
+      ssh_ok: ${{ steps.check.outputs.ssh_ok }}
+      ready_for_ssh_deploy: ${{ steps.check.outputs.ready_for_ssh_deploy }}
     steps:
-      - name: Check OCI HTTP and SSH reachability
-        id: oci
+      - name: Check OCI HTTP, HTTPS, and SSH reachability
+        id: check
+        shell: bash
         run: |
-          HTTP_OK=false
-          for i in 1 2 3; do
-            if curl -sf --max-time 10 http://129.146.167.73/ >/dev/null 2>&1; then
-              HTTP_OK=true
-              break
-            fi
-            sleep 5
-          done
+          set -uo pipefail
+          HOST="${{ github.event.inputs.oci_host }}"
+          if [ -z "$HOST" ]; then HOST="$DEFAULT_OCI_HOST"; fi
 
-          if [ "$HTTP_OK" = "true" ]; then
-            echo "HTTP liveness: OK"
-          else
-            echo "::warning::OCI HTTP check failed for 129.146.167.73"
+          check_url() {
+            local url="$1"
+            for i in 1 2 3; do
+              if curl -fsS --max-time 10 "$url" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          check_tcp() {
+            local host="$1"
+            local port="$2"
+            for i in 1 2 3; do
+              if timeout 10 bash -c "</dev/tcp/$host/$port" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          HTTP_OK=false
+          HTTPS_OK=false
+          SSH_OK=false
+
+          if check_url "http://$HOST/"; then HTTP_OK=true; fi
+          if check_url "https://$HOST/"; then HTTPS_OK=true; fi
+          if check_tcp "$HOST" 22; then SSH_OK=true; fi
+
+          READY=false
+          if [ "$SSH_OK" = "true" ]; then READY=true; fi
+
+          echo "host=$HOST" >> "$GITHUB_OUTPUT"
+          echo "http_ok=$HTTP_OK" >> "$GITHUB_OUTPUT"
+          echo "https_ok=$HTTPS_OK" >> "$GITHUB_OUTPUT"
+          echo "ssh_ok=$SSH_OK" >> "$GITHUB_OUTPUT"
+          echo "ready_for_ssh_deploy=$READY" >> "$GITHUB_OUTPUT"
+
+          echo "### OCI deployment gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "Host: $HOST" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP reachable: $HTTP_OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTPS reachable: $HTTPS_OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "SSH reachable: $SSH_OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ready for SSH deploy: $READY" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$READY" != "true" ]; then
+            echo "OCI is not reachable for automated SSH deployment. This workflow will exit successfully to prevent false production failures. Use scripts/oci-recover.sh from OCI console, serial console, or an already-authenticated shell to restore host reachability." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          echo "OCI deploy is currently manual-gated until SSH/network access is confirmed."
-          echo "### OCI deployment gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "HTTP reachable: $HTTP_OK" >> "$GITHUB_STEP_SUMMARY"
-          echo "SSH deployment is intentionally disabled in CI until host access is restored." >> "$GITHUB_STEP_SUMMARY"
-          echo "Vercel remains the primary production deployment path." >> "$GITHUB_STEP_SUMMARY"
+  oci_recovery_instructions:
+    name: OCI recovery instructions
+    runs-on: ubuntu-latest
+    needs: oci_preflight
+    if: needs.oci_preflight.outputs.ready_for_ssh_deploy != 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Print deterministic recovery command
+        shell: bash
+        run: |
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ### Immediate OCI host repair path
+
+          Automated deploy is blocked because SSH is not reachable from GitHub Actions.
+          Run this on the OCI instance through console access or any working shell:
+
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/quantam101/profitenginev5/main/scripts/oci-recover.sh | sudo bash
+          ```
+
+          After recovery, re-run this workflow with the same host. If SSH becomes reachable, enable a real deployment job using repository secrets for SSH identity; do not hardcode credentials.
+          EOF
+
+  deploy_blocked_until_ssh_restored:
+    name: SSH deployment blocked until OCI access is restored
+    runs-on: ubuntu-latest
+    needs: [oci_preflight, oci_recovery_instructions]
+    if: always() && needs.oci_preflight.outputs.ready_for_ssh_deploy != 'true'
+    steps:
+      - name: Exit cleanly with OCI blocked status
+        run: |
+          echo "OCI host ${{ needs.oci_preflight.outputs.host }} is not SSH reachable. Vercel remains primary production. OCI workflow is no longer a failing drift source."
+
+  ssh_ready:
+    name: SSH reachable — manual deploy may proceed
+    runs-on: ubuntu-latest
+    needs: oci_preflight
+    if: needs.oci_preflight.outputs.ready_for_ssh_deploy == 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Confirm deploy readiness
+        run: |
+          echo "OCI SSH is reachable for ${{ needs.oci_preflight.outputs.host }}."
+          echo "This repository intentionally does not run credentialed SSH deploy commands without configured GitHub secrets."
+          echo "Next safe step: add repository secrets OCI_SSH_USER, OCI_SSH_PRIVATE_KEY, and OCI_DEPLOY_PATH, then enable a credentialed deploy job."
