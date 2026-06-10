@@ -1,0 +1,10 @@
+{
+  "event_id": "evt-acorns-generated-assets-ready-2026-06-09",
+  "event_type": "profitengine.campaign.generated_assets_ready",
+  "created_at_local_date": "2026-06-09",
+  "campaign_id": "acorns-referral-2026-06-09",
+  "generated_asset_root": "generated-content/acorns-referral-2026-06-09",
+  "publication_state": "not_published",
+  "approval_required_before_publish": true,
+  "huggingface_optional_enhancement_state": "available_but_disabled_until_approved"
+}
