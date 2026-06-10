@@ -7,13 +7,30 @@ jobs:
   recover:
     runs-on: ubuntu-latest
     steps:
-      - name: Add SSH keys to authorized_keys
+      - name: Debug and recover SSH keys
         env:
-          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          PUB_KEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWOpmhKqA1QoSoCC4fv3Ee2Ie9TpdYXuokmDaUE+I9+ez6CA0I9tFMQr8HPGYoV6nvVL5uobSq8JEaObf7iBVdDu2aZYTVVGfCYenm2s+OWEikdAyVujNJ2GGWzKETbEjziq2ag23MSJ9UC4OETQb0fxiG+n+rGmzQV/pch9PYMMlDiLemZ8c476hL5MUf8DYWbdGUxrEz2eB4gxIj292Z+Rr/YbFXY8V75M24oIzhBZZp3LMwvI/ZzC8ZYxncFivyZZHMRWuvlpRcJZMtOlNtogXFvVBJpOPnTjbyhS4cqmLV0Xtbvsfuq6ZkFEvz6M03yOPp3/r8OUVgKiU4+tY5 oci_cmdos_oci-stephen"
-          DEVIN_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp2I2ngE5QRsB9HyLbZCpxBwylhntz7IaElLbcto2FU devin-deploy-profitenginev5"
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         run: |
-          printf '%s\n' "$SSH_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i /tmp/deploy_key ubuntu@129.146.167.73 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWOpmhKqA1QoSoCC4fv3Ee2Ie9TpdYXuokmDaUE+I9+ez6CA0I9tFMQr8HPGYoV6nvVL5uobSq8JEaObf7iBVdDu2aZYTVVGfCYenm2s+OWEikdAyVujNJ2GGWzKETbEjziq2ag23MSJ9UC4OETQb0fxiG+n+rGmzQV/pch9PYMMlDiLemZ8c476hL5MUf8DYWbdGUxrEz2eB4gxIj292Z+Rr/YbFXY8V75M24oIzhBZZp3LMwvI/ZzC8ZYxncFivyZZHMRWuvlpRcJZMtOlNtogXFvVBJpOPnTjbyhS4cqmLV0Xtbvsfuq6ZkFEvz6M03yOPp3/r8OUVgKiU4+tY5 oci_cmdos_oci-stephen' >> ~/.ssh/authorized_keys && echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp2I2ngE5QRsB9HyLbZCpxBwylhntz7IaElLbcto2FU devin-deploy-profitenginev5' >> ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo DONE && cat ~/.ssh/authorized_keys"
-          rm -f /tmp/deploy_key
+          # Try SERVER_SSH_KEY first with proper handling
+          echo "$SERVER_SSH_KEY" > /tmp/server_key
+          chmod 600 /tmp/server_key
+          echo "--- SERVER_SSH_KEY header ---"
+          head -1 /tmp/server_key
+          echo "--- SERVER_SSH_KEY lines ---"
+          wc -l /tmp/server_key
+          file /tmp/server_key
+          ssh-keygen -l -f /tmp/server_key 2>&1 || echo "server_key invalid"
+          
+          # Try OCI_SSH_KEY  
+          echo "$OCI_SSH_KEY" > /tmp/oci_key
+          chmod 600 /tmp/oci_key
+          echo "--- OCI_SSH_KEY header ---"
+          head -1 /tmp/oci_key
+          ssh-keygen -l -f /tmp/oci_key 2>&1 || echo "oci_key invalid"
+          
+          # Try SSH with each key
+          for key in /tmp/server_key /tmp/oci_key; do
+            echo "=== Trying \ ==="
+            ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 -i "\" ubuntu@129.146.167.73 "echo SUCCESS && hostname" 2>&1 && echo "KEY_WORKS: \" && break
+          done
