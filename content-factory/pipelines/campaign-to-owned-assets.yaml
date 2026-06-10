@@ -1,9 +1,9 @@
 pipeline:
   id: campaign-to-owned-assets
   name: Campaign To Owned Assets
-  version: 1.0.0
+  version: 1.1.0
   enabled: true
-  mode: local_first_zero_spend
+  mode: local_first_zero_spend_with_supervised_autopublish_transition
 
 inputs:
   campaign_payload_root: campaigns
@@ -33,33 +33,43 @@ execution:
   default_generator: scripts/content_factory_run.py
   output_root: generated-content
   write_files_first: true
-  publish_after_generation: false
-  approval_required_before_publish: true
-  approval_required_before_external_inference: true
+  current_publish_mode: generate_queue_review
+  publish_after_generation_before_2026_06_23: false
+  publish_after_generation_starting_2026_06_23: supervised_allowlisted_channels_only
+  approval_required_before_publish_until: 2026-06-22
+  supervised_autopublish_starts: 2026-06-23
+  approval_required_before_external_inference_until: 2026-06-22
+  autopublish_policy: ops/autopublish/policy.yaml
 
 controls:
   no_paid_api_calls_by_default: true
-  no_external_calls_without_approval: true
-  no_public_post_without_approval: true
+  no_unapproved_external_calls_during_warmup: true
+  no_public_post_before_2026_06_23: true
   no_bulk_cold_outreach: true
   no_scraped_contact_outreach: true
   require_disclosure_for_referral_financial: true
   no_guaranteed_outcome_claims: true
   no_personalized_financial_advice: true
+  audit_publication_events: true
+  rollback_required: true
 
 optional_huggingface:
   connector: huggingface_runtime
-  enabled_by_default: false
+  enabled_by_default: true
+  current_mode: governed_warmup
   token_env_var: HF_TOKEN
-  allowed_after_approval:
-    - image_prompt_expansion
-    - voiceover_script_variants
-    - short_video_concept_variants
-    - embeddings_for_content_reuse
-    - spaces_demo_prototype
+  allowed_now:
+    - image_prompt_expansion_as_file_output
+    - voiceover_script_variants_as_file_output
+    - short_video_concept_variants_as_file_output
+    - embeddings_for_content_reuse_after_approval
+    - spaces_demo_plan_as_file_output
+  allowed_after_2026_06_23:
+    - supervised_external_inference_when_token_present
+    - supervised_asset_enhancement
+    - supervised_spaces_demo_after_approval
   forbidden_without_approval:
-    - inference_call
+    - paid_usage
     - dataset_upload
     - model_upload
-    - space_deploy
-    - paid_usage
+    - public_space_deploy
