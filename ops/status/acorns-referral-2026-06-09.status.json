@@ -1,0 +1,12 @@
+{
+  "campaign_id": "acorns-referral-2026-06-09",
+  "current_state": "queued_in_profitengine_repo",
+  "live_posting_state": "not_posted",
+  "requires_user_approval_before_live_action": true,
+  "last_updated_local_date": "2026-06-09",
+  "content_ready": true,
+  "machine_payload_ready": true,
+  "agent_handoff_ready": true,
+  "approval_record_ready": true,
+  "runbook_ready": true
+}
