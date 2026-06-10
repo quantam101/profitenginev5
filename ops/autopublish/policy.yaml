@@ -1,0 +1,70 @@
+autopublish_policy:
+  id: supervised-autopublish-v1
+  name: ProfitEngine Supervised Autopublish Policy
+  version: 1.0.0
+  owner: Stephen Franklin / Already Here LLC
+
+  lifecycle:
+    warmup_started: 2026-06-09
+    supervised_autopublish_starts: 2026-06-23
+    current_phase: warmup_validation
+    target_phase_after_warmup: supervised_autopublish
+
+  principles:
+    local_first: true
+    write_files_first: true
+    no_placeholder_content: true
+    no_public_post_before_policy_gate: true
+    no_paid_usage_without_explicit_approval: true
+    no_secrets_committed_to_repo: true
+    no_scraped_or_cold_bulk_outreach: true
+    no_money_movement: true
+    no_platform_rule_evasion: true
+
+  warmup_validation:
+    duration_days: 14
+    required_before_autopublish:
+      - content_factory_tests_pass
+      - generated_assets_reviewed
+      - channel_allowlist_configured
+      - disclosure_rules_active
+      - rate_limits_configured
+      - rollback_path_documented
+      - audit_log_active
+      - unsubscribe_or_optout_rules_active_for_email
+      - platform_terms_check_completed
+
+  autopublish_scope_after_2026_06_23:
+    allowed:
+      - owned_website_posts
+      - approved_blog_platform_posts
+      - approved_social_posts
+      - approved_short_form_video_captions
+      - approved_newsletter_to_opted_in_contacts
+    still_blocked:
+      - paid_ads
+      - cold_bulk_dm
+      - scraped_contact_outreach
+      - financial_claims_without_disclosure
+      - guaranteed_income_or_investment_claims
+      - model_uploads_without_approval
+      - dataset_uploads_without_approval
+      - space_deploys_without_approval
+      - paid_huggingface_inference_without_approval
+
+  publishing_modes:
+    now_until_2026_06_22:
+      mode: generate_queue_review
+      description: Generate assets, queue posts, prepare variants, and record audit events. Do not publish publicly yet.
+    starting_2026_06_23:
+      mode: supervised_autopublish
+      description: Publish only to allowlisted channels using approved campaign classes, disclosure rules, rate limits, and rollback logging.
+
+  approval_matrix:
+    evergreen_educational_content: autopublish_after_warmup
+    local_service_content: autopublish_after_warmup
+    affiliate_or_referral_content: autopublish_after_warmup_with_disclosure
+    financial_referral_content: autopublish_after_warmup_with_disclosure_and_claim_guard
+    email_newsletter: opted_in_only_after_warmup
+    paid_campaigns: manual_approval_required
+    new_external_connector: manual_approval_required
