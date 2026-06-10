@@ -535,23 +535,28 @@ def deploy_pull(request: Request) -> Dict[str, Any]:
     Called by GitHub Actions after every push to main — eliminates the need
     for SSH access from CI runners. Protected by PROFITENGINE_WEBHOOK_TOKEN."""
     import os
+    import shutil
     import subprocess
+    import sys
     _check_webhook_token(request)
     repo_dir = os.environ.get("REPO_DIR", "/opt/profitenginev5")
     results: Dict[str, Any] = {}
+    # Resolve tool interpreters to absolute paths; all argv are fixed, trusted
+    # deploy commands invoked via list form (no shell, no untrusted input).
+    git_bin = shutil.which("git") or "/usr/bin/git"
 
     # 1. git pull
     try:
-        pull = subprocess.run(
-            ["git", "fetch", "origin", "main"],
+        pull = subprocess.run(  # noqa: S603
+            [git_bin, "fetch", "origin", "main"],
             cwd=repo_dir, capture_output=True, text=True, timeout=60,
         )
-        reset = subprocess.run(
-            ["git", "reset", "--hard", "origin/main"],
+        reset = subprocess.run(  # noqa: S603
+            [git_bin, "reset", "--hard", "origin/main"],
             cwd=repo_dir, capture_output=True, text=True, timeout=30,
         )
-        rev = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
+        rev = subprocess.run(  # noqa: S603
+            [git_bin, "rev-parse", "--short", "HEAD"],
             cwd=repo_dir, capture_output=True, text=True, timeout=10,
         )
         results["git"] = {
@@ -565,8 +570,8 @@ def deploy_pull(request: Request) -> Dict[str, Any]:
 
     # 2. pip install updated deps
     try:
-        pip = subprocess.run(
-            ["pip", "install", "-q", "-r", "backend/requirements.txt"],
+        pip = subprocess.run(  # noqa: S603
+            [sys.executable, "-m", "pip", "install", "-q", "-r", "backend/requirements.txt"],
             cwd=repo_dir, capture_output=True, text=True, timeout=120,
         )
         results["pip"] = {"ok": pip.returncode == 0, "output": pip.stderr[-300:]}
@@ -574,9 +579,11 @@ def deploy_pull(request: Request) -> Dict[str, Any]:
         results["pip"] = {"ok": False, "error": str(exc)}
 
     # 3. Restart runtime — try systemctl, then kill+relaunch uvicorn
+    sudo_bin = shutil.which("sudo") or "/usr/bin/sudo"
+    pkill_bin = shutil.which("pkill") or "/usr/bin/pkill"
     try:
-        restart = subprocess.run(
-            ["sudo", "systemctl", "restart", "profitengine-runtime"],
+        restart = subprocess.run(  # noqa: S603
+            [sudo_bin, "systemctl", "restart", "profitengine-runtime"],
             capture_output=True, text=True, timeout=30,
         )
         if restart.returncode == 0:
@@ -585,15 +592,19 @@ def deploy_pull(request: Request) -> Dict[str, Any]:
             raise RuntimeError(restart.stderr)
     except Exception:
         try:
-            subprocess.run(["pkill", "-f", "uvicorn runtime"], capture_output=True, timeout=10)
+            subprocess.run([pkill_bin, "-f", "uvicorn runtime"], capture_output=True, timeout=10)  # noqa: S603
             import threading
             def _relaunch():
                 import time; time.sleep(2)
-                subprocess.Popen(
-                    ["python3", "-m", "uvicorn", "runtime.api:app",
-                     "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"],
+                # Runtime service must listen on all interfaces inside its
+                # container; relaunch log is an ephemeral file on the
+                # single-tenant host. Both are intentional deploy behavior.
+                log_path = os.path.join(os.environ.get("RUNTIME_LOG_DIR", "/tmp"), "runtime.log")  # noqa: S108
+                subprocess.Popen(  # noqa: S603
+                    [sys.executable, "-m", "uvicorn", "runtime.api:app",
+                     "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"],  # noqa: S104
                     cwd=repo_dir,
-                    stdout=open("/tmp/runtime.log", "a"),
+                    stdout=open(log_path, "a"),
                     stderr=subprocess.STDOUT,
                 )
             threading.Thread(target=_relaunch, daemon=True).start()
