@@ -17,6 +17,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PROD_SITE_URL: "https://www.alreadyherellc.com"
   PROD_HEALTH_URL: "https://www.alreadyherellc.com/api/health"
   PROFITENGINE_CANARY_URL: "https://profitengine-tau.vercel.app"
