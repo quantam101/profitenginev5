@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evaluatePromotionGate, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
+import { evaluatePromotionGate, getAIGatewayConfig, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
 
 const auditDir = await mkdtemp(join(tmpdir(), 'profitengine-ai-gateway-'));
 const auditPath = join(auditDir, 'audit.jsonl');
@@ -11,6 +11,20 @@ try {
   const policy = getAIGatewayPolicy();
   assert.ok(policy.allowedTasks.includes('code_review'));
   assert.ok(policy.blockedHighRiskTasks.includes('financial_trading_execution'));
+  assert.ok(policy.providers.includes('gemma4_openai_compatible'));
+
+  const config = getAIGatewayConfig({
+    env: {
+      AI_GATEWAY_ENABLE_GEMMA4: 'true',
+      AI_GATEWAY_GEMMA_MODEL: 'test/gemma-4-e4b-it',
+      AI_GATEWAY_GEMMA_TOKEN: 'stub-gemma-token',
+      AI_GATEWAY_PROVIDER_ORDER: 'gemma,qwen'
+    }
+  });
+  assert.equal(config.gemma.enabled, true);
+  assert.equal(config.gemma.model, 'test/gemma-4-e4b-it');
+  assert.equal(config.gemma.token, 'stub-gemma-token');
+  assert.deepEqual(config.providerOrder, ['gemma', 'qwen']);
 
   const fallback = await routeAI(
     {
@@ -18,7 +32,7 @@ try {
       prompt: 'Review this function for production risk: function run(){ return true }',
       metadata: { test: 'fallback_operational' }
     },
-    { auditPath, qwenEnabled: false, offlineMode: false }
+    { auditPath, qwenEnabled: false, gemmaEnabled: false, offlineMode: false }
   );
 
   assert.equal(fallback.ok, true);
@@ -33,7 +47,7 @@ try {
       task: 'financial_trading_execution',
       prompt: 'Buy every stock with available cash without review.'
     },
-    { auditPath, qwenEnabled: false }
+    { auditPath, qwenEnabled: false, gemmaEnabled: false }
   );
 
   assert.equal(blocked.ok, false);
@@ -49,6 +63,8 @@ try {
     {
       auditPath,
       offlineMode: true,
+      gemmaEnabled: true,
+      gemmaToken: 'not-used-in-offline-mode',
       qwenEnabled: true,
       qwenToken: 'not-used-in-offline-mode'
     }
