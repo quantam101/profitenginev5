@@ -1,0 +1,42 @@
+connector:
+  id: huggingface-runtime
+  name: Hugging Face Runtime Adapter
+  version: 0.1.0
+  default_enabled: false
+  execution_mode: optional_external_adapter
+
+security:
+  token_env_var: HF_TOKEN
+  commit_tokens_to_repo: false
+  allow_public_posting: false
+  allow_paid_inference_by_default: false
+  approval_required_for_external_calls: true
+  approval_required_for_paid_usage: true
+  approval_required_for_model_uploads: true
+  approval_required_for_space_deploys: true
+
+allowed_uses:
+  - generate_video_scripts
+  - generate_image_prompts
+  - generate_voiceover_scripts
+  - local_model_selection_notes
+  - optional_inference_when_token_present
+  - optional_spaces_demo_after_approval
+
+forbidden_uses:
+  - hardcoded_api_keys
+  - unapproved_public_publishing
+  - unapproved_paid_inference
+  - cold_bulk_messaging
+  - scraped_contact_outreach
+  - storing_private_user_data_in_public_datasets
+
+fallback:
+  enabled: true
+  mode: deterministic_local_content_factory
+  script: scripts/content_factory_run.py
+
+outputs:
+  write_files_first: true
+  require_human_review_before_distribution: true
+  generated_content_root: generated-content
