@@ -68,15 +68,15 @@ connectors:
     enabled: false
     permissions: [read_repo]
 
-  # ── Requires explicit approval ────────────────────────────────────────────
+  # ── Requires explicit approval or governed warmup ─────────────────────────
   github_write:
     state: forbidden_without_approval
     enabled: false
     permissions: [create_branch, open_pr]
 
   huggingface_runtime:
-    state: forbidden_without_approval
-    enabled: false
+    state: governed_warmup_then_supervised_autopublish
+    enabled: true
     permissions:
       - optional_inference
       - optional_embedding
@@ -84,8 +84,12 @@ connectors:
       - optional_audio_generation
       - optional_space_deploy
     policy_file: connectors/huggingface/runtime-policy.yaml
+    autopublish_policy_file: ops/autopublish/policy.yaml
     token_env_var: HF_TOKEN
     fallback: deterministic_local_content_factory
+    warmup_started: 2026-06-09
+    supervised_autopublish_starts: 2026-06-23
+    current_mode: generate_queue_review
 
   stripe:
     state: forbidden_without_approval
