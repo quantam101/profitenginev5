@@ -1,0 +1,65 @@
+pipeline:
+  id: campaign-to-owned-assets
+  name: Campaign To Owned Assets
+  version: 1.0.0
+  enabled: true
+  mode: local_first_zero_spend
+
+inputs:
+  campaign_payload_root: campaigns
+  supported_campaign_types:
+    - referral_financial
+    - affiliate
+    - productized_service
+    - educational
+    - local_service
+
+required_outputs:
+  - book/chapter-01.md
+  - blog/article.md
+  - video/short-form-45s.md
+  - social/platform-variants.md
+  - email/newsletter.md
+  - course/micro-class-outline.md
+  - manifest.json
+
+agents:
+  primary: content-factory
+  optional_enhancer: hf-asset-enhancer
+  verifier: lifelong-catch-correct
+  cost_guard: free-tier-cost-guard
+
+execution:
+  default_generator: scripts/content_factory_run.py
+  output_root: generated-content
+  write_files_first: true
+  publish_after_generation: false
+  approval_required_before_publish: true
+  approval_required_before_external_inference: true
+
+controls:
+  no_paid_api_calls_by_default: true
+  no_external_calls_without_approval: true
+  no_public_post_without_approval: true
+  no_bulk_cold_outreach: true
+  no_scraped_contact_outreach: true
+  require_disclosure_for_referral_financial: true
+  no_guaranteed_outcome_claims: true
+  no_personalized_financial_advice: true
+
+optional_huggingface:
+  connector: huggingface_runtime
+  enabled_by_default: false
+  token_env_var: HF_TOKEN
+  allowed_after_approval:
+    - image_prompt_expansion
+    - voiceover_script_variants
+    - short_video_concept_variants
+    - embeddings_for_content_reuse
+    - spaces_demo_prototype
+  forbidden_without_approval:
+    - inference_call
+    - dataset_upload
+    - model_upload
+    - space_deploy
+    - paid_usage
