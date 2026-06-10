@@ -7,8 +7,10 @@ name: Daily Content Publisher
 
 on:
   schedule:
-    # 07:05 UTC daily - 5 min after n8n cron on the server (avoids overlap)
+    # 07:05 UTC daily - morning publish (Groq/Gemini/HF rotation)
     - cron: '5 7 * * *'
+    # 15:05 UTC daily - afternoon publish (second article, more SEO coverage)
+    - cron: '5 15 * * *'
   workflow_dispatch:
     inputs:
       topic:
@@ -50,6 +52,7 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content
