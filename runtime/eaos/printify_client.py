@@ -34,7 +34,12 @@ def _request_json(path: str, token: str, *, method: str = "GET", payload: Option
         f"{PRINTIFY_API}{path}",
         data=data,
         method=method,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; ProfitEngine/1.0; +https://github.com/quantam101/profitenginev5)",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
