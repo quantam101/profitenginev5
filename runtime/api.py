@@ -511,7 +511,7 @@ def run_guard(payload: GuardRequest, request: Request) -> Dict[str, Any]:
     import os
     import subprocess
     _check_webhook_token(request)
-    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    repo_dir = os.environ.get("REPO_DIR", "/opt/profitenginev5")
     script = os.path.join(repo_dir, "scripts", "docker-guard.sh")
     try:
         proc = subprocess.run(
@@ -525,6 +525,81 @@ def run_guard(payload: GuardRequest, request: Request) -> Dict[str, Any]:
     return {"ok": proc.returncode == 0, "exit_code": proc.returncode, "output": proc.stdout + proc.stderr}
 
 
+@app.post("/deploy/pull")
+def deploy_pull(request: Request) -> Dict[str, Any]:
+    """Pull latest code from origin/main and restart the runtime service.
+    Called by GitHub Actions after every push to main — eliminates the need
+    for SSH access from CI runners. Protected by PROFITENGINE_WEBHOOK_TOKEN."""
+    import os
+    import subprocess
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR", "/opt/profitenginev5")
+    results: Dict[str, Any] = {}
+
+    # 1. git pull
+    try:
+        pull = subprocess.run(
+            ["git", "fetch", "origin", "main"],
+            cwd=repo_dir, capture_output=True, text=True, timeout=60,
+        )
+        reset = subprocess.run(
+            ["git", "reset", "--hard", "origin/main"],
+            cwd=repo_dir, capture_output=True, text=True, timeout=30,
+        )
+        rev = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=repo_dir, capture_output=True, text=True, timeout=10,
+        )
+        results["git"] = {
+            "ok": reset.returncode == 0,
+            "commit": rev.stdout.strip(),
+            "output": (pull.stdout + reset.stdout + reset.stderr)[-500:],
+        }
+    except Exception as exc:
+        results["git"] = {"ok": False, "error": str(exc)}
+        return {"ok": False, **results}
+
+    # 2. pip install updated deps
+    try:
+        pip = subprocess.run(
+            ["pip", "install", "-q", "-r", "backend/requirements.txt"],
+            cwd=repo_dir, capture_output=True, text=True, timeout=120,
+        )
+        results["pip"] = {"ok": pip.returncode == 0, "output": pip.stderr[-300:]}
+    except Exception as exc:
+        results["pip"] = {"ok": False, "error": str(exc)}
+
+    # 3. Restart runtime — try systemctl, then kill+relaunch uvicorn
+    try:
+        restart = subprocess.run(
+            ["sudo", "systemctl", "restart", "profitengine-runtime"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if restart.returncode == 0:
+            results["restart"] = {"ok": True, "method": "systemctl"}
+        else:
+            raise RuntimeError(restart.stderr)
+    except Exception:
+        try:
+            subprocess.run(["pkill", "-f", "uvicorn runtime"], capture_output=True, timeout=10)
+            import threading
+            def _relaunch():
+                import time; time.sleep(2)
+                subprocess.Popen(
+                    ["python3", "-m", "uvicorn", "runtime.api:app",
+                     "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"],
+                    cwd=repo_dir,
+                    stdout=open("/tmp/runtime.log", "a"),
+                    stderr=subprocess.STDOUT,
+                )
+            threading.Thread(target=_relaunch, daemon=True).start()
+            results["restart"] = {"ok": True, "method": "uvicorn-relaunch"}
+        except Exception as exc2:
+            results["restart"] = {"ok": False, "error": str(exc2)}
+
+    return {"ok": results.get("git", {}).get("ok", False), **results}
+
+
 @app.get("/pod/status")
 def pod_status(request: Request) -> Dict[str, Any]:
     """HTTP-reachable Printify shop status check — runs scripts/printify_shop_status.py
@@ -534,7 +609,7 @@ def pod_status(request: Request) -> Dict[str, Any]:
     import os
     import subprocess
     _check_webhook_token(request)
-    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    repo_dir = os.environ.get("REPO_DIR", "/opt/profitenginev5")
     script = os.path.join(repo_dir, "scripts", "printify_shop_status.py")
     try:
         proc = subprocess.run(
@@ -561,7 +636,7 @@ async def pod_push(request: Request) -> Dict[str, Any]:
     import shutil
     import subprocess
     _check_webhook_token(request)
-    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    repo_dir = os.environ.get("REPO_DIR", "/opt/profitenginev5")
     target_sku = request.query_params.get("target_sku", "")
     render_dir = os.path.join(repo_dir, "datacenter", "pod_factory", "render_cache")
     os.makedirs(render_dir, exist_ok=True)

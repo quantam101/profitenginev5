@@ -1,9 +1,9 @@
 name: EAOS — POD Render & Printify Push
 
-# Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG) and pushes
-# them directly to Printify via the API (api.printify.com/v1 is NOT
-# blocked by Cloudflare for GitHub Actions runners — only the storefront
-# website is). Products are auto-published to the Etsy-connected shop.
+# Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG).
+# Printify API blocks GitHub Actions runner IPs (Cloudflare error 1010),
+# so artwork is uploaded to the OCI runtime (/pod/push) which has a real
+# static IP. Products are auto-published to the Etsy-connected shop.
 
 on:
   schedule:
@@ -37,6 +37,8 @@ jobs:
     timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+      RUNTIME_BASE: ${{ secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
 
     steps:
       - uses: actions/checkout@v5
@@ -46,28 +48,30 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
-        run: pip install pillow httpx
+      - name: Install Pillow
+        run: pip install pillow
 
       - name: Show workflow version
         run: |
           echo "Workflow commit: $GITHUB_SHA"
           git --no-pager log -1 --oneline
 
-      - name: Validate Printify shop + token scopes (direct API check)
+      - name: Validate Printify shop via OCI runtime (/pod/status)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
-          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
-          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
-          PRINTIFY_VERIFY_UPLOAD: "true"
-          PYTHONUTF8: "1"
         run: |
-          python3 scripts/printify_shop_status.py | tee printify_status_before.json || true
-          EXIT=$?
-          if [ $EXIT -ne 0 ] && [ "$STRICT_PRINTIFY" = "true" ]; then
-            echo "::error::Printify shop validation failed under strict mode (exit $EXIT)."
-            exit 1
+          set +e
+          HTTP=$(curl -s -o printify_status_before.json -w "%{http_code}" --max-time 120 \
+            -X GET "${RUNTIME_BASE}/pod/status" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}")
+          echo "HTTP $HTTP"; cat printify_status_before.json || true
+          OK=$(python3 -c "import json; print(json.load(open('printify_status_before.json')).get('ok',False))" 2>/dev/null || echo "False")
+          if [[ ! "$HTTP" =~ ^2 ]] || [[ "$OK" != "True" ]]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify shop validation failed."; exit 1
+            fi
+            echo "::warning::Printify shop validation failed; continuing."
           fi
 
       - name: Render SKUs
@@ -78,38 +82,47 @@ jobs:
           PYTHONUTF8: "1"
         run: python3 scripts/render_pod_catalog.py
 
-      - name: Push products to Printify (direct API — no OCI intermediary)
+      - name: Push artwork to OCI runtime (/pod/push → Printify API, real IP)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
-          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
-          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
-          EAOS_POD_ROOT: ./datacenter/pod_factory
-          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
-          PYTHONUTF8: "1"
+          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
         run: |
-          python3 scripts/push_printify_catalog.py
-          EXIT=$?
-          if [ $EXIT -ne 0 ]; then
+          set +e
+          RENDER_DIR="./datacenter/pod_factory/render_cache"
+          FORM_ARGS=()
+          if [ -d "$RENDER_DIR" ] && ls "$RENDER_DIR"/*.png >/dev/null 2>&1; then
+            for f in "$RENDER_DIR"/*.png; do
+              FORM_ARGS+=(-F "files=@${f};type=image/png")
+            done
+            echo "Uploading ${#FORM_ARGS[@]} PNG(s) via OCI runtime..."
+          fi
+          HTTP=$(curl -s -o printify_push_result.json -w "%{http_code}" --max-time 900 \
+            -X POST "${RUNTIME_BASE}/pod/push?target_sku=${TARGET_SKU}" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+            "${FORM_ARGS[@]}")
+          echo "HTTP $HTTP"
+          python3 -c "import json; d=json.load(open('printify_push_result.json')); print(d.get('output','')[-3000:])" 2>/dev/null || cat printify_push_result.json
+          OK=$(python3 -c "import json; print(json.load(open('printify_push_result.json')).get('ok',False))" 2>/dev/null || echo "False")
+          if [[ ! "$HTTP" =~ ^2 ]] || [[ "$OK" != "True" ]]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
-              echo "::error::Printify push failed under strict mode."
-              exit 1
+              echo "::error::Printify push failed."; exit 1
             fi
-            echo "::warning::Printify push returned non-zero — see output above."
+            echo "::warning::Printify push failed — artwork saved as artifact."
           fi
 
-      - name: Verify Printify products after push
+      - name: Verify products after push (/pod/status)
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
-          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
-          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
-          PYTHONUTF8: "1"
         run: |
-          python3 scripts/printify_shop_status.py | tee printify_status_after.json || true
+          set +e
+          curl -s -o printify_status_after.json --max-time 120 \
+            -X GET "${RUNTIME_BASE}/pod/status" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" || true
           TOTAL=$(python3 -c "import json; d=json.load(open('printify_status_after.json')); print(d.get('products',{}).get('total',0))" 2>/dev/null || echo "?")
-          echo "Products in Printify shop after push: $TOTAL"
-          echo "::notice::Printify shop now has $TOTAL products"
+          echo "Products in Printify shop: $TOTAL"
+          echo "::notice::Printify shop has $TOTAL products after push"
 
       - name: Upload rendered artwork
         if: always()
