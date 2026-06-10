@@ -87,8 +87,8 @@ connectors:
     autopublish_policy_file: ops/autopublish/policy.yaml
     token_env_var: HF_TOKEN
     fallback: deterministic_local_content_factory
-    warmup_started: 2026-06-09
-    supervised_autopublish_starts: 2026-06-23
+    warmup_started: "2026-06-09"
+    supervised_autopublish_starts: "2026-06-23"
     current_mode: generate_queue_review
 
   stripe:
