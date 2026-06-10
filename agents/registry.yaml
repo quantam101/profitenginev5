@@ -80,6 +80,26 @@ agents:
     approval_required_actions: []
     verifier_required: false
 
+  - id: content-factory
+    name: Content Factory Agent
+    version: 1.0.0
+    mission: Convert one approved campaign payload into reusable book, blog, video, social, email, and course assets using local deterministic generation first.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, ollama_local, groq_api, gemini_api]
+    forbidden_actions: [paid_api_call, public_post, email_send, cold_bulk_message, scraped_contact_outreach, production_deploy]
+    approval_required_actions: [external_publish, email_send, paid_api_call, campaign_launch]
+    verifier_required: true
+
+  - id: hf-asset-enhancer
+    name: Hugging Face Asset Enhancer Agent
+    version: 0.1.0
+    mission: Optionally enhance Content Factory assets with approved Hugging Face models for images, audio, video concepts, embeddings, or Spaces demos while preserving deterministic local fallback.
+    max_cost_usd: 0
+    allowed_connectors: [local_files, huggingface_runtime]
+    forbidden_actions: [hardcoded_api_key, unapproved_external_call, unapproved_paid_inference, public_post, dataset_upload, model_upload, space_deploy]
+    approval_required_actions: [external_inference, paid_api_call, model_upload, dataset_upload, space_deploy, external_publish]
+    verifier_required: true
+
   # ── Infrastructure health agent ──────────────────────────────────────────
   - id: docker-guard
     name: Docker Guard Agent
