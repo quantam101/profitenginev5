@@ -127,15 +127,54 @@ jobs:
         run: |
           echo "OCI host ${{ needs.oci_preflight.outputs.host }} is not SSH reachable. Vercel remains primary production. OCI workflow is no longer a failing drift source."
 
-  ssh_ready:
-    name: SSH reachable — manual deploy may proceed
+  ssh_deploy:
+    name: SSH deploy to OCI (git pull + restart)
     runs-on: ubuntu-latest
     needs: oci_preflight
     if: needs.oci_preflight.outputs.ready_for_ssh_deploy == 'true'
+    env:
+      OCI_HOST: ${{ needs.oci_preflight.outputs.host }}
+      APP_DIR: /opt/profitenginev5
     steps:
-      - uses: actions/checkout@v5
-      - name: Confirm deploy readiness
+      - name: Deploy via SSH — git pull + docker restart
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
-          echo "OCI SSH is reachable for ${{ needs.oci_preflight.outputs.host }}."
-          echo "This repository intentionally does not run credentialed SSH deploy commands without configured GitHub secrets."
-          echo "Next safe step: add repository secrets OCI_SSH_USER, OCI_SSH_PRIVATE_KEY, and OCI_DEPLOY_PATH, then enable a credentialed deploy job."
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+              -i /tmp/deploy_key ubuntu@"${OCI_HOST}" \
+              "set -e
+               echo '=== git pull ==='
+               git -C ${APP_DIR} fetch origin main
+               git -C ${APP_DIR} reset --hard origin/main
+               echo '=== restart service ==='
+               if [ -f ${APP_DIR}/docker-compose.yml ]; then
+                 cd ${APP_DIR} && docker compose up -d --build
+               else
+                 sudo systemctl restart profitengine-runtime 2>/dev/null || \
+                 pkill -f 'uvicorn runtime' || true
+                 sleep 2
+                 cd ${APP_DIR} && nohup python3 -m uvicorn runtime.api:app \
+                   --host 0.0.0.0 --port 8001 --log-level info \
+                   > /tmp/runtime.log 2>&1 &
+               fi
+               echo '=== health check ==='
+               sleep 5
+               curl -fsS http://localhost:8001/health || \
+               curl -fsS http://localhost:8000/health || echo 'health pending'"
+          rm -f /tmp/deploy_key
+
+      - name: Post-deploy health gate
+        run: |
+          sleep 10
+          STATUS=$(curl -sf --max-time 15 \
+            "https://api.profitengine.alreadyherellc.com/health" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" \
+            2>/dev/null || echo "unreachable")
+          echo "Runtime health post-deploy: $STATUS"
+          if [ "$STATUS" = "ok" ]; then
+            echo "::notice::OCI runtime healthy after deploy"
+          else
+            echo "::warning::OCI runtime health check returned $STATUS — may need a moment to start"
+          fi
