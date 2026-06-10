@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alreadyherellc.local/profitengine/content-factory/campaign.schema.json",
+  "title": "ProfitEngine Content Factory Campaign",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "campaign_id",
+    "campaign_type",
+    "owner",
+    "approval_required",
+    "referral_url",
+    "primary_copy",
+    "short_copy"
+  ],
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "campaign_type": {
+      "type": "string",
+      "minLength": 3
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 3
+    },
+    "status": {
+      "type": "string"
+    },
+    "approval_required": {
+      "type": "boolean"
+    },
+    "created_date": {
+      "type": "string"
+    },
+    "risk_controls": {
+      "type": "object"
+    },
+    "referral_url": {
+      "type": "string",
+      "minLength": 8
+    },
+    "primary_copy": {
+      "type": "string",
+      "minLength": 20
+    },
+    "short_copy": {
+      "type": "string",
+      "minLength": 20
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preferred_channels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tracking": {
+      "type": "object"
+    }
+  }
+}
