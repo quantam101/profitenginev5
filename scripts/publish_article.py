@@ -44,9 +44,18 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GH_BASE = "https://api.github.com"
 DEVTO_BASE = "https://dev.to/api"
+HF_INFERENCE_BASE = "https://api-inference.huggingface.co/models"
 
 GROQ_MODEL = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")  # overridden by GROQ_MODELS list below
 GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
+HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
+
+# HuggingFace models with OpenAI-compatible chat endpoint (free serverless)
+HF_MODELS: List[str] = [
+    "meta-llama/Llama-3.1-8B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3",
+    "microsoft/Phi-3-mini-4k-instruct",
+]
 GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
 GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
@@ -201,12 +210,39 @@ def _call_gemini(prompt: str) -> str:
     return _retry_post(_do, max_retries=2, base_delay=30)
 
 
+def _call_hf_inference(prompt: str, model: str | None = None) -> str:
+    """Call HuggingFace Serverless Inference API (free tier). Raises on failure."""
+    if not HF_TOKEN:
+        raise ValueError("HF_TOKEN not set")
+    m = model or HF_MODELS[0]
+    url = f"{HF_INFERENCE_BASE}/{m}/v1/chat/completions"
+
+    def _do() -> str:
+        resp = httpx.post(
+            url,
+            headers={"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"},
+            json={
+                "model": m,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 3000,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=20)
+
+
 def generate_article(topic: str) -> Dict[str, Any]:
-    if not GROQ_KEY and not GEMINI_KEY:
-        sys.exit("❌ Neither GROQ_API_KEY nor GEMINI_API_KEY is set")
+    if not GROQ_KEY and not GEMINI_KEY and not HF_TOKEN:
+        sys.exit("❌ No LLM provider configured — set GROQ_API_KEY, GEMINI_API_KEY, or HF_TOKEN")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
-    # Try each Groq model in priority order, then fall back to Gemini
+    # Try each Groq model in priority order, then Gemini, then HuggingFace
     raw = ""
     if GROQ_KEY:
         for model in GROQ_MODELS:
@@ -222,6 +258,14 @@ def generate_article(topic: str) -> Dict[str, Any]:
             print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
         except Exception as e:
             print(f"[AI] Gemini failed ({e})")
+    if not raw and HF_TOKEN:
+        for hf_model in HF_MODELS:
+            try:
+                raw = _call_hf_inference(prompt, model=hf_model)
+                print(f"[AI] Provider: HuggingFace ({hf_model})")
+                break
+            except Exception as e:
+                print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
