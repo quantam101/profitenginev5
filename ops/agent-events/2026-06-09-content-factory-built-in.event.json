@@ -1,0 +1,27 @@
+{
+  "event_id": "evt-content-factory-built-in-2026-06-09",
+  "event_type": "profitengine.subsystem.built_in",
+  "created_at_local_date": "2026-06-09",
+  "subsystem": "content_factory",
+  "source": "chatgpt_handoff",
+  "state": "implemented_as_core_repo_subsystem",
+  "local_first": true,
+  "external_runtime_required": false,
+  "optional_external_adapters": ["huggingface_runtime"],
+  "approval_required_before_external_action": true,
+  "approval_required_before_public_publish": true,
+  "files": [
+    "content-factory/README.md",
+    "content-factory/schemas/campaign.schema.json",
+    "content-factory/pipelines/campaign-to-owned-assets.yaml",
+    "scripts/content_factory_run.py",
+    "tests/test_content_factory.py",
+    "connectors/huggingface/runtime-policy.yaml",
+    "connectors/huggingface/README.md",
+    "agents/registry.yaml",
+    "connectors/registry.yaml",
+    "package.json",
+    "ops/tasks/2026-06-09-built-in-content-factory.md",
+    "ops/status/content-factory.status.json"
+  ]
+}
