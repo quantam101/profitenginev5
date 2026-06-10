@@ -1,35 +1,55 @@
 connector:
   id: huggingface-runtime
   name: Hugging Face Runtime Adapter
-  version: 0.1.0
-  default_enabled: false
-  execution_mode: optional_external_adapter
+  version: 0.2.0
+  default_enabled: true
+  execution_mode: governed_external_adapter
+
+lifecycle:
+  warmup_started: 2026-06-09
+  supervised_autopublish_starts: 2026-06-23
+  current_phase: warmup_validation
+  target_phase_after_warmup: supervised_autopublish
+  autopublish_policy: ops/autopublish/policy.yaml
 
 security:
   token_env_var: HF_TOKEN
   commit_tokens_to_repo: false
-  allow_public_posting: false
+  allow_public_posting_before_2026_06_23: false
+  allow_supervised_public_posting_after_2026_06_23: true
   allow_paid_inference_by_default: false
-  approval_required_for_external_calls: true
+  approval_required_for_external_calls_during_warmup: true
   approval_required_for_paid_usage: true
   approval_required_for_model_uploads: true
+  approval_required_for_dataset_uploads: true
   approval_required_for_space_deploys: true
 
-allowed_uses:
+allowed_uses_now:
   - generate_video_scripts
   - generate_image_prompts
   - generate_voiceover_scripts
   - local_model_selection_notes
-  - optional_inference_when_token_present
-  - optional_spaces_demo_after_approval
+  - prepare_content_variants
+  - prepare_spaces_demo_plan
+
+allowed_uses_after_2026_06_23:
+  - supervised_external_inference_when_token_present
+  - supervised_owned_channel_publishing
+  - supervised_blog_platform_publishing
+  - supervised_social_asset_generation
+  - supervised_short_form_video_asset_generation
+  - supervised_spaces_demo_after_approval
 
 forbidden_uses:
   - hardcoded_api_keys
-  - unapproved_public_publishing
   - unapproved_paid_inference
   - cold_bulk_messaging
   - scraped_contact_outreach
+  - platform_rule_evasion
   - storing_private_user_data_in_public_datasets
+  - model_upload_without_approval
+  - dataset_upload_without_approval
+  - public_space_deploy_without_approval
 
 fallback:
   enabled: true
@@ -38,5 +58,11 @@ fallback:
 
 outputs:
   write_files_first: true
-  require_human_review_before_distribution: true
+  require_human_review_before_distribution_until: 2026-06-22
   generated_content_root: generated-content
+
+audit:
+  required: true
+  log_publication_events: true
+  log_external_inference_events: true
+  log_rollbacks: true
