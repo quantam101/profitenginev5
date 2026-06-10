@@ -447,7 +447,8 @@ def income_summary() -> Dict[str, Any]:
 
 
 @app.post("/execute")
-def execute(payload: ExecuteRequest) -> Dict[str, Any]:
+def execute(payload: ExecuteRequest, request: Request) -> Dict[str, Any]:
+    _check_webhook_token(request)
     try:
         core = SovereignAutomationCore()
         result = core.execute(
