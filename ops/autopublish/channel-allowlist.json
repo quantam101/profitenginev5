@@ -1,0 +1,73 @@
+{
+  "version": "1.0.0",
+  "owner": "Stephen Franklin / Already Here LLC",
+  "policy_file": "ops/autopublish/policy.yaml",
+  "warmup_started": "2026-06-09",
+  "supervised_autopublish_starts": "2026-06-23",
+  "default_mode_before_start": "generate_queue_review",
+  "default_mode_after_start": "supervised_autopublish",
+  "channels": {
+    "owned_website_news": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": false,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "local_service", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["paid_ads", "cold_dm", "scraped_outreach", "money_movement"]
+    },
+    "github_pages": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": false,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "local_service", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["paid_ads", "cold_dm", "scraped_outreach", "money_movement"]
+    },
+    "approved_blog_platforms": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": false,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["paid_ads", "cold_dm", "scraped_outreach", "money_movement"]
+    },
+    "approved_social_profiles": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": false,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "local_service", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["paid_ads", "cold_dm", "scraped_outreach", "money_movement"]
+    },
+    "short_form_video_captions": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": false,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "local_service", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["paid_ads", "cold_dm", "scraped_outreach", "money_movement"]
+    },
+    "opted_in_newsletter": {
+      "enabled": true,
+      "allow_autopublish_after": "2026-06-23",
+      "requires_opt_in_audience": true,
+      "requires_disclosure_for_referral": true,
+      "allowed_campaign_types": ["educational", "local_service", "affiliate", "referral_financial", "productized_service"],
+      "blocked_actions": ["cold_email", "scraped_outreach", "purchased_list", "money_movement"]
+    }
+  },
+  "blocked_channels": {
+    "cold_dm": {
+      "enabled": false,
+      "reason": "Cold direct messaging is blocked."
+    },
+    "scraped_contact_outreach": {
+      "enabled": false,
+      "reason": "Scraped contact outreach is blocked."
+    },
+    "paid_ads": {
+      "enabled": false,
+      "reason": "Paid campaigns require separate manual approval and budget control."
+    }
+  }
+}
