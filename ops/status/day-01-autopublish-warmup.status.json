@@ -1,0 +1,34 @@
+{
+  "status_id": "day-01-autopublish-warmup-2026-06-09",
+  "date": "2026-06-09",
+  "phase": "warmup_validation",
+  "target_autopublish_start": "2026-06-23",
+  "current_mode": "generate_queue_review",
+  "public_posting_allowed_now": false,
+  "huggingface_runtime_enabled": true,
+  "huggingface_mode": "governed_warmup",
+  "added_controls": [
+    "channel_allowlist",
+    "autopublish_gate",
+    "autopublish_gate_tests",
+    "package_scripts",
+    "ci_gate_hook"
+  ],
+  "commands_to_run": [
+    "npm run content:factory",
+    "npm run autopublish:gate",
+    "npm run test:content-factory",
+    "npm run test:autopublish-gate"
+  ],
+  "blocked_until_ready": [
+    "public_posting",
+    "newsletter_send",
+    "cold_outreach",
+    "paid_ads",
+    "paid_inference",
+    "dataset_upload",
+    "model_upload",
+    "public_space_deploy",
+    "money_movement"
+  ]
+}
