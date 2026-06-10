@@ -1,0 +1,19 @@
+{
+  "event_id": "evt-supervised-autopublish-transition-set-2026-06-09",
+  "event_type": "profitengine.autopublish.transition_set",
+  "created_at_local_date": "2026-06-09",
+  "warmup_started": "2026-06-09",
+  "supervised_autopublish_starts": "2026-06-23",
+  "huggingface_runtime_enabled": true,
+  "current_mode": "generate_queue_review",
+  "target_mode_after_warmup": "supervised_autopublish",
+  "public_autopublish_before_start_date": false,
+  "allowlisted_channels_only_after_start_date": true,
+  "policy_files": [
+    "ops/autopublish/policy.yaml",
+    "connectors/huggingface/runtime-policy.yaml",
+    "content-factory/pipelines/campaign-to-owned-assets.yaml",
+    "ops/runbooks/supervised-autopublish.md",
+    "ops/status/autopublish-transition-2026-06-09.status.json"
+  ]
+}
