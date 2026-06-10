@@ -1,0 +1,24 @@
+{
+  "subsystem": "profitengine-content-factory",
+  "state": "built_in_repo",
+  "local_first": true,
+  "external_runtime_required": false,
+  "huggingface_optional": true,
+  "huggingface_enabled_by_default": false,
+  "approval_required_before_external_inference": true,
+  "approval_required_before_public_publish": true,
+  "core_outputs": [
+    "book/chapter-01.md",
+    "blog/article.md",
+    "video/short-form-45s.md",
+    "social/platform-variants.md",
+    "email/newsletter.md",
+    "course/micro-class-outline.md",
+    "manifest.json"
+  ],
+  "ci_hooks": [
+    "npm run test:content-factory",
+    "npm run ci:all"
+  ],
+  "last_updated_local_date": "2026-06-09"
+}
