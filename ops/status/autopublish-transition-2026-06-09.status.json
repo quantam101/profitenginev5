@@ -1,0 +1,32 @@
+{
+  "transition_id": "profitengine-supervised-autopublish-2026-06-23",
+  "created_local_date": "2026-06-09",
+  "warmup_started": "2026-06-09",
+  "supervised_autopublish_starts": "2026-06-23",
+  "current_phase": "warmup_validation",
+  "current_publish_mode": "generate_queue_review",
+  "target_publish_mode_after_warmup": "supervised_autopublish",
+  "huggingface_runtime_enabled": true,
+  "huggingface_current_mode": "governed_warmup",
+  "public_autopublish_now": false,
+  "public_autopublish_after_2026_06_23": "allowlisted_channels_only",
+  "still_requires_approval_for": [
+    "paid_usage",
+    "model_uploads",
+    "dataset_uploads",
+    "public_space_deploys",
+    "cold_bulk_outreach",
+    "scraped_contact_outreach",
+    "paid_campaigns",
+    "money_movement"
+  ],
+  "required_before_autopublish": [
+    "content_factory_tests_pass",
+    "generated_assets_reviewed",
+    "channel_allowlist_configured",
+    "disclosure_rules_active",
+    "rate_limits_configured",
+    "rollback_path_documented",
+    "audit_log_active"
+  ]
+}
