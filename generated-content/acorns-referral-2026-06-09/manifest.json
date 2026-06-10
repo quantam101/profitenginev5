@@ -1,0 +1,18 @@
+{
+  "campaign_id": "acorns-referral-2026-06-09",
+  "campaign_type": "referral_financial",
+  "owner": "Stephen Franklin / Already Here LLC",
+  "generated_at_utc": "2026-06-09T00:00:00+00:00",
+  "approval_required_before_publish": true,
+  "publication_state": "not_published",
+  "external_runtime_required": false,
+  "huggingface_optional": true,
+  "generated_files": [
+    "book/chapter-01.md",
+    "blog/article.md",
+    "video/short-form-45s.md",
+    "social/platform-variants.md",
+    "email/newsletter.md",
+    "course/micro-class-outline.md"
+  ]
+}
