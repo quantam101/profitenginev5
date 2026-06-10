@@ -1,0 +1,42 @@
+{
+  "campaign_id": "acorns-referral-2026-06-09",
+  "campaign_type": "referral_financial",
+  "owner": "Stephen Franklin / Already Here LLC",
+  "status": "queued",
+  "approval_required": true,
+  "created_date": "2026-06-09",
+  "risk_controls": {
+    "requires_referral_disclosure": true,
+    "no_guaranteed_returns": true,
+    "no_personalized_financial_advice": true,
+    "no_bulk_cold_dm": true,
+    "allowed_only_where_referral_links_are_permitted": true
+  },
+  "referral_url": "https://acorns.com/share/?shareable_code=NTFH6FL&first_name=Stephen&friend_reward=5",
+  "primary_copy": "Small steps build real momentum.\n\nI’m sharing Acorns because it makes saving and investing easier to start, even if you’re beginning small. The goal is simple: build better habits, put money to work, and keep moving toward financial growth one step at a time.\n\nJoin through my link and you’ll get a free $5 investment. As a referral perk, I may receive a reward too.\n\nLearn more and see the terms here:\nhttps://acorns.com/share/?shareable_code=NTFH6FL&first_name=Stephen&friend_reward=5\n\nStart small. Stay consistent. Let the habit compound.\n\nDisclosure: Referral rewards and eligibility are subject to Acorns terms.",
+  "short_copy": "I’m sharing Acorns for anyone looking for an easy way to start saving and investing. Join through my link and you’ll get a free $5 investment. I may receive a referral reward too. Terms apply.\n\nhttps://acorns.com/share/?shareable_code=NTFH6FL&first_name=Stephen&friend_reward=5",
+  "hashtags": [
+    "FinancialGrowth",
+    "StartSmall",
+    "BuildWealth",
+    "MoneyHabits",
+    "InvestingJourney",
+    "SavingsGoals",
+    "CompoundGrowth",
+    "AlreadyHereLLC"
+  ],
+  "preferred_channels": [
+    "Already Here LLC website/news section",
+    "LinkedIn personal/company post",
+    "Facebook personal page",
+    "Instagram story/feed where link rules allow",
+    "X / Threads",
+    "Email newsletter only to opted-in contacts",
+    "Text only to personally known contacts"
+  ],
+  "tracking": {
+    "track_clicks": true,
+    "track_signups": true,
+    "track_referral_reward_separately_from_profit": true
+  }
+}
