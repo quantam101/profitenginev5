@@ -1,6 +1,6 @@
 {
   "name": "profitenginev5",
-  "version": "0.1.4-autonomous-skill-gateway",
+  "version": "0.1.5-content-factory",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,12 +9,14 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity",
+    "content:factory": "python scripts/content_factory_run.py --campaign campaigns/referrals/acorns-2026-06-09.json --output generated-content",
+    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory",
     "test:unit": "python -m pytest code_merger/tests/ -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:ai-gateway": "node tests/ai-gateway.test.mjs",
     "test:skill-gateway": "node tests/skill-gateway.test.mjs",
     "test:opportunity": "python -m pytest tests/test_opportunity_intelligence.py -q",
+    "test:content-factory": "python -m pytest tests/test_content_factory.py -q",
     "test:runtime": "python -m pytest -q",
     "test:full": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs --skip-live",
     "test:full:live": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs",
@@ -30,7 +32,7 @@
     "agents:parallel": "node scripts/run-parallel-agents.mjs",
     "agents:opportunity": "python scripts/opportunity_intelligence_run.py",
     "edge:replay": "python scripts/edge_failover_replay.py",
-    "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run eval:ai-gateway && npm run eval:skill-gateway && npm run security:scan && npm run build",
+    "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run eval:ai-gateway && npm run eval:skill-gateway && npm run security:scan && npm run build",
     "ci:security": "npm run security:audit && npm run security:scan",
     "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
