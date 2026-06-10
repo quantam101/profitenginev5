@@ -509,13 +509,17 @@ def run_guard(payload: GuardRequest, request: Request) -> Dict[str, Any]:
     as /digest/run: keep CI/CD off port 22 entirely so SSH-probe-detection
     bans on the OCI host never affect routine automation."""
     import os
+    import shutil
     import subprocess
     _check_webhook_token(request)
     repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
     script = os.path.join(repo_dir, "scripts", "docker-guard.sh")
+    bash_path = shutil.which("bash") or "/bin/bash"
     try:
-        proc = subprocess.run(
-            ["bash", script],
+        # Fixed internal repo script invoked via argv list (no shell, no
+        # untrusted input); interpreter resolved to an absolute path.
+        proc = subprocess.run(  # noqa: S603
+            [bash_path, script],
             cwd=repo_dir,
             env={**os.environ, "REPO_DIR": repo_dir, "AGGRESSIVE": "true" if payload.aggressive else "false"},
             capture_output=True, text=True, timeout=600,
@@ -533,12 +537,15 @@ def pod_status(request: Request) -> Dict[str, Any]:
     .github/workflows/eaos-pod-render.yml so port 22 stays untouched."""
     import os
     import subprocess
+    import sys
     _check_webhook_token(request)
     repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
     script = os.path.join(repo_dir, "scripts", "printify_shop_status.py")
     try:
-        proc = subprocess.run(
-            ["python3", script],
+        # Fixed internal repo script invoked via argv list (no shell, no
+        # untrusted input); interpreter is this process's own executable.
+        proc = subprocess.run(  # noqa: S603
+            [sys.executable, script],
             cwd=repo_dir,
             capture_output=True, text=True, timeout=120,
         )
@@ -560,6 +567,7 @@ async def pod_push(request: Request) -> Dict[str, Any]:
     import os
     import shutil
     import subprocess
+    import sys
     _check_webhook_token(request)
     repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
     target_sku = request.query_params.get("target_sku", "")
@@ -580,8 +588,10 @@ async def pod_push(request: Request) -> Dict[str, Any]:
 
     script = os.path.join(repo_dir, "scripts", "push_printify_catalog.py")
     try:
-        proc = subprocess.run(
-            ["python3", script],
+        # Fixed internal repo script invoked via argv list (no shell, no
+        # untrusted input); interpreter is this process's own executable.
+        proc = subprocess.run(  # noqa: S603
+            [sys.executable, script],
             cwd=repo_dir,
             env={
                 **os.environ,
