@@ -74,6 +74,19 @@ connectors:
     enabled: false
     permissions: [create_branch, open_pr]
 
+  huggingface_runtime:
+    state: forbidden_without_approval
+    enabled: false
+    permissions:
+      - optional_inference
+      - optional_embedding
+      - optional_image_generation
+      - optional_audio_generation
+      - optional_space_deploy
+    policy_file: connectors/huggingface/runtime-policy.yaml
+    token_env_var: HF_TOKEN
+    fallback: deterministic_local_content_factory
+
   stripe:
     state: forbidden_without_approval
     enabled: false
