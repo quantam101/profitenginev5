@@ -1,0 +1,19 @@
+{
+  "event_id": "evt-acorns-referral-queued-2026-06-09",
+  "event_type": "profitengine.campaign.queued",
+  "created_at_local_date": "2026-06-09",
+  "source": "chatgpt_handoff",
+  "actor": "Stephen Franklin / Already Here LLC",
+  "campaign_id": "acorns-referral-2026-06-09",
+  "campaign_type": "referral_financial",
+  "status": "queued_pending_approval",
+  "approval_required": true,
+  "artifacts": [
+    "content-queue/2026-06-09-acorns-referral-positive-post.md",
+    "campaigns/referrals/acorns-2026-06-09.json",
+    "agent-inbox/profitengine/2026-06-09-acorns-referral-handoff.md",
+    "ops/tasks/2026-06-09-acorns-referral-campaign.md",
+    "ops/approvals/pending/2026-06-09-acorns-referral.md"
+  ],
+  "next_required_action": "Generate platform variants and wait for Stephen approval before live posting."
+}
