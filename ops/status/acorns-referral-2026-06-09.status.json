@@ -1,6 +1,6 @@
 {
   "campaign_id": "acorns-referral-2026-06-09",
-  "current_state": "queued_in_profitengine_repo",
+  "current_state": "queued_in_profitengine_repo_with_generated_asset_pack",
   "live_posting_state": "not_posted",
   "requires_user_approval_before_live_action": true,
   "last_updated_local_date": "2026-06-09",
@@ -8,5 +8,9 @@
   "machine_payload_ready": true,
   "agent_handoff_ready": true,
   "approval_record_ready": true,
-  "runbook_ready": true
+  "runbook_ready": true,
+  "generated_owned_assets_ready": true,
+  "generated_asset_root": "generated-content/acorns-referral-2026-06-09",
+  "huggingface_optional_enhancement_ready": true,
+  "huggingface_enabled_by_default": false
 }
