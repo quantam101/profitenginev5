@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAIGatewayPolicy, routeAI } from '../../../lib/ai-gateway.mjs';
+import { getAIGatewayConfig, getAIGatewayPolicy, routeAI } from '../../../lib/ai-gateway.mjs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,15 +25,36 @@ function isAuthorized(request: NextRequest) {
 }
 
 export async function GET() {
+  const config = getAIGatewayConfig();
   return json({
     ok: true,
     gateway: 'profitenginev5-ai-gateway',
-    provider: {
-      id: 'nvidia_qwen_nvfp4',
-      enabled: process.env.AI_GATEWAY_ENABLE_NVIDIA_QWEN === 'true',
-      stage: process.env.AI_GATEWAY_QWEN_STAGE || 'experimental',
-      tokenConfigured: Boolean(process.env.AI_GATEWAY_NVIDIA_TOKEN || process.env.NVIDIA_NIM_TOKEN || process.env.NVIDIA_API_TOKEN)
-    },
+    providerOrder: config.providerOrder,
+    providers: [
+      {
+        id: config.gemma.id,
+        family: 'gemma4',
+        enabled: config.gemma.enabled,
+        stage: config.gemma.promotionStage,
+        model: config.gemma.model,
+        tokenConfigured: Boolean(config.gemma.token)
+      },
+      {
+        id: config.qwen.id,
+        family: 'qwen',
+        enabled: config.qwen.enabled,
+        stage: config.qwen.promotionStage,
+        model: config.qwen.model,
+        tokenConfigured: Boolean(config.qwen.token)
+      },
+      {
+        id: config.fallback.id,
+        family: 'deterministic_local',
+        enabled: config.fallback.enabled,
+        stage: 'always_available',
+        tokenConfigured: true
+      }
+    ],
     policy: getAIGatewayPolicy()
   });
 }
