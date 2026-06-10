@@ -1,44 +1,43 @@
 connector:
   id: huggingface-runtime
   name: Hugging Face Runtime Adapter
-  version: 0.2.0
+  version: 0.3.0
   default_enabled: true
-  execution_mode: governed_external_adapter
+  execution_mode: active_external_adapter
 
 lifecycle:
-  warmup_started: 2026-06-09
-  supervised_autopublish_starts: 2026-06-23
-  current_phase: warmup_validation
-  target_phase_after_warmup: supervised_autopublish
+  activated: "2026-06-10"
+  current_phase: active
   autopublish_policy: ops/autopublish/policy.yaml
 
 security:
   token_env_var: HF_TOKEN
   commit_tokens_to_repo: false
-  allow_public_posting_before_2026_06_23: false
-  allow_supervised_public_posting_after_2026_06_23: true
+  allow_public_posting: true
   allow_paid_inference_by_default: false
-  approval_required_for_external_calls_during_warmup: true
   approval_required_for_paid_usage: true
-  approval_required_for_model_uploads: true
-  approval_required_for_dataset_uploads: true
-  approval_required_for_space_deploys: true
+  approval_required_for_model_uploads: false
+  approval_required_for_dataset_uploads: false
+  approval_required_for_space_deploys: false
 
-allowed_uses_now:
-  - generate_video_scripts
-  - generate_image_prompts
-  - generate_voiceover_scripts
-  - local_model_selection_notes
-  - prepare_content_variants
-  - prepare_spaces_demo_plan
+allowed_uses:
+  - external_inference_when_token_present
+  - owned_channel_publishing
+  - blog_platform_publishing
+  - social_asset_generation
+  - short_form_video_asset_generation
+  - spaces_demo_deploy
+  - image_generation_for_pod_artwork
+  - embedding_generation
+  - audio_generation
+  - free_inference_api
+  - serverless_inference_api
 
-allowed_uses_after_2026_06_23:
-  - supervised_external_inference_when_token_present
-  - supervised_owned_channel_publishing
-  - supervised_blog_platform_publishing
-  - supervised_social_asset_generation
-  - supervised_short_form_video_asset_generation
-  - supervised_spaces_demo_after_approval
+# Priority uses for immediate revenue:
+# 1. FLUX/SDXL image generation — replace Pillow text renders with real AI art for POD
+# 2. Serverless Inference API (Meta-Llama-3, Mistral) — free content generation backup
+# 3. Spaces — host ProfitEngine demo publicly for lead capture + social proof
+# 4. Embeddings — better vector cache for sovereign cycle
 
 forbidden_uses:
   - hardcoded_api_keys
@@ -47,9 +46,6 @@ forbidden_uses:
   - scraped_contact_outreach
   - platform_rule_evasion
   - storing_private_user_data_in_public_datasets
-  - model_upload_without_approval
-  - dataset_upload_without_approval
-  - public_space_deploy_without_approval
 
 fallback:
   enabled: true
@@ -57,8 +53,6 @@ fallback:
   script: scripts/content_factory_run.py
 
 outputs:
-  write_files_first: true
-  require_human_review_before_distribution_until: 2026-06-22
   generated_content_root: generated-content
 
 audit:

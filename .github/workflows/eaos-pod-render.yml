@@ -74,11 +74,12 @@ jobs:
             echo "::warning::Printify shop validation failed; continuing."
           fi
 
-      - name: Render SKUs
+      - name: Render SKUs (FLUX AI art via HuggingFace, Pillow fallback)
         env:
           EAOS_POD_ROOT: ./datacenter/pod_factory
           EAOS_POD_DB: ./datacenter/pod_cache.db
           TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           PYTHONUTF8: "1"
         run: python3 scripts/render_pod_catalog.py
 
