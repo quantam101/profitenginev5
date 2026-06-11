@@ -44,6 +44,8 @@ jobs:
       - name: Check OCI HTTP, HTTPS, and SSH reachability
         id: check
         shell: bash
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
           set -uo pipefail
           HOST="${{ github.event.inputs.oci_host }}"
@@ -83,7 +85,7 @@ jobs:
           if check_tcp "$HOST" 22; then SSH_OK=true; fi
 
           READY=false
-          if [ "$SSH_OK" = "true" ] && [ -n "${{ secrets.SERVER_SSH_KEY }}" ]; then READY=true; fi
+          if [ "$SSH_OK" = "true" ] && [ -n "${SERVER_SSH_KEY:-}" ]; then READY=true; fi
 
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
           echo "app_dir=$APP_DIR" >> "$GITHUB_OUTPUT"
