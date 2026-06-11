@@ -10,15 +10,16 @@ Purpose:
 """
 from __future__ import annotations
 
-import json
 import re
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import httpx
 
 import publish_article as publisher
+
+_ORIGINAL_VERIFY_AI_PROVIDER: Callable[[], bool] = publisher._verify_ai_provider  # type: ignore[attr-defined]
 
 
 def _slugify(text: str) -> str:
@@ -102,7 +103,7 @@ Choose one revenue event and build the shortest reliable path to it. Capture the
 def _verify_ai_provider_hf_aware() -> bool:
     """Verify the active provider chain without falsely failing HF-only setups."""
     try:
-        if publisher._verify_ai_provider():  # type: ignore[attr-defined]
+        if _ORIGINAL_VERIFY_AI_PROVIDER():
             return True
     except Exception as exc:
         print(f"[VERIFY][WARN] Default AI provider verification raised: {exc}")
