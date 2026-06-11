@@ -1,0 +1,22 @@
+# BuildKit uses this file only when building with Dockerfile.runtime.
+# Keep the runtime image build context small and deterministic without changing
+# the broader .dockerignore behavior used by other Dockerfiles.
+
+*
+
+!Dockerfile.runtime
+!requirements.txt
+
+!runtime
+!runtime/**
+
+!agents
+!agents/**
+
+!connectors
+!connectors/**
+
+!scripts
+!scripts/setup-telegram-command-webhook.py
+!scripts/printify_shop_status.py
+!scripts/push_printify_catalog.py
