@@ -12,7 +12,9 @@ LOCAL_IMAGE="${LOCAL_IMAGE:-profitenginev5-runtime:latest}"
 SERVICE="${SERVICE:-runtime}"
 HEALTH_URL="${HEALTH_URL:-https://api.profitengine.alreadyherellc.com/health}"
 LOCK_FILE="${LOCK_FILE:-/tmp/profitengine-runtime-update.lock}"
-STATE_DIR="${STATE_DIR:-/var/lib/profitengine-runtime-update}"
+# Must be writable by the invoking user (opc via systemd User= and the deploy
+# workflow) — /var/lib would need root.
+STATE_DIR="${STATE_DIR:-${APP_DIR}/.runtime-update-state}"
 MAX_HEALTH_TRIES="${MAX_HEALTH_TRIES:-24}"
 HEALTH_SLEEP_SEC="${HEALTH_SLEEP_SEC:-5}"
 PRUNE_AFTER_SUCCESS="${PRUNE_AFTER_SUCCESS:-true}"
