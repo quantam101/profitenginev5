@@ -18,10 +18,11 @@ set -euo pipefail
 REPO_DIR="${REPO_DIR:-/home/opc/profitenginev5}"
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# Disk thresholds (KB)
-THRESHOLD_WARN_KB=8388608    # 8 GB  → prune ALL build cache (early, ~73% on 30GB)
-THRESHOLD_AGG_KB=5242880     # 5 GB  → prune unused images too
-THRESHOLD_CRIT_KB=3145728    # 3 GB  → prune ALL unused images + volumes
+# Disk thresholds (% used) — cleanup begins early (65-75% band) so the disk
+# never reaches a state where Docker builds or log writes start failing.
+THRESHOLD_WARN_PCT=70    # → prune ALL build cache + dangling images
+THRESHOLD_AGG_PCT=80     # → prune unused images too
+THRESHOLD_CRIT_PCT=90    # → prune ALL unused images + volumes
 
 # Ollama: only these models are kept; others are removed (distillation: prefer small quant)
 OLLAMA_KEEP=("llama3.1:8b" "qwen2.5:7b" "phi3.5:3.8b" "llama3.2:3b")
@@ -94,19 +95,19 @@ CACHE_AFTER=$(docker system df --format "{{.Type}} {{.Size}}" 2>/dev/null | grep
 emit info "event=buildcache_prune before='${CACHE_BEFORE}' after='${CACHE_AFTER}'"
 
 # ── 6. Threshold-based aggressive pruning ─────────────────────────────────────
-if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_WARN_KB}" ]]; then
-  emit warn "event=disk_warn avail_gb=${AVAIL_GB} action=full_buildcache_and_image_prune"
+if [[ "${USED_PCT:-0}" -ge "${THRESHOLD_WARN_PCT}" ]]; then
+  emit warn "event=disk_warn used_pct=${USED_PCT} action=full_buildcache_and_image_prune"
   docker builder prune -af 2>/dev/null || true
   docker image prune -f 2>/dev/null || true
 fi
 
-if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_AGG_KB}" ]]; then
-  emit warn "event=disk_agg avail_gb=${AVAIL_GB} action=unused_images_prune"
+if [[ "${USED_PCT:-0}" -ge "${THRESHOLD_AGG_PCT}" ]]; then
+  emit warn "event=disk_agg used_pct=${USED_PCT} action=unused_images_prune"
   docker image prune -af 2>/dev/null || true
 fi
 
-if [[ "${AVAIL_KB:-0}" -lt "${THRESHOLD_CRIT_KB}" ]]; then
-  emit warn "event=disk_critical avail_gb=${AVAIL_GB} action=prune_unused_images_volumes"
+if [[ "${USED_PCT:-0}" -ge "${THRESHOLD_CRIT_PCT}" ]]; then
+  emit warn "event=disk_critical used_pct=${USED_PCT} action=prune_unused_images_volumes"
   docker image prune -af 2>/dev/null || true
   docker volume prune -f --filter "label!=keep=true" 2>/dev/null || true
 fi
@@ -147,10 +148,11 @@ emit info "event=docker_df breakdown=${DOCKER_DF:-unavailable}"
 
 # ── 9. Re-check disk after pruning ───────────────────────────────────────────
 AVAIL_KB_AFTER=$(df / | awk 'NR==2{print $4}')
+USED_PCT_AFTER=$(df / | awk 'NR==2{print $5}' | tr -d '%')
 AVAIL_GB_AFTER=$(awk "BEGIN{printf \"%.1f\", ${AVAIL_KB_AFTER}/1048576}")
 FREED_KB=$(( AVAIL_KB_AFTER - AVAIL_KB ))
 FREED_MB=$(awk "BEGIN{printf \"%.0f\", ${FREED_KB}/1024}")
-emit info "event=disk_after avail_gb=${AVAIL_GB_AFTER} freed_mb=${FREED_MB}"
+emit info "event=disk_after avail_gb=${AVAIL_GB_AFTER} used_pct=${USED_PCT_AFTER} freed_mb=${FREED_MB}"
 
 # ── 10. Install as cron if not already present ────────────────────────────────
 CRON_MARKER="docker-guard.sh"
@@ -164,8 +166,8 @@ else
 fi
 
 # ── Exit codes ────────────────────────────────────────────────────────────────
-if [[ "${AVAIL_KB_AFTER:-0}" -lt "${THRESHOLD_CRIT_KB}" ]]; then
-  emit warn "event=disk_still_critical avail_gb=${AVAIL_GB_AFTER} action_required=manual_expansion"
+if [[ "${USED_PCT_AFTER:-0}" -ge "${THRESHOLD_CRIT_PCT}" ]]; then
+  emit warn "event=disk_still_critical used_pct=${USED_PCT_AFTER} action_required=manual_expansion"
   exit 2
 fi
 
