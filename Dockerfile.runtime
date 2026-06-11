@@ -1,16 +1,32 @@
 FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    REPO_DIR=/app
+
 WORKDIR /app
+
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY runtime ./runtime
-COPY agents ./agents
-COPY connectors ./connectors
-COPY scripts/setup-telegram-command-webhook.py ./scripts/setup-telegram-command-webhook.py
-COPY scripts/printify_shop_status.py ./scripts/printify_shop_status.py
-COPY scripts/push_printify_catalog.py ./scripts/push_printify_catalog.py
-# /pod/status and /pod/push run repo scripts relative to REPO_DIR; inside the
-# container the app root is /app, not the host checkout path.
-ENV REPO_DIR=/app
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && addgroup --system app \
+    && adduser --system --ingroup app --home /app app \
+    && mkdir -p /data /app/scripts \
+    && chown -R app:app /app /data
+
+COPY --chown=app:app runtime ./runtime
+COPY --chown=app:app agents ./agents
+COPY --chown=app:app connectors ./connectors
+COPY --chown=app:app scripts/setup-telegram-command-webhook.py ./scripts/setup-telegram-command-webhook.py
+COPY --chown=app:app scripts/printify_shop_status.py ./scripts/printify_shop_status.py
+COPY --chown=app:app scripts/push_printify_catalog.py ./scripts/push_printify_catalog.py
+
+USER app
+
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read()"
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read()"
+
 CMD ["uvicorn", "runtime.api:app", "--host", "0.0.0.0", "--port", "8080"]
