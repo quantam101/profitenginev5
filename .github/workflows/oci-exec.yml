@@ -1,8 +1,9 @@
 name: OCI Exec (diagnostics)
 
 # Manually-triggered remote diagnostics for the OCI runtime host.
-# Runs a fixed, read-only diagnostic bundle by default; a custom command
-# can be passed for targeted checks during incident response.
+# This is not a deploy gate. SSH from GitHub runner IP ranges can be blocked by
+# host-side probe detection, so an unreachable host is reported as DEGRADED
+# instead of failing the workflow.
 
 on:
   workflow_dispatch:
@@ -19,14 +20,34 @@ jobs:
     env:
       OCI_HOST: 129.146.167.73
     steps:
-      - name: Run command on OCI host
+      - name: Run command on OCI host when SSH is reachable
         env:
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
           CMD: ${{ github.event.inputs.cmd }}
+        shell: bash
         run: |
+          set -uo pipefail
+          {
+            echo "## OCI Exec Diagnostic — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "Host: ${OCI_HOST}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -z "${SSH_KEY:-}" ]; then
+            echo "::warning::SERVER_SSH_KEY is not configured; diagnostics skipped."
+            echo "Status: DEGRADED — missing SERVER_SSH_KEY" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if ! timeout 10 bash -c "</dev/tcp/${OCI_HOST}/22" >/dev/null 2>&1; then
+            echo "::warning::OCI SSH port is not reachable from this GitHub runner; diagnostics skipped."
+            echo "Status: DEGRADED — SSH not reachable from GitHub Actions" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           echo "$SSH_KEY" > /tmp/key
           chmod 600 /tmp/key
-          if [ -z "$CMD" ]; then
+          if [ -z "${CMD:-}" ]; then
             CMD='set -x
               hostname; uptime; free -m; df -h / ;
               docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" ;
@@ -34,7 +55,19 @@ jobs:
               ls -la /tmp/deploy_build.log 2>/dev/null; tail -40 /tmp/deploy_build.log 2>/dev/null ;
               cd /home/opc/profitenginev5 && git log --oneline -2 && docker compose ps'
           fi
+
+          set +e
           ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
               -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
               -i /tmp/key opc@"$OCI_HOST" "$CMD"
+          SSH_EXIT=$?
+          set -u
           rm -f /tmp/key
+
+          if [ "$SSH_EXIT" -ne 0 ]; then
+            echo "::warning::OCI SSH diagnostic exited with code $SSH_EXIT. Treating as DEGRADED, not failed."
+            echo "Status: DEGRADED — ssh_exit=${SSH_EXIT}" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "Status: OK" >> "$GITHUB_STEP_SUMMARY"
