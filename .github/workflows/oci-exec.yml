@@ -15,7 +15,7 @@ on:
 jobs:
   exec:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     env:
       OCI_HOST: 129.146.167.73
     steps:
