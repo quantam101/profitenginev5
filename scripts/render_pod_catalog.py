@@ -18,8 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime.eaos.image_factory import ProductionImageFactory, SKU_CATALOG
 
-# HuggingFace Serverless Inference — FLUX.1-schnell (free, fast, high quality)
-HF_IMAGE_API = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+# HuggingFace Inference — FLUX.1-schnell (free, fast, high quality)
+# api-inference.huggingface.co was decommissioned; hf-inference now lives behind the router
+HF_IMAGE_API = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
 HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 
 # Prompt template per SKU

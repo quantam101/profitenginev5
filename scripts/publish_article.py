@@ -601,12 +601,40 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
         json=payload,
         timeout=30,
     )
+    if r.status_code == 422 and "canonical" in r.text.lower():
+        # Article with this canonical URL was already published in a previous run.
+        existing = _find_devto_by_canonical(canonical_url)
+        if existing:
+            print(f"[OK] Dev.to: already published (canonical match): {existing}")
+            return existing
+        print("[SKIP] Dev.to: canonical URL already taken; existing article not found via API")
+        return None
     if not r.is_success:
         print(f"[FAIL] Dev.to {r.status_code}: {r.text[:300]}")
         r.raise_for_status()
     url = r.json().get("url", "")
     print(f"[OK] Published to Dev.to: {url}")
     return url
+
+
+def _find_devto_by_canonical(canonical_url: str) -> Optional[str]:
+    """Find the authenticated user's existing Dev.to article matching a canonical URL."""
+    if not canonical_url:
+        return None
+    try:
+        r = httpx.get(
+            f"{DEVTO_BASE}/articles/me/all",
+            headers={"api-key": DEVTO_KEY},
+            params={"per_page": 100},
+            timeout=30,
+        )
+        r.raise_for_status()
+        for a in r.json():
+            if (a.get("canonical_url") or "").rstrip("/") == canonical_url.rstrip("/"):
+                return a.get("url", "")
+    except Exception as exc:
+        print(f"[WARN] Dev.to canonical lookup failed: {exc}")
+    return None
 
 
 # ── Hashnode publish ───────────────────────────────────────────────────────────
@@ -631,9 +659,9 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
-    # Hashnode uses Authorization: Bearer <token> as of their v2 API migration
-    # follow_redirects=True so 301 redirects are followed automatically
-    auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else f"Bearer {HASHNODE_KEY}"
+    # Hashnode v2 GQL expects the raw token in Authorization (no Bearer prefix);
+    # a Bearer-prefixed token is rejected and can return a non-JSON error page.
+    auth_header = HASHNODE_KEY[7:].strip() if HASHNODE_KEY.lower().startswith("bearer ") else HASHNODE_KEY
     r = httpx.post(
         "https://gql.hashnode.com",
         headers={"Authorization": auth_header, "Content-Type": "application/json"},
@@ -647,7 +675,13 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
     if not r.is_success or not r.text.strip():
         print(f"[FAIL] Hashnode {r.status_code}: {r.text[:300]}")
         r.raise_for_status()
-    data = r.json()
+    try:
+        data = r.json()
+    except Exception:
+        raise RuntimeError(
+            f"Hashnode returned non-JSON (HTTP {r.status_code}, "
+            f"content-type {r.headers.get('content-type', '?')}): {r.text[:300]}"
+        )
     if data.get("errors"):
         raise RuntimeError(f"Hashnode errors: {data['errors']}")
     post = data.get("data", {}).get("publishPost", {}).get("post", {})
