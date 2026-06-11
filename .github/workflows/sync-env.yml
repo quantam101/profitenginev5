@@ -1,0 +1,80 @@
+name: Sync Secrets to OCI .env
+
+# Pushes selected GitHub Actions secrets into /home/opc/profitenginev5/.env
+# on the OCI host, then restarts the app services so they load the new
+# values. Secrets travel over SSH stdin only — never argv, never logs
+# (GitHub masks them regardless). Manual trigger only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      restart_services:
+        description: 'Restart runtime/backend/taylor after syncing'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oci-env-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync .env on 129.146.167.73
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OCI_HOST: 129.146.167.73
+      APP_DIR: /home/opc/profitenginev5
+    steps:
+      - name: Prepare SSH key
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Upsert secrets into host .env
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Each synced key is one "NAME VALUE" line on stdin; the remote
+          # side rewrites .env idempotently. Add new keys to this printf
+          # list and the env: block above to extend.
+          printf 'OPENROUTER_API_KEY %s\n' "$OPENROUTER_API_KEY" \
+            | ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 \
+                  -i /tmp/deploy_key opc@"$OCI_HOST" \
+              'set -euo pipefail
+               f="/home/opc/profitenginev5/.env"
+               touch "$f" && chmod 600 "$f"
+               while IFS=" " read -r name value; do
+                 [ -n "$name" ] || continue
+                 if [ -z "$value" ]; then
+                   echo "skip: $name has no value in GitHub Secrets"
+                   continue
+                 fi
+                 grep -v "^${name}=" "$f" > "$f.tmp" || true
+                 printf "%s=%s\n" "$name" "$value" >> "$f.tmp"
+                 mv "$f.tmp" "$f" && chmod 600 "$f"
+                 echo "synced: $name"
+               done'
+
+      - name: Restart services to load new env
+        if: ${{ github.event.inputs.restart_services != 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 \
+              -i /tmp/deploy_key opc@"$OCI_HOST" \
+            'cd /home/opc/profitenginev5 && docker compose up -d --no-deps --no-build runtime backend taylor && docker compose ps --format "{{.Name}} {{.Status}}"'
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key
