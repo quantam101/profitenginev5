@@ -48,6 +48,12 @@ services:
       - runtime
 
   runtime:
+    # The deploy workflow pulls ghcr.io/quantam101/profitenginev5-runtime:latest
+    # on the OCI host and retags it to this local image name before running
+    # `docker compose up -d --no-deps --no-build runtime`. Keep this image tag
+    # aligned with .github/workflows/deploy.yml so compose never tries to rebuild
+    # the runtime on the small OCI boot disk.
+    image: profitenginev5-runtime:latest
     build:
       context: .
       dockerfile: Dockerfile.runtime
