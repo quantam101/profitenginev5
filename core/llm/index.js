@@ -118,8 +118,10 @@ async function _gemini(prompt, system, maxTokens) {
     : [{ role: 'user', parts: [{ text: prompt }] }];
   try {
     const res = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-      { contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } },
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      // gemini-2.5-flash is a thinking model: thinking tokens count against
+      // maxOutputTokens, so reserve headroom or responses come back empty.
+      { contents, generationConfig: { maxOutputTokens: maxTokens + 3072, temperature: 0.7 } },
       { timeout: 60_000 }
     );
     trackTokens('gemini', 0, 0);
@@ -131,8 +133,8 @@ async function _gemini(prompt, system, maxTokens) {
 // ── Tier Routing ──────────────────────────────────────────────────────────────
 async function callFast(prompt, system = null, maxTokens = 600) {
   const errs = [];
-  try { return await _groq(prompt, system, 'gemma2-9b-it', maxTokens); } catch (e) { errs.push(e.message); }
-  try { return await _openrouter(prompt, system, 'google/gemma-2-9b-it', maxTokens); } catch (e) { errs.push(e.message); }
+  try { return await _groq(prompt, system, 'llama-3.1-8b-instant', maxTokens); } catch (e) { errs.push(e.message); }
+  try { return await _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct:free', maxTokens); } catch (e) { errs.push(e.message); }
   try { return await _gemini(prompt, system, maxTokens); } catch (e) { errs.push(e.message); }
   throw new Error(`[LLM] All fast providers failed: ${errs.join(' | ')}`);
 }
@@ -140,7 +142,7 @@ async function callFast(prompt, system = null, maxTokens = 600) {
 async function callFull(prompt, system = null, maxTokens = 1500) {
   const errs = [];
   try { return await _groq(prompt, system, 'llama-3.3-70b-versatile', maxTokens); } catch (e) { errs.push(e.message); }
-  try { return await _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct', maxTokens); } catch (e) { errs.push(e.message); }
+  try { return await _openrouter(prompt, system, 'meta-llama/llama-3.3-70b-instruct:free', maxTokens); } catch (e) { errs.push(e.message); }
   try { return await _gemini(prompt, system, maxTokens); } catch (e) { errs.push(e.message); }
   throw new Error(`[LLM] All full providers failed: ${errs.join(' | ')}`);
 }

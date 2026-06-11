@@ -166,7 +166,6 @@ def _call_fast(prompt: str, system: Optional[str], max_tokens: int) -> str:
     for fn in [
         lambda: _gateway(prompt, system, max_tokens),          # hypervisor gateway first
         lambda: _groq(prompt, system, 'llama-3.1-8b-instant', max_tokens),
-        lambda: _groq(prompt, system, 'gemma2-9b-it', max_tokens),
         lambda: _openrouter(prompt, system, 'qwen/qwen3-8b:free', max_tokens),
         lambda: _gemini(prompt, system, max_tokens),
     ]:
@@ -375,11 +374,9 @@ def _failover_providers() -> list[tuple[str, str, str]]:
         providers.append(('groq', 'llama-3.3-70b-versatile', gr))
         providers.append(('groq', 'qwen-qwq-32b', gr))
         providers.append(('groq', 'llama-3.1-8b-instant', gr))
-        providers.append(('groq', 'gemma2-9b-it', gr))
     # Gemini free tier — 1500 req/day, generous context
     if gm:
         providers.append(('gemini', 'gemini-2.5-flash', gm))
-        providers.append(('gemini', 'gemini-1.5-flash', gm))
     # OpenRouter :free models — rate-limited community tier, zero cost
     if or_:
         providers.append(('openrouter', 'qwen/qwen3-30b-a3b:free', or_))
