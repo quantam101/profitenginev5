@@ -46,8 +46,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install Pillow
-        run: pip install pillow
+      - name: Install Pillow + OCR gate (tesseract validates FLUX typography)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr
+          pip install pillow pytesseract
 
       - name: Show workflow version
         run: |

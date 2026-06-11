@@ -23,6 +23,21 @@ from runtime.eaos.image_factory import ProductionImageFactory, SKU_CATALOG
 HF_IMAGE_API = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
 HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 
+# Exact text each design must carry — FLUX renders typography unreliably
+# (missing letters, garbled words), so every AI render is OCR-verified
+# against this before it can ship. Failures fall back to Pillow, which
+# renders text deterministically.
+REQUIRED_TEXT = {
+    "AHL-001": "ALREADY HERE",
+    "AHL-002": "PROFIT ENGINE",
+    "AHL-003": "ZERO COST OPERATOR",
+    "AHL-004": "ALREADY HERE LLC",
+    "AHL-005": "AUTONOMOUS",
+    "AHL-006": "SHIP PROOF",
+    "AHL-007": "SYSTEMS NOISE",
+    "AHL-008": "ALREADY HERE",
+}
+
 # Prompt template per SKU
 PROMPT_TEMPLATES = {
     "AHL-001": "minimalist streetwear graphic, bold text 'ALREADY HERE' on dark background, creator aesthetic, clean typography, print-on-demand tee design, 4500x5400",
@@ -87,6 +102,32 @@ def _hf_generate_image(sku: str, prompt: str, dest: Path) -> bool:
     return False
 
 
+def _ocr_text_ok(dest: Path, required: str):
+    """OCR the rendered image and verify every required word appears.
+
+    Returns True/False, or None when OCR isn't installed (gate skipped so
+    environments without tesseract keep the old behavior).
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        print("[ocr] pytesseract not installed — gate skipped")
+        return None
+    try:
+        raw = pytesseract.image_to_string(Image.open(dest)).upper()
+    except Exception as exc:
+        print(f"[ocr] unavailable ({exc}) — gate skipped")
+        return None
+    tokens = set("".join(c if c.isalpha() else " " for c in raw).split())
+    words = ["".join(c for c in w if c.isalpha()) for w in required.upper().split()]
+    missing = [w for w in words if len(w) > 2 and w not in tokens]
+    if missing:
+        print(f"[ocr] missing {missing} in render (saw: {sorted(tokens)[:12]})")
+        return False
+    return True
+
+
 def main() -> int:
     factory = ProductionImageFactory()
     target = os.getenv("TARGET_SKU", "").strip()
@@ -114,7 +155,16 @@ def main() -> int:
 
         if use_hf:
             prompt = PROMPT_TEMPLATES.get(sku, f"bold print-on-demand tee design, {item['title']}, dark background, minimal typography")
-            generated = _hf_generate_image(sku, prompt, dest)
+            required = REQUIRED_TEXT.get(sku, "")
+            for attempt in range(2):
+                generated = _hf_generate_image(sku, prompt, dest)
+                if not generated or not required:
+                    break
+                ok = _ocr_text_ok(dest, required)
+                if ok is not False:
+                    break
+                print(f"[ocr] {sku} — FLUX typography failed validation (attempt {attempt + 1}/2)")
+                generated = False
 
         if not generated:
             print(f"[render] {sku} — using Pillow fallback")
