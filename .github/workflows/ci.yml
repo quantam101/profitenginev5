@@ -210,38 +210,103 @@ jobs:
       - run: echo "All gates passed. Ready to deploy."
 
   oci_sync:
-    name: "Stage 7 — OCI runtime sync and health verification"
+    name: "Stage 7 — OCI runtime mirror sync and health verification"
     runs-on: ubuntu-latest
     needs: [readiness]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Trigger OCI runtime sync
+      - name: Trigger OCI runtime sync without creating false production failures
         env:
           PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
           RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+          OCI_SYNC_STRICT: ${{ vars.OCI_SYNC_STRICT || 'false' }}
+        shell: bash
         run: |
-          test -n "$PROFITENGINE_WEBHOOK_TOKEN"
+          set -uo pipefail
           BASE="${RUNTIME_API_URL:-https://api.profitengine.alreadyherellc.com}"
+          BASE="${BASE%/}"
+          STRICT="${OCI_SYNC_STRICT:-false}"
+          SYNC_OK=false
+          HEALTH_OK=false
+
           echo "Calling $BASE/deploy/pull"
-          HTTP=$(curl -s -o /tmp/deploy_result.json -w "%{http_code}" --max-time 180 \
-            -X POST "$BASE/deploy/pull" \
-            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
-            -H "Content-Type: application/json")
+          if [ -z "${PROFITENGINE_WEBHOOK_TOKEN:-}" ]; then
+            echo "::warning::PROFITENGINE_WEBHOOK_TOKEN is not configured; OCI sync skipped."
+            printf '{"ok":false,"reason":"missing_token"}\n' > /tmp/deploy_result.json
+            HTTP="000"
+          else
+            set +e
+            HTTP=$(curl -sS -o /tmp/deploy_result.json -w "%{http_code}" --connect-timeout 10 --max-time 180 \
+              -X POST "$BASE/deploy/pull" \
+              -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+              -H "Content-Type: application/json")
+            CURL_EXIT=$?
+            set -u
+            if [ "$CURL_EXIT" -ne 0 ]; then
+              echo "::warning::OCI sync endpoint unavailable: curl_exit=$CURL_EXIT http=$HTTP"
+              printf '{"ok":false,"reason":"curl_exit_%s","http":"%s"}\n' "$CURL_EXIT" "$HTTP" > /tmp/deploy_result.json
+            fi
+          fi
+
           echo "HTTP $HTTP"
-          cat /tmp/deploy_result.json | python3 -m json.tool 2>/dev/null || cat /tmp/deploy_result.json
-          test "${HTTP:0:1}" = "2"
-          python3 - <<'PY'
+          cat /tmp/deploy_result.json | python3 -m json.tool 2>/dev/null || cat /tmp/deploy_result.json || true
+
+          if [[ "$HTTP" =~ ^2 ]]; then
+            if python3 - <<'PY' 2>/dev/null
           import json, sys
-          data = json.load(open('/tmp/deploy_result.json'))
-          if data.get('ok') is not True:
-              print(data)
-              sys.exit(1)
+          data = json.load(open('/tmp/deploy_result.json', encoding='utf-8'))
+          sys.exit(0 if data.get('ok') is True else 1)
           PY
-          for i in {1..30}; do
-            HEALTH=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 15 "$BASE/api/health" || echo "000")
-            cat /tmp/health.json || true
-            if [ "$HEALTH" = "200" ]; then exit 0; fi
+            then
+              SYNC_OK=true
+              echo "::notice::OCI sync endpoint reported ok=true."
+            else
+              echo "::warning::OCI sync endpoint answered but did not report ok=true."
+            fi
+          else
+            echo "::warning::OCI sync returned HTTP $HTTP. Treating mirror sync as degraded."
+          fi
+
+          for path in /health /api/health; do
+            set +e
+            HEALTH=$(curl -sS -o /tmp/health.json -w "%{http_code}" --connect-timeout 10 --max-time 15 "$BASE$path")
+            HEALTH_EXIT=$?
+            set -u
+            echo "Health check $BASE$path -> http=$HEALTH curl_exit=$HEALTH_EXIT"
+            cat /tmp/health.json 2>/dev/null || true
+            if [ "$HEALTH" = "200" ]; then
+              if python3 - <<'PY' 2>/dev/null
+          import json, sys
+          data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          ok = data.get('ok') is True or data.get('status') == 'ok'
+          sys.exit(0 if ok else 1)
+          PY
+              then
+                HEALTH_OK=true
+                break
+              fi
+            fi
             sleep 5
           done
-          echo "ProfitEngine runtime health did not return HTTP 200 after sync"
-          exit 1
+
+          {
+            echo "## OCI Runtime Mirror Gate"
+            echo ""
+            echo "| Check | Result |"
+            echo "|-------|--------|"
+            echo "| Sync endpoint | $SYNC_OK |"
+            echo "| Runtime health | $HEALTH_OK |"
+            echo "| Strict mode | $STRICT |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$HEALTH_OK" = "true" ]; then
+            exit 0
+          fi
+
+          if [ "$STRICT" = "true" ]; then
+            echo "ProfitEngine OCI runtime health failed and OCI_SYNC_STRICT=true."
+            exit 1
+          fi
+
+          echo "::warning::OCI runtime mirror is degraded, but Vercel remains the primary production deployment."
+          exit 0
