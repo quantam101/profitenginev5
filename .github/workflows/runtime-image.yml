@@ -25,11 +25,11 @@ on:
       platform:
         description: 'Target platform for OCI runtime host'
         required: false
-        default: 'linux/arm64'
+        default: 'linux/amd64'
         type: choice
         options:
-          - linux/arm64
           - linux/amd64
+          - linux/arm64
 
 permissions:
   contents: read
@@ -46,7 +46,9 @@ env:
 jobs:
   build_test_push:
     name: Build, smoke-test, and push runtime image
-    runs-on: ubuntu-24.04-arm
+    # The OCI host is x86_64 (proven by its docker daemon requesting
+    # linux/amd64 manifests), so build natively on the amd64 runner.
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
@@ -62,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PLATFORM="${{ github.event.inputs.platform || 'linux/arm64' }}"
+          PLATFORM="${{ github.event.inputs.platform || 'linux/amd64' }}"
           NO_CACHE=""
           if [ "${{ github.event.inputs.fresh_build || 'false' }}" = "true" ]; then
             NO_CACHE="--no-cache"
