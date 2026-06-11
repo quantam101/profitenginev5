@@ -36,10 +36,10 @@ jobs:
           DEPLOY_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions"
 
           if ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 \
-               -i /tmp/deploy_key ubuntu@${OCI_HOST} "echo WARDEN_OK" 2>/dev/null; then
+               -i /tmp/deploy_key opc@${OCI_HOST} "echo WARDEN_OK" 2>/dev/null; then
             echo "SSH auth confirmed — enforcing authorized_keys..."
             ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
-                -i /tmp/deploy_key ubuntu@${OCI_HOST} "
+                -i /tmp/deploy_key opc@${OCI_HOST} "
               mkdir -p ~/.ssh && chmod 700 ~/.ssh
               touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
               for key in '$STEPHEN_KEY' '$DEVIN_KEY' '$DEPLOY_KEY'; do
