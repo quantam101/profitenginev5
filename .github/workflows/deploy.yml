@@ -145,17 +145,31 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
               -i /tmp/deploy_key opc@"${OCI_HOST}" \
               "set -e
+               echo '=== locate app dir ==='
+               APP_DIR=''
+               for d in /opt/profitenginev5 /home/opc/profitenginev5 /home/ubuntu/profitenginev5 /opt/profitengine /srv/profitenginev5; do
+                 if [ -d \"\$d/.git\" ]; then APP_DIR=\"\$d\"; break; fi
+               done
+               if [ -z \"\$APP_DIR\" ]; then
+                 APP_DIR=\$(find /opt /srv /home -maxdepth 3 -name 'runtime' -type d 2>/dev/null | grep -E 'profitengine' | head -1 | xargs -r dirname || true)
+               fi
+               if [ -z \"\$APP_DIR\" ]; then
+                 echo 'No existing checkout found — cloning fresh to /home/opc/profitenginev5'
+                 git clone https://github.com/quantam101/profitenginev5.git /home/opc/profitenginev5
+                 APP_DIR=/home/opc/profitenginev5
+               fi
+               echo \"APP_DIR=\$APP_DIR\"
                echo '=== git pull ==='
-               git -C ${APP_DIR} fetch origin main
-               git -C ${APP_DIR} reset --hard origin/main
+               git -C \${APP_DIR} fetch origin main
+               git -C \${APP_DIR} reset --hard origin/main
                echo '=== restart service ==='
-               if [ -f ${APP_DIR}/docker-compose.yml ]; then
-                 cd ${APP_DIR} && docker compose up -d --build
+               if [ -f \${APP_DIR}/docker-compose.yml ]; then
+                 cd \${APP_DIR} && docker compose up -d --build
                else
                  sudo systemctl restart profitengine-runtime 2>/dev/null || \
                  pkill -f 'uvicorn runtime' || true
                  sleep 2
-                 cd ${APP_DIR} && nohup python3 -m uvicorn runtime.api:app \
+                 cd \${APP_DIR} && nohup python3 -m uvicorn runtime.api:app \
                    --host 0.0.0.0 --port 8001 --log-level info \
                    > /tmp/runtime.log 2>&1 &
                fi
