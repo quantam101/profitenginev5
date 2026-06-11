@@ -1,0 +1,94 @@
+name: Runtime Image — GHCR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile.runtime
+      - requirements.txt
+      - runtime/**
+      - agents/**
+      - connectors/**
+      - scripts/setup-telegram-command-webhook.py
+      - scripts/printify_shop_status.py
+      - scripts/push_printify_catalog.py
+      - .github/workflows/runtime-image.yml
+  workflow_dispatch:
+    inputs:
+      fresh_build:
+        description: 'Rebuild runtime image without cache'
+        required: false
+        default: 'false'
+        type: boolean
+      platform:
+        description: 'Target platform for OCI runtime host'
+        required: false
+        default: 'linux/arm64'
+        type: choice
+        options:
+          - linux/arm64
+          - linux/amd64
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: runtime-image-ghcr
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/quantam101/profitenginev5-runtime
+
+jobs:
+  build_push:
+    name: Build and push runtime image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build runtime image and push to GHCR
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLATFORM="${{ github.event.inputs.platform || 'linux/arm64' }}"
+          NO_CACHE=""
+          if [ "${{ github.event.inputs.fresh_build || 'false' }}" = "true" ]; then
+            NO_CACHE="--no-cache"
+          fi
+
+          docker buildx build $NO_CACHE \
+            --platform "$PLATFORM" \
+            -f Dockerfile.runtime \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.sha }}" \
+            --cache-from "type=registry,ref=$IMAGE:buildcache" \
+            --cache-to "type=registry,ref=$IMAGE:buildcache,mode=max" \
+            --push .
+
+      - name: Write image summary
+        run: |
+          {
+            echo "## Runtime Image Published"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Image | ${IMAGE}:latest |"
+            echo "| SHA tag | ${IMAGE}:${{ github.sha }} |"
+            echo "| Platform | ${{ github.event.inputs.platform || 'linux/arm64' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
