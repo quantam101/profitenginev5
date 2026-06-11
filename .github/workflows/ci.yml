@@ -111,7 +111,7 @@ jobs:
         run: python -m pytest backend/tests/test_distillation.py -v
 
   e2e:
-    name: "Stage 3 — e2e (Playwright)"
+    name: "Stage 3 — e2e (backend health)"
     runs-on: ubuntu-latest
     needs: integration
     services:
@@ -137,7 +137,6 @@ jobs:
           DB_NAME: "profitengine_ci"
           GROQ_API_KEY: "stub-groq-ci-key"
         run: |
-          cd /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
           for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
       - name: e2e smoke — backend health check
@@ -211,16 +210,17 @@ jobs:
       - run: echo "All gates passed. Ready to deploy."
 
   oci_sync:
-    name: "Stage 7 — OCI runtime sync (git pull + restart)"
+    name: "Stage 7 — OCI runtime sync and health verification"
     runs-on: ubuntu-latest
     needs: [readiness]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Trigger OCI /deploy/pull
+      - name: Trigger OCI runtime sync
         env:
           PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
           RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
         run: |
+          test -n "$PROFITENGINE_WEBHOOK_TOKEN"
           BASE="${RUNTIME_API_URL:-https://api.profitengine.alreadyherellc.com}"
           echo "Calling $BASE/deploy/pull"
           HTTP=$(curl -s -o /tmp/deploy_result.json -w "%{http_code}" --max-time 180 \
@@ -229,15 +229,19 @@ jobs:
             -H "Content-Type: application/json")
           echo "HTTP $HTTP"
           cat /tmp/deploy_result.json | python3 -m json.tool 2>/dev/null || cat /tmp/deploy_result.json
-          if [[ "$HTTP" == "404" ]]; then
-            echo "::warning::OCI runtime does not have /deploy/pull yet — manual git pull required once to bootstrap"
-          elif [[ ! "$HTTP" =~ ^2 ]]; then
-            echo "::warning::OCI sync returned HTTP $HTTP — runtime may need manual restart"
-          else
-            OK=$(python3 -c "import json; print(json.load(open('/tmp/deploy_result.json')).get('ok',False))" 2>/dev/null || echo "False")
-            if [ "$OK" = "True" ]; then
-              echo "::notice::OCI runtime synced successfully"
-            else
-              echo "::warning::OCI sync completed with ok=false — check runtime logs"
-            fi
-          fi
+          test "${HTTP:0:1}" = "2"
+          python3 - <<'PY'
+          import json, sys
+          data = json.load(open('/tmp/deploy_result.json'))
+          if data.get('ok') is not True:
+              print(data)
+              sys.exit(1)
+          PY
+          for i in {1..30}; do
+            HEALTH=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 15 "$BASE/api/health" || echo "000")
+            cat /tmp/health.json || true
+            if [ "$HEALTH" = "200" ]; then exit 0; fi
+            sleep 5
+          done
+          echo "ProfitEngine runtime health did not return HTTP 200 after sync"
+          exit 1
