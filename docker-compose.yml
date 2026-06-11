@@ -1,7 +1,15 @@
+# Resource limits (cpus / mem_limit / pids_limit) are mandatory on every
+# service: the OCI A1 host has a 30GB boot volume (~14 MB/s throughput cap),
+# and one runaway container can pile the whole host into I/O-wait load >150,
+# killing SSH and Caddy. Limits keep the host responsive no matter what a
+# container does. Images are built in CI and shipped — never build on the box.
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 256
     env_file: .env
     ports:
       - "80:80"
@@ -24,6 +32,9 @@ services:
       context: .
       dockerfile: Dockerfile.web
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    pids_limit: 512
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
@@ -41,6 +52,9 @@ services:
       context: .
       dockerfile: Dockerfile.runtime
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    pids_limit: 512
     env_file: .env
     expose:
       - "8080"
@@ -51,6 +65,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 1g
+    pids_limit: 256
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
@@ -63,6 +80,9 @@ services:
   n8n:
     image: n8nio/n8n:2.19.5
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 1g
+    pids_limit: 256
     expose:
       - "5678"
     environment:
@@ -85,6 +105,9 @@ services:
       context: .
       dockerfile: Dockerfile.taylor
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 768m
+    pids_limit: 256
     env_file: .env
     environment:
       TAYLOR_HOST: 0.0.0.0
@@ -100,6 +123,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 768m
+    pids_limit: 256
     env_file: .env
     expose:
       - "8001"
@@ -112,6 +138,9 @@ services:
   uptime-kuma:
     image: louislam/uptime-kuma:1
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 128
     expose:
       - "3001"
     volumes:
