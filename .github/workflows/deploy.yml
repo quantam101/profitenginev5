@@ -129,12 +129,18 @@ jobs:
 
   ssh_deploy:
     name: Build runtime in CI, ship image to OCI (no on-box builds)
-    runs-on: ubuntu-latest
+    # Native ARM runner: the OCI host is aarch64, so building here avoids the
+    # 5-20x QEMU emulation penalty on pip-install layers. Free for public repos.
+    runs-on: ubuntu-24.04-arm
     needs: oci_preflight
     if: needs.oci_preflight.outputs.ready_for_ssh_deploy == 'true'
+    permissions:
+      contents: read
+      packages: write
     env:
       OCI_HOST: ${{ needs.oci_preflight.outputs.host }}
       APP_DIR: /home/opc/profitenginev5
+      IMAGE: ghcr.io/quantam101/profitenginev5-runtime
     steps:
       - uses: actions/checkout@v5
 
@@ -159,34 +165,55 @@ jobs:
           echo "Server arch: $REMOTE_ARCH → $PLATFORM"
           echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
 
-      - name: Set up QEMU (cross-arch builds)
+      - name: Set up QEMU (cross-arch fallback if host arch differs from runner)
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build runtime image in CI
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build runtime image and push to GHCR
+        # Registry-backed layer cache: unchanged layers (the multi-GB pip deps)
+        # are never rebuilt or re-pushed — a code-only deploy moves megabytes.
         run: |
-          docker buildx build \
+          NO_CACHE=""
+          if [ "${{ github.event.inputs.fresh_build }}" = "true" ]; then
+            NO_CACHE="--no-cache"
+          fi
+          docker buildx build $NO_CACHE \
             --platform ${{ steps.arch.outputs.platform }} \
             -f Dockerfile.runtime \
-            -t profitenginev5-runtime:latest \
-            --load .
-          docker save profitenginev5-runtime:latest | gzip > /tmp/runtime-image.tar.gz
-          ls -lh /tmp/runtime-image.tar.gz
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.sha }}" \
+            --cache-from "type=registry,ref=$IMAGE:buildcache" \
+            --cache-to "type=registry,ref=$IMAGE:buildcache,mode=max" \
+            --push .
 
-      - name: Ship image to OCI and swap container
+      - name: Pull image on OCI and swap container
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          scp -o StrictHostKeyChecking=no -o BatchMode=yes -i /tmp/deploy_key \
-            /tmp/runtime-image.tar.gz opc@"$OCI_HOST":/tmp/runtime-image.tar.gz
+          # Host logs in with the ephemeral job token (stdin only, never argv or
+          # disk; expires when this run ends). docker pull fetches only layers
+          # that changed since the last deploy — no full-image gunzip/load to
+          # saturate the burstable disk.
+          echo "$GHCR_TOKEN" | $(cat /tmp/ssh_cmd) opc@"$OCI_HOST" \
+            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
           $(cat /tmp/ssh_cmd) opc@"$OCI_HOST" \
             "set -e
              echo '=== git sync (config/scripts only — no builds happen on this host) ==='
              git -C ${APP_DIR} fetch origin main
              git -C ${APP_DIR} reset --hard origin/main
-             echo '=== load prebuilt image ==='
-             gunzip -c /tmp/runtime-image.tar.gz | docker load
-             rm -f /tmp/runtime-image.tar.gz
+             echo '=== pull prebuilt image (changed layers only) ==='
+             docker pull ${IMAGE}:latest
+             docker tag ${IMAGE}:latest profitenginev5-runtime:latest
+             docker logout ghcr.io
              echo '=== swap runtime container ==='
              cd ${APP_DIR}
              timeout 180 docker compose up -d --no-deps --no-build runtime
