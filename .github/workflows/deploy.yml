@@ -143,6 +143,7 @@ jobs:
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
           ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
               -i /tmp/deploy_key opc@"${OCI_HOST}" \
               "set -e
                echo '=== locate app dir ==='
@@ -164,7 +165,12 @@ jobs:
                git -C \${APP_DIR} reset --hard origin/main
                echo '=== restart service ==='
                if [ -f \${APP_DIR}/docker-compose.yml ]; then
-                 cd \${APP_DIR} && docker compose up -d --build
+                 # setsid+nohup so the build survives an SSH disconnect; tail the log until done
+                 cd \${APP_DIR}
+                 setsid nohup docker compose up -d --build > /tmp/deploy_build.log 2>&1 < /dev/null &
+                 BUILD_PID=\$!
+                 while kill -0 \$BUILD_PID 2>/dev/null; do sleep 15; echo \"[build] still running \$(date -u +%H:%M:%S)\"; done
+                 tail -25 /tmp/deploy_build.log
                else
                  sudo systemctl restart profitengine-runtime 2>/dev/null || \
                  pkill -f 'uvicorn runtime' || true
