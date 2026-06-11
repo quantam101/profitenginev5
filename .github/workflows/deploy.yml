@@ -1,25 +1,32 @@
-name: Deploy to OCI Server
+name: OCI Runtime Mirror Deploy
 
 on:
   workflow_dispatch:
     inputs:
-      fresh_build:
-        description: 'Rebuild images without cache after OCI access is restored'
-        required: false
-        default: 'false'
-        type: boolean
       oci_host:
         description: 'OCI public IP or DNS name to check'
         required: false
         default: '129.146.167.73'
         type: string
+      app_dir:
+        description: 'Checkout path on OCI host'
+        required: false
+        default: '/home/opc/profitenginev5'
+        type: string
+      strict_health:
+        description: 'Fail the workflow if post-update health is not OK'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
-  group: deploy-production
+  group: oci-runtime-mirror-deploy
   cancel-in-progress: true
 
 env:
   DEFAULT_OCI_HOST: '129.146.167.73'
+  DEFAULT_APP_DIR: '/home/opc/profitenginev5'
+  HEALTH_URL: 'https://api.profitengine.alreadyherellc.com/health'
 
 jobs:
   oci_preflight:
@@ -28,6 +35,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       host: ${{ steps.check.outputs.host }}
+      app_dir: ${{ steps.check.outputs.app_dir }}
       http_ok: ${{ steps.check.outputs.http_ok }}
       https_ok: ${{ steps.check.outputs.https_ok }}
       ssh_ok: ${{ steps.check.outputs.ssh_ok }}
@@ -39,12 +47,14 @@ jobs:
         run: |
           set -uo pipefail
           HOST="${{ github.event.inputs.oci_host }}"
+          APP_DIR="${{ github.event.inputs.app_dir }}"
           if [ -z "$HOST" ]; then HOST="$DEFAULT_OCI_HOST"; fi
+          if [ -z "$APP_DIR" ]; then APP_DIR="$DEFAULT_APP_DIR"; fi
 
           check_url() {
             local url="$1"
-            for i in 1 2 3; do
-              if curl -fsS --max-time 10 "$url" >/dev/null 2>&1; then
+            for _ in 1 2 3; do
+              if curl -fsS --connect-timeout 5 --max-time 10 "$url" >/dev/null 2>&1; then
                 return 0
               fi
               sleep 5
@@ -55,7 +65,7 @@ jobs:
           check_tcp() {
             local host="$1"
             local port="$2"
-            for i in 1 2 3; do
+            for _ in 1 2 3; do
               if timeout 10 bash -c "</dev/tcp/$host/$port" >/dev/null 2>&1; then
                 return 0
               fi
@@ -68,170 +78,121 @@ jobs:
           HTTPS_OK=false
           SSH_OK=false
 
-          if check_url "http://$HOST/"; then HTTP_OK=true; fi
-          if check_url "https://$HOST/"; then HTTPS_OK=true; fi
+          if check_url "http://$HOST/health" || check_url "http://$HOST/"; then HTTP_OK=true; fi
+          if check_url "https://$HOST/health" || check_url "https://$HOST/"; then HTTPS_OK=true; fi
           if check_tcp "$HOST" 22; then SSH_OK=true; fi
 
           READY=false
-          if [ "$SSH_OK" = "true" ]; then READY=true; fi
+          if [ "$SSH_OK" = "true" ] && [ -n "${{ secrets.SERVER_SSH_KEY }}" ]; then READY=true; fi
 
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
+          echo "app_dir=$APP_DIR" >> "$GITHUB_OUTPUT"
           echo "http_ok=$HTTP_OK" >> "$GITHUB_OUTPUT"
           echo "https_ok=$HTTPS_OK" >> "$GITHUB_OUTPUT"
           echo "ssh_ok=$SSH_OK" >> "$GITHUB_OUTPUT"
           echo "ready_for_ssh_deploy=$READY" >> "$GITHUB_OUTPUT"
 
-          echo "### OCI deployment gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "Host: $HOST" >> "$GITHUB_STEP_SUMMARY"
-          echo "HTTP reachable: $HTTP_OK" >> "$GITHUB_STEP_SUMMARY"
-          echo "HTTPS reachable: $HTTPS_OK" >> "$GITHUB_STEP_SUMMARY"
-          echo "SSH reachable: $SSH_OK" >> "$GITHUB_STEP_SUMMARY"
-          echo "Ready for SSH deploy: $READY" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$READY" != "true" ]; then
-            echo "OCI is not reachable for automated SSH deployment. This workflow will exit successfully to prevent false production failures. Use scripts/oci-recover.sh from OCI console, serial console, or an already-authenticated shell to restore host reachability." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## OCI runtime mirror deploy gate"
+            echo ""
+            echo "| Check | Result |"
+            echo "|-------|--------|"
+            echo "| Host | $HOST |"
+            echo "| App dir | $APP_DIR |"
+            echo "| HTTP reachable | $HTTP_OK |"
+            echo "| HTTPS reachable | $HTTPS_OK |"
+            echo "| SSH reachable | $SSH_OK |"
+            echo "| Credentialed SSH deploy ready | $READY |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  oci_recovery_instructions:
-    name: OCI recovery instructions
+  print_recovery_path:
+    name: Print OCI console recovery path
     runs-on: ubuntu-latest
     needs: oci_preflight
     if: needs.oci_preflight.outputs.ready_for_ssh_deploy != 'true'
     steps:
-      - uses: actions/checkout@v5
-      - name: Print deterministic recovery command
+      - name: Print deterministic host-side install command
         shell: bash
         run: |
-          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
-          ### Immediate OCI host repair path
+          APP_DIR="${{ needs.oci_preflight.outputs.app_dir }}"
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## OCI deploy not run from GitHub Actions
 
-          Automated deploy is blocked because SSH is not reachable from GitHub Actions.
-          Run this on the OCI instance through console access or any working shell:
+          SSH is not reachable from this runner or SERVER_SSH_KEY is not configured. This is not a Vercel production failure.
 
-          ```bash
-          curl -fsSL -o /tmp/oci-recover.sh https://raw.githubusercontent.com/quantam101/profitenginev5/main/scripts/oci-recover.sh
-          sudo APP_DIR=/opt/profitenginev5 bash /tmp/oci-recover.sh
-          ```
+          Run this from OCI console, serial console, or an already-authenticated shell:
 
-          If the app checkout is not in `/opt/profitenginev5`, replace `APP_DIR` with the real path before running.
-          After recovery, re-run this workflow with the same host. If SSH becomes reachable, enable a credentialed deploy job using repository secrets for SSH identity; do not hardcode credentials.
+          \`\`\`bash
+          cd ${APP_DIR}
+          git fetch origin main
+          git reset --hard origin/main
+          sudo APP_DIR=${APP_DIR} bash scripts/install-oci-runtime-updater.sh
+          APP_DIR=${APP_DIR} bash scripts/oci-runtime-update.sh
+          \`\`\`
           EOF
 
-  deploy_blocked_until_ssh_restored:
-    name: SSH deployment blocked until OCI access is restored
+  install_and_update:
+    name: Install updater and run OCI mirror update
     runs-on: ubuntu-latest
-    needs: [oci_preflight, oci_recovery_instructions]
-    if: always() && needs.oci_preflight.outputs.ready_for_ssh_deploy != 'true'
-    steps:
-      - name: Exit cleanly with OCI blocked status
-        run: |
-          echo "OCI host ${{ needs.oci_preflight.outputs.host }} is not SSH reachable. Vercel remains primary production. OCI workflow is no longer a failing drift source."
-
-  ssh_deploy:
-    name: Build runtime in CI, ship image to OCI (no on-box builds)
-    # Native ARM runner: the OCI host is aarch64, so building here avoids the
-    # 5-20x QEMU emulation penalty on pip-install layers. Free for public repos.
-    runs-on: ubuntu-24.04-arm
     needs: oci_preflight
     if: needs.oci_preflight.outputs.ready_for_ssh_deploy == 'true'
-    permissions:
-      contents: read
-      packages: write
-    env:
-      OCI_HOST: ${{ needs.oci_preflight.outputs.host }}
-      APP_DIR: /home/opc/profitenginev5
-      IMAGE: ghcr.io/quantam101/profitenginev5-runtime
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
-
       - name: Prepare SSH key
         env:
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        shell: bash
         run: |
+          set -euo pipefail
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          echo 'ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=40 -i /tmp/deploy_key' > /tmp/ssh_cmd
+          cat > /tmp/ssh_cmd <<'EOF'
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -i /tmp/deploy_key
+          EOF
           chmod +x /tmp/ssh_cmd
 
-      - name: Detect server architecture
-        id: arch
+      - name: Install host updater and run one-shot update
+        shell: bash
         run: |
-          REMOTE_ARCH=$($(cat /tmp/ssh_cmd) opc@"$OCI_HOST" 'uname -m')
-          case "$REMOTE_ARCH" in
-            aarch64) PLATFORM=linux/arm64 ;;
-            x86_64)  PLATFORM=linux/amd64 ;;
-            *) echo "::error::Unknown arch $REMOTE_ARCH"; exit 1 ;;
-          esac
-          echo "Server arch: $REMOTE_ARCH → $PLATFORM"
-          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          HOST="${{ needs.oci_preflight.outputs.host }}"
+          APP_DIR="${{ needs.oci_preflight.outputs.app_dir }}"
+          $(cat /tmp/ssh_cmd) opc@"$HOST" "APP_DIR='$APP_DIR' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          cd "$APP_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+          chmod +x scripts/oci-runtime-update.sh scripts/install-oci-runtime-updater.sh
+          sudo APP_DIR="$APP_DIR" bash scripts/install-oci-runtime-updater.sh
+          APP_DIR="$APP_DIR" bash scripts/oci-runtime-update.sh
+          REMOTE
 
-      - name: Set up QEMU (cross-arch fallback if host arch differs from runner)
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build runtime image and push to GHCR
-        # Registry-backed layer cache: unchanged layers (the multi-GB pip deps)
-        # are never rebuilt or re-pushed — a code-only deploy moves megabytes.
+      - name: External runtime health verification
+        shell: bash
         run: |
-          NO_CACHE=""
-          if [ "${{ github.event.inputs.fresh_build }}" = "true" ]; then
-            NO_CACHE="--no-cache"
-          fi
-          docker buildx build $NO_CACHE \
-            --platform ${{ steps.arch.outputs.platform }} \
-            -f Dockerfile.runtime \
-            -t "$IMAGE:latest" \
-            -t "$IMAGE:${{ github.sha }}" \
-            --cache-from "type=registry,ref=$IMAGE:buildcache" \
-            --cache-to "type=registry,ref=$IMAGE:buildcache,mode=max" \
-            --push .
-
-      - name: Pull image on OCI and swap container
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Host logs in with the ephemeral job token (stdin only, never argv or
-          # disk; expires when this run ends). docker pull fetches only layers
-          # that changed since the last deploy — no full-image gunzip/load to
-          # saturate the burstable disk.
-          echo "$GHCR_TOKEN" | $(cat /tmp/ssh_cmd) opc@"$OCI_HOST" \
-            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
-          $(cat /tmp/ssh_cmd) opc@"$OCI_HOST" \
-            "set -e
-             echo '=== git sync (config/scripts only — no builds happen on this host) ==='
-             git -C ${APP_DIR} fetch origin main
-             git -C ${APP_DIR} reset --hard origin/main
-             echo '=== pull prebuilt image (changed layers only) ==='
-             docker pull ${IMAGE}:latest
-             docker tag ${IMAGE}:latest profitenginev5-runtime:latest
-             docker logout ghcr.io
-             echo '=== swap runtime container ==='
-             cd ${APP_DIR}
-             timeout 180 docker compose up -d --no-deps --no-build runtime
-             echo '=== local health ==='
-             sleep 10
-             docker ps --format '{{.Names}} {{.Status}}' | grep runtime || true"
-          rm -f /tmp/deploy_key
-
-      - name: Post-deploy health gate
-        run: |
-          sleep 10
-          STATUS=$(curl -sf --max-time 15 \
-            "https://api.profitengine.alreadyherellc.com/health" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" \
-            2>/dev/null || echo "unreachable")
-          echo "Runtime health post-deploy: $STATUS"
+          set -uo pipefail
+          STRICT="${{ github.event.inputs.strict_health }}"
+          STATUS="unreachable"
+          for _ in $(seq 1 12); do
+            if curl -fsS --connect-timeout 5 --max-time 15 "$HEALTH_URL" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get('ok') is True or d.get('status') == 'ok' else 1)"; then
+              STATUS="ok"
+              break
+            fi
+            sleep 5
+          done
+          echo "Runtime health post-update: $STATUS"
           if [ "$STATUS" = "ok" ]; then
-            echo "::notice::OCI runtime healthy after deploy"
-          else
-            echo "::warning::OCI runtime health check returned $STATUS — may need a moment to start"
+            echo "::notice::OCI runtime mirror is healthy after update"
+            exit 0
           fi
+          if [ "$STRICT" = "true" ]; then
+            echo "::error::OCI runtime mirror health failed and strict_health=true"
+            exit 1
+          fi
+          echo "::warning::OCI runtime mirror health is degraded. Vercel remains primary production."
+          exit 0
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key /tmp/ssh_cmd
