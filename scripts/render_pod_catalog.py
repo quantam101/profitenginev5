@@ -110,22 +110,29 @@ def _ocr_text_ok(dest: Path, required: str):
     """
     try:
         import pytesseract
-        from PIL import Image
+        from PIL import Image, ImageOps
     except ImportError:
         print("[ocr] pytesseract not installed — gate skipped")
         return None
+    words = ["".join(c for c in w if c.isalpha()) for w in required.upper().split()]
+    needed = [w for w in words if len(w) > 2]
+    seen: set = set()
     try:
-        raw = pytesseract.image_to_string(Image.open(dest)).upper()
+        img = Image.open(dest).convert("L")
+        # Tesseract's default mode misses white-on-dark poster text; sparse
+        # segmentation (psm 11) and an inverted copy recover most of it.
+        for variant in (img, ImageOps.invert(img)):
+            for cfg in ("--psm 11", "--psm 3"):
+                raw = pytesseract.image_to_string(variant, config=cfg).upper()
+                seen |= set("".join(c if c.isalpha() else " " for c in raw).split())
+                if all(w in seen for w in needed):
+                    return True
     except Exception as exc:
         print(f"[ocr] unavailable ({exc}) — gate skipped")
         return None
-    tokens = set("".join(c if c.isalpha() else " " for c in raw).split())
-    words = ["".join(c for c in w if c.isalpha()) for w in required.upper().split()]
-    missing = [w for w in words if len(w) > 2 and w not in tokens]
-    if missing:
-        print(f"[ocr] missing {missing} in render (saw: {sorted(tokens)[:12]})")
-        return False
-    return True
+    missing = [w for w in needed if w not in seen]
+    print(f"[ocr] missing {missing} in render (saw: {sorted(seen)[:12]})")
+    return False
 
 
 def main() -> int:
