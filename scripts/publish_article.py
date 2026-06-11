@@ -381,6 +381,13 @@ def _verify_devto() -> bool:
 
 
 def _verify_hashnode() -> bool:
+    if not _hashnode_allowed():
+        print(
+            "[VERIFY][SKIP] Hashnode: API requires a paid Pro plan since 2026-05-13 "
+            "(gql.hashnode.com 301s to the announcement); disabled under max_cost_usd:0. "
+            "Set PAID_ADAPTERS_ENABLED=true to re-enable after upgrading."
+        )
+        return True
     if not HASHNODE_KEY or not HASHNODE_PUB_ID:
         print(
             "[VERIFY][SKIP] Hashnode: "
@@ -638,7 +645,19 @@ def _find_devto_by_canonical(canonical_url: str) -> Optional[str]:
 
 
 # ── Hashnode publish ───────────────────────────────────────────────────────────
+def _hashnode_allowed() -> bool:
+    # Hashnode retired free GraphQL API access on 2026-05-13; all requests now
+    # require a paid Pro plan, which violates the max_cost_usd:0 constraint.
+    return os.getenv("PAID_ADAPTERS_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
+    if not _hashnode_allowed():
+        print(
+            "[SKIP] Hashnode: API is paid-only since 2026-05-13 — disabled under "
+            "max_cost_usd:0 (set PAID_ADAPTERS_ENABLED=true after upgrading to Pro)"
+        )
+        return None
     if not HASHNODE_KEY or not HASHNODE_PUB_ID:
         print("[SKIP] HASHNODE_API_KEY or HASHNODE_PUBLICATION_ID not set -- skipping Hashnode")
         return None

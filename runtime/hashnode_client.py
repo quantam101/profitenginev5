@@ -37,6 +37,13 @@ def publish_article(
     Returns dict with 'url' and 'id'.
     Raises RuntimeError if key or publication ID is missing or request fails.
     """
+    if os.getenv("PAID_ADAPTERS_ENABLED", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        # Hashnode retired free GraphQL API access on 2026-05-13; every request
+        # now requires a paid Pro plan, which violates max_cost_usd:0.
+        raise RuntimeError(
+            "Hashnode API is paid-only since 2026-05-13 — disabled under max_cost_usd:0 "
+            "(set PAID_ADAPTERS_ENABLED=true after upgrading to Pro)"
+        )
     api_key = _key()
     pub_id = _pub_id()
     if not api_key:
