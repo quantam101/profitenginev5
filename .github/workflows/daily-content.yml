@@ -2,7 +2,10 @@ name: Daily Content Publisher
 
 # Publishes SEO articles to GitHub Pages (quantam101/content) through the
 # strict resilient publisher. Provider order: Groq -> Gemini -> HuggingFace ->
-# deterministic local article fallback. GitHub Pages publication is mandatory.
+# deterministic local article fallback. GitHub Pages publication is mandatory
+# when CONTENT_REPO_TOKEN is configured. If that cross-repo PAT is missing,
+# the workflow publishes to this repository with GITHUB_TOKEN so the content
+# pipeline still produces a public artifact instead of failing silent/zero.
 
 on:
   schedule:
@@ -24,6 +27,9 @@ on:
         options:
           - 'false'
           - 'true'
+
+permissions:
+  contents: write
 
 jobs:
   publish:
@@ -52,11 +58,11 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
-          GITHUB_CONTENT_OWNER: quantam101
-          GITHUB_CONTENT_REPO: content
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
           GITHUB_CONTENT_BRANCH: main
-          GITHUB_CONTENT_DIR: posts
+          GITHUB_CONTENT_DIR: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'posts' || 'generated-content/posts' }}
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
@@ -96,7 +102,8 @@ jobs:
           echo "### Content Pipeline" >> $GITHUB_STEP_SUMMARY
           echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
           echo "Publisher: strict resilient wrapper" >> $GITHUB_STEP_SUMMARY
-          echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
+          echo "Primary site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
+          echo "Fallback repo: $GITHUB_REPOSITORY/generated-content/posts" >> $GITHUB_STEP_SUMMARY
           echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
 
   video:
