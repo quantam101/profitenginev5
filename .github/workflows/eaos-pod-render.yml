@@ -84,9 +84,11 @@ jobs:
           PYTHONUTF8: "1"
         run: python3 scripts/render_pod_catalog.py
 
-      - name: Push artwork to Printify (direct API, browser UA)
+      - name: Push artwork to Printify via OCI runtime /pod/push
         if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
         env:
+          RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
           PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
           PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
           EAOS_POD_ROOT: ./datacenter/pod_factory
@@ -94,17 +96,39 @@ jobs:
           STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
         run: |
           set +e
-          python3 scripts/push_printify_catalog.py 2>&1 | tee /tmp/push_log.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          # Count successes
-          PUSHED=$(grep -c "\[Printify\] Product created:" /tmp/push_log.txt || echo 0)
+          BASE="${RUNTIME_API_URL:-https://api.profitengine.alreadyherellc.com}"
+          PUSHED=0
+          if [ -n "$PROFITENGINE_WEBHOOK_TOKEN" ]; then
+            # Primary path: upload rendered PNGs to the OCI runtime, which pushes
+            # to Printify from its static IP (GitHub runner IPs get Cloudflare 1010).
+            FORM_ARGS=()
+            for f in datacenter/pod_factory/render_cache/*.png; do
+              [ -f "$f" ] && FORM_ARGS+=(-F "artwork=@${f};type=image/png")
+            done
+            if [ ${#FORM_ARGS[@]} -eq 0 ]; then
+              echo "::warning::No rendered artwork found to push."
+            else
+              HTTP=$(curl -s -o /tmp/pod_push.json -w "%{http_code}" --max-time 900 \
+                -X POST "$BASE/pod/push?target_sku=${TARGET_SKU}" \
+                -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+                "${FORM_ARGS[@]}")
+              echo "POST /pod/push HTTP $HTTP"
+              python3 -c "import json; d=json.load(open('/tmp/pod_push.json')); print(d.get('output',''))" 2>/dev/null | tee /tmp/push_log.txt
+              PUSHED=$(grep -cE "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt || echo 0)
+            fi
+          fi
+          if [ "$PUSHED" -eq 0 ]; then
+            echo "Runtime push unavailable or pushed 0 — falling back to direct push from runner."
+            python3 scripts/push_printify_catalog.py 2>&1 | tee /tmp/push_log.txt
+            PUSHED=$(grep -cE "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt || echo 0)
+          fi
           echo "Products pushed: $PUSHED"
           echo "pushed=$PUSHED" >> "$GITHUB_OUTPUT"
-          if [ "$EXIT_CODE" -ne 0 ] || [ "$PUSHED" -eq 0 ]; then
+          if [ "$PUSHED" -eq 0 ]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
-              echo "::error::Printify push failed — $PUSHED products pushed."; exit 1
+              echo "::error::Printify push failed — 0 products pushed."; exit 1
             fi
-            echo "::warning::Printify push returned $PUSHED products — artwork saved as artifact."
+            echo "::warning::Printify push returned 0 products — artwork saved as artifact."
           fi
 
       - name: Verify products after push (direct API)
