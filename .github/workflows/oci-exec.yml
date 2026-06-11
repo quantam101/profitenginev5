@@ -1,0 +1,40 @@
+name: OCI Exec (diagnostics)
+
+# Manually-triggered remote diagnostics for the OCI runtime host.
+# Runs a fixed, read-only diagnostic bundle by default; a custom command
+# can be passed for targeted checks during incident response.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cmd:
+        description: 'Command to run on the OCI host (blank = standard diagnostic bundle)'
+        required: false
+        default: ''
+
+jobs:
+  exec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OCI_HOST: 129.146.167.73
+    steps:
+      - name: Run command on OCI host
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          CMD: ${{ github.event.inputs.cmd }}
+        run: |
+          echo "$SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          if [ -z "$CMD" ]; then
+            CMD='set -x
+              hostname; uptime; free -m; df -h / ;
+              docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" ;
+              docker compose ls ;
+              ls -la /tmp/deploy_build.log 2>/dev/null; tail -40 /tmp/deploy_build.log 2>/dev/null ;
+              cd /home/opc/profitenginev5 && git log --oneline -2 && docker compose ps'
+          fi
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+              -i /tmp/key opc@"$OCI_HOST" "$CMD"
+          rm -f /tmp/key
