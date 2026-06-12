@@ -13,6 +13,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import sys
 import time
 import urllib.error
@@ -40,12 +41,94 @@ def _slugify(value: str) -> str:
     return slug[:70] or "profitengine-video"
 
 
+async def _run_ffmpeg_checked(*args: str, timeout: int = 300) -> bool:
+    ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
+    proc = await asyncio.create_subprocess_exec(
+        ffmpeg,
+        "-y",
+        *args,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+    except asyncio.TimeoutError:
+        proc.kill()
+        print(f"[Video][FFmpeg] Command timed out after {timeout}s")
+        return False
+    if proc.returncode != 0:
+        tail = stderr[-800:].decode(errors="replace") if stderr else ""
+        print(f"[Video][FFmpeg] Non-zero exit {proc.returncode}: {tail}")
+        return False
+    return True
+
+
+async def _compile_master_robust(self, clips, filename, srt_text=None, audio_path=None):
+    """Reliable GitHub Actions compiler: absolute concat paths + re-encode fallback."""
+    output = os.path.abspath(os.path.join(self.paths["output"], filename))
+    concat = os.path.abspath(os.path.join(self.paths["root"], "seq.txt"))
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    os.makedirs(os.path.dirname(concat), exist_ok=True)
+
+    valid_clips = [
+        os.path.abspath(str(c))
+        for c in clips
+        if c and os.path.exists(str(c)) and os.path.getsize(str(c)) > 100
+    ]
+    if not valid_clips:
+        print("[Video] No valid scene clips to compile")
+        return None
+
+    with open(concat, "w", encoding="utf-8") as f:
+        for clip in valid_clips:
+            safe_clip = clip.replace("'", "'\\''")
+            f.write(f"file '{safe_clip}'\n")
+
+    print(f"[Video] Compiling master from {len(valid_clips)} scene clips")
+
+    ok = await _run_ffmpeg_checked(
+        "-f", "concat", "-safe", "0", "-i", concat,
+        "-c", "copy",
+        output,
+        timeout=240,
+    )
+
+    if not ok or not os.path.exists(output) or os.path.getsize(output) < 1000:
+        print("[Video] Stream-copy concat failed; retrying with full H.264/AAC re-encode")
+        ok = await _run_ffmpeg_checked(
+            "-f", "concat", "-safe", "0", "-i", concat,
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
+            output,
+            timeout=600,
+        )
+
+    try:
+        os.remove(concat)
+    except OSError:
+        pass
+
+    if ok and os.path.exists(output) and os.path.getsize(output) > 1000:
+        print(f"[Video] Master ready: {output} ({os.path.getsize(output)} bytes)")
+        return output
+
+    print(f"[Video] Master compile failed: {output}")
+    return None
+
+
+def _install_video_compile_patch() -> None:
+    """Patch the engine in the workflow process without disturbing the core module."""
+    UltimateVideoEngine.compile_master = _compile_master_robust  # type: ignore[assignment]
+
+
 def _upload_video_to_content_repo(video_path: str) -> Optional[str]:
     """Publish the generated MP4 to the content repo so Instagram can ingest it."""
     if not GH_TOKEN:
         print("[Video] GITHUB_CONTENT_TOKEN missing — Instagram public video URL unavailable")
         return None
-    if not os.path.exists(video_path) or os.path.getsize(video_path) < 100:
+    if not os.path.exists(video_path) or os.path.getsize(video_path) < 1000:
         print("[Video] Video file missing/empty — upload skipped")
         return None
 
@@ -91,6 +174,7 @@ def _upload_video_to_content_repo(video_path: str) -> Optional[str]:
 
 
 async def main() -> None:
+    _install_video_compile_patch()
     engine = UltimateVideoEngine()
     print(f"[Video] Generating video for: {TOPIC}")
 
@@ -111,11 +195,11 @@ async def main() -> None:
         canonical_url=CANONICAL_URL,
     )
 
-    if not video_path or not os.path.exists(video_path):
-        print("[Video] No video produced — ffmpeg may not be available")
+    if not video_path or not os.path.exists(video_path) or os.path.getsize(video_path) < 1000:
+        print("[Video] No valid master video produced — posting skipped")
         return
 
-    print(f"[Video] Master ready: {video_path}")
+    print(f"[Video] Master ready for distribution: {video_path}")
     public_video_url = _upload_video_to_content_repo(video_path)
 
     tiktok_token = os.getenv("TIKTOK_ACCESS_TOKEN", "")
