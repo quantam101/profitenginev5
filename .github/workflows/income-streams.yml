@@ -45,7 +45,7 @@ jobs:
           # Pull today's top content from the content pipeline output
           HEADLINE="AI Income Digest — $(date +'%B %d, %Y')"
 
-          curl -sf -X POST "$RUNTIME_API_URL/newsletter/publish" \
+          HTTP_CODE=$(curl -s --max-time 45 -X POST "$RUNTIME_API_URL/newsletter/publish" \
             -H "Content-Type: application/json" \
             -d "{
               \"headline\": \"$HEADLINE\",
@@ -66,12 +66,25 @@ jobs:
               \"tags\": [\"ai\", \"automation\", \"passive-income\", \"already-here\"],
               \"cta_url\": \"https://alreadyherellc.com\"
             }" \
-            -o /tmp/newsletter_result.json || echo '{"ok":false}' > /tmp/newsletter_result.json
+            -o /tmp/newsletter_result.json -w '%{http_code}') || HTTP_CODE="000"
 
+          # Guarantee a parseable body even when curl times out / writes nothing
+          if [ ! -s /tmp/newsletter_result.json ]; then
+            echo '{"ok":false}' > /tmp/newsletter_result.json
+          fi
+
+          echo "newsletter HTTP status: ${HTTP_CODE:-unknown}"
+          echo "newsletter raw response:"
           cat /tmp/newsletter_result.json
-          OK=$(python3 -c "import json,sys; d=json.load(open('/tmp/newsletter_result.json')); print('true' if d.get('ok') else 'false')")
+
+          OK=$(python3 -c "import json; print('true' if json.load(open('/tmp/newsletter_result.json')).get('ok') else 'false')" 2>/dev/null || echo "false")
           if [ "$OK" = "false" ]; then
-            echo "::warning::Newsletter publish returned ok=false — check Beehiiv credentials"
+            ERR=$(python3 -c "import json; print(json.load(open('/tmp/newsletter_result.json')).get('error') or '(no error field — endpoint timed out or unreachable)')" 2>/dev/null || echo "(empty or non-JSON response)")
+            if [ "${HTTP_CODE}" = "000" ]; then
+              echo "::warning::Newsletter publish FAILED — /newsletter/publish did not respond within 45s (HTTP 000). Runtime endpoint hang, not a Beehiiv credential issue."
+            else
+              echo "::warning::Newsletter publish FAILED — HTTP ${HTTP_CODE} — ${ERR}"
+            fi
           fi
 
   city-seo:
