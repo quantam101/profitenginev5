@@ -8,6 +8,7 @@ Purpose:
 - Make GitHub Pages publication mandatory instead of silently passing after failure.
 - Keep verify-only mode aligned with the current provider chain: Groq -> Gemini -> HuggingFace.
 - Optimize affiliate output so posts monetize without becoming link catalogs.
+- Attach a revenue execution brief so each article becomes a business action trigger.
 """
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ AFFILIATE_DISCLOSURE = os.getenv(
     "AFFILIATE_DISCLOSURE",
     "Some links below are affiliate or referral links. Already Here LLC may earn a commission or referral credit at no extra cost to you.",
 ).strip()
+ACTION_BRIEF_ENABLED = os.getenv("CONTENT_ACTION_BRIEF_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _slugify(text: str) -> str:
@@ -111,6 +113,97 @@ Choose one revenue event and build the shortest reliable path to it. Capture the
         "tags": ["ai", "automation", "revenue", "smallbusiness"],
         "body": body.strip(),
     }
+
+
+def _action_brief_type(title: str, tags: List[str]) -> str:
+    haystack = " ".join([title, *tags]).lower()
+    if any(term in haystack for term in ("dropshipping", "ecommerce", "shopify", "print-on-demand", "etsy")):
+        return "commerce"
+    if any(term in haystack for term in ("hosting", "vps", "cloud", "website", "deployment")):
+        return "infrastructure"
+    if any(term in haystack for term in ("affiliate", "seo", "content", "blog")):
+        return "content"
+    if any(term in haystack for term in ("receptionist", "missed-call", "lead", "small business")):
+        return "service-automation"
+    return "automation"
+
+
+def _revenue_action_brief(topic: str, article: Dict[str, Any]) -> str:
+    title = str(article.get("title") or topic or "Revenue action")
+    tags = [str(t) for t in article.get("tags", []) if str(t).strip()]
+    kind = _action_brief_type(title, tags)
+
+    offers = {
+        "commerce": "AI-assisted product research, storefront setup, supplier workflow, product-page copy, and order-flow automation.",
+        "infrastructure": "Small-business hosting setup, landing-page deployment, monitoring, backup, and automation-ready infrastructure.",
+        "content": "SEO content system, affiliate article engine, analytics, sitemap setup, and conversion tracking.",
+        "service-automation": "AI receptionist, missed-call recovery, lead intake, quote-prep, booking, and follow-up automation.",
+        "automation": "Workflow audit, automation buildout, tracking dashboard, and revenue-focused implementation support.",
+    }
+
+    first_actions = {
+        "commerce": [
+            "Pick one narrow product category with clear buyer intent and non-fragile shipping.",
+            "Build a 25-product validation sheet with supplier, margin, shipping time, refund risk, and ad angle.",
+            "Create one landing/storefront page, one product-page template, and one abandoned-cart follow-up sequence.",
+            "Run a small organic-content or local-market validation test before spending on ads.",
+        ],
+        "infrastructure": [
+            "Turn the article into a hosting setup checklist for one defined buyer type.",
+            "Package the setup as a fixed-price deployment offer with backup and monitoring add-ons.",
+            "Create a one-page intake form that captures domain, email, site type, budget, and launch deadline.",
+            "Publish a comparison CTA that routes readers to the recommended setup path.",
+        ],
+        "content": [
+            "Convert the article into one reusable lead magnet, checklist, or comparison table.",
+            "Add internal links from related articles to the highest-converting offer page.",
+            "Track affiliate clicks, CTA clicks, and email signups as separate conversion events.",
+            "Use the top-performing article theme as the next article cluster topic.",
+        ],
+        "service-automation": [
+            "Convert the article into a service offer with a clear outcome, setup scope, and monthly support option.",
+            "Create a buyer-intake form for missed calls, lead source, service area, urgency, and current bottleneck.",
+            "Add a low-friction CTA: request workflow review, book setup call, or send current process for diagnosis.",
+            "Track every lead through contact, quote, booked job, invoice, and follow-up.",
+        ],
+        "automation": [
+            "Identify the revenue event this article points to: lead, click, signup, sale, or booked call.",
+            "Create one offer page or intake form tied to that event.",
+            "Add a follow-up sequence that moves interested readers toward a paid action.",
+            "Review analytics weekly and promote the article if it creates clicks or leads.",
+        ],
+    }
+
+    tasks = "\n".join(f"- {item}" for item in first_actions[kind])
+    tags_text = ", ".join(tags[:5]) if tags else "automation, revenue"
+    return f"""
+
+## Revenue Execution Brief
+
+**How Already Here LLC can use this idea:** {offers[kind]}
+
+**Best-fit offer angle:** Turn this topic into a fixed-scope implementation package, not just an information article. The article should attract the reader; the offer should give them a clear next step that saves time, reduces risk, or creates measurable revenue.
+
+**First execution actions:**
+{tasks}
+
+**Automation asset to build from this article:** Create a simple intake workflow that captures the reader's goal, current setup, budget range, urgency, and preferred next step. Store those responses as structured data so future articles, offers, and follow-ups become smarter.
+
+**Reuse path:** Break this article into a short social post, a checklist, a comparison table, and a sales CTA. Tag the asset cluster as: {tags_text}.
+""".rstrip()
+
+
+def _attach_revenue_action_brief(topic: str, article: Dict[str, Any]) -> Dict[str, Any]:
+    if not ACTION_BRIEF_ENABLED:
+        return article
+    body = str(article.get("body", ""))
+    if "## Revenue Execution Brief" in body:
+        return article
+    article["body"] = body.rstrip() + "\n" + _revenue_action_brief(topic, article)
+    tags = article.get("tags", [])
+    if isinstance(tags, list) and "revenue-action" not in tags:
+        article["tags"] = [*tags, "revenue-action"]
+    return article
 
 
 def _affiliate_domain(url: str) -> str:
@@ -291,13 +384,14 @@ def main() -> None:
 
     def generate_article_with_fallback(topic: str) -> Dict[str, Any]:
         try:
-            return original_generate_article(topic)
+            article = original_generate_article(topic)
         except SystemExit as exc:
             print(f"[AI][WARN] Provider generation exited: {exc}. Using deterministic article fallback.")
-            return _deterministic_article(topic)
+            article = _deterministic_article(topic)
         except Exception as exc:
             print(f"[AI][WARN] Provider generation failed: {exc}. Using deterministic article fallback.")
-            return _deterministic_article(topic)
+            article = _deterministic_article(topic)
+        return _attach_revenue_action_brief(topic, article)
 
     def publish_github_strict(filename: str, content: str, commit_msg: str) -> str:
         url = original_publish_github(filename, content, commit_msg)
@@ -308,7 +402,7 @@ def main() -> None:
     publisher.publish_github = publish_github_strict  # type: ignore[assignment]
 
     started = datetime.now(timezone.utc).isoformat()
-    print(f"[RESILIENT] Strict optimized publisher started at {started}")
+    print(f"[RESILIENT] Strict optimized action publisher started at {started}")
     publisher.main()
 
     if not getattr(publisher, "VERIFY_ONLY", False) and not publish_state["canonical_url"]:
