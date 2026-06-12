@@ -133,6 +133,8 @@ jobs:
           PUBLIC_CONTENT_BASE: https://www.alreadyherellc.com/content
           EAOS_GPU_ENABLED: "false"
           EAOS_VIDEO_ROOT: ./datacenter/video_pipeline
+          VIDEO_STRICT: "true"
+          MIN_VIDEO_BYTES: "250000"
           PYTHONUTF8: "1"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
@@ -149,10 +151,22 @@ jobs:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
         run: python scripts/generate_video.py
 
       - name: Upload video artifact
         uses: actions/upload-artifact@v5
         with:
           name: article-video
-          path: datacenter/video_pipeline/**/*.mp4
+          path: |
+            datacenter/video_pipeline/**/*.mp4
+            datacenter/video_pipeline/logs/*.json
