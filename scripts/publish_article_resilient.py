@@ -7,19 +7,32 @@ Purpose:
 - Add a deterministic article fallback when all LLM providers fail.
 - Make GitHub Pages publication mandatory instead of silently passing after failure.
 - Keep verify-only mode aligned with the current provider chain: Groq -> Gemini -> HuggingFace.
+- Optimize affiliate output so posts monetize without becoming link catalogs.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List, Tuple
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 
 import publish_article as publisher
 
 _ORIGINAL_VERIFY_AI_PROVIDER: Callable[[], bool] = publisher._verify_ai_provider  # type: ignore[attr-defined]
+_ORIGINAL_AFFILIATE_MAP: Callable[[], Dict[str, str]] = publisher._affiliate_map  # type: ignore[attr-defined]
+
+AFFILIATE_PROMPT_LIMIT = max(1, int(os.getenv("AFFILIATE_PROMPT_LIMIT", "12")))
+AFFILIATE_TOOL_LIMIT = max(1, min(8, int(os.getenv("AFFILIATE_TOOL_LIMIT", "8"))))
+AFFILIATE_FEATURED_LIMIT = max(1, min(3, int(os.getenv("AFFILIATE_FEATURED_LIMIT", "3"))))
+AFFILIATE_UTM_CAMPAIGN = os.getenv("AFFILIATE_UTM_CAMPAIGN", "profitengine_content")
+AFFILIATE_DISCLOSURE = os.getenv(
+    "AFFILIATE_DISCLOSURE",
+    "Some links below are affiliate or referral links. Already Here LLC may earn a commission or referral credit at no extra cost to you.",
+).strip()
 
 
 def _slugify(text: str) -> str:
@@ -100,6 +113,145 @@ Choose one revenue event and build the shortest reliable path to it. Capture the
     }
 
 
+def _affiliate_domain(url: str) -> str:
+    try:
+        return urlparse(url).netloc.lower().removeprefix("www.")
+    except Exception:
+        return ""
+
+
+def _keyword_score(keyword: str, url: str, body: str) -> int:
+    text = body.lower()
+    kw = keyword.lower()
+    occurrences = len(re.findall(re.escape(kw), text, flags=re.IGNORECASE))
+    if occurrences == 0:
+        return -1
+
+    score = occurrences * 10
+    first_pos = text.find(kw)
+    if 0 <= first_pos < 900:
+        score += 35
+    elif 0 <= first_pos < 1800:
+        score += 20
+
+    domain = _affiliate_domain(url)
+    if any(term in kw for term in ("vps", "hosting", "cloud", "automation", "email", "seo", "ai")):
+        score += 12
+    if any(term in domain for term in ("hostinger", "digitalocean", "vultr", "cloudways", "bluehost", "siteground")):
+        score += 8
+    return score
+
+
+def _rank_affiliate_tools(body: str, affiliate_map: Dict[str, str], limit: int = AFFILIATE_TOOL_LIMIT) -> List[Tuple[str, str]]:
+    ranked: List[Tuple[int, int, str, str]] = []
+    for order, (keyword, url) in enumerate(affiliate_map.items()):
+        if not keyword or not url:
+            continue
+        score = _keyword_score(keyword, url, body)
+        if score >= 0:
+            ranked.append((score, -order, keyword, url))
+    ranked.sort(reverse=True)
+    return [(kw, url) for _, _, kw, url in ranked[:limit]]
+
+
+def _limited_affiliate_map() -> Dict[str, str]:
+    raw = _ORIGINAL_AFFILIATE_MAP()
+    if len(raw) <= AFFILIATE_PROMPT_LIMIT:
+        return raw
+    return dict(list(raw.items())[:AFFILIATE_PROMPT_LIMIT])
+
+
+def _destination_with_utm(url: str, keyword: str, placement: str) -> str:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            return url
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query.setdefault("utm_source", "alreadyherellc")
+        query.setdefault("utm_medium", "affiliate")
+        query.setdefault("utm_campaign", AFFILIATE_UTM_CAMPAIGN)
+        query.setdefault("utm_content", re.sub(r"[^a-z0-9_-]", "-", f"{placement}-{keyword}".lower()).strip("-"))
+        return urlunparse(parsed._replace(query=urlencode(query)))
+    except Exception:
+        return url
+
+
+def _tracked_link(keyword: str, url: str, placement: str) -> str:
+    return f"[{keyword}]({_destination_with_utm(url, keyword, placement)})"
+
+
+def _affiliate_disclosure() -> str:
+    if not AFFILIATE_DISCLOSURE:
+        return ""
+    return f"> **Affiliate disclosure:** {AFFILIATE_DISCLOSURE}\n\n"
+
+
+def _top_picks_section(tools: List[Tuple[str, str]]) -> str:
+    featured = tools[:AFFILIATE_FEATURED_LIMIT]
+    if not featured:
+        return ""
+    items = "\n".join(f"- **{_tracked_link(keyword, url, 'top-pick')}**" for keyword, url in featured)
+    return f"\n\n## Top Picks\n\n{items}\n"
+
+
+def _recommended_tools_section(body: str, affiliate_map: Dict[str, str]) -> str:
+    matched = _rank_affiliate_tools(body, affiliate_map, AFFILIATE_TOOL_LIMIT)
+    if not matched:
+        return ""
+    items = "\n".join(f"- {_tracked_link(keyword, url, 'recommended-tools')}" for keyword, url in matched)
+    return f"\n\n## Recommended Tools\n\n{items}\n"
+
+
+def _wrap_existing_affiliate_links(body: str, affiliate_map: Dict[str, str]) -> str:
+    url_to_keyword = {url.rstrip("/"): keyword for keyword, url in affiliate_map.items() if url}
+
+    def repl(match: "re.Match[str]") -> str:
+        label = match.group(1)
+        url = match.group(2)
+        keyword = url_to_keyword.get(url.rstrip("/"))
+        if not keyword:
+            host = _affiliate_domain(url)
+            for configured_url, configured_keyword in url_to_keyword.items():
+                if host and host == _affiliate_domain(configured_url):
+                    keyword = configured_keyword
+                    break
+        if not keyword:
+            return match.group(0)
+        return f"[{label}]({_destination_with_utm(url, keyword, 'inline')})"
+
+    return re.sub(r"\[([^\]]+)\]\((https?://[^\)\s]+)\)", repl, body)
+
+
+def _insert_after_intro(body: str, insertion: str) -> str:
+    if not insertion or "## Top Picks" in body:
+        return body
+    paragraphs = body.split("\n\n")
+    if len(paragraphs) < 2:
+        return body + insertion
+    return "\n\n".join(paragraphs[:2]) + insertion + "\n\n" + "\n\n".join(paragraphs[2:])
+
+
+def _optimized_inject_affiliates(body: str) -> str:
+    affiliate_map = _limited_affiliate_map()
+    if not affiliate_map:
+        return publisher._tag_amazon_links(body)  # type: ignore[attr-defined]
+
+    for keyword, url in affiliate_map.items():
+        body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
+
+    body = re.sub(r"\[AFFILIATE:([^\]]+)\]", r"\1", body)
+    body = publisher._auto_link_keywords(body, affiliate_map)  # type: ignore[attr-defined]
+    body = publisher._tag_amazon_links(body)  # type: ignore[attr-defined]
+
+    selected_tools = _rank_affiliate_tools(body, affiliate_map, AFFILIATE_TOOL_LIMIT)
+    if selected_tools:
+        body = _affiliate_disclosure() + body
+        body = _insert_after_intro(body, _top_picks_section(selected_tools))
+        body += _recommended_tools_section(body, dict(selected_tools))
+
+    return _wrap_existing_affiliate_links(body, affiliate_map)
+
+
 def _verify_ai_provider_hf_aware() -> bool:
     """Verify the active provider chain without falsely failing HF-only setups."""
     try:
@@ -129,6 +281,9 @@ def _verify_ai_provider_hf_aware() -> bool:
 
 def main() -> None:
     publisher._verify_ai_provider = _verify_ai_provider_hf_aware  # type: ignore[attr-defined]
+    publisher._affiliate_map = _limited_affiliate_map  # type: ignore[attr-defined]
+    publisher._recommended_tools_section = _recommended_tools_section  # type: ignore[attr-defined]
+    publisher._inject_affiliates = _optimized_inject_affiliates  # type: ignore[attr-defined]
 
     original_generate_article = publisher.generate_article
     original_publish_github = publisher.publish_github
@@ -153,7 +308,7 @@ def main() -> None:
     publisher.publish_github = publish_github_strict  # type: ignore[assignment]
 
     started = datetime.now(timezone.utc).isoformat()
-    print(f"[RESILIENT] Strict publisher started at {started}")
+    print(f"[RESILIENT] Strict optimized publisher started at {started}")
     publisher.main()
 
     if not getattr(publisher, "VERIFY_ONLY", False) and not publish_state["canonical_url"]:
