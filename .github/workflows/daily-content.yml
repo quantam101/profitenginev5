@@ -119,11 +119,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install ffmpeg + pillow
+      - name: Install ffmpeg + Python dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --fix-missing ffmpeg
-          pip install pillow
+          pip install httpx pillow
 
       - name: Generate and post faceless video
         env:
