@@ -125,12 +125,20 @@ jobs:
           sudo apt-get install -y --fix-missing ffmpeg
           pip install pillow
 
-      - name: Generate slideshow video
+      - name: Generate and post faceless video
         env:
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
+          CANONICAL_URL: https://www.alreadyherellc.com/content
+          PUBLIC_CONTENT_BASE: https://www.alreadyherellc.com/content
           EAOS_GPU_ENABLED: "false"
           EAOS_VIDEO_ROOT: ./datacenter/video_pipeline
           PYTHONUTF8: "1"
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_VIDEO_DIR: assets/videos
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
