@@ -21,6 +21,7 @@ Exit 1 = at least one finding; details printed to stdout.
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -35,9 +36,14 @@ from runtime.security_scanner import scan_repo  # noqa: E402
 
 def _run(*args: str, cwd: Path = ROOT) -> tuple[int, str]:
     """Run a command, return (returncode, combined output)."""
+    # shutil.which honours PATHEXT, so Windows .cmd shims (npx.cmd, ruff.cmd)
+    # resolve instead of raising FileNotFoundError and silently skipping a layer.
+    exe = shutil.which(args[0])
+    if exe is None:
+        return -1, f"command not found: {args[0]}"
     try:
         result = subprocess.run(
-            args,
+            (exe, *args[1:]),
             cwd=cwd,
             capture_output=True,
             text=True,

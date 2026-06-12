@@ -47,7 +47,7 @@ No partial "looks good" status is acceptable.
 - `max_cost_usd: 0` — no paid LLM calls allowed
 - `paid_adapters_enabled: false` — enforced by health check
 - Security scan must pass (`npm run security:scan`) before every commit
-- All 34 tests must pass (`npm test`)
+- All tests must pass (`npm test`)
 - No secrets in repo — keys live in server `.env` and GitHub Secrets only
 
 ## Content & Monetization
@@ -57,7 +57,7 @@ No partial "looks good" status is acceptable.
 - Affiliate links injected via `AFFILIATE_LINKS` env var (JSON map)
 
 ## Server Access
-- OCI server: `ubuntu@129.146.167.73`
+- OCI server: `opc@129.146.167.73` (Oracle Linux — there is no `ubuntu` user)
 - Deploy key (public): `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions`
 - Add via OCI Console → Instance → Edit → SSH keys
 
