@@ -102,6 +102,28 @@ def _hf_generate_image(sku: str, prompt: str, dest: Path) -> bool:
     return False
 
 
+# Words FLUX tends to garble next to otherwise-correct text (LRADY, CREATER,
+# FOUNTER...). Any OCR token within edit distance 2 of these — without being
+# an exact match — fails the render even when the required words are present.
+BRAND_VOCAB = {
+    "ALREADY", "HERE", "PROFIT", "ENGINE", "ZERO", "COST", "OPERATOR",
+    "AUTONOMOUS", "SHIP", "PROOF", "SYSTEMS", "NOISE", "CREATOR",
+    "FOUNDER", "CULTURE", "SOVEREIGN", "ECONOMY",
+}
+
+
+def _edit_distance(a: str, b: str) -> int:
+    if abs(len(a) - len(b)) > 2:
+        return 3  # beyond our threshold, exact value irrelevant
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
 def _ocr_text_ok(dest: Path, required: str):
     """OCR the rendered image and verify every required word appears.
 
@@ -125,14 +147,22 @@ def _ocr_text_ok(dest: Path, required: str):
             for cfg in ("--psm 11", "--psm 3"):
                 raw = pytesseract.image_to_string(variant, config=cfg).upper()
                 seen |= set("".join(c if c.isalpha() else " " for c in raw).split())
-                if all(w in seen for w in needed):
-                    return True
     except Exception as exc:
         print(f"[ocr] unavailable ({exc}) — gate skipped")
         return None
     missing = [w for w in needed if w not in seen]
-    print(f"[ocr] missing {missing} in render (saw: {sorted(seen)[:12]})")
-    return False
+    if missing:
+        print(f"[ocr] missing {missing} in render (saw: {sorted(seen)[:12]})")
+        return False
+    garbled = sorted(
+        t for t in seen
+        if len(t) >= 4 and t not in BRAND_VOCAB
+        and any(_edit_distance(t, v) <= 2 for v in BRAND_VOCAB)
+    )
+    if garbled:
+        print(f"[ocr] near-miss garble {garbled} in render — rejecting")
+        return False
+    return True
 
 
 def main() -> int:
