@@ -161,8 +161,10 @@ jobs:
             exit 0
           fi
 
-          curl -sf "$RUNTIME_API_URL/income/summary" \
+          # Bounded so a hung /income/summary can't stall the digest for minutes
+          curl -sf --max-time 30 "$RUNTIME_API_URL/income/summary" \
             -o /tmp/income.json || echo '{"ok":false}' > /tmp/income.json
+          if [ ! -s /tmp/income.json ]; then echo '{"ok":false}' > /tmp/income.json; fi
 
           # Parse key metrics
           GUMROAD_REV=$(python3 -c "
