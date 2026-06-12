@@ -242,6 +242,14 @@ def generate_article(topic: str) -> Dict[str, Any]:
         sys.exit("❌ No LLM provider configured — set GROQ_API_KEY, GEMINI_API_KEY, or HF_TOKEN")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
+    affiliate_keywords = list(_affiliate_map().keys())
+    if affiliate_keywords:
+        prompt += (
+            "\n\nWhere genuinely helpful to the reader, naturally mention these "
+            "products/services using these exact phrases (do not force them in, "
+            "and do not turn the article into an advertisement): "
+            + ", ".join(affiliate_keywords)
+        )
     # Try each Groq model in priority order, then Gemini, then HuggingFace
     raw = ""
     if GROQ_KEY:
@@ -314,17 +322,92 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
-def _inject_affiliates(body: str) -> str:
-    """Replace [AFFILIATE:keyword] tokens with markdown links, then strip unresolved tokens."""
+AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20")
+
+
+def _affiliate_map() -> Dict[str, str]:
     try:
-        affiliate_map: Dict[str, str] = json.loads(AFFILIATE_LINKS_JSON)
+        parsed = json.loads(AFFILIATE_LINKS_JSON)
+        return parsed if isinstance(parsed, dict) else {}
     except json.JSONDecodeError:
-        affiliate_map = {}
+        return {}
+
+
+def _auto_link_keywords(body: str, affiliate_map: Dict[str, str]) -> str:
+    """Link the first plain-text occurrence of each affiliate keyword.
+
+    Token replacement alone never fired in production: generated bodies do
+    not contain [AFFILIATE:...] tokens, so configured links never reached
+    readers. Skips headings, code fences, and text already inside links.
+    """
+    lines = body.split("\n")
+    in_code = False
+    linked: set = set()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code or stripped.startswith("#"):
+            continue
+        for keyword, url in affiliate_map.items():
+            if keyword in linked:
+                continue
+            if url in line:
+                linked.add(keyword)
+                continue
+            m = re.search(re.escape(keyword), line, re.IGNORECASE)
+            if not m:
+                continue
+            prefix = line[: m.start()]
+            if prefix.count("[") > prefix.count("]"):
+                continue  # already inside a markdown link
+            line = f"{prefix}[{m.group(0)}]({url}){line[m.end():]}"
+            lines[i] = line
+            linked.add(keyword)
+    return "\n".join(lines)
+
+
+def _recommended_tools_section(body: str, affiliate_map: Dict[str, str]) -> str:
+    """A short link box for keywords the article actually mentions — never
+    a dump of every configured link."""
+    matched = [
+        (kw, url) for kw, url in affiliate_map.items()
+        if re.search(re.escape(kw), body, re.IGNORECASE)
+    ]
+    if not matched:
+        return ""
+    items = "\n".join(f"- [{kw}]({url})" for kw, url in matched)
+    return f"\n\n## Recommended Tools\n\n{items}\n"
+
+
+def _tag_amazon_links(body: str) -> str:
+    """Append the partner tag to untagged amazon.com links."""
+    if not AMAZON_PARTNER_TAG:
+        return body
+
+    def _add_tag(m: "re.Match[str]") -> str:
+        url = m.group(0)
+        if "tag=" in url:
+            return url
+        sep = "&" if "?" in url else "?"
+        return f"{url}{sep}tag={AMAZON_PARTNER_TAG}"
+
+    return re.sub(r"https?://(?:www\.)?amazon\.com/[^\s\)\]\"'<>]+", _add_tag, body)
+
+
+def _inject_affiliates(body: str) -> str:
+    """Full monetization pass: tokens → keyword auto-links → recommended
+    section → Amazon partner tag. No-op while AFFILIATE_LINKS is empty."""
+    affiliate_map = _affiliate_map()
     for keyword, url in affiliate_map.items():
         body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
     # Strip any remaining unresolved affiliate tokens.
     body = re.sub(r"\[AFFILIATE:([^\]]+)\]", r"\1", body)
-    return body
+    if affiliate_map:
+        body = _auto_link_keywords(body, affiliate_map)
+        body += _recommended_tools_section(body, affiliate_map)
+    return _tag_amazon_links(body)
 
 
 # ── GitHub Pages publish ───────────────────────────────────────────────────────
