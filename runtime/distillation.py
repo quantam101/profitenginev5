@@ -61,13 +61,17 @@ _STOP_WORDS = frozenset(
 # ── Backend imports (FastAPI router, pydantic, services) ─────────────────────
 _BACKEND_AVAILABLE = False
 try:
-    from fastapi import APIRouter, Depends
-    from pydantic import BaseModel
+    # services.* must come first: outside the backend context it raises
+    # immediately, before the expensive fastapi import (~500ms) is paid.
+    # Library consumers (docker_guard, distill_engine, scripts) only need
+    # the pure functions below.
     from services.distillation_service import (  # type: ignore[import]
         CACHE_TTL_SECONDS, cache_clear, cache_stats, distill_text,
         to_yaml_payload,
     )
     from services.llm_runner import daily_usage_history, get_today_usage  # type: ignore[import]
+    from fastapi import APIRouter, Depends
+    from pydantic import BaseModel
     router = APIRouter()
     _BACKEND_AVAILABLE = True
 except ImportError:

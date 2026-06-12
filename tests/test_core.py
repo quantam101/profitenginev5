@@ -261,6 +261,7 @@ def test_runtime_api_serves_health_and_execute(tmp_path, monkeypatch):
     monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
     monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
     monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
+    monkeypatch.setenv("PROFITENGINE_WEBHOOK_TOKEN", "test-webhook-secret-1234")
     client = TestClient(app)
 
     health = client.get("/health")
@@ -268,14 +269,21 @@ def test_runtime_api_serves_health_and_execute(tmp_path, monkeypatch):
     assert health.json()["ok"] is True
     assert health.headers["x-request-id"]
 
+    execute_payload = {
+        "objective": "Draft a local research summary",
+        "dynamic_context": "approved source note",
+        "embedding_vector": [0.4, 0.4, 0.4, 0.4],
+        "agent_id": "local-research",
+    }
+
+    # /execute is webhook-token gated: unauthenticated must be rejected
+    unauthenticated = client.post("/execute", json=execute_payload)
+    assert unauthenticated.status_code == 401
+
     execution = client.post(
         "/execute",
-        json={
-            "objective": "Draft a local research summary",
-            "dynamic_context": "approved source note",
-            "embedding_vector": [0.4, 0.4, 0.4, 0.4],
-            "agent_id": "local-research",
-        },
+        json=execute_payload,
+        headers={"x-profitengine-token": "test-webhook-secret-1234"},
     )
     assert execution.status_code == 200
     assert execution.json()["status"] == "ok"

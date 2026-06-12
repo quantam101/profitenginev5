@@ -40,12 +40,21 @@ SLO = {
 }
 
 # ── Runtime TestClient fixture ────────────────────────────────────────────────
+# /execute is gated by PROFITENGINE_WEBHOOK_TOKEN; the suite runs with a test
+# token and sends it on every request so auth never produces a 503/401 here.
+_TEST_WEBHOOK_TOKEN = "full-suite-test-token-1234"
+
+
 @pytest.fixture(scope="session")
 def runtime_client():
     """FastAPI TestClient for the runtime API — no server needed."""
     from fastapi.testclient import TestClient as _TC
     from runtime.api import app
-    return _TC(app)
+    os.environ.setdefault("PROFITENGINE_WEBHOOK_TOKEN", _TEST_WEBHOOK_TOKEN)
+    return _TC(
+        app,
+        headers={"x-profitengine-token": os.environ["PROFITENGINE_WEBHOOK_TOKEN"]},
+    )
 
 
 @pytest.fixture(scope="session")
@@ -304,18 +313,29 @@ class TestTimeoutValidation:
         return results
 
     def test_requests_calls_have_timeout(self):
-        """All requests.get/post/etc. calls must include timeout="""
+        """All requests.get/post/etc. calls must include timeout= (AST-based;
+        regex scanning broke on nested parens like url.rstrip('/'))."""
         violations = []
-        pat = re.compile(r'requests\.(get|post|put|patch|delete|head)\s*\(([^)]*)\)')
+        HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head"}
         for path in self._py_files():
             try:
                 src = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
+                tree = ast.parse(src)
+            except (OSError, SyntaxError):
                 continue
-            for m in pat.finditer(src):
-                if "timeout=" not in m.group(2):
-                    line = src[:m.start()].count("\n") + 1
-                    violations.append(f"{path.relative_to(ROOT)}:{line}")
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if not (
+                    isinstance(func, ast.Attribute)
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "requests"
+                    and func.attr in HTTP_METHODS
+                ):
+                    continue
+                if not any(kw.arg == "timeout" for kw in node.keywords):
+                    violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
         assert not violations, (
             f"{len(violations)} requests call(s) missing timeout=:\n" +
             "\n".join(f"  {v}" for v in violations[:10])
@@ -352,18 +372,31 @@ class TestTimeoutValidation:
         )
 
     def test_urllib_calls_have_timeout(self):
-        """All urllib.request.urlopen calls must have timeout argument."""
+        """All urllib.request.urlopen calls must have a timeout (AST-based).
+        Accepts timeout= keyword or the third positional arg (url, data, timeout)."""
         violations = []
-        pat = re.compile(r'urlopen\s*\(([^)]*)\)')
         for path in self._py_files():
             try:
                 src = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
+                tree = ast.parse(src)
+            except (OSError, SyntaxError):
                 continue
-            for m in pat.finditer(src):
-                if "timeout=" not in m.group(1) and not re.search(r',\s*\d+\s*\)', m.group(0)):
-                    line = src[:m.start()].count("\n") + 1
-                    violations.append(f"{path.relative_to(ROOT)}:{line} -- {m.group(0)[:60]}")
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                is_urlopen = (
+                    (isinstance(func, ast.Name) and func.id == "urlopen")
+                    or (isinstance(func, ast.Attribute) and func.attr == "urlopen")
+                )
+                if not is_urlopen:
+                    continue
+                has_timeout = (
+                    any(kw.arg == "timeout" for kw in node.keywords)
+                    or len(node.args) >= 3
+                )
+                if not has_timeout:
+                    violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
         assert not violations, (
             f"{len(violations)} urlopen call(s) missing timeout:\n" +
             "\n".join(f"  {v}" for v in violations[:10])

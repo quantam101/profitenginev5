@@ -22,6 +22,7 @@ import assert from 'node:assert/strict';
 import { execSync, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
 
 // ── Config ─────────────────────────────────────────────────────────────────────
@@ -29,7 +30,9 @@ const RUNTIME_URL = process.env.RUNTIME_URL ?? 'http://localhost:8080';
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8001';
 const NEXT_URL    = process.env.NEXT_URL    ?? 'http://localhost:3000';
 const SKIP_LIVE   = process.argv.includes('--skip-live');
-const ROOT        = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+// fileURLToPath decodes percent-encoding (spaces!) and yields a native path;
+// URL.pathname left "%20" in the path and broke every spawnSync cwd on Windows.
+const ROOT        = fileURLToPath(new URL('..', import.meta.url));
 
 const SLO = {
   health_endpoint_p95_ms:       500,
@@ -261,15 +264,12 @@ async function runRegression(backendOk) {
 // ════════════════════════════════════════════════════════════════════════════════
 function runESLint() {
   section('3. ESLint');
-  const result = spawnSync(
-    'node', ['node_modules/.bin/next', 'lint', '--format', 'json'],
-    { cwd: ROOT, encoding: 'utf8', timeout: 60_000 }
-  );
-
-  // Try plain eslint if next lint not available
+  // Invoke eslint's JS entrypoint with the current node binary: works on
+  // every platform (npx.cmd spawns are rejected with EINVAL on Windows).
   const eslintResult = spawnSync(
-    process.platform === 'win32' ? 'npx.cmd' : 'npx',
-    ['--no-install', 'eslint', 'app/', 'lib/', '--format', 'json', '--max-warnings', '0'],
+    process.execPath,
+    [join(ROOT, 'node_modules', 'eslint', 'bin', 'eslint.js'),
+     'app/', 'lib/', '--format', 'json', '--max-warnings', '0'],
     { cwd: ROOT, encoding: 'utf8', timeout: 60_000 }
   );
 

@@ -21,13 +21,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # ─── hashnode_client ────────────────────────────────────────────────────────
 
 class TestHashnodeClient:
+    # Hashnode retired free GraphQL access 2026-05-13. The client refuses to
+    # run unless PAID_ADAPTERS_ENABLED is set (max_cost_usd: 0 policy); the
+    # legacy paths below opt in explicitly to test the code behind the gate.
+
+    def test_blocked_by_default_as_paid_adapter(self, monkeypatch):
+        monkeypatch.delenv("PAID_ADAPTERS_ENABLED", raising=False)
+        monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
+        monkeypatch.setenv("HASHNODE_PUBLICATION_ID", "pub123")
+        from runtime.hashnode_client import publish_article
+        with pytest.raises(RuntimeError, match="paid-only"):
+            publish_article("Test", "body")
+
     def test_raises_without_api_key(self, monkeypatch):
+        monkeypatch.setenv("PAID_ADAPTERS_ENABLED", "true")
         monkeypatch.delenv("HASHNODE_API_KEY", raising=False)
         from runtime.hashnode_client import publish_article
         with pytest.raises(RuntimeError, match="HASHNODE_API_KEY"):
             publish_article("Test", "body")
 
     def test_raises_without_pub_id(self, monkeypatch):
+        monkeypatch.setenv("PAID_ADAPTERS_ENABLED", "true")
         monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
         monkeypatch.delenv("HASHNODE_PUBLICATION_ID", raising=False)
         from runtime.hashnode_client import publish_article
@@ -35,9 +49,9 @@ class TestHashnodeClient:
             publish_article("Test", "body")
 
     def test_returns_url_on_success(self, monkeypatch):
+        monkeypatch.setenv("PAID_ADAPTERS_ENABLED", "true")
         monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
         monkeypatch.setenv("HASHNODE_PUBLICATION_ID", "pub123")
-        import httpx
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
         mock_resp.json.return_value = {
@@ -46,13 +60,12 @@ class TestHashnodeClient:
         with patch("httpx.post", return_value=mock_resp):
             from runtime import hashnode_client
             import importlib; importlib.reload(hashnode_client)
-            monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
-            monkeypatch.setenv("HASHNODE_PUBLICATION_ID", "pub123")
             result = hashnode_client.publish_article("Test Title", "## Body")
         assert result["url"] == "https://hn.test/post"
         assert result["id"] == "abc"
 
     def test_raises_on_graphql_error(self, monkeypatch):
+        monkeypatch.setenv("PAID_ADAPTERS_ENABLED", "true")
         monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
         monkeypatch.setenv("HASHNODE_PUBLICATION_ID", "pub123")
         mock_resp = MagicMock()
@@ -61,8 +74,6 @@ class TestHashnodeClient:
         with patch("httpx.post", return_value=mock_resp):
             from runtime import hashnode_client
             import importlib; importlib.reload(hashnode_client)
-            monkeypatch.setenv("HASHNODE_API_KEY", "hn_test_key")
-            monkeypatch.setenv("HASHNODE_PUBLICATION_ID", "pub123")
             with pytest.raises(RuntimeError, match="Hashnode API error"):
                 hashnode_client.publish_article("Test", "body")
 

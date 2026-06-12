@@ -57,8 +57,8 @@ jobs:
         env:
           CI: "true"
           GROQ_API_KEY: "stub-groq-ci-key"
-      - name: Opportunity intelligence test
-        run: npm run test:opportunity
+      - name: Python regression suite (all tests/)
+        run: npm run test:regression
         env:
           CI: "true"
       - name: Gateway evals
