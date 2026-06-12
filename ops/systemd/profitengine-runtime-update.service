@@ -15,7 +15,9 @@ Environment=SERVICE=runtime
 Environment=HEALTH_URL=https://api.profitengine.alreadyherellc.com/health
 Environment=MAX_HEALTH_TRIES=24
 Environment=HEALTH_SLEEP_SEC=5
-ExecStart=/home/opc/profitenginev5/scripts/oci-runtime-update.sh
+# bash-wrapped so a stripped execute bit (e.g. git reset from a Windows
+# commit) can never 203/EXEC the unit again
+ExecStart=/bin/bash /home/opc/profitenginev5/scripts/oci-runtime-update.sh
 Nice=5
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
