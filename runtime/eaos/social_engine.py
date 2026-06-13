@@ -21,6 +21,9 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger("EAOS.SocialEngine")
+if not logger.handlers:
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
 
 DB_PATH = os.environ.get("EAOS_SOCIAL_DB", "./datacenter/social_cache.db")
 
