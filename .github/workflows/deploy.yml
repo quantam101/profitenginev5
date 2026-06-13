@@ -156,9 +156,11 @@ jobs:
       - name: Install host updater and run one-shot update
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           HOST="${{ needs.oci_preflight.outputs.host }}"
           APP_DIR="${{ needs.oci_preflight.outputs.app_dir }}"
+
+          set +e
           $(cat /tmp/ssh_cmd) opc@"$HOST" "APP_DIR='$APP_DIR' bash -s" <<'REMOTE'
           set -Eeuo pipefail
           cd "$APP_DIR"
@@ -168,6 +170,19 @@ jobs:
           sudo APP_DIR="$APP_DIR" bash scripts/install-oci-runtime-updater.sh
           APP_DIR="$APP_DIR" bash scripts/oci-runtime-update.sh
           REMOTE
+          SSH_EXIT=$?
+          set -u
+
+          if [ "$SSH_EXIT" -ne 0 ]; then
+            echo "::warning::OCI SSH deploy exited with code $SSH_EXIT. Treating as DEGRADED — Vercel remains primary production."
+            {
+              echo "## OCI runtime mirror deploy — SSH failed"
+              echo ""
+              echo "SSH exit code: $SSH_EXIT"
+              echo "This does not affect the primary Vercel production deployment."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
       - name: External runtime health verification
         shell: bash
