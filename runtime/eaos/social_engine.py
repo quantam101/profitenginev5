@@ -24,6 +24,13 @@ logger = logging.getLogger("EAOS.SocialEngine")
 
 DB_PATH = os.environ.get("EAOS_SOCIAL_DB", "./datacenter/social_cache.db")
 
+_INVISIBLE_JUNK = str.maketrans("", "", "\ufeff\ufffe\u200b\u200c\u200d\u2060")
+
+
+def _sanitize(text: str) -> str:
+    """Strip BOM and zero-width characters that break platform APIs."""
+    return text.translate(_INVISIBLE_JUNK).strip()
+
 
 @dataclass
 class SocialPost:
@@ -446,6 +453,7 @@ class ProductionSocialEngine:
             return False
 
     async def publish(self, post: SocialPost) -> None:
+        post.text_content = _sanitize(post.text_content)
         dispatch = {
             "X":         _post_twitter,
             "TWITTER":   _post_twitter,
