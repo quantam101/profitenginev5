@@ -21,8 +21,18 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger("EAOS.SocialEngine")
+if not logger.handlers:
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
 
 DB_PATH = os.environ.get("EAOS_SOCIAL_DB", "./datacenter/social_cache.db")
+
+_INVISIBLE_JUNK = str.maketrans("", "", "\ufeff\ufffe\u200b\u200c\u200d\u2060")
+
+
+def _sanitize(text: str) -> str:
+    """Strip BOM and zero-width characters that break platform APIs."""
+    return text.translate(_INVISIBLE_JUNK).strip()
 
 
 @dataclass
@@ -131,7 +141,7 @@ async def _post_twitter(post: SocialPost) -> Optional[bool]:
         reply_to = tweet_id
         for tweet_text in thread[1:]:
             time.sleep(1)
-            t_body = json.dumps({"text": tweet_text[:280], "reply": {"in_reply_to_tweet_id": reply_to}}).encode()
+            t_body = json.dumps({"text": _sanitize(tweet_text)[:280], "reply": {"in_reply_to_tweet_id": reply_to}}).encode()
             t_header = _twitter_auth_header("POST", url, {})
             t_req = urllib.request.Request(url, data=t_body, method="POST",
                 headers={"Authorization": t_header, "Content-Type": "application/json"})
@@ -393,7 +403,7 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
         metadata = json.dumps({
             "snippet": {
                 "title": post.text_content[:100],
-                "description": extra.get("description", post.text_content[:5000]),
+                "description": _sanitize(extra.get("description", post.text_content[:5000])),
                 "tags": extra.get("tags", ["ProfitEngine", "PassiveIncome", "AI", "AlreadyHereLLC"]),
                 "categoryId": "28",  # Science & Technology
             },
@@ -446,6 +456,7 @@ class ProductionSocialEngine:
             return False
 
     async def publish(self, post: SocialPost) -> None:
+        post.text_content = _sanitize(post.text_content)
         dispatch = {
             "X":         _post_twitter,
             "TWITTER":   _post_twitter,
