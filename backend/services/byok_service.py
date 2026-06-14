@@ -3,13 +3,13 @@ TokenForge BYOK (Bring Your Own Key) service.
 
 Lets Pro+ customers store their own OpenAI / Anthropic / Google Gemini API
 keys in TokenForge. Keys are encrypted at rest with Fernet (AES-128-CBC + HMAC)
-using a key derived from JWT_SECRET � so platform operators with DB access
+using a key derived from JWT_SECRET - so platform operators with DB access
 cannot read customer keys without the server's JWT secret.
 
 Public surface:
     - encrypt(plaintext: str) -> str
     - decrypt(ciphertext: str) -> str
-    - mask(plaintext: str) -> str   # display-safe "sk-�last4"
+    - mask(plaintext: str) -> str   # display-safe "sk-****last4"
     - SUPPORTED_PROVIDERS = ("openai", "anthropic", "google")
     - BYOK_PLANS = ("pro", "enterprise")  # which plans unlock BYOK
 """
@@ -30,7 +30,7 @@ BYOK_PLANS = ("pro", "enterprise")
 def _fernet() -> Fernet:
     """Derive a stable 32-byte Fernet key from JWT_SECRET so we don't have to
     manage a second secret. Customers' encrypted keys will fail to decrypt if
-    JWT_SECRET is rotated � which is the correct safety property (rotate
+    JWT_SECRET is rotated - which is the correct safety property (rotate
     intentionally; force users to re-paste their keys)."""
     jwt_secret = os.environ.get("JWT_SECRET", "")
     if not jwt_secret:
@@ -55,12 +55,12 @@ def mask(plaintext: str) -> str:
     if not plaintext:
         return ""
     if len(plaintext) <= 12:
-        return "�" + plaintext[-4:]
-    return f"{plaintext[:4]}�{plaintext[-4:]}"
+        return "****" + plaintext[-4:]
+    return f"{plaintext[:4]}****{plaintext[-4:]}"
 
 
 def looks_valid(provider: str, plaintext: str) -> bool:
-    """Lightweight sanity check � reject obvious garbage before saving."""
+    """Lightweight sanity check - reject obvious garbage before saving."""
     if not plaintext or len(plaintext) < 20:
         return False
     p = provider.lower()

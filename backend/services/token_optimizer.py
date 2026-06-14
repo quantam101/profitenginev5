@@ -1,5 +1,5 @@
 """
-TokenForge optimization engine � the 5 distillation pillars condensed
+TokenForge optimization engine - the 5 distillation pillars condensed
 into a single deterministic, regex-driven Python module.
 
 Pillar 1: Sub-Byte Lexical Compression & Vocabulary Alignment
@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple
 
 # ------------------------------------------------------------------
 # Token estimation (tiktoken-style heuristic: ~1 token / 4 chars or
-# ~0.75 tokens / word � we use a hybrid).
+# ~0.75 tokens / word - we use a hybrid).
 # ------------------------------------------------------------------
 def estimate_tokens(text: str) -> int:
     if not text:
@@ -178,7 +178,7 @@ def pillar2_strip_boilerplate(text: str) -> str:
 
 
 # ------------------------------------------------------------------
-# Pillar 3: Struct serialization � if input contains JSON/XML blocks,
+# Pillar 3: Struct serialization - if input contains JSON/XML blocks,
 # minify them.
 # ------------------------------------------------------------------
 JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\}|\[.*?\])\s*```", re.DOTALL)
