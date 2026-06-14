@@ -1,6 +1,11 @@
 name: Health Check - Runtime API (Every 5 Minutes)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/health-check-frequent.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -18,8 +23,17 @@ env:
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
 
 jobs:
+  validate_workflow:
+    name: Validate workflow file
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm workflow-only update
+        run: echo "Health-check workflow syntax accepted. Runtime health check is reserved for schedule and manual dispatch."
+
   check:
     name: Runtime API Health
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 3
 
