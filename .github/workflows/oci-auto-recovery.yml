@@ -1,4 +1,4 @@
-name: OCI Auto-Recovery - Restart Runtime Instance
+name: OCI Auto-Recovery - SSH-based Instance Recovery
 
 on:
   workflow_dispatch:
@@ -10,8 +10,7 @@ on:
         type: choice
         options:
           - 'reboot'
-          - 'start'
-          - 'hard-restart'
+          - 'restart-docker'
           - 'status'
   workflow_call:
     inputs:
@@ -30,7 +29,7 @@ concurrency:
 
 jobs:
   recover:
-    name: OCI Instance Recovery
+    name: OCI Instance Recovery (SSH)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,119 +37,77 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup OCI CLI
+      - name: Setup SSH Key
         run: |
-          sudo apt-get update && sudo apt-get install -y python3-pip
-          pip3 install oci-cli
-          oci --version
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/deploy_key << 'SSHEOF'
+          ${{ secrets.OCI_SSH_KEY }}
+          SSHEOF
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Configure OCI Credentials
+      - name: Test SSH Connection
         run: |
-          mkdir -p ~/.oci
-          cat > ~/.oci/config << 'OCIEOF'
-          [DEFAULT]
-          user=${{ secrets.OCI_USER_OCID }}
-          fingerprint=${{ secrets.OCI_FINGERPRINT }}
-          tenancy=${{ secrets.OCI_TENANCY_OCID }}
-          region=${{ secrets.OCI_REGION }}
-          key_file=~/.oci/oci_api_key.pem
-          OCIEOF
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 "echo 'SSH connection successful' && uptime"
 
-          cat > ~/.oci/oci_api_key.pem << 'KEYEOF'
-          ${{ secrets.OCI_PRIVATE_KEY }}
-          KEYEOF
-
-          chmod 600 ~/.oci/oci_api_key.pem
-          chmod 600 ~/.oci/config
-          oci iam user get --user-id ${{ secrets.OCI_USER_OCID }} --query 'data.name' --raw-output
-
-      - name: Get Instance ID
-        id: instance
+      - name: Recovery Action - Restart Docker
+        if: inputs.action == 'restart-docker' || inputs.action == 'reboot'
         run: |
-          INSTANCE_ID=$(oci compute instance list \
-            --compartment-id ${{ secrets.OCI_COMPARTMENT_OCID }} \
-            --region ${{ secrets.OCI_REGION }} \
-            --query "data[?\"display-name\"=='profitenginev5-runtime'].id" \
-            --raw-output)
-          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          echo "Instance ID: $INSTANCE_ID"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
+          set -e
+          echo "Checking Docker status..."
+          docker ps > /dev/null 2>&1 || true
+          echo "Restarting runtime container..."
+          docker ps -a | grep runtime && docker restart $(docker ps -a | grep runtime | awk '{print $1}') || echo "Runtime container not found"
+          echo "Waiting for recovery..."
+          sleep 10
+          EOF
+
+      - name: Recovery Action - Full Reboot
+        if: inputs.action == 'reboot'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
+          set -e
+          echo "Initiating system reboot..."
+          sudo shutdown -r +1 "Automated recovery reboot" || sudo reboot
+          EOF
+          echo "Reboot initiated. Waiting 90 seconds for system to come back online..."
+          sleep 90
 
       - name: Check Instance Status
-        id: status
-        run: |
-          STATE=$(oci compute instance get \
-            --instance-id ${{ steps.instance.outputs.instance_id }} \
-            --region ${{ secrets.OCI_REGION }} \
-            --query 'data."lifecycle-state"' \
-            --raw-output)
-          echo "current_state=$STATE" >> $GITHUB_OUTPUT
-          echo "Current state: $STATE"
-
-      - name: Recovery Action - Reboot
-        if: inputs.action == 'reboot' || inputs.action == ''
-        run: |
-          if [ "${{ steps.status.outputs.current_state }}" != "RUNNING" ]; then
-            echo "Instance not running. Starting instead..."
-            oci compute instance action \
-              --instance-id "${{ steps.instance.outputs.instance_id }}" \
-              --action START \
-              --region ${{ secrets.OCI_REGION }} \
-              --wait
-            sleep 30
-          else
-            oci compute instance action \
-              --instance-id "${{ steps.instance.outputs.instance_id }}" \
-              --action REBOOT \
-              --region ${{ secrets.OCI_REGION }} \
-              --wait
-            sleep 30
-          fi
-
-      - name: Recovery Action - Start
-        if: inputs.action == 'start'
-        run: |
-          if [ "${{ steps.status.outputs.current_state }}" != "RUNNING" ]; then
-            oci compute instance action \
-              --instance-id "${{ steps.instance.outputs.instance_id }}" \
-              --action START \
-              --region ${{ secrets.OCI_REGION }} \
-              --wait
-            sleep 30
-          else
-            echo "Instance already running"
-          fi
-
-      - name: Recovery Action - Hard Restart
-        if: inputs.action == 'hard-restart'
-        run: |
-          oci compute instance action \
-            --instance-id "${{ steps.instance.outputs.instance_id }}" \
-            --action STOP \
-            --region ${{ secrets.OCI_REGION }} \
-            --wait
-          sleep 20
-          oci compute instance action \
-            --instance-id "${{ steps.instance.outputs.instance_id }}" \
-            --action START \
-            --region ${{ secrets.OCI_REGION }} \
-            --wait
-          sleep 30
-
-      - name: Report Status
         if: inputs.action == 'status'
         run: |
-          echo "Instance ID: ${{ steps.instance.outputs.instance_id }}"
-          echo "Current State: ${{ steps.status.outputs.current_state }}"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
+          echo "Instance Status Report"
+          echo "======================"
+          echo "Hostname: $(hostname)"
+          echo "Uptime: $(uptime)"
+          echo ""
+          echo "Docker Status:"
+          docker ps --format "table {{.Names}}\t{{.Status}}"
+          echo ""
+          echo "Memory:"
+          free -h | grep Mem
+          echo ""
+          echo "Disk:"
+          df -h / | tail -1
+          EOF
 
-      - name: Wait for API Health
+      - name: Verify API Recovery
+        if: inputs.action != 'status'
         run: |
           echo "Waiting for Runtime API to respond..."
           for i in {1..36}; do
             if curl -s -f -m 5 https://api.profitengine.alreadyherellc.com/health > /dev/null 2>&1; then
-              echo "API is healthy"
+              echo "✅ API is healthy!"
               exit 0
             fi
             echo "Attempt $i/36: Still waiting..."
             sleep 5
           done
-          echo "API not responding yet (may still be initializing)"
+          echo "⚠️ API not responding yet (may still be initializing)"
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
