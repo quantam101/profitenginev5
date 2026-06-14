@@ -1,6 +1,11 @@
 name: OCI Recovery - Escalation (Hard Restart)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/oci-recovery-escalate.yml'
   workflow_run:
     workflows: ['OCI Auto-Recovery - SSH-based Instance Recovery']
     types: [completed]
@@ -19,11 +24,19 @@ env:
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
 
 jobs:
+  validate_workflow:
+    name: Validate workflow file
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm workflow-only update
+        run: echo "Escalation workflow syntax accepted. Escalation logic runs only on manual dispatch or failed recovery completion."
+
   check_if_escalation_needed:
     name: Check if escalation is needed
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure'
 
     steps:
       - name: Wait for initial recovery window
