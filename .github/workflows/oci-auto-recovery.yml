@@ -9,8 +9,9 @@ on:
         default: 'reboot'
         type: choice
         options:
-          - 'reboot'
           - 'restart-docker'
+          - 'reboot'
+          - 'hard-restart'
           - 'status'
   workflow_call:
     inputs:
@@ -27,6 +28,12 @@ concurrency:
   group: oci-recovery
   cancel-in-progress: false
 
+env:
+  RECOVERY_HOST: ${{ vars.OCI_RUNTIME_HOST || '129.146.167.73' }}
+  RECOVERY_USER: ${{ vars.OCI_RUNTIME_USER || 'opc' }}
+  RECOVERY_PORT: ${{ vars.OCI_RUNTIME_SSH_PORT || '22' }}
+  RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
+
 jobs:
   recover:
     name: OCI Instance Recovery (SSH)
@@ -37,77 +44,177 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup SSH Key
+      - name: Validate recovery input
+        shell: bash
         run: |
+          set -euo pipefail
+          case "${{ inputs.action }}" in
+            restart-docker|reboot|hard-restart|status) ;;
+            *)
+              echo "::error::Unsupported recovery action: ${{ inputs.action }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Setup SSH access
+        env:
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${OCI_SSH_KEY:-}" ]; then
+            echo "::error::OCI_SSH_KEY is not configured. Recovery cannot SSH into the runtime host."
+            exit 1
+          fi
+          if [ -z "${RECOVERY_HOST:-}" ]; then
+            echo "::error::RECOVERY_HOST is empty. Set vars.OCI_RUNTIME_HOST or keep the repository default host current."
+            exit 1
+          fi
           mkdir -p ~/.ssh
-          cat > ~/.ssh/deploy_key << 'SSHEOF'
-          ${{ secrets.OCI_SSH_KEY }}
-          SSHEOF
+          printf '%s\n' "$OCI_SSH_KEY" | sed 's/\r$//' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
+          {
+            echo "Host profitengine-runtime"
+            echo "  HostName ${RECOVERY_HOST}"
+            echo "  User ${RECOVERY_USER:-opc}"
+            echo "  Port ${RECOVERY_PORT:-22}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  BatchMode yes"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking accept-new"
+            echo "  ConnectTimeout 15"
+            echo "  ServerAliveInterval 5"
+            echo "  ServerAliveCountMax 2"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+          ssh-keyscan -p "${RECOVERY_PORT:-22}" -H "$RECOVERY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Test SSH Connection
+      - name: Test SSH connection
+        shell: bash
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 "echo 'SSH connection successful' && uptime"
-
-      - name: Recovery Action - Restart Docker
-        if: inputs.action == 'restart-docker' || inputs.action == 'reboot'
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
-          set -e
-          echo "Checking Docker status..."
-          docker ps > /dev/null 2>&1 || true
-          echo "Restarting runtime container..."
-          docker ps -a | grep runtime && docker restart $(docker ps -a | grep runtime | awk '{print $1}') || echo "Runtime container not found"
-          echo "Waiting for recovery..."
-          sleep 10
-          EOF
-
-      - name: Recovery Action - Full Reboot
-        if: inputs.action == 'reboot'
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
-          set -e
-          echo "Initiating system reboot..."
-          sudo shutdown -r +1 "Automated recovery reboot" || sudo reboot
-          EOF
-          echo "Reboot initiated. Waiting 90 seconds for system to come back online..."
-          sleep 90
-
-      - name: Check Instance Status
-        if: inputs.action == 'status'
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 opc@129.146.167.73 << 'EOF'
-          echo "Instance Status Report"
-          echo "======================"
-          echo "Hostname: $(hostname)"
-          echo "Uptime: $(uptime)"
-          echo ""
-          echo "Docker Status:"
-          docker ps --format "table {{.Names}}\t{{.Status}}"
-          echo ""
-          echo "Memory:"
-          free -h | grep Mem
-          echo ""
-          echo "Disk:"
-          df -h / | tail -1
-          EOF
-
-      - name: Verify API Recovery
-        if: inputs.action != 'status'
-        run: |
-          echo "Waiting for Runtime API to respond..."
-          for i in {1..36}; do
-            if curl -s -f -m 5 https://api.profitengine.alreadyherellc.com/health > /dev/null 2>&1; then
-              echo "✅ API is healthy!"
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if ssh profitengine-runtime "echo 'SSH connection successful'; uptime"; then
               exit 0
             fi
-            echo "Attempt $i/36: Still waiting..."
+            echo "SSH attempt $attempt/5 failed. Retrying..."
+            sleep 10
+          done
+          echo "::error::Unable to reach runtime host over SSH after 5 attempts. Check OCI security list, public IP, host firewall, username, and OCI_SSH_KEY."
+          exit 1
+
+      - name: Recovery action - restart Docker runtime
+        if: inputs.action == 'restart-docker' || inputs.action == 'reboot' || inputs.action == 'hard-restart'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh profitengine-runtime <<'REMOTE'
+          set -euo pipefail
+          DOCKER="docker"
+          if ! docker ps >/dev/null 2>&1; then
+            DOCKER="sudo docker"
+          fi
+          echo "Docker runtime status before restart:"
+          $DOCKER ps -a --format 'table {{.ID}}\t{{.Names}}\t{{.Status}}' || true
+          CONTAINER_ID=$($DOCKER ps -a --format '{{.ID}} {{.Names}}' | awk 'tolower($0) ~ /profitengine|runtime/ {print $1; exit}')
+          if [ -z "${CONTAINER_ID:-}" ]; then
+            echo "No runtime container matched profitengine/runtime. Continuing to service-level recovery."
+          else
+            echo "Restarting container $CONTAINER_ID"
+            $DOCKER restart "$CONTAINER_ID"
+          fi
+          if command -v systemctl >/dev/null 2>&1; then
+            sudo systemctl restart profitengine-runtime 2>/dev/null || true
+          fi
+          sleep 10
+          REMOTE
+
+      - name: Recovery action - reboot host
+        if: inputs.action == 'reboot'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh profitengine-runtime <<'REMOTE'
+          set -euo pipefail
+          echo "Requesting normal host reboot."
+          sudo shutdown -r +1 "ProfitEngine automated runtime recovery" || sudo reboot
+          REMOTE
+          echo "Reboot requested. Waiting 120 seconds for SSH/API recovery."
+          sleep 120
+
+      - name: Recovery action - hard restart host
+        if: inputs.action == 'hard-restart'
+        shell: bash
+        run: |
+          set +e
+          ssh profitengine-runtime <<'REMOTE'
+          set -euo pipefail
+          echo "Requesting forced host reboot."
+          sudo systemctl reboot --force --force || sudo reboot -f || sudo shutdown -r now
+          REMOTE
+          echo "Forced reboot command sent. Waiting 150 seconds for host/API recovery."
+          sleep 150
+          exit 0
+
+      - name: Check instance status
+        if: inputs.action == 'status'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh profitengine-runtime <<'REMOTE'
+          set -euo pipefail
+          echo "Instance status report"
+          echo "Host: $(hostname)"
+          echo "Uptime: $(uptime)"
+          echo "Docker:"
+          if docker ps >/dev/null 2>&1; then
+            docker ps --format 'table {{.Names}}\t{{.Status}}'
+          else
+            sudo docker ps --format 'table {{.Names}}\t{{.Status}}' || true
+          fi
+          echo "Memory:"
+          free -h | grep Mem
+          echo "Disk:"
+          df -h / | tail -1
+          echo "Services:"
+          systemctl --no-pager --type=service --state=running | grep -E 'profitengine|docker' || true
+          REMOTE
+
+      - name: Verify API recovery
+        if: inputs.action != 'status'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${RUNTIME_API_URL%/}"
+          echo "Waiting for Runtime API to respond at $BASE"
+          for attempt in $(seq 1 48); do
+            for path in /health /api/health; do
+              HTTP=$(curl -sS -o /tmp/health.json -w "%{http_code}" --connect-timeout 10 --max-time 15 "$BASE$path" || echo "000")
+              echo "Attempt $attempt/48: $BASE$path -> HTTP $HTTP"
+              if [ "$HTTP" = "200" ]; then
+                if python3 - <<'PY'
+          import json
+          import sys
+          try:
+              data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          except Exception:
+              sys.exit(1)
+          ok = data.get('ok') is True or data.get('status') == 'ok'
+          sys.exit(0 if ok else 1)
+          PY
+                then
+                  echo "Runtime API recovered."
+                  exit 0
+                fi
+              fi
+            done
             sleep 5
           done
-          echo "⚠️ API not responding yet (may still be initializing)"
+          echo "::error::Runtime API did not recover after SSH recovery action."
+          exit 1
 
-      - name: Cleanup SSH Key
+      - name: Cleanup SSH key
         if: always()
+        shell: bash
         run: |
           rm -f ~/.ssh/deploy_key
