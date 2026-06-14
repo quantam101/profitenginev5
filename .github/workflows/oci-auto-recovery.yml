@@ -234,20 +234,12 @@ jobs:
 
             for (const issue of issues) {
               const action = process.env.ACTION || 'reboot';
+              const body = 'Runtime API is back online (HTTP 200)\n\nRecovery Action: ' + action + '\nTime: ' + new Date().toISOString() + '\n\nServices resuming:\n- Newsletter publishing\n- Telegram daily digest\n- Backend AI operations\n- Lead capture alerts';
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `✅ **RESOLVED** - Runtime API is back online (HTTP 200)
-
-**Recovery Action:** ${action}
-**Time:** ${new Date().toISOString()}
-
-Services resuming:
-- ✅ Newsletter publishing
-- ✅ Telegram daily digest
-- ✅ Backend AI operations
-- ✅ Lead capture alerts`
+                body: body
               });
 
               await github.rest.issues.update({
@@ -277,17 +269,11 @@ Services resuming:
 
             if (issues.length > 0) {
               const action = process.env.ACTION || 'reboot';
+              const body = 'PARTIAL RECOVERY - Instance restarted, API still initializing\n\nRecovery Action: ' + action + '\nStatus: Instance is RUNNING, services initializing\nTime: ' + new Date().toISOString() + '\n\nHealth check will continue monitoring. If API does not come online in 2 minutes, we will attempt a hard restart.';
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issues[0].number,
-                body: `⚠️ **PARTIAL RECOVERY** - Instance restarted, API still initializing
-
-**Recovery Action:** ${action}
-**Status:** Instance is RUNNING, services initializing
-**Time:** ${new Date().toISOString()}
-
-ℹ️ Health check will continue monitoring. If API doesn't come online in 2 minutes,
-we'll attempt a hard restart. Check the logs for details.`
+                body: body
               });
             }
