@@ -218,6 +218,8 @@ jobs:
       - name: Report Success
         if: steps.verify.outputs.recovery_success == 'true'
         uses: actions/github-script@v7
+        env:
+          ACTION: ${{ inputs.action || 'reboot' }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -231,14 +233,14 @@ jobs:
             });
 
             for (const issue of issues) {
+              const action = process.env.ACTION || 'reboot';
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
                 body: `✅ **RESOLVED** — Runtime API is back online (HTTP 200)
 
-**Recovery Action:** ${{ inputs.action || 'reboot' }}
-**Recovery Time:** ~${Math.round((new Date().getTime() - new Date('${{ github.event.created_at }}').getTime()) / 1000 / 60)} minutes
+**Recovery Action:** ${action}
 **Time:** ${new Date().toISOString()}
 
 Services resuming:
@@ -260,6 +262,8 @@ Services resuming:
       - name: Report Partial Recovery
         if: steps.verify.outputs.recovery_success == 'false'
         uses: actions/github-script@v7
+        env:
+          ACTION: ${{ inputs.action || 'reboot' }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -272,13 +276,14 @@ Services resuming:
             });
 
             if (issues.length > 0) {
+              const action = process.env.ACTION || 'reboot';
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issues[0].number,
                 body: `⚠️ **PARTIAL RECOVERY** — Instance restarted, API still initializing
 
-**Recovery Action:** ${{ inputs.action || 'reboot' }}
+**Recovery Action:** ${action}
 **Status:** Instance is RUNNING, services initializing
 **Time:** ${new Date().toISOString()}
 
