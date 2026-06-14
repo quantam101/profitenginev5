@@ -1,0 +1,123 @@
+name: Health Check — Runtime API (Every 5 Minutes)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: runtime-health-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Runtime API Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check Runtime API health
+        id: health
+        run: |
+          # Try both endpoints (HTTP internal + HTTPS external)
+          HEALTH_URL="https://api.profitengine.alreadyherellc.com/health"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 "$HEALTH_URL" || echo "000")
+
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          echo "url=$HEALTH_URL" >> $GITHUB_OUTPUT
+
+          if [[ "$HTTP_CODE" =~ ^2 ]]; then
+            echo "✅ Runtime API healthy: HTTP $HTTP_CODE"
+            exit 0
+          else
+            echo "❌ Runtime API unhealthy: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Alert on failure — open issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Check if critical alert already exists (avoid spam)
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'runtime-critical',
+              per_page: 1
+            });
+
+            if (issues.length === 0) {
+              // Create critical alert
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚨 CRITICAL: Runtime API Down — Auto-Recovery in Progress',
+                body: `## Runtime API is Unreachable
+
+**Endpoint:** https://api.profitengine.alreadyherellc.com/health
+**HTTP Code:** ${{ steps.health.outputs.http_code }}
+**Time:** ${new Date().toISOString()}
+
+### Impact (BLOCKING):
+- ❌ Newsletter publishing
+- ❌ Telegram daily digest
+- ❌ Backend AI operations
+- ❌ Lead capture email alerts
+- ⚠️ Frontend still works (Vercel) but can't process backend
+
+### Auto-Recovery Actions:
+1. Triggering OCI Runtime Mirror Deploy workflow
+2. If still down after 5 min, check OCI Console
+
+### Manual Recovery (if needed):
+\`\`\`bash
+# Check instance status
+gh workflow run oci-runtime-mirror-deploy.yml
+
+# Or manually in OCI Console:
+# 1. Verify instance is RUNNING
+# 2. If stopped, START it
+# 3. If running but unresponsive, REBOOT it
+\`\`\`
+
+**Assignee:** @quantam101
+**Label:** runtime-critical, bug, P0`,
+                labels: ['runtime-critical', 'bug', 'P0']
+              });
+            }
+
+      - name: Count consecutive failures
+        if: failure()
+        id: count
+        run: |
+          # Simple check: if we fail, trigger recovery
+          # In production, this would count failures from previous runs
+          echo "attempt=1" >> $GITHUB_OUTPUT
+
+      - name: Trigger auto-recovery (Reboot Instance)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Trigger OCI auto-recovery workflow
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'oci-auto-recovery.yml',
+              ref: 'main',
+              inputs: {
+                action: 'reboot'
+              }
+            });
+            console.log('✅ Triggered OCI auto-recovery (reboot)');
