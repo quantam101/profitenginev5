@@ -1,0 +1,91 @@
+name: OCI Recovery — Escalation (Hard Restart)
+
+on:
+  workflow_run:
+    workflows: ['OCI Auto-Recovery — Restart Runtime Instance']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  check_if_escalation_needed:
+    name: Check if Escalation Needed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait 2 Minutes for Boot
+        run: |
+          echo "⏳ Waiting 2 minutes for instance to fully boot after recovery..."
+          sleep 120
+
+      - name: Check Runtime API Health
+        id: health
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            https://api.profitengine.alreadyherellc.com/health)
+
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+
+          if [[ "$HTTP_CODE" =~ ^2 ]]; then
+            echo "✅ API is healthy after recovery — no escalation needed"
+            exit 0
+          else
+            echo "❌ API still down after initial recovery (HTTP $HTTP_CODE)"
+            echo "Will escalate to hard restart..."
+            exit 1
+          fi
+
+      - name: Trigger Hard Restart Escalation
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Trigger hard restart
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'oci-auto-recovery.yml',
+              ref: 'main',
+              inputs: {
+                action: 'hard-restart'
+              }
+            });
+
+            console.log('⚠️  Escalating to hard restart (STOP + START)...');
+
+      - name: Report Escalation
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'runtime-critical',
+              per_page: 1
+            });
+
+            if (issues.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: `🚨 **ESCALATION** — Soft reboot failed, attempting hard restart
+
+**Previous Action:** Reboot (soft)
+**New Action:** STOP → START (hard restart)
+**Time:** ${new Date().toISOString()}
+
+Hard restart includes full power cycle. This is aggressive but fixes most
+hardware/OS-level hangs. Will take 3-5 minutes. If this fails, manual
+intervention required.`
+              });
+            }
