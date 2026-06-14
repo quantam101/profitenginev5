@@ -1,4 +1,4 @@
-name: OCI Auto-Recovery - SSH-based Instance Recovery
+name: OCI Auto-Recovery (SSH) - Instance Recovery
 
 on:
   workflow_dispatch:
