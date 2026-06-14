@@ -23,13 +23,12 @@ env:
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
 
 jobs:
-  validate_workflow:
-    name: Validate workflow file
-    if: github.event_name == 'push'
+  workflow_guard:
+    name: Workflow guard
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm workflow-only update
-        run: echo "Health-check workflow syntax accepted. Runtime health check is reserved for schedule and manual dispatch."
+      - name: Confirm workflow has a runnable job
+        run: echo "Health-check workflow loaded with a runnable guard job."
 
   check:
     name: Runtime API Health
