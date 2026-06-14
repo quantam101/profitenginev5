@@ -32,7 +32,20 @@ _INVISIBLE_JUNK = str.maketrans("", "", "\ufeff\ufffe\u200b\u200c\u200d\u2060")
 
 def _sanitize(text: str) -> str:
     """Strip BOM and zero-width characters that break platform APIs."""
-    return text.translate(_INVISIBLE_JUNK).strip()
+    return str(text or "").translate(_INVISIBLE_JUNK).strip()
+
+
+def _secret(name: str) -> str:
+    """Read an env secret defensively; copied secrets can include hidden BOMs."""
+    return _sanitize(os.environ.get(name, ""))
+
+
+def _json_bytes(payload: Dict[str, Any]) -> bytes:
+    return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+
+def _form_bytes(payload: Dict[str, Any]) -> bytes:
+    return urllib.parse.urlencode(payload).encode("utf-8")
 
 
 @dataclass
@@ -90,10 +103,10 @@ class LocalPostJournal:
 # ── Twitter OAuth 1.0a ─────────────────────────────────────────────────────
 
 def _twitter_auth_header(method: str, url: str, params: Dict) -> str:
-    api_key        = os.environ.get("TWITTER_API_KEY", "")
-    api_secret     = os.environ.get("TWITTER_API_SECRET", "")
-    access_token   = os.environ.get("TWITTER_ACCESS_TOKEN", "")
-    access_secret  = os.environ.get("TWITTER_ACCESS_SECRET", "")
+    api_key        = _secret("TWITTER_API_KEY")
+    api_secret     = _secret("TWITTER_API_SECRET")
+    access_token   = _secret("TWITTER_ACCESS_TOKEN")
+    access_secret  = _secret("TWITTER_ACCESS_SECRET")
     if not all([api_key, api_secret, access_token, access_secret]):
         return ""
     nonce = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
@@ -119,12 +132,12 @@ def _twitter_auth_header(method: str, url: str, params: Dict) -> str:
 
 
 async def _post_twitter(post: SocialPost) -> Optional[bool]:
-    api_key = os.environ.get("TWITTER_API_KEY", "")
+    api_key = _secret("TWITTER_API_KEY")
     if not api_key:
         logger.info("[Twitter] No credentials — skip")
         return None
     url    = "https://api.twitter.com/2/tweets"
-    body   = json.dumps({"text": post.text_content[:280]}).encode()
+    body   = _json_bytes({"text": _sanitize(post.text_content)[:280]})
     header = _twitter_auth_header("POST", url, {})
     if not header:
         return None
@@ -141,7 +154,7 @@ async def _post_twitter(post: SocialPost) -> Optional[bool]:
         reply_to = tweet_id
         for tweet_text in thread[1:]:
             time.sleep(1)
-            t_body = json.dumps({"text": _sanitize(tweet_text)[:280], "reply": {"in_reply_to_tweet_id": reply_to}}).encode()
+            t_body = _json_bytes({"text": _sanitize(tweet_text)[:280], "reply": {"in_reply_to_tweet_id": reply_to}})
             t_header = _twitter_auth_header("POST", url, {})
             t_req = urllib.request.Request(url, data=t_body, method="POST",
                 headers={"Authorization": t_header, "Content-Type": "application/json"})
@@ -156,23 +169,23 @@ async def _post_twitter(post: SocialPost) -> Optional[bool]:
 # ── LinkedIn ───────────────────────────────────────────────────────────────
 
 async def _post_linkedin(post: SocialPost) -> Optional[bool]:
-    token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
-    urn   = os.environ.get("LINKEDIN_PERSON_URN", "")
+    token = _secret("LINKEDIN_ACCESS_TOKEN")
+    urn   = _secret("LINKEDIN_PERSON_URN")
     if not token or not urn:
         logger.info("[LinkedIn] No credentials — skip")
         return None
     url  = "https://api.linkedin.com/v2/ugcPosts"
-    body = json.dumps({
+    body = _json_bytes({
         "author": urn,
         "lifecycleState": "PUBLISHED",
         "specificContent": {
             "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": post.text_content[:3000]},
+                "shareCommentary": {"text": _sanitize(post.text_content)[:3000]},
                 "shareMediaCategory": "NONE",
             }
         },
         "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
-    }).encode()
+    })
     try:
         req = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
@@ -188,10 +201,10 @@ async def _post_linkedin(post: SocialPost) -> Optional[bool]:
 # ── Reddit ─────────────────────────────────────────────────────────────────
 
 async def _post_reddit(post: SocialPost) -> Optional[bool]:
-    client_id     = os.environ.get("REDDIT_CLIENT_ID", "")
-    client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
-    username      = os.environ.get("REDDIT_USERNAME", "")
-    password      = os.environ.get("REDDIT_PASSWORD", "")
+    client_id     = _secret("REDDIT_CLIENT_ID")
+    client_secret = _secret("REDDIT_CLIENT_SECRET")
+    username      = _secret("REDDIT_USERNAME")
+    password      = _secret("REDDIT_PASSWORD")
     subreddit     = (post.extra or {}).get("subreddit", "passive_income")
     if not all([client_id, client_secret, username, password]):
         logger.info("[Reddit] No credentials — skip")
@@ -201,9 +214,9 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
         creds = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
         auth_req = urllib.request.Request(
             "https://www.reddit.com/api/v1/access_token",
-            data=urllib.parse.urlencode({
+            data=_form_bytes({
                 "grant_type": "password", "username": username, "password": password
-            }).encode(),
+            }),
             headers={"Authorization": f"Basic {creds}", "User-Agent": "ProfitEngine/5.0"},
             method="POST",
         )
@@ -214,12 +227,12 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
         url   = (post.extra or {}).get("url", "")
         pdata = {
             "sr": subreddit, "kind": "link" if url else "self",
-            "title": post.text_content[:300],
+            "title": _sanitize(post.text_content)[:300],
             "url": url, "resubmit": "true", "nsfw": "false",
         }
         submit_req = urllib.request.Request(
             "https://oauth.reddit.com/api/submit",
-            data=urllib.parse.urlencode(pdata).encode(),
+            data=_form_bytes(pdata),
             headers={"Authorization": f"bearer {token}", "User-Agent": "ProfitEngine/5.0"},
             method="POST",
         )
@@ -234,17 +247,17 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
 # ── Telegram ───────────────────────────────────────────────────────────────
 
 async def _post_telegram(post: SocialPost) -> Optional[bool]:
-    token   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    token   = _secret("TELEGRAM_BOT_TOKEN")
+    chat_id = _secret("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         logger.info("[Telegram] No credentials — skip")
         return None
     try:
         url  = f"https://api.telegram.org/bot{token}/sendMessage"
-        body = json.dumps({"chat_id": chat_id, "text": post.text_content[:4096],
-                           "parse_mode": "HTML", "disable_web_page_preview": False}).encode()
+        body = _json_bytes({"chat_id": chat_id, "text": _sanitize(post.text_content)[:4096],
+                            "parse_mode": "HTML", "disable_web_page_preview": False})
         req  = urllib.request.Request(url, data=body, method="POST",
-            headers={"Content-Type": "application/json"})
+            headers={"Content-Type": "application/json; charset=UTF-8"})
         urllib.request.urlopen(req, timeout=10)
         logger.info("[Telegram] Message sent")
         return True
@@ -256,7 +269,7 @@ async def _post_telegram(post: SocialPost) -> Optional[bool]:
 # ── TikTok ─────────────────────────────────────────────────────────────────
 
 async def _post_tiktok(post: SocialPost) -> Optional[bool]:
-    token = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
+    token = _secret("TIKTOK_ACCESS_TOKEN")
     if not token:
         logger.info("[TikTok] No credentials — skip")
         return None
@@ -267,12 +280,12 @@ async def _post_tiktok(post: SocialPost) -> Optional[bool]:
     # TikTok Content Posting API v2
     try:
         url  = "https://open.tiktokapis.com/v2/post/publish/video/init/"
-        body = json.dumps({"post_info": {"title": post.text_content[:150],
+        body = _json_bytes({"post_info": {"title": _sanitize(post.text_content)[:150],
                                           "privacy_level": "PUBLIC_TO_EVERYONE",
                                           "disable_duet": False, "disable_stitch": False,
                                           "disable_comment": False},
                            "source_info": {"source": "FILE_UPLOAD", "video_size": os.path.getsize(post.media_path),
-                                            "chunk_size": os.path.getsize(post.media_path), "total_chunk_count": 1}}).encode()
+                                            "chunk_size": os.path.getsize(post.media_path), "total_chunk_count": 1}})
         req  = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=UTF-8"})
         data = json.loads(urllib.request.urlopen(req, timeout=15).read())
@@ -294,18 +307,18 @@ async def _post_tiktok(post: SocialPost) -> Optional[bool]:
 
 # ── Facebook Pages ────────────────────────────────────────────────────────
 async def _post_facebook(post: SocialPost) -> Optional[bool]:
-    page_id    = os.environ.get("FB_PAGE_ID", "")
-    page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
+    page_id    = _secret("FB_PAGE_ID")
+    page_token = _secret("FB_PAGE_ACCESS_TOKEN")
     if not page_id or not page_token:
         logger.info("[Facebook] No credentials - skip")
         return None
     try:
-        message = post.text_content[:2000]
+        message = _sanitize(post.text_content)[:2000]
         extra   = post.extra or {}
         payload: Dict[str, Any] = {"message": message, "access_token": page_token}
         if extra.get("url"):
             payload["link"] = extra["url"]
-        body = urllib.parse.urlencode(payload).encode()
+        body = _form_bytes(payload)
         req  = urllib.request.Request(
             f"https://graph.facebook.com/v21.0/{page_id}/feed",
             data=body, method="POST")
@@ -319,24 +332,24 @@ async def _post_facebook(post: SocialPost) -> Optional[bool]:
 
 # ── Instagram (Graph API) ──────────────────────────────────────────────────
 async def _post_instagram(post: SocialPost) -> Optional[bool]:
-    ig_user_id = os.environ.get("IG_USER_ID", "")
-    page_token = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
+    ig_user_id = _secret("IG_USER_ID")
+    page_token = _secret("FB_PAGE_ACCESS_TOKEN")
     if not ig_user_id or not page_token:
         logger.info("[Instagram] No credentials - skip")
         return None
     try:
         extra   = post.extra or {}
-        caption = post.text_content[:2200]
+        caption = _sanitize(post.text_content)[:2200]
         base    = "https://graph.facebook.com/v21.0"
 
         if post.media_path and post.media_path.endswith(".mp4"):
             # Reel upload
-            params = urllib.parse.urlencode({
+            params = _form_bytes({
                 "media_type": "REELS",
-                "video_url": extra.get("video_url", ""),
+                "video_url": _sanitize(extra.get("video_url", "")),
                 "caption": caption,
                 "access_token": page_token,
-            }).encode()
+            })
             req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
             data = json.loads(urllib.request.urlopen(req, timeout=30).read())
         else:
@@ -345,11 +358,11 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
             if not img_url:
                 logger.info("[Instagram] No image_url provided — skipping")
                 return False
-            params = urllib.parse.urlencode({
-                "image_url": img_url,
+            params = _form_bytes({
+                "image_url": _sanitize(img_url),
                 "caption": caption,
                 "access_token": page_token,
-            }).encode()
+            })
             req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
             data = json.loads(urllib.request.urlopen(req, timeout=30).read())
 
@@ -357,10 +370,10 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
         if not creation_id:
             return False
         # Publish the container
-        pub_params = urllib.parse.urlencode({
+        pub_params = _form_bytes({
             "creation_id": creation_id,
             "access_token": page_token,
-        }).encode()
+        })
         pub_req = urllib.request.Request(f"{base}/{ig_user_id}/media_publish",
                                           data=pub_params, method="POST")
         pub_data = json.loads(urllib.request.urlopen(pub_req, timeout=30).read())
@@ -373,9 +386,9 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
 
 # ── YouTube ────────────────────────────────────────────────────────────────
 async def _post_youtube(post: SocialPost) -> Optional[bool]:
-    client_id     = os.environ.get("YOUTUBE_CLIENT_ID", "")
-    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
-    refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
+    client_id     = _secret("YOUTUBE_CLIENT_ID")
+    client_secret = _secret("YOUTUBE_CLIENT_SECRET")
+    refresh_token = _secret("YOUTUBE_REFRESH_TOKEN")
     if not all([client_id, client_secret, refresh_token]):
         logger.info("[YouTube] No credentials - skip")
         return None
@@ -384,12 +397,12 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
         return None
     try:
         # Refresh access token
-        token_body = urllib.parse.urlencode({
+        token_body = _form_bytes({
             "client_id": client_id,
             "client_secret": client_secret,
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
-        }).encode()
+        })
         token_req  = urllib.request.Request("https://oauth2.googleapis.com/token",
                                              data=token_body, method="POST",
                                              headers={"Content-Type": "application/x-www-form-urlencoded"})
@@ -400,15 +413,15 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
             return False
 
         extra = post.extra or {}
-        metadata = json.dumps({
+        metadata = _json_bytes({
             "snippet": {
-                "title": post.text_content[:100],
+                "title": _sanitize(post.text_content)[:100],
                 "description": _sanitize(extra.get("description", post.text_content[:5000])),
                 "tags": extra.get("tags", ["ProfitEngine", "PassiveIncome", "AI", "AlreadyHereLLC"]),
                 "categoryId": "28",  # Science & Technology
             },
             "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False},
-        }).encode()
+        })
 
         # Resumable upload
         init_req = urllib.request.Request(

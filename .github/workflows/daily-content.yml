@@ -129,6 +129,7 @@ jobs:
       - name: Verify video social secret wiring
         env:
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
@@ -151,6 +152,7 @@ jobs:
           python - <<'PY'
           import os
           checks = {
+              "HuggingFace": ["HF_TOKEN"],
               "TikTok": ["TIKTOK_ACCESS_TOKEN"],
               "YouTube": ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"],
               "Instagram": ["IG_USER_ID", "FB_PAGE_ACCESS_TOKEN"],

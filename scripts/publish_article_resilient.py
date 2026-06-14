@@ -345,14 +345,7 @@ def _optimized_inject_affiliates(body: str) -> str:
     return _wrap_existing_affiliate_links(body, affiliate_map)
 
 
-def _verify_ai_provider_hf_aware() -> bool:
-    """Verify the active provider chain without falsely failing HF-only setups."""
-    try:
-        if _ORIGINAL_VERIFY_AI_PROVIDER():
-            return True
-    except Exception as exc:
-        print(f"[VERIFY][WARN] Default AI provider verification raised: {exc}")
-
+def _verify_huggingface_token() -> bool | None:
     hf_token = getattr(publisher, "HF_TOKEN", "")
     if hf_token:
         try:
@@ -367,6 +360,21 @@ def _verify_ai_provider_hf_aware() -> bool:
             print(f"[VERIFY][FAIL] HuggingFace {r.status_code}: {r.text[:240]}")
         except Exception as exc:
             print(f"[VERIFY][FAIL] HuggingFace request failed: {exc}")
+            return False
+    return None
+
+
+def _verify_ai_provider_hf_aware() -> bool:
+    """Verify the active provider chain and report HuggingFace token health."""
+    provider_ok = False
+    try:
+        provider_ok = bool(_ORIGINAL_VERIFY_AI_PROVIDER())
+    except Exception as exc:
+        print(f"[VERIFY][WARN] Default AI provider verification raised: {exc}")
+
+    hf_ok = _verify_huggingface_token()
+    if provider_ok or hf_ok:
+        return True
 
     print("[VERIFY][FAIL] AI provider: no usable Groq, Gemini, or HuggingFace provider verified")
     return False
