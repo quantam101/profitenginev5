@@ -24,13 +24,12 @@ env:
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
 
 jobs:
-  validate_workflow:
-    name: Validate workflow file
-    if: github.event_name == 'push'
+  workflow_guard:
+    name: Workflow guard
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm workflow-only update
-        run: echo "Escalation workflow syntax accepted. Escalation logic runs only on manual dispatch or failed recovery completion."
+      - name: Confirm workflow has a runnable job
+        run: echo "Escalation workflow loaded with a runnable guard job."
 
   check_if_escalation_needed:
     name: Check if escalation is needed
