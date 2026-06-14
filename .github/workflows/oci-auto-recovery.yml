@@ -40,9 +40,8 @@ jobs:
 
       - name: Setup OCI CLI
         run: |
-          curl -L -o oci-cli.zip https://github.com/oracle/oci-cli/releases/download/v3.41.0/oci-cli-v3.41.0-linux-x86_64.zip
-          unzip -q oci-cli.zip
-          sudo ./oci-cli/install.sh --accept-all-defaults
+          sudo apt-get update && sudo apt-get install -y python3-pip
+          pip3 install oci-cli
           oci --version
 
       - name: Configure OCI Credentials
