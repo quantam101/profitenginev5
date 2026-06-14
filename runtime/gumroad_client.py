@@ -125,8 +125,9 @@ def _request(method: str, path: str, data: Optional[Dict] = None) -> Dict[str, A
         headers = {"Content-Type": "application/x-www-form-urlencoded"},
     )
     if method == "GET":
+        separator = "&" if "?" in url else "?"
         req = urllib.request.Request(
-            f"{url}?access_token={urllib.parse.quote(token)}",
+            f"{url}{separator}access_token={urllib.parse.quote(token)}",
             method="GET",
         )
 
