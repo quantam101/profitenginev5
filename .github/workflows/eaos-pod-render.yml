@@ -1,4 +1,4 @@
-name: EAOS — POD Render & Printify Push
+name: EAOS POD Render and Printify Push
 
 # Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG).
 # Printify API blocks GitHub Actions runner IPs (Cloudflare error 1010),
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       sku:
-        description: 'Specific SKU to render (e.g. AHL-001) — blank = all 8'
+        description: 'Specific SKU to render (e.g. AHL-001) - blank = all 8'
         required: false
         default: ''
       push_to_printify:
@@ -102,7 +102,7 @@ jobs:
           PUSHED=0
           if [ -n "$PROFITENGINE_WEBHOOK_TOKEN" ]; then
             # Primary path: upload rendered PNGs to the OCI runtime, which pushes
-            # to Printify from its static IP (GitHub runner IPs get Cloudflare 1010).
+            # to Printify from its static IP when runner IPs are blocked.
             FORM_ARGS=()
             for f in datacenter/pod_factory/render_cache/*.png; do
               [ -f "$f" ] && FORM_ARGS+=(-F "artwork=@${f};type=image/png")
@@ -110,27 +110,30 @@ jobs:
             if [ ${#FORM_ARGS[@]} -eq 0 ]; then
               echo "::warning::No rendered artwork found to push."
             else
-              HTTP=$(curl -s -o /tmp/pod_push.json -w "%{http_code}" --max-time 900 \
+              HTTP=$(curl -s -o /tmp/pod_push.json -w "%{http_code}" --max-time 300 \
                 -X POST "$BASE/pod/push?target_sku=${TARGET_SKU}" \
                 -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
                 "${FORM_ARGS[@]}")
               echo "POST /pod/push HTTP $HTTP"
               python3 -c "import json; d=json.load(open('/tmp/pod_push.json')); print(d.get('output',''))" 2>/dev/null | tee /tmp/push_log.txt
-              PUSHED=$(grep -cE "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt || echo 0)
+              PUSHED=$(grep -Ec "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt 2>/dev/null || true)
+              PUSHED=${PUSHED:-0}
             fi
           fi
           if [ "$PUSHED" -eq 0 ]; then
-            echo "Runtime push unavailable or pushed 0 — falling back to direct push from runner."
+            echo "Runtime push unavailable or pushed 0 - falling back to direct push from runner."
             python3 scripts/push_printify_catalog.py 2>&1 | tee /tmp/push_log.txt
-            PUSHED=$(grep -cE "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt || echo 0)
+            PUSHED=$(grep -Ec "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt 2>/dev/null || true)
+            PUSHED=${PUSHED:-0}
           fi
           echo "Products pushed: $PUSHED"
           echo "pushed=$PUSHED" >> "$GITHUB_OUTPUT"
           if [ "$PUSHED" -eq 0 ]; then
             if [ "$STRICT_PRINTIFY" = "true" ]; then
-              echo "::error::Printify push failed — 0 products pushed."; exit 1
+              echo "::error::Printify push failed - 0 products pushed."
+              exit 1
             fi
-            echo "::warning::Printify push returned 0 products — artwork saved as artifact."
+            echo "::warning::Printify push returned 0 products - artwork saved as artifact."
           fi
 
       - name: Verify products after push (direct API)
