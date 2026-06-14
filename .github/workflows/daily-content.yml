@@ -31,14 +31,120 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: daily-content-${{ github.event_name }}-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
 
 jobs:
+  validate:
+    name: Validate secrets and configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      secrets-valid: ${{ steps.secrets.outputs.valid }}
+      platforms-enabled: ${{ steps.platforms.outputs.enabled-count }}
+      mode: ${{ steps.mode.outputs.publish-mode }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate required secrets
+        id: secrets
+        run: |
+          MISSING=()
+          REQUIRED_SECRETS=(
+            "GROQ_API_KEY"
+            "GEMINI_API_KEY"
+            "HF_TOKEN"
+            "CONTENT_REPO_TOKEN"
+          )
+
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!secret}" ]; then
+              MISSING+=("$secret")
+            fi
+          done
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "❌ BLOCKING: Missing critical secrets: ${MISSING[*]}"
+            exit 1
+          fi
+
+          echo "valid=true" >> $GITHUB_OUTPUT
+          echo "✅ All critical secrets present"
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+
+      - name: Count enabled social platforms
+        id: platforms
+        run: |
+          ENABLED=0
+          PLATFORMS=(
+            "TELEGRAM_BOT_TOKEN:Telegram"
+            "TWITTER_API_KEY:X/Twitter"
+            "LINKEDIN_ACCESS_TOKEN:LinkedIn"
+            "REDDIT_CLIENT_ID:Reddit"
+            "TIKTOK_ACCESS_TOKEN:TikTok"
+            "FB_PAGE_ID:Facebook"
+            "IG_USER_ID:Instagram"
+            "YOUTUBE_CLIENT_ID:YouTube"
+            "DEVTO_API_KEY:Dev.to"
+            "HASHNODE_API_KEY:Hashnode"
+            "MEDIUM_API_KEY:Medium"
+          )
+
+          PLATFORM_LIST=""
+          for item in "${PLATFORMS[@]}"; do
+            VAR="${item%%:*}"
+            LABEL="${item##*:}"
+            if [ -n "${!VAR}" ]; then
+              ENABLED=$((ENABLED + 1))
+              PLATFORM_LIST="$PLATFORM_LIST\n  ✅ $LABEL"
+            else
+              PLATFORM_LIST="$PLATFORM_LIST\n  ⚠️ $LABEL (disabled)"
+            fi
+          done
+
+          echo "enabled-count=$ENABLED" >> $GITHUB_OUTPUT
+          echo -e "Enabled platforms ($ENABLED/11):$PLATFORM_LIST" >> $GITHUB_STEP_SUMMARY
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+
+      - name: Determine publish mode
+        id: mode
+        run: |
+          if [ "${{ github.event.inputs.verify_only }}" == "true" ]; then
+            echo "publish-mode=verify-only" >> $GITHUB_OUTPUT
+            echo "Mode: VERIFY ONLY (dry-run, no publishing)"
+          else
+            echo "publish-mode=publish" >> $GITHUB_OUTPUT
+            echo "Mode: PUBLISH (all content will be published)"
+          fi >> $GITHUB_STEP_SUMMARY
+
   publish:
     name: Generate and publish article
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    needs: validate
+    timeout-minutes: 12
+    if: needs.validate.outputs.secrets-valid == 'true'
 
     steps:
       - name: Checkout code
@@ -51,10 +157,13 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install httpx pillow
+        run: |
+          pip install --upgrade pip
+          pip install httpx pillow
 
       - name: Publish article + social blast
         id: publish
+        continue-on-error: true
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -66,7 +175,7 @@ jobs:
           GITHUB_CONTENT_DIR: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'posts' || 'generated-content/posts' }}
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
-          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
           MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
           MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
@@ -74,8 +183,8 @@ jobs:
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
-          PYTHONUTF8: "1"
-          # EAOS Social credentials - add these secrets to enable each platform
+          CONTENT_TIMEOUT_SEC: "600"
+          EAOS_SOCIAL_TIMEOUT_SEC: "180"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
@@ -97,22 +206,88 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: python scripts/publish_article_resilient.py
 
+      - name: Parse publish results
+        if: always()
+        id: results
+        run: |
+          if [ -f "publish_results.json" ]; then
+            echo "Parse results..."
+            cat publish_results.json >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      - name: Verify article publication
+        if: steps.publish.outcome == 'success'
+        id: verify
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import os
+          import httpx
+          import time
+
+          owner = os.getenv("GITHUB_CONTENT_OWNER", "quantam101")
+          repo = os.getenv("GITHUB_CONTENT_REPO", "content")
+          branch = os.getenv("GITHUB_CONTENT_BRANCH", "main")
+
+          # Give GitHub a moment to sync
+          time.sleep(2)
+
+          # Check GitHub Pages content is reachable
+          api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/posts"
+          try:
+            resp = httpx.get(api_url, timeout=10)
+            if resp.status_code == 200:
+              posts = resp.json()
+              if isinstance(posts, list) and len(posts) > 0:
+                latest = sorted(posts, key=lambda x: x.get("name", ""))[-1]
+                print(f"✅ Latest post: {latest.get('name')}")
+                print(f"   URL: https://quantam101.github.io/content/{latest.get('name')}")
+              else:
+                print("⚠️ Posts directory exists but is empty")
+            else:
+              print(f"⚠️ GitHub API returned {resp.status_code}")
+          except Exception as e:
+            print(f"⚠️ Could not verify publication: {e}")
+          PY
+        env:
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
+          GITHUB_CONTENT_BRANCH: main
+
+      - name: Alert on publish failure
+        if: steps.publish.outcome == 'failure'
+        run: |
+          echo "❌ Article publishing failed"
+          echo "Review: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          exit 1
+
       - name: Summary
         if: always()
         run: |
-          echo "### Content Pipeline" >> $GITHUB_STEP_SUMMARY
-          echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
-          echo "Publisher: strict resilient wrapper" >> $GITHUB_STEP_SUMMARY
-          echo "Primary site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
-          echo "Fallback repo: $GITHUB_REPOSITORY/generated-content/posts" >> $GITHUB_STEP_SUMMARY
-          echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
+          echo "### 📰 Content Pipeline Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Publish Status**: ${{ steps.publish.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Verification**: ${{ steps.verify.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode**: ${{ needs.validate.outputs.mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms Enabled**: ${{ needs.validate.outputs.platforms-enabled }}/11" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Channels**:" >> $GITHUB_STEP_SUMMARY
+          echo "- Primary: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
+          echo "- Fallback: ${{ github.repository }}/generated-content/posts" >> $GITHUB_STEP_SUMMARY
+          echo "- Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Run**: [View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
   video:
     name: Generate article video (FFmpeg slideshow)
     runs-on: ubuntu-latest
-    needs: publish
-    timeout-minutes: 15
-    if: ${{ always() && needs.publish.result == 'success' }}
+    needs: [validate, publish]
+    timeout-minutes: 18
+    if: ${{ always() && needs.publish.outcome == 'success' && needs.validate.outputs.platforms-enabled > 0 }}
+
     steps:
       - uses: actions/checkout@v5
 
@@ -124,53 +299,13 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --fix-missing ffmpeg
+          pip install --upgrade pip
           pip install httpx pillow
 
-      - name: Verify video social secret wiring
-        env:
-          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
-          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
-          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
-          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
-          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
-          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
-          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
-        run: |
-          python - <<'PY'
-          import os
-          checks = {
-              "HuggingFace": ["HF_TOKEN"],
-              "TikTok": ["TIKTOK_ACCESS_TOKEN"],
-              "YouTube": ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"],
-              "Instagram": ["IG_USER_ID", "FB_PAGE_ACCESS_TOKEN"],
-              "Telegram": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
-              "Facebook": ["FB_PAGE_ID", "FB_PAGE_ACCESS_TOKEN"],
-              "LinkedIn": ["LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"],
-              "Reddit": ["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME", "REDDIT_PASSWORD"],
-              "X": ["TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"],
-          }
-          for platform, names in checks.items():
-              missing = [name for name in names if not os.getenv(name)]
-              state = "present" if not missing else "missing"
-              print(f"[Secrets][{platform}] {state}")
-              if missing:
-                  print(f"[Secrets][{platform}] missing names: {', '.join(missing)}")
-          PY
-
-      - name: Generate and post faceless video
+      - name: Generate video
+        id: generate
+        timeout-minutes: 15
+        continue-on-error: true
         env:
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
           CANONICAL_URL: https://www.alreadyherellc.com/content
@@ -181,7 +316,6 @@ jobs:
           MIN_VIDEO_BYTES: "250000"
           ENABLE_HF_IMAGE_SCENES: "true"
           MAX_HF_IMAGE_SCENES: "2"
-          PYTHONUTF8: "1"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
           GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
@@ -210,6 +344,7 @@ jobs:
         run: python scripts/generate_video.py
 
       - name: Upload video artifact
+        if: steps.generate.outcome == 'success'
         uses: actions/upload-artifact@v5
         with:
           name: article-video
@@ -220,3 +355,45 @@ jobs:
             datacenter/video_pipeline/logs/*.vtt
             datacenter/video_pipeline/asset_pack/**
             datacenter/video_pipeline/ai_scenes/*.png
+          retention-days: 7
+
+      - name: Video generation summary
+        if: always()
+        run: |
+          echo "### 🎬 Video Pipeline Report" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.generate.outcome }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.generate.outcome }}" = "success" ]; then
+            echo "✅ Video generated and archived as artifact" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Video generation skipped or failed (article still published)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  health-check:
+    name: Post-publish health check
+    runs-on: ubuntu-latest
+    needs: [validate, publish, video]
+    timeout-minutes: 3
+    if: always()
+
+    steps:
+      - name: Workflow health status
+        run: |
+          echo "### 🏥 Pipeline Health" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Article Publish | ${{ needs.publish.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Video Generation | ${{ needs.video.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.publish.result }}" != "success" ]; then
+            echo "🚨 **ALERT**: Article publishing failed. Content may not be live." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "[View full logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          if [ "${{ needs.video.result }}" == "failure" ]; then
+            echo "⚠️ **WARNING**: Video generation failed, but article is published." >> $GITHUB_STEP_SUMMARY
+          fi
