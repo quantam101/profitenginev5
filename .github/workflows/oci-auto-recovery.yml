@@ -1,4 +1,4 @@
-name: OCI Auto-Recovery — Restart Runtime Instance
+name: OCI Auto-Recovery - Restart Runtime Instance
 
 on:
   workflow_dispatch:
@@ -23,7 +23,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: oci-recovery
@@ -41,20 +40,14 @@ jobs:
 
       - name: Setup OCI CLI
         run: |
-          # Install OCI CLI
           curl -L -o oci-cli.zip https://github.com/oracle/oci-cli/releases/download/v3.41.0/oci-cli-v3.41.0-linux-x86_64.zip
           unzip -q oci-cli.zip
           sudo ./oci-cli/install.sh --accept-all-defaults
-
-          # Verify installation
           oci --version
 
       - name: Configure OCI Credentials
         run: |
-          # Create OCI config directory
           mkdir -p ~/.oci
-
-          # Write config file
           cat > ~/.oci/config << 'OCIEOF'
           [DEFAULT]
           user=${{ secrets.OCI_USER_OCID }}
@@ -64,36 +57,26 @@ jobs:
           key_file=~/.oci/oci_api_key.pem
           OCIEOF
 
-          # Write private key
           cat > ~/.oci/oci_api_key.pem << 'KEYEOF'
           ${{ secrets.OCI_PRIVATE_KEY }}
           KEYEOF
 
           chmod 600 ~/.oci/oci_api_key.pem
           chmod 600 ~/.oci/config
-
-          # Verify credentials
           oci iam user get --user-id ${{ secrets.OCI_USER_OCID }} --query 'data.name' --raw-output
 
-      - name: Get OCI Instance ID
+      - name: Get Instance ID
         id: instance
         run: |
-          # Find the instance by name
           INSTANCE_ID=$(oci compute instance list \
             --compartment-id ${{ secrets.OCI_COMPARTMENT_OCID }} \
             --region ${{ secrets.OCI_REGION }} \
             --query "data[?\"display-name\"=='profitenginev5-runtime'].id" \
             --raw-output)
-
-          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "null" ]; then
-            echo "❌ Instance not found"
-            exit 1
-          fi
-
           echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          echo "✅ Instance ID: $INSTANCE_ID"
+          echo "Instance ID: $INSTANCE_ID"
 
-      - name: Check Current Instance Status
+      - name: Check Instance Status
         id: status
         run: |
           STATE=$(oci compute instance get \
@@ -101,83 +84,57 @@ jobs:
             --region ${{ secrets.OCI_REGION }} \
             --query 'data."lifecycle-state"' \
             --raw-output)
-
           echo "current_state=$STATE" >> $GITHUB_OUTPUT
           echo "Current state: $STATE"
 
-      - name: Perform Recovery Action — Reboot
+      - name: Recovery Action - Reboot
         if: inputs.action == 'reboot' || inputs.action == ''
         run: |
           if [ "${{ steps.status.outputs.current_state }}" != "RUNNING" ]; then
-            echo "⚠️  Instance is not RUNNING (state: ${{ steps.status.outputs.current_state }})"
-            echo "Switching to START action instead..."
-            INSTANCE_ID="${{ steps.instance.outputs.instance_id }}"
-
-            echo "🔄 Starting instance..."
+            echo "Instance not running. Starting instead..."
             oci compute instance action \
-              --instance-id "$INSTANCE_ID" \
+              --instance-id "${{ steps.instance.outputs.instance_id }}" \
               --action START \
               --region ${{ secrets.OCI_REGION }} \
               --wait
-
-            echo "✅ Instance started, waiting for boot..."
             sleep 30
           else
-            INSTANCE_ID="${{ steps.instance.outputs.instance_id }}"
-
-            echo "🔄 Rebooting instance..."
             oci compute instance action \
-              --instance-id "$INSTANCE_ID" \
+              --instance-id "${{ steps.instance.outputs.instance_id }}" \
               --action REBOOT \
               --region ${{ secrets.OCI_REGION }} \
               --wait
-
-            echo "✅ Reboot initiated, waiting for restart..."
             sleep 30
           fi
 
-      - name: Perform Recovery Action — Start
+      - name: Recovery Action - Start
         if: inputs.action == 'start'
         run: |
-          INSTANCE_ID="${{ steps.instance.outputs.instance_id }}"
-
-          if [ "${{ steps.status.outputs.current_state }}" = "RUNNING" ]; then
-            echo "⚠️  Instance is already RUNNING, skipping start"
-          else
-            echo "🔄 Starting instance..."
+          if [ "${{ steps.status.outputs.current_state }}" != "RUNNING" ]; then
             oci compute instance action \
-              --instance-id "$INSTANCE_ID" \
+              --instance-id "${{ steps.instance.outputs.instance_id }}" \
               --action START \
               --region ${{ secrets.OCI_REGION }} \
               --wait
-
-            echo "✅ Instance started"
             sleep 30
+          else
+            echo "Instance already running"
           fi
 
-      - name: Perform Recovery Action — Hard Restart (Stop + Start)
+      - name: Recovery Action - Hard Restart
         if: inputs.action == 'hard-restart'
         run: |
-          INSTANCE_ID="${{ steps.instance.outputs.instance_id }}"
-
-          echo "⛔ HARD STOP..."
           oci compute instance action \
-            --instance-id "$INSTANCE_ID" \
+            --instance-id "${{ steps.instance.outputs.instance_id }}" \
             --action STOP \
             --region ${{ secrets.OCI_REGION }} \
             --wait
-
-          echo "Waiting 20 seconds before restart..."
           sleep 20
-
-          echo "🔄 HARD START..."
           oci compute instance action \
-            --instance-id "$INSTANCE_ID" \
+            --instance-id "${{ steps.instance.outputs.instance_id }}" \
             --action START \
             --region ${{ secrets.OCI_REGION }} \
             --wait
-
-          echo "✅ Hard restart complete"
           sleep 30
 
       - name: Report Status
@@ -186,88 +143,15 @@ jobs:
           echo "Instance ID: ${{ steps.instance.outputs.instance_id }}"
           echo "Current State: ${{ steps.status.outputs.current_state }}"
 
-      - name: Wait for Instance to Boot
+      - name: Wait for API Health
         run: |
-          echo "⏳ Waiting for instance to fully boot (up to 3 minutes)..."
+          echo "Waiting for Runtime API to respond..."
           for i in {1..36}; do
             if curl -s -f -m 5 https://api.profitengine.alreadyherellc.com/health > /dev/null 2>&1; then
-              echo "✅ Runtime API is responding!"
+              echo "API is healthy"
               exit 0
             fi
-            echo "  Attempt $i/36: Still booting..."
+            echo "Attempt $i/36: Still waiting..."
             sleep 5
           done
-
-          echo "⚠️  Instance booted but API not responding yet"
-          exit 0  # Don't fail — instance may still be initializing
-
-      - name: Verify Runtime API Health
-        id: verify
-        run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-            https://api.profitengine.alreadyherellc.com/health)
-
-          if [[ "$HTTP_CODE" =~ ^2 ]]; then
-            echo "✅ Runtime API healthy: HTTP $HTTP_CODE"
-            echo "recovery_success=true" >> $GITHUB_OUTPUT
-          else
-            echo "⚠️  Runtime API returned HTTP $HTTP_CODE (may still be initializing)"
-            echo "recovery_success=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Report Success
-        if: steps.verify.outputs.recovery_success == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const action = process.env.ACTION || 'reboot';
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'runtime-critical',
-              per_page: 10
-            });
-            for (const issue of issues) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: 'RESOLVED - Runtime API is back online'
-              });
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed',
-                state_reason: 'completed'
-              });
-            }
-        env:
-          ACTION: ${{ inputs.action || 'reboot' }}
-
-      - name: Report Partial Recovery
-        if: steps.verify.outputs.recovery_success == 'false'
-        uses: actions/github-script@v7
-        env:
-          ACTION: ${{ inputs.action || 'reboot' }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'runtime-critical',
-              per_page: 1
-            });
-
-            if (issues.length > 0) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issues[0].number,
-                body: 'PARTIAL RECOVERY - Instance restarted, API still initializing'
-              });
-            }
+          echo "API not responding yet (may still be initializing)"
