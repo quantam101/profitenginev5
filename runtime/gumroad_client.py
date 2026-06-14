@@ -116,7 +116,7 @@ def _request(method: str, path: str, data: Optional[Dict] = None) -> Dict[str, A
         return {"success": False, "message": "GUMROAD_ACCESS_TOKEN not set"}
 
     url  = f"{_BASE}/{path}"
-    body = urllib.parse.urlencode({**(data or {}), "access_token": token}).encode()
+    body = urllib.parse.urlencode({**(data or {}), "access_token": token}, doseq=True).encode()
 
     req = urllib.request.Request(
         url,
