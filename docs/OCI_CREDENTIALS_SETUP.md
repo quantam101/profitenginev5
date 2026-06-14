@@ -50,7 +50,7 @@ The `oci-auto-recovery.yml` workflow needs OCI API credentials to automatically 
 | `OCI_COMPARTMENT_OCID` | `ocid1.compartment.oc1...` | Instance Details |
 | `OCI_REGION` | `us-phoenix-1` | Tenancy Details |
 | `OCI_FINGERPRINT` | `a1:b2:c3:...` | API Keys section |
-| `OCI_PRIVATE_KEY` | `-----BEGIN PRIVATE KEY-----...` | Downloaded PEM file |
+| `OCI_PRIVATE_KEY` | [PEM-formatted private key] | Downloaded PEM file |
 
 ### How to Add a Secret:
 1. Click **New repository secret**
