@@ -1,4 +1,4 @@
-name: OCI Auto-Recovery - SSH-based Instance Recovery
+name: OCI Auto-Recovery - SSH and Control Plane Recovery
 
 on:
   workflow_dispatch:
@@ -6,19 +6,20 @@ on:
       action:
         description: 'Recovery action'
         required: true
-        default: 'reboot'
+        default: 'status'
         type: choice
         options:
+          - 'status'
           - 'restart-docker'
           - 'reboot'
           - 'hard-restart'
-          - 'status'
+          - 'start'
   workflow_call:
     inputs:
       action:
         description: 'Recovery action'
         required: false
-        default: 'reboot'
+        default: 'status'
         type: string
 
 permissions:
@@ -33,12 +34,13 @@ env:
   RECOVERY_USER: ${{ vars.OCI_RUNTIME_USER || 'opc' }}
   RECOVERY_PORT: ${{ vars.OCI_RUNTIME_SSH_PORT || '22' }}
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
+  OCI_RUNTIME_INSTANCE_NAME: ${{ vars.OCI_RUNTIME_INSTANCE_NAME || 'profitenginev5-runtime' }}
 
 jobs:
   recover:
-    name: OCI Instance Recovery (SSH)
+    name: OCI Instance Recovery
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -49,26 +51,154 @@ jobs:
         run: |
           set -euo pipefail
           case "${{ inputs.action }}" in
-            restart-docker|reboot|hard-restart|status) ;;
+            status|restart-docker|reboot|hard-restart|start) ;;
             *)
               echo "::error::Unsupported recovery action: ${{ inputs.action }}"
               exit 1
               ;;
           esac
 
+      - name: Configure OCI control plane access
+        id: oci
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUIRED=(OCI_USER_OCID OCI_FINGERPRINT OCI_TENANCY_OCID OCI_REGION OCI_PRIVATE_KEY OCI_COMPARTMENT_OCID)
+          for item in "${REQUIRED[@]}"; do
+            if [ -z "${!item:-}" ]; then
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              echo "::warning::$item is not configured; OCI API fallback is unavailable."
+              exit 0
+            fi
+          done
+
+          python3 -m venv "$RUNNER_TEMP/oci-cli"
+          "$RUNNER_TEMP/oci-cli/bin/python" -m pip install --upgrade pip >/dev/null
+          "$RUNNER_TEMP/oci-cli/bin/pip" install oci-cli >/dev/null
+          echo "$RUNNER_TEMP/oci-cli/bin" >> "$GITHUB_PATH"
+
+          mkdir -p ~/.oci
+          cat > ~/.oci/config <<OCICFG
+          [DEFAULT]
+          user=${OCI_USER_OCID}
+          fingerprint=${OCI_FINGERPRINT}
+          tenancy=${OCI_TENANCY_OCID}
+          region=${OCI_REGION}
+          key_file=~/.oci/oci_api_key.pem
+          OCICFG
+          printf '%s\n' "$OCI_PRIVATE_KEY" | sed 's/\r$//' > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/config ~/.oci/oci_api_key.pem
+
+          "$RUNNER_TEMP/oci-cli/bin/oci" iam region list --auth api_key >/dev/null
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "compartment=$OCI_COMPARTMENT_OCID" >> "$GITHUB_OUTPUT"
+          echo "OCI control plane access configured."
+
+      - name: Resolve OCI instance state and public IP
+        id: instance
+        if: steps.oci.outputs.configured == 'true'
+        env:
+          OCI_COMPARTMENT_OCID: ${{ steps.oci.outputs.compartment }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          INSTANCE_ID=$(oci compute instance list \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --lifecycle-state RUNNING \
+            --query "data[?\"display-name\"=='${OCI_RUNTIME_INSTANCE_NAME}'].id | [0]" \
+            --raw-output 2>/dev/null || true)
+
+          if [ -z "${INSTANCE_ID:-}" ] || [ "$INSTANCE_ID" = "null" ]; then
+            INSTANCE_ID=$(oci compute instance list \
+              --compartment-id "$OCI_COMPARTMENT_OCID" \
+              --all \
+              --query "data[?\"display-name\"=='${OCI_RUNTIME_INSTANCE_NAME}'].id | [0]" \
+              --raw-output)
+          fi
+
+          if [ -z "${INSTANCE_ID:-}" ] || [ "$INSTANCE_ID" = "null" ]; then
+            echo "::error::No OCI instance found with display name ${OCI_RUNTIME_INSTANCE_NAME}. Set vars.OCI_RUNTIME_INSTANCE_NAME or verify the compartment."
+            exit 1
+          fi
+
+          STATE=$(oci compute instance get --instance-id "$INSTANCE_ID" --query 'data."lifecycle-state"' --raw-output)
+          PUBLIC_IP=$(oci compute instance list-vnics --instance-id "$INSTANCE_ID" --query 'data[0]."public-ip"' --raw-output 2>/dev/null || true)
+
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          echo "public_ip=$PUBLIC_IP" >> "$GITHUB_OUTPUT"
+          echo "OCI instance: $OCI_RUNTIME_INSTANCE_NAME"
+          echo "OCI state: $STATE"
+          echo "OCI public IP: ${PUBLIC_IP:-none}"
+
+          if [ -n "${PUBLIC_IP:-}" ] && [ "$PUBLIC_IP" != "null" ]; then
+            echo "RECOVERY_HOST=$PUBLIC_IP" >> "$GITHUB_ENV"
+          fi
+
+      - name: Control plane recovery when instance is not running
+        if: steps.oci.outputs.configured == 'true' && steps.instance.outputs.state != 'RUNNING' && inputs.action != 'status'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Instance is ${STATE:-${{ steps.instance.outputs.state }}}; requesting START through OCI control plane."
+          oci compute instance action --instance-id "${{ steps.instance.outputs.instance_id }}" --action START --wait-for-state RUNNING --max-wait-seconds 600
+          PUBLIC_IP=$(oci compute instance list-vnics --instance-id "${{ steps.instance.outputs.instance_id }}" --query 'data[0]."public-ip"' --raw-output 2>/dev/null || true)
+          if [ -n "${PUBLIC_IP:-}" ] && [ "$PUBLIC_IP" != "null" ]; then
+            echo "RECOVERY_HOST=$PUBLIC_IP" >> "$GITHUB_ENV"
+            echo "Recovered public IP: $PUBLIC_IP"
+          fi
+          sleep 30
+
+      - name: Control plane reboot fallback
+        if: steps.oci.outputs.configured == 'true' && (inputs.action == 'reboot' || inputs.action == 'hard-restart' || inputs.action == 'start')
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT_STATE=$(oci compute instance get --instance-id "${{ steps.instance.outputs.instance_id }}" --query 'data."lifecycle-state"' --raw-output)
+          if [ "$CURRENT_STATE" != "RUNNING" ]; then
+            echo "Instance is $CURRENT_STATE; requesting START."
+            oci compute instance action --instance-id "${{ steps.instance.outputs.instance_id }}" --action START --wait-for-state RUNNING --max-wait-seconds 600
+          elif [ "${{ inputs.action }}" = "reboot" ]; then
+            echo "Instance is running; requesting SOFTRESET."
+            oci compute instance action --instance-id "${{ steps.instance.outputs.instance_id }}" --action SOFTRESET || \
+              oci compute instance action --instance-id "${{ steps.instance.outputs.instance_id }}" --action RESET
+            sleep 120
+          elif [ "${{ inputs.action }}" = "hard-restart" ]; then
+            echo "Instance is running; requesting RESET."
+            oci compute instance action --instance-id "${{ steps.instance.outputs.instance_id }}" --action RESET
+            sleep 150
+          else
+            echo "Instance already running; no control-plane reboot requested for action=${{ inputs.action }}."
+          fi
+          PUBLIC_IP=$(oci compute instance list-vnics --instance-id "${{ steps.instance.outputs.instance_id }}" --query 'data[0]."public-ip"' --raw-output 2>/dev/null || true)
+          if [ -n "${PUBLIC_IP:-}" ] && [ "$PUBLIC_IP" != "null" ]; then
+            echo "RECOVERY_HOST=$PUBLIC_IP" >> "$GITHUB_ENV"
+            echo "Current public IP: $PUBLIC_IP"
+          fi
+
       - name: Setup SSH access
+        id: ssh_setup
         env:
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         shell: bash
         run: |
           set -euo pipefail
           if [ -z "${OCI_SSH_KEY:-}" ]; then
-            echo "::error::OCI_SSH_KEY is not configured. Recovery cannot SSH into the runtime host."
-            exit 1
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::OCI_SSH_KEY is not configured. SSH recovery is unavailable."
+            exit 0
           fi
-          if [ -z "${RECOVERY_HOST:-}" ]; then
-            echo "::error::RECOVERY_HOST is empty. Set vars.OCI_RUNTIME_HOST or keep the repository default host current."
-            exit 1
+          if [ -z "${RECOVERY_HOST:-}" ] || [ "$RECOVERY_HOST" = "null" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::RECOVERY_HOST is empty. SSH recovery is unavailable until a public IP is configured."
+            exit 0
           fi
           mkdir -p ~/.ssh
           printf '%s\n' "$OCI_SSH_KEY" | sed 's/\r$//' > ~/.ssh/deploy_key
@@ -88,23 +218,30 @@ jobs:
           } > ~/.ssh/config
           chmod 600 ~/.ssh/config
           ssh-keyscan -p "${RECOVERY_PORT:-22}" -H "$RECOVERY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "SSH target: ${RECOVERY_USER:-opc}@${RECOVERY_HOST}:${RECOVERY_PORT:-22}"
 
       - name: Test SSH connection
+        id: ssh_test
+        if: steps.ssh_setup.outputs.configured == 'true'
         shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
             if ssh profitengine-runtime "echo 'SSH connection successful'; uptime"; then
+              echo "reachable=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             echo "SSH attempt $attempt/5 failed. Retrying..."
             sleep 10
           done
-          echo "::error::Unable to reach runtime host over SSH after 5 attempts. Check OCI security list, public IP, host firewall, username, and OCI_SSH_KEY."
+          echo "reachable=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::Unable to reach runtime host over SSH after 5 attempts."
           exit 1
 
       - name: Recovery action - restart Docker runtime
-        if: inputs.action == 'restart-docker' || inputs.action == 'reboot' || inputs.action == 'hard-restart'
+        if: steps.ssh_test.outputs.reachable == 'true' && (inputs.action == 'restart-docker' || inputs.action == 'reboot' || inputs.action == 'hard-restart')
         shell: bash
         run: |
           set -euo pipefail
@@ -129,8 +266,8 @@ jobs:
           sleep 10
           REMOTE
 
-      - name: Recovery action - reboot host
-        if: inputs.action == 'reboot'
+      - name: SSH reboot host
+        if: steps.ssh_test.outputs.reachable == 'true' && inputs.action == 'reboot'
         shell: bash
         run: |
           set -euo pipefail
@@ -142,8 +279,8 @@ jobs:
           echo "Reboot requested. Waiting 120 seconds for SSH/API recovery."
           sleep 120
 
-      - name: Recovery action - hard restart host
-        if: inputs.action == 'hard-restart'
+      - name: SSH hard restart host
+        if: steps.ssh_test.outputs.reachable == 'true' && inputs.action == 'hard-restart'
         shell: bash
         run: |
           set +e
@@ -156,29 +293,16 @@ jobs:
           sleep 150
           exit 0
 
-      - name: Check instance status
+      - name: Report status
         if: inputs.action == 'status'
         shell: bash
         run: |
           set -euo pipefail
-          ssh profitengine-runtime <<'REMOTE'
-          set -euo pipefail
-          echo "Instance status report"
-          echo "Host: $(hostname)"
-          echo "Uptime: $(uptime)"
-          echo "Docker:"
-          if docker ps >/dev/null 2>&1; then
-            docker ps --format 'table {{.Names}}\t{{.Status}}'
-          else
-            sudo docker ps --format 'table {{.Names}}\t{{.Status}}' || true
-          fi
-          echo "Memory:"
-          free -h | grep Mem
-          echo "Disk:"
-          df -h / | tail -1
-          echo "Services:"
-          systemctl --no-pager --type=service --state=running | grep -E 'profitengine|docker' || true
-          REMOTE
+          echo "OCI control plane configured: ${{ steps.oci.outputs.configured }}"
+          echo "OCI instance state: ${{ steps.instance.outputs.state || 'unknown' }}"
+          echo "OCI public IP: ${{ steps.instance.outputs.public_ip || 'unknown' }}"
+          echo "SSH configured: ${{ steps.ssh_setup.outputs.configured || 'false' }}"
+          echo "SSH reachable: ${{ steps.ssh_test.outputs.reachable || 'false' }}"
 
       - name: Verify API recovery
         if: inputs.action != 'status'
@@ -210,7 +334,7 @@ jobs:
             done
             sleep 5
           done
-          echo "::error::Runtime API did not recover after SSH recovery action."
+          echo "::error::Runtime API did not recover. If OCI state is RUNNING but SSH/API remain unreachable, check security list/NSG, public subnet, route table, internet gateway, host firewall, and runtime process."
           exit 1
 
       - name: Cleanup SSH key
