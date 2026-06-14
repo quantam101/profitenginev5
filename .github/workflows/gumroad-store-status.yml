@@ -1,0 +1,73 @@
+name: Gumroad Store Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: "Create missing catalog products before reporting status"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    name: Verify Gumroad catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Check Gumroad products
+        env:
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          BOOTSTRAP: ${{ github.event.inputs.bootstrap || 'true' }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          from runtime.gumroad_client import PRODUCT_CATALOG, bootstrap_catalog, list_products, revenue_summary
+
+          if not os.environ.get("GUMROAD_ACCESS_TOKEN", "").strip():
+              sys.exit("[Gumroad] GUMROAD_ACCESS_TOKEN missing")
+
+          if os.environ.get("BOOTSTRAP", "true").lower() == "true":
+              results = bootstrap_catalog()
+              print("[Gumroad] Bootstrap results:")
+              print(json.dumps(results, indent=2, sort_keys=True))
+              failed = [item for item in results if not item.get("ok")]
+              if failed:
+                  sys.exit(f"[Gumroad] Catalog bootstrap failed for {len(failed)} product(s)")
+
+          products = list_products()
+          catalog_names = {item["name"] for item in PRODUCT_CATALOG}
+          visible_names = {item.get("name", "") for item in products}
+          missing = sorted(catalog_names - visible_names)
+
+          print(f"[Gumroad] Products visible: {len(products)}")
+          for product in products:
+              name = product.get("name", "")
+              product_id = product.get("id", "")
+              url = product.get("short_url") or product.get("preview_url") or ""
+              print(f"[Gumroad] Product: {name} | id={product_id} | url={url}")
+
+          summary = revenue_summary()
+          print("[Gumroad] Revenue summary:")
+          print(json.dumps(summary, indent=2, sort_keys=True))
+
+          if missing:
+              sys.exit("[Gumroad] Missing catalog products: " + ", ".join(missing))
+
+          print("[Gumroad] Store catalog verified")
+          PY

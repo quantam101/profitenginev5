@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from .cost_guard import CostGuard
 from .cycle_log import CycleLog
 from .registry import RegistryError, RuntimeRegistry
 from .sovereign_core import SovereignAutomationCore
@@ -15,6 +16,7 @@ from .telegram_gateway import format_runtime_reply, parse_update, send_telegram_
 
 app = FastAPI(title="ProfitEngine Runtime API", version="0.1.0")
 registry = RuntimeRegistry()
+health_cost_guard = CostGuard()
 
 
 class ExecuteRequest(BaseModel):
@@ -89,11 +91,10 @@ async def add_request_id(request: Request, call_next):
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
-    core = SovereignAutomationCore()
     return {
         "ok": True,
         "service": "profitengine-runtime",
-        "mode": core.cost_guard.status()["mode"],
+        "mode": health_cost_guard.status()["mode"],
         "registry": registry.status(),
     }
 

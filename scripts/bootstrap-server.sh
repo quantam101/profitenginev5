@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # ProfitEngine v5 — Server Bootstrap
 #
@@ -7,8 +7,8 @@
 # Usage (two options):
 #
 #   Option A — pass secrets as env vars inline:
-#     GROQ_API_KEY=gsk_xxx GEMINI_API_KEY=AIza_xxx \
-#     GITHUB_CONTENT_TOKEN=ghp_xxx GMAIL_APP_PASSWORD=xxx \
+#     GROQ_API_KEY="$GROQ_API_KEY" GEMINI_API_KEY="$GEMINI_API_KEY" \
+#     GITHUB_CONTENT_TOKEN="$GITHUB_CONTENT_TOKEN" GMAIL_APP_PASSWORD="$GMAIL_APP_PASSWORD" \
 #     bash scripts/bootstrap-server.sh
 #
 #   Option B — source a local secrets file first:
@@ -84,8 +84,8 @@ if [[ ${#missing_secrets[@]} -gt 0 ]]; then
 
 Pass them as env vars or source ~/.profitengine-secrets first.
 Example:
-  GROQ_API_KEY=gsk_xxx GEMINI_API_KEY=AIza_xxx \\
-  GITHUB_CONTENT_TOKEN=ghp_xxx GMAIL_APP_PASSWORD=xxx \\
+  GROQ_API_KEY="\$GROQ_API_KEY" GEMINI_API_KEY="\$GEMINI_API_KEY" \\
+  GITHUB_CONTENT_TOKEN="\$GITHUB_CONTENT_TOKEN" GMAIL_APP_PASSWORD="\$GMAIL_APP_PASSWORD" \\
   bash scripts/bootstrap-server.sh"
 fi
 

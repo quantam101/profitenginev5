@@ -16,6 +16,14 @@ function getStripe(): Stripe {
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 const MONGO_URI = process.env.MONGODB_URL ?? process.env.MONGO_URL ?? "";
 
+function logStripe(
+  level: "info" | "warn" | "error",
+  message: string,
+  details: Record<string, unknown> = {}
+) {
+  console[level](`[stripe-webhook] ${JSON.stringify({ message, ...details })}`);
+}
+
 // Singleton client for warm Lambda reuse
 let _client: MongoClient | null = null;
 async function getDb() {
@@ -31,7 +39,7 @@ export async function POST(request: NextRequest) {
   const sig = request.headers.get("stripe-signature") ?? "";
 
   if (!WEBHOOK_SECRET) {
-    console.error("STRIPE_WEBHOOK_SECRET not set");
+    logStripe("error", "missing_webhook_secret");
     return NextResponse.json({ error: "webhook secret not configured" }, { status: 500 });
   }
 
@@ -39,24 +47,30 @@ export async function POST(request: NextRequest) {
   try {
     event = getStripe().webhooks.constructEvent(body, sig, WEBHOOK_SECRET);
   } catch (err) {
-    console.error("Stripe signature verification failed:", err);
+    logStripe("error", "signature_verification_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
       { error: `webhook error: ${err instanceof Error ? err.message : String(err)}` },
       { status: 400 }
     );
   }
 
-  console.log(`Stripe webhook: ${event.type} [${event.id}]`);
+  logStripe("info", "event_received", { eventType: event.type, eventId: event.id });
 
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       await handleCheckoutCompleted(session);
     }
-    // Additional event types can be handled here
+    // Additional event types can be handled here.
   } catch (err) {
-    // Log but still return 200 — Stripe must not retry verified events
-    console.error(`Error processing ${event.type} [${event.id}]:`, err);
+    // Log but still return 200 - Stripe must not retry verified events.
+    logStripe("error", "handler_error", {
+      eventType: event.type,
+      eventId: event.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 
   return NextResponse.json({ received: true, event_type: event.type });
@@ -64,7 +78,7 @@ export async function POST(request: NextRequest) {
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (!MONGO_URI) {
-    console.warn("MONGODB_URL not set — skipping DB update");
+    logStripe("warn", "mongo_missing_skip_db_update");
     return;
   }
 
@@ -118,5 +132,5 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     created_at: now,
   });
 
-  console.log(`Subscription granted: tier=${tier} email=${email} amount=$${amount}`);
+  logStripe("info", "subscription_granted", { tier, email, amount });
 }

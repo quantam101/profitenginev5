@@ -1,4 +1,4 @@
-﻿﻿'use client';
+'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 interface Stream{name:string;status:string;health:number;revenue30d:number;today:number;trend:string}
 interface Agent{id:string;label:string;status:string}
