@@ -179,6 +179,8 @@ jobs:
           EAOS_VIDEO_ROOT: ./datacenter/video_pipeline
           VIDEO_STRICT: "true"
           MIN_VIDEO_BYTES: "250000"
+          ENABLE_HF_IMAGE_SCENES: "true"
+          MAX_HF_IMAGE_SCENES: "2"
           PYTHONUTF8: "1"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
@@ -214,3 +216,7 @@ jobs:
           path: |
             datacenter/video_pipeline/**/*.mp4
             datacenter/video_pipeline/logs/*.json
+            datacenter/video_pipeline/logs/*.srt
+            datacenter/video_pipeline/logs/*.vtt
+            datacenter/video_pipeline/asset_pack/**
+            datacenter/video_pipeline/ai_scenes/*.png

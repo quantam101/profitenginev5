@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 """
-ProfitEngine video publisher — deterministic end-to-end faceless video pipeline.
+ProfitEngine video publisher.
 
-Pipeline:
-1. Build branded 9:16 slide images from the article topic.
-2. Render one guaranteed MP4 with FFmpeg.
-3. Validate real video output by file size.
-4. Upload MP4 to the public content repo for browser/Instagram access.
-5. Post to configured social platforms: TikTok, YouTube, Instagram, Telegram,
-   Facebook, LinkedIn, Reddit, and X/Twitter where credentials exist.
-6. Write a machine-readable run report for verification.
-
-The article/content publisher is intentionally separate. Video errors are explicit,
-logged, and fail the video job when VIDEO_STRICT=true.
+This is a production path, not a fake artifact:
+- builds a real vertical MP4 with FFmpeg
+- writes reusable written assets from the same topic
+- writes SRT/VTT subtitles and a capability manifest
+- optionally attempts Hugging Face image scenes, then falls back locally
+- uploads the MP4 to the public content repo
+- posts only to platforms with configured credentials
 """
 from __future__ import annotations
 
@@ -25,7 +21,6 @@ import re
 import shutil
 import subprocess
 import sys
-import textwrap
 import time
 import urllib.error
 import urllib.request
@@ -35,6 +30,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from PIL import Image, ImageDraw, ImageFont
 
+from runtime.eaos.content_asset_factory import ContentAssetPack
 from runtime.eaos.social_engine import ProductionSocialEngine, SocialPost
 
 TOPIC = os.getenv("ARTICLE_TOPIC", "Best AI Tools for Passive Income in 2026").strip() or "Best AI Tools for Passive Income in 2026"
@@ -47,6 +43,14 @@ VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1080"))
 VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1920"))
 SECONDS_PER_SLIDE = int(os.getenv("SECONDS_PER_SLIDE", "5"))
 
+HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
+ENABLE_HF_IMAGE_SCENES = os.getenv("ENABLE_HF_IMAGE_SCENES", "true").lower() in {"1", "true", "yes", "on"}
+MAX_HF_IMAGE_SCENES = int(os.getenv("MAX_HF_IMAGE_SCENES", "2"))
+HF_IMAGE_API = os.getenv(
+    "HF_IMAGE_API",
+    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+).strip()
+
 GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
 GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
@@ -54,8 +58,10 @@ GH_BRANCH = os.getenv("GITHUB_CONTENT_BRANCH", "main").strip()
 GH_VIDEO_DIR = os.getenv("GITHUB_VIDEO_DIR", "assets/videos").strip().strip("/")
 
 SLIDES_DIR = VIDEO_ROOT / "slides"
+IMAGE_SCENES_DIR = VIDEO_ROOT / "ai_scenes"
 OUTPUT_DIR = VIDEO_ROOT / "distribution_masters"
 LOG_DIR = VIDEO_ROOT / "logs"
+ASSET_DIR = VIDEO_ROOT / "asset_pack"
 REPORT_PATH = LOG_DIR / "video_publish_report.json"
 
 
@@ -66,12 +72,20 @@ def _slugify(value: str) -> str:
 
 
 def _ensure_dirs() -> None:
-    for path in (SLIDES_DIR, OUTPUT_DIR, LOG_DIR):
+    for path in (SLIDES_DIR, IMAGE_SCENES_DIR, OUTPUT_DIR, LOG_DIR, ASSET_DIR):
         path.mkdir(parents=True, exist_ok=True)
+
+
+def _asset_pack() -> ContentAssetPack:
+    return ContentAssetPack(topic=TOPIC, canonical_url=CANONICAL_URL, output_dir=ASSET_DIR)
 
 
 def _ffmpeg_path() -> str:
     return shutil.which("ffmpeg") or "ffmpeg"
+
+
+def _has_ffmpeg() -> bool:
+    return bool(shutil.which("ffmpeg"))
 
 
 def _verify_ffmpeg() -> None:
@@ -105,7 +119,22 @@ def _load_font(size: int) -> ImageFont.ImageFont:
 
 
 def _wrapped_lines(text: str, width: int) -> list[str]:
-    return textwrap.wrap(re.sub(r"\s+", " ", text).strip(), width=width) or [text[:width]]
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return [""]
+    words = cleaned.split()
+    lines: list[str] = []
+    current: list[str] = []
+    for word in words:
+        next_line = " ".join([*current, word])
+        if len(next_line) <= width or not current:
+            current.append(word)
+        else:
+            lines.append(" ".join(current))
+            current = [word]
+    if current:
+        lines.append(" ".join(current))
+    return lines
 
 
 def _draw_centered_lines(
@@ -114,6 +143,7 @@ def _draw_centered_lines(
     font: ImageFont.ImageFont,
     y: int,
     fill: tuple[int, int, int],
+    gap: int = 18,
 ) -> int:
     y_cursor = y
     for line in lines:
@@ -121,72 +151,166 @@ def _draw_centered_lines(
         line_w = box[2] - box[0]
         line_h = box[3] - box[1]
         draw.text(((VIDEO_WIDTH - line_w) // 2, y_cursor), line, font=font, fill=fill)
-        y_cursor += line_h + 18
+        y_cursor += line_h + gap
     return y_cursor
 
 
-def _make_slide(path: pathlib.Path, headline: str, body: str, footer: str, index: int, total: int) -> None:
-    # Deterministic dark vertical background. No external assets required.
-    img = Image.new("RGB", (VIDEO_WIDTH, VIDEO_HEIGHT), (10, 14, 24))
-    pixels = img.load()
+def _gradient_background(index: int) -> Image.Image:
+    palette = [
+        ((7, 18, 29), (22, 92, 125)),
+        ((20, 16, 34), (84, 55, 126)),
+        ((8, 28, 22), (52, 118, 86)),
+        ((30, 22, 12), (120, 84, 38)),
+        ((18, 20, 33), (50, 92, 160)),
+        ((10, 29, 36), (48, 138, 148)),
+    ]
+    top, bottom = palette[(index - 1) % len(palette)]
+    strip = Image.new("RGB", (1, VIDEO_HEIGHT), top)
+    pixels = strip.load()
     for y in range(VIDEO_HEIGHT):
-        r = int(10 + (y / VIDEO_HEIGHT) * 24)
-        g = int(14 + (y / VIDEO_HEIGHT) * 34)
-        b = int(24 + (y / VIDEO_HEIGHT) * 52)
-        for x in range(VIDEO_WIDTH):
-            accent = 6 if (x + y) % 53 == 0 else 0
-            pixels[x, y] = (min(r + accent, 255), min(g + accent, 255), min(b + accent, 255))
+        mix = y / max(VIDEO_HEIGHT - 1, 1)
+        pixels[0, y] = tuple(int(top[c] * (1 - mix) + bottom[c] * mix) for c in range(3))
+    img = strip.resize((VIDEO_WIDTH, VIDEO_HEIGHT))
+    draw = ImageDraw.Draw(img, "RGBA")
+    for offset in range(-VIDEO_HEIGHT, VIDEO_WIDTH, 220):
+        draw.line((offset, VIDEO_HEIGHT, offset + VIDEO_HEIGHT, 0), fill=(255, 255, 255, 20), width=3)
+    return img
+
+
+def _fit_cover(image: Image.Image) -> Image.Image:
+    source = image.convert("RGB")
+    scale = max(VIDEO_WIDTH / source.width, VIDEO_HEIGHT / source.height)
+    resized = source.resize((int(source.width * scale), int(source.height * scale)), Image.Resampling.LANCZOS)
+    left = (resized.width - VIDEO_WIDTH) // 2
+    top = (resized.height - VIDEO_HEIGHT) // 2
+    return resized.crop((left, top, left + VIDEO_WIDTH, top + VIDEO_HEIGHT))
+
+
+def _try_hf_image_scene(prompt: str, index: int) -> Optional[pathlib.Path]:
+    if not HF_TOKEN or not ENABLE_HF_IMAGE_SCENES or index > MAX_HF_IMAGE_SCENES:
+        return None
+    output = IMAGE_SCENES_DIR / f"scene_{index:03d}.png"
+    payload = json.dumps({
+        "inputs": (
+            "vertical 9:16 editorial marketing image, no text, no logo, no watermark, "
+            f"professional lighting, useful business automation visual, {prompt}"
+        ),
+        "parameters": {"width": 1024, "height": 1792},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        HF_IMAGE_API,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {HF_TOKEN}",
+            "Content-Type": "application/json",
+            "Accept": "image/png",
+            "User-Agent": "ProfitEngineV5-VideoPublisher",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            content_type = resp.headers.get("Content-Type", "")
+            data = resp.read()
+        if "image" not in content_type.lower() or len(data) < 10_000:
+            print(f"[Video][HFImage] scene {index} skipped: non-image response")
+            return None
+        output.write_bytes(data)
+        with Image.open(output) as img:
+            _fit_cover(img).save(output, quality=92)
+        print(f"[Video][HFImage] scene {index} generated: {output}")
+        return output
+    except urllib.error.HTTPError as exc:
+        print(f"[Video][HFImage] scene {index} HTTP {exc.code}; deterministic fallback")
+    except Exception as exc:
+        print(f"[Video][HFImage] scene {index} unavailable: {exc}; deterministic fallback")
+    return None
+
+
+def _make_slide(path: pathlib.Path, scene: dict[str, str], index: int, total: int) -> None:
+    scene_image = _try_hf_image_scene(scene["visual_prompt"], index)
+    if scene_image:
+        with Image.open(scene_image) as source:
+            img = _fit_cover(source)
+        overlay = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
+        ImageDraw.Draw(overlay).rectangle((0, 0, VIDEO_WIDTH, VIDEO_HEIGHT), fill=(4, 8, 15, 125))
+        img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    else:
+        img = _gradient_background(index)
 
     draw = ImageDraw.Draw(img)
     title_font = _load_font(68)
     body_font = _load_font(44)
     small_font = _load_font(31)
     label_font = _load_font(36)
+    chip_font = _load_font(28)
 
     draw.rounded_rectangle((70, 80, 1010, 160), radius=18, fill=(20, 31, 48), outline=(74, 144, 226), width=2)
-    brand = "ALREADY HERE LLC  •  PROFITENGINE V5"
+    brand = "ALREADY HERE LLC  |  PROFITENGINE V5"
     brand_box = draw.textbbox((0, 0), brand, font=label_font)
     draw.text(((VIDEO_WIDTH - (brand_box[2] - brand_box[0])) // 2, 101), brand, font=label_font, fill=(220, 235, 255))
 
-    y = 350
-    y = _draw_centered_lines(draw, _wrapped_lines(headline, 18), title_font, y, (255, 255, 255))
-    y += 70
-    _draw_centered_lines(draw, _wrapped_lines(body, 30), body_font, y, (220, 231, 242))
+    draw.rounded_rectangle((78, 230, 1002, 275), radius=22, fill=(255, 255, 255), outline=(255, 255, 255), width=1)
+    chip = "FACELESS AI VIDEO | BLOG TO ASSET SYSTEM"
+    chip_box = draw.textbbox((0, 0), chip, font=chip_font)
+    draw.text(((VIDEO_WIDTH - (chip_box[2] - chip_box[0])) // 2, 237), chip, font=chip_font, fill=(10, 24, 36))
 
-    cta = "Read the full article → alreadyherellc.com/content"
+    y = 365
+    y = _draw_centered_lines(draw, _wrapped_lines(scene["headline"], 18), title_font, y, (255, 255, 255))
+    y += 70
+    _draw_centered_lines(draw, _wrapped_lines(scene["body"], 30), body_font, y, (220, 231, 242))
+
+    cta = "Read the full article -> alreadyherellc.com/content"
     cta_box = draw.textbbox((0, 0), cta, font=small_font)
     draw.rounded_rectangle((90, 1545, 990, 1635), radius=18, fill=(16, 124, 184), outline=(120, 210, 255), width=2)
     draw.text(((VIDEO_WIDTH - (cta_box[2] - cta_box[0])) // 2, 1572), cta, font=small_font, fill=(255, 255, 255))
 
     progress = f"{index}/{total}"
+    footer = "AI automation | affiliate marketing | digital products"
     draw.text((80, 1745), footer[:70], font=small_font, fill=(185, 205, 225))
     draw.text((915, 1745), progress, font=small_font, fill=(185, 205, 225))
     path.parent.mkdir(parents=True, exist_ok=True)
     img.save(path, quality=95)
 
 
-def _video_script() -> list[tuple[str, str]]:
-    clean_topic = re.sub(r"\s+", " ", TOPIC).strip()
-    return [
-        (clean_topic, "Turn one article into a video, offer, affiliate campaign, and reusable sales asset."),
-        ("Faceless video automation", "Create short vertical videos without a camera crew, studio, or manual edit session."),
-        ("Affiliate-ready content", "Every video can drive traffic back to monetized articles, tools, and digital products."),
-        ("Small business leverage", "Already Here LLC turns repeatable workflows into automated marketing infrastructure."),
-        ("24/7 distribution", "Publish to YouTube, TikTok, Instagram, Telegram, and public content hosting when credentials are active."),
-        ("Next action", "Use the article, video, product idea, and social post together instead of leaving content unused."),
-    ]
+def _video_script() -> list[dict[str, str]]:
+    return _asset_pack().scene_plan()
 
 
 def _build_slides() -> list[pathlib.Path]:
     slides: list[pathlib.Path] = []
-    items = _video_script()
-    total = len(items)
-    for idx, (headline, body) in enumerate(items, start=1):
+    scenes = _video_script()
+    total = len(scenes)
+    for idx, scene in enumerate(scenes, start=1):
         slide_path = SLIDES_DIR / f"slide_{idx:03d}.png"
-        _make_slide(slide_path, headline, body, "AI automation • affiliate marketing • digital products", idx, total)
+        _make_slide(slide_path, scene, idx, total)
         slides.append(slide_path)
     print(f"[Video] Slides ready: {len(slides)}")
     return slides
+
+
+def _timestamp(seconds: int, *, webvtt: bool = False) -> str:
+    minutes, sec = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    sep = "." if webvtt else ","
+    return f"{hours:02d}:{minutes:02d}:{sec:02d}{sep}000"
+
+
+def _write_subtitles() -> dict[str, str]:
+    scenes = _video_script()
+    srt_lines: list[str] = []
+    vtt_lines: list[str] = ["WEBVTT", ""]
+    for idx, scene in enumerate(scenes, start=1):
+        start = (idx - 1) * SECONDS_PER_SLIDE
+        end = idx * SECONDS_PER_SLIDE
+        srt_lines.extend([str(idx), f"{_timestamp(start)} --> {_timestamp(end)}", scene["body"], ""])
+        vtt_lines.extend([f"{_timestamp(start, webvtt=True)} --> {_timestamp(end, webvtt=True)}", scene["body"], ""])
+    srt_path = LOG_DIR / f"{_slugify(TOPIC)}.srt"
+    vtt_path = LOG_DIR / f"{_slugify(TOPIC)}.vtt"
+    srt_path.write_text("\n".join(srt_lines), encoding="utf-8")
+    vtt_path.write_text("\n".join(vtt_lines), encoding="utf-8")
+    print(f"[Video] Subtitle sidecars ready: {srt_path}, {vtt_path}")
+    return {"srt": str(srt_path), "vtt": str(vtt_path)}
 
 
 def _concat_file(slides: list[pathlib.Path]) -> pathlib.Path:
@@ -195,7 +319,6 @@ def _concat_file(slides: list[pathlib.Path]) -> pathlib.Path:
         for slide in slides:
             f.write(f"file '{slide.resolve().as_posix()}'\n")
             f.write(f"duration {SECONDS_PER_SLIDE}\n")
-        # FFmpeg concat duration behavior requires the final frame repeated.
         f.write(f"file '{slides[-1].resolve().as_posix()}'\n")
     return concat
 
@@ -245,26 +368,23 @@ def _render_direct_mp4() -> pathlib.Path:
 
 
 def _upload_video_to_content_repo(video_path: pathlib.Path) -> Optional[str]:
-    """Publish the generated MP4 to the content repo so Instagram can ingest it."""
     if not GH_TOKEN:
-        print("[Video] GITHUB_CONTENT_TOKEN missing — public video URL unavailable")
+        print("[Video] GITHUB_CONTENT_TOKEN missing - public video URL unavailable")
         return None
     if not video_path.exists() or video_path.stat().st_size < MIN_VIDEO_BYTES:
-        print("[Video] Video file missing/too small — upload skipped")
+        print("[Video] Video file missing/too small - upload skipped")
         return None
 
     filename = f"{int(time.time())}-{_slugify(TOPIC)}.mp4"
     repo_path = f"{GH_VIDEO_DIR}/{filename}"
     api_url = f"https://api.github.com/repos/{GH_OWNER}/{GH_REPO}/contents/{repo_path}"
 
-    with open(video_path, "rb") as vf:
-        encoded = base64.b64encode(vf.read()).decode("ascii")
-
+    encoded = base64.b64encode(video_path.read_bytes()).decode("ascii")
     payload = json.dumps({
         "message": f"Add generated video: {TOPIC[:80]}",
         "content": encoded,
         "branch": GH_BRANCH,
-    }).encode()
+    }).encode("utf-8")
 
     req = urllib.request.Request(
         api_url,
@@ -273,7 +393,7 @@ def _upload_video_to_content_repo(video_path: pathlib.Path) -> Optional[str]:
         headers={
             "Authorization": f"Bearer {GH_TOKEN}",
             "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=UTF-8",
             "User-Agent": "ProfitEngineV5-VideoPublisher",
         },
     )
@@ -320,13 +440,13 @@ async def _publish_socials(video_path: pathlib.Path, public_video_url: Optional[
 
     async def attempt(platform: str, post: SocialPost, ready: bool) -> None:
         if not ready:
-            print(f"[Video][{platform}] credentials missing — skip")
+            print(f"[Video][{platform}] credentials missing - skip")
             results[platform] = "skipped_missing_credentials"
             return
         print(f"[Video][{platform}] posting started")
         try:
             await social.publish(post)
-            print(f"[Video][{platform}] post attempt complete — inspect platform-specific log lines for posted/cached/failed status")
+            print(f"[Video][{platform}] post attempt complete - inspect platform-specific log lines for posted/cached/failed status")
             results[platform] = "attempted"
         except Exception as exc:
             print(f"[Video][{platform}] post raised exception: {exc}")
@@ -347,11 +467,7 @@ async def _publish_socials(video_path: pathlib.Path, public_video_url: Optional[
         ),
         creds["youtube"],
     )
-    await attempt(
-        "Instagram",
-        SocialPost(None, "INSTAGRAM", caption, media_path=str(video_path), extra={"video_url": public_video_url or ""}),
-        creds["instagram"],
-    )
+    await attempt("Instagram", SocialPost(None, "INSTAGRAM", caption, media_path=str(video_path), extra={"video_url": public_video_url or ""}), creds["instagram"])
     await attempt("Telegram", SocialPost(None, "TELEGRAM", link_caption), creds["telegram"])
     await attempt("Facebook", SocialPost(None, "FACEBOOK", link_caption, extra={"url": public_video_url or CANONICAL_URL}), creds["facebook"])
     await attempt("LinkedIn", SocialPost(None, "LINKEDIN", link_caption), creds["linkedin"])
@@ -371,22 +487,39 @@ async def main() -> None:
     report: dict = {
         "topic": TOPIC,
         "canonical_url": CANONICAL_URL,
+        "asset_files": {},
+        "subtitle_files": {},
+        "capability_manifest": {},
         "video_path": None,
         "video_size_bytes": 0,
         "public_video_url": None,
         "social_results": {},
         "status": "started",
     }
-    print(f"[Video] Generating deterministic faceless video for: {TOPIC}")
+    print(f"[Video] Generating optimized faceless video and asset pack for: {TOPIC}")
 
     try:
+        _ensure_dirs()
+        pack = _asset_pack()
+        report["asset_files"] = pack.write_all()
+        report["subtitle_files"] = _write_subtitles()
+        report["capability_manifest"] = pack.capability_manifest(
+            hf_token_present=bool(HF_TOKEN),
+            hf_image_enabled=ENABLE_HF_IMAGE_SCENES,
+            ffmpeg_present=_has_ffmpeg(),
+        )
+        (LOG_DIR / "capability_manifest.json").write_text(
+            json.dumps(report["capability_manifest"], indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        print("[Video] Asset pack ready")
+
         video_path = _render_direct_mp4()
         report["video_path"] = str(video_path)
         report["video_size_bytes"] = video_path.stat().st_size
         public_video_url = _upload_video_to_content_repo(video_path)
         report["public_video_url"] = public_video_url
-        social_results = await _publish_socials(video_path, public_video_url)
-        report["social_results"] = social_results
+        report["social_results"] = await _publish_socials(video_path, public_video_url)
         report["status"] = "complete"
         print("[Video] Pipeline complete")
     except Exception as exc:
