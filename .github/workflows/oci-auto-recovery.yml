@@ -238,7 +238,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `✅ **RESOLVED** — Runtime API is back online (HTTP 200)
+                body: `✅ **RESOLVED** - Runtime API is back online (HTTP 200)
 
 **Recovery Action:** ${action}
 **Time:** ${new Date().toISOString()}
@@ -281,7 +281,7 @@ Services resuming:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issues[0].number,
-                body: `⚠️ **PARTIAL RECOVERY** — Instance restarted, API still initializing
+                body: `⚠️ **PARTIAL RECOVERY** - Instance restarted, API still initializing
 
 **Recovery Action:** ${action}
 **Status:** Instance is RUNNING, services initializing
