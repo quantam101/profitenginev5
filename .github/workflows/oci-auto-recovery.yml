@@ -96,10 +96,15 @@ jobs:
           printf '%s\n' "$OCI_PRIVATE_KEY" | sed 's/\r$//' > ~/.oci/oci_api_key.pem
           chmod 600 ~/.oci/config ~/.oci/oci_api_key.pem
 
-          "$RUNNER_TEMP/oci-cli/bin/oci" iam region list --auth api_key >/dev/null
-          echo "configured=true" >> "$GITHUB_OUTPUT"
-          echo "compartment=$OCI_COMPARTMENT_OCID" >> "$GITHUB_OUTPUT"
-          echo "OCI control plane access configured."
+          if "$RUNNER_TEMP/oci-cli/bin/oci" iam region list --auth api_key >/dev/null 2>&1; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "compartment=$OCI_COMPARTMENT_OCID" >> "$GITHUB_OUTPUT"
+            echo "OCI control plane access configured."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::OCI API endpoint unreachable; SSH fallback will be used."
+            exit 0
+          fi
 
       - name: Resolve OCI instance state and public IP
         id: instance
