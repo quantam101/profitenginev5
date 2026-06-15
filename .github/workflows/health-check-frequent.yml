@@ -1,11 +1,6 @@
 name: Health Check - Runtime API (Every 5 Minutes)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/health-check-frequent.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:

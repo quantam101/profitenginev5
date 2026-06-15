@@ -1,13 +1,8 @@
 name: OCI Recovery - Escalation (Hard Restart)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/oci-recovery-escalate.yml'
   workflow_run:
-    workflows: ['OCI Auto-Recovery - SSH-based Instance Recovery']
+    workflows: ['OCI Auto-Recovery - SSH and Control Plane Recovery']
     types: [completed]
   workflow_dispatch:
 
