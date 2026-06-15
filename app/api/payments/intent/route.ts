@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Use STRIPE_SECRET_KEY or STRIPE_API_KEY (fallback)
-const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
-
-if (!stripeKey) {
-  console.warn('⚠️ STRIPE_SECRET_KEY or STRIPE_API_KEY not configured');
+function getStripe() {
+  const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
+  if (!stripeKey) {
+    throw new Error('STRIPE_SECRET_KEY or STRIPE_API_KEY not configured');
+  }
+  return new Stripe(stripeKey);
 }
 
-const stripe = new Stripe(stripeKey);
-
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
   try {
     const { jobId, jobTitle, pay, contractorId, customerEmail } = await request.json();
 
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const stripe = getStripe();
   const searchParams = request.nextUrl.searchParams;
   const intentId = searchParams.get('intent_id');
 

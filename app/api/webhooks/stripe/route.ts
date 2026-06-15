@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Use STRIPE_SECRET_KEY or STRIPE_API_KEY (fallback)
-const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-
-if (!stripeKey) {
-  console.warn('⚠️ STRIPE_SECRET_KEY or STRIPE_API_KEY not configured');
-}
-if (!webhookSecret) {
-  console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured');
+function getStripe() {
+  const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
+  if (!stripeKey) {
+    throw new Error('STRIPE_SECRET_KEY or STRIPE_API_KEY not configured');
+  }
+  return new Stripe(stripeKey);
 }
 
-const stripe = new Stripe(stripeKey);
+function getWebhookSecret() {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+  if (!webhookSecret) {
+    throw new Error('STRIPE_WEBHOOK_SECRET not configured');
+  }
+  return webhookSecret;
+}
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
+  const webhookSecret = getWebhookSecret();
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
