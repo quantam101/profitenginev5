@@ -1,0 +1,120 @@
+name: Recovery Status Report
+
+on:
+  workflow_run:
+    workflows:
+      - 'OCI Auto-Recovery - SSH and Control Plane Recovery'
+      - 'Health Check - Runtime API (Every 5 Minutes)'
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+env:
+  RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+jobs:
+  report_status:
+    name: Report Recovery Status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Check Runtime API Status
+        id: current_status
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${RUNTIME_API_URL%/}"
+          HEALTH_OK=false
+          HTTP_CODE="000"
+
+          for path in /health /api/health; do
+            HTTP_CODE=$(curl -sS -o /tmp/health.json -w "%{http_code}" --connect-timeout 10 --max-time 15 "$BASE$path" || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              if python3 - <<'PY'
+          import json
+          import sys
+          try:
+              data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          except Exception:
+              sys.exit(1)
+          ok = data.get('ok') is True or data.get('status') == 'ok'
+          sys.exit(0 if ok else 1)
+          PY
+              then
+                HEALTH_OK=true
+                break
+              fi
+            fi
+          done
+
+          echo "status=$([ "$HEALTH_OK" = "true" ] && echo "HEALTHY" || echo "DOWN")" >> "$GITHUB_OUTPUT"
+          echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$GITHUB_OUTPUT"
+
+      - name: Get triggering workflow info
+        id: trigger
+        shell: bash
+        run: |
+          echo "triggered_by=${{ github.event.workflow_run.name || 'manual' }}" >> "$GITHUB_OUTPUT"
+          echo "run_id=${{ github.event.workflow_run.id || 'N/A' }}" >> "$GITHUB_OUTPUT"
+          echo "conclusion=${{ github.event.workflow_run.conclusion || 'N/A' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create/Update recovery log
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p logs
+
+          # Append entry to recovery log
+          cat >> logs/recovery_history.log <<EOF
+          [$(date -u +'%Y-%m-%d %H:%M:%S UTC')] Status: ${{ steps.current_status.outputs.status }} | HTTP: ${{ steps.current_status.outputs.http_code }} | Trigger: ${{ steps.trigger.outputs.triggered_by }}
+          EOF
+
+      - name: Post Telegram status update
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATUS="${{ steps.current_status.outputs.status }}"
+          EMOJI=$([ "$STATUS" = "HEALTHY" ] && echo "✅" || echo "⚠️")
+
+          MESSAGE="${EMOJI} Runtime Status: $STATUS
+
+Endpoint: ${{ env.RUNTIME_API_URL }}
+HTTP: ${{ steps.current_status.outputs.http_code }}
+Time: ${{ steps.current_status.outputs.timestamp }}
+
+Trigger: ${{ steps.trigger.outputs.triggered_by }}
+Conclusion: ${{ steps.trigger.outputs.conclusion }}"
+
+          if [ -n "${TELEGRAM_BOT_TOKEN}" ] && [ -n "${TELEGRAM_CHAT_ID}" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${MESSAGE}" \
+              -d "parse_mode=Markdown" > /dev/null || true
+          fi
+
+      - name: Commit recovery log
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd logs 2>/dev/null || exit 0
+          if [ -f recovery_history.log ]; then
+            git add recovery_history.log
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git commit -m "docs: recovery status update - ${{ steps.current_status.outputs.status }}" || true
+            git push || true
+          fi
+        continue-on-error: true

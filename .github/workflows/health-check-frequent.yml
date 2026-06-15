@@ -12,10 +12,12 @@ permissions:
 
 concurrency:
   group: runtime-health-check
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 jobs:
   workflow_guard:
@@ -79,6 +81,33 @@ jobs:
 
           echo "Runtime API unhealthy: HTTP $LAST_HTTP at $BASE$LAST_PATH"
           exit 1
+
+      - name: Alert on failure - Telegram
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          MESSAGE="🚨 RUNTIME API DOWN
+
+Endpoint: ${{ steps.health.outputs.url }}
+HTTP Code: ${{ steps.health.outputs.http_code }}
+Time: $TIMESTAMP
+
+AUTO-RECOVERY TRIGGERED:
+- Step 1: OCI SSH recovery (reboot)
+- Step 2: Wait 3 mins for recovery
+- Step 3: If still down → hard restart
+- Step 4: Verify API health
+
+Check GitHub Actions: https://github.com/${{ github.repository }}/actions"
+
+          if [ -n "${TELEGRAM_BOT_TOKEN}" ] && [ -n "${TELEGRAM_CHAT_ID}" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${MESSAGE}" \
+              -d "parse_mode=Markdown" > /dev/null || true
+          fi
 
       - name: Alert on failure - open issue
         if: failure()
