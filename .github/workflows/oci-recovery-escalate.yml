@@ -1,6 +1,8 @@
 name: OCI Recovery - Escalation (Hard Restart)
 
 on:
+  push:
+    branches: [main]
   workflow_run:
     workflows: ['OCI Auto-Recovery - SSH and Control Plane Recovery']
     types: [completed]
