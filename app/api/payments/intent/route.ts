@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
+// Use STRIPE_SECRET_KEY or STRIPE_API_KEY (fallback)
+const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
+
+if (!stripeKey) {
+  console.warn('⚠️ STRIPE_SECRET_KEY or STRIPE_API_KEY not configured');
+}
+
+const stripe = new Stripe(stripeKey);
 
 export async function POST(request: NextRequest) {
   try {

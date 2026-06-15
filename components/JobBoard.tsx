@@ -31,7 +31,7 @@ export function JobBoard({ refreshTrigger }: { refreshTrigger?: number }) {
   }, [refreshTrigger]);
 
   const handleAcceptJob = async (jobId: string) => {
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       setError('You must be logged in to accept jobs');
       return;
     }
@@ -40,7 +40,10 @@ export function JobBoard({ refreshTrigger }: { refreshTrigger?: number }) {
     try {
       const res = await fetch(`/api/jobs/${jobId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': session.user.email,
+        },
         body: JSON.stringify({ action: 'accept' }),
       });
 
@@ -58,9 +61,10 @@ export function JobBoard({ refreshTrigger }: { refreshTrigger?: number }) {
     }
   };
 
+  const userEmail = session?.user?.email;
   const openJobs = jobs.filter((j) => j.status === 'open');
-  const myAcceptedJobs = jobs.filter((j) => j.status === 'accepted' && j.accepted_by_id === session?.user?.id);
-  const myCompletedJobs = jobs.filter((j) => j.status === 'completed' && j.accepted_by_id === session?.user?.id);
+  const myAcceptedJobs = jobs.filter((j) => j.status === 'accepted' && j.accepted_by_id === userEmail);
+  const myCompletedJobs = jobs.filter((j) => j.status === 'completed' && j.accepted_by_id === userEmail);
 
   return (
     <div className="space-y-6">
