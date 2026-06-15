@@ -1,8 +1,13 @@
-name: OCI Recovery — Escalation (Hard Restart)
+name: OCI Recovery - Escalation (Hard Restart)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/oci-recovery-escalate.yml'
   workflow_run:
-    workflows: ['OCI Auto-Recovery — Restart Runtime Instance']
+    workflows: ['OCI Auto-Recovery - SSH-based Instance Recovery']
     types: [completed]
   workflow_dispatch:
 
@@ -11,42 +16,69 @@ permissions:
   issues: write
   actions: write
 
+concurrency:
+  group: oci-recovery-escalation
+  cancel-in-progress: false
+
+env:
+  RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
+
 jobs:
-  check_if_escalation_needed:
-    name: Check if Escalation Needed
+  workflow_guard:
+    name: Workflow guard
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    steps:
+      - name: Confirm workflow has a runnable job
+        run: echo "Escalation workflow loaded with a runnable guard job."
+
+  check_if_escalation_needed:
+    name: Check if escalation is needed
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
 
     steps:
-      - name: Wait 2 Minutes for Boot
+      - name: Wait for initial recovery window
         run: |
-          echo "⏳ Waiting 2 minutes for instance to fully boot after recovery..."
-          sleep 120
+          echo "Waiting 180 seconds for runtime services to settle after the initial recovery attempt."
+          sleep 180
 
-      - name: Check Runtime API Health
+      - name: Check Runtime API health
         id: health
+        shell: bash
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-            https://api.profitengine.alreadyherellc.com/health)
+          set -euo pipefail
+          BASE="${RUNTIME_API_URL%/}"
+          for path in /health /api/health; do
+            HTTP_CODE=$(curl -sS -o /tmp/health.json -w "%{http_code}" --connect-timeout 10 --max-time 15 "$BASE$path" || echo "000")
+            echo "Checked $BASE$path -> HTTP $HTTP_CODE"
+            echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+            if [ "$HTTP_CODE" = "200" ]; then
+              if python3 - <<'PY'
+          import json
+          import sys
+          try:
+              data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          except Exception:
+              sys.exit(1)
+          ok = data.get('ok') is True or data.get('status') == 'ok'
+          sys.exit(0 if ok else 1)
+          PY
+              then
+                echo "Runtime API is healthy after initial recovery. No escalation needed."
+                exit 0
+              fi
+            fi
+          done
+          echo "Runtime API is still down after initial recovery. Escalating to hard restart."
+          exit 1
 
-          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
-
-          if [[ "$HTTP_CODE" =~ ^2 ]]; then
-            echo "✅ API is healthy after recovery — no escalation needed"
-            exit 0
-          else
-            echo "❌ API still down after initial recovery (HTTP $HTTP_CODE)"
-            echo "Will escalate to hard restart..."
-            exit 1
-          fi
-
-      - name: Trigger Hard Restart Escalation
+      - name: Trigger hard restart escalation
         if: failure()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Trigger hard restart
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -56,10 +88,9 @@ jobs:
                 action: 'hard-restart'
               }
             });
+            console.log('Escalated to hard restart recovery action.');
 
-            console.log('⚠️  Escalating to hard restart (STOP + START)...');
-
-      - name: Report Escalation
+      - name: Report escalation
         if: failure()
         uses: actions/github-script@v7
         with:
@@ -78,14 +109,12 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issues[0].number,
-                body: `🚨 **ESCALATION** — Soft reboot failed, attempting hard restart
+                body: `Escalation: initial recovery failed, hard restart dispatched.
 
-**Previous Action:** Reboot (soft)
-**New Action:** STOP → START (hard restart)
-**Time:** ${new Date().toISOString()}
+Previous action: reboot / restart-docker
+New action: hard-restart
+Time: ${new Date().toISOString()}
 
-Hard restart includes full power cycle. This is aggressive but fixes most
-hardware/OS-level hangs. Will take 3-5 minutes. If this fails, manual
-intervention required.`
+Hard restart forces a host reboot through the SSH recovery workflow. If this fails, verify OCI network access, host firewall, public IP, SSH key, and instance state manually.`
               });
             }
