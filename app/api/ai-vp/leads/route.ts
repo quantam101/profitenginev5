@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
   // Handle batch import
   const isBatch = Array.isArray(body);
-  const payloads = isBatch ? body : [body];
+  const payloads: LeadPayload[] = isBatch ? (body as LeadPayload[]) : [body as LeadPayload];
 
   if (payloads.length > 100) {
     return NextResponse.json(

@@ -145,7 +145,7 @@ export function JobBoard({ refreshTrigger }: { refreshTrigger?: number }) {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <h3 className="font-semibold text-green-900 mb-2">Completed Jobs</h3>
           <p className="text-sm text-green-700">
-            You've completed {myCompletedJobs.length} job{myCompletedJobs.length !== 1 ? 's' : ''} on this platform
+            You&apos;ve completed {myCompletedJobs.length} job{myCompletedJobs.length !== 1 ? 's' : ''} on this platform
           </p>
         </div>
       )}

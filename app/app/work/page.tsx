@@ -1,19 +1,28 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+'use client';
+
 import { JobPostingForm } from '@/components/JobPostingForm';
 import { JobBoard } from '@/components/JobBoard';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export const metadata = {
-  title: 'Post or Accept Work | Already Here LLC',
-  description: 'Post local jobs or accept available work',
-};
-
-export default async function WorkPage() {
-  const session = await auth();
+export default function WorkPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   // Redirect to login if not authenticated
-  if (!session) {
-    redirect('/api/auth/signin?callbackUrl=/work');
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/api/auth/signin?callbackUrl=/work');
+    }
+  }, [status, router]);
+
+  if (status === 'loading' || !session) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -29,7 +38,7 @@ export default async function WorkPage() {
 
         {/* Daily Target Status */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-blue-900 mb-4">Today's Target</h2>
+          <h2 className="text-xl font-semibold text-blue-900 mb-4">Today&apos;s Target</h2>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-blue-600">Target Revenue</p>
@@ -37,7 +46,7 @@ export default async function WorkPage() {
             </div>
             <div>
               <p className="text-sm text-blue-600">Deadline</p>
-              <p className="text-3xl font-bold text-blue-900">12:00 PM</p>
+              <p className="text-3xl font-bold text-blue-900">12:00&nbsp;PM</p>
             </div>
             <div>
               <p className="text-sm text-blue-600">Current Time</p>
@@ -80,7 +89,7 @@ export default async function WorkPage() {
               </div>
               <h3 className="font-semibold mb-2">Accept Jobs</h3>
               <p className="text-sm text-gray-600">
-                Browse available jobs and click "Accept Job" to lock it in. Jobs must be completed same-day.
+                Browse available jobs and click &quot;Accept Job&quot; to lock it in. Jobs must be completed same-day.
               </p>
             </div>
             <div>
@@ -102,7 +111,7 @@ export default async function WorkPage() {
             <div>
               <h3 className="font-semibold mb-2">How much can I earn?</h3>
               <p className="text-sm text-gray-600">
-                Typical jobs pay $300-$500 with 2-4 hour duration. Experienced contractors can complete 2-3 jobs per day.
+                Typical jobs pay $300&ndash;$500 with 2&ndash;4 hour duration. Experienced contractors can complete 2&ndash;3 jobs per day.
               </p>
             </div>
             <div>
