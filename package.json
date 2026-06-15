@@ -39,18 +39,23 @@
     "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run eval:ai-gateway && npm run eval:skill-gateway && npm run security:scan && npm run build",
     "ci:security": "npm run security:audit && npm run security:scan",
     "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",
-    "healthcheck": "node scripts/agent-healthcheck.mjs"
+    "healthcheck": "node scripts/agent-healthcheck.mjs",
+    "db:init": "npx ts-node scripts/init-db.ts",
+    "db:init:seed": "npx ts-node scripts/init-db.ts --seed",
+    "db:test": "node -e \"require('pg').Pool({connectionString: process.env.DATABASE_URL || 'postgres://profitengine:password@localhost:5432/profitengine'}).query('SELECT NOW()', (e,r) => { console.log(e ? '❌ Connection failed: ' + e.message : '✅ Connected'); process.exit(e ? 1 : 0) })\""
   },
   "dependencies": {
     "mongodb": "^7.2.0",
     "next": "15.5.18",
     "next-auth": "^4.24.14",
+    "pg": "^8.21.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "stripe": "^22.2.0"
   },
   "devDependencies": {
     "@types/node": "22.10.10",
+    "@types/pg": "^8.20.0",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "eslint": "9.39.4",

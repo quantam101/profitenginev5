@@ -1,4 +1,4 @@
-// Job utilities and types
+// Job utilities and types (client + server safe)
 import { Session } from 'next-auth';
 
 export type Job = {

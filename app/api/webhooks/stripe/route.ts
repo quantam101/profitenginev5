@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createPayout } from '@/lib/payouts.server';
+import { getJobById } from '@/lib/jobs.server';
 
 function getStripe() {
   const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
@@ -48,8 +50,32 @@ export async function POST(request: NextRequest) {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       console.log(`✅ Payment succeeded: ${paymentIntent.id}`);
 
-      // TODO: Update job status to "paid" in database
-      // TODO: Create contractor payout via Stripe Connect
+      const jobId = paymentIntent.metadata?.jobId;
+      const contractorId = paymentIntent.metadata?.contractorId;
+      const contractorEmail = paymentIntent.metadata?.customerEmail;
+
+      try {
+        // Get job details
+        if (jobId) {
+          const job = await getJobById(jobId);
+          if (job && contractorId && contractorEmail) {
+            // Create payout to contractor (70% of job pay, platform keeps 30%)
+            const payoutAmount = job.pay * 0.7;
+            await createPayout({
+              jobId,
+              contractorId,
+              contractorEmail,
+              contractorName: job.title, // Use job title as contractor name placeholder
+              amount: payoutAmount,
+            });
+            console.log(`💳 Payout created: $${payoutAmount} to contractor ${contractorId}`);
+          }
+        }
+      } catch (payoutError) {
+        console.error('Failed to create payout:', payoutError);
+        // Don't fail the webhook if payout creation fails - it can be retried
+      }
+
       // TODO: Send notification to contractor
       // TODO: Log conversion in /prospects if B2B deal
 
