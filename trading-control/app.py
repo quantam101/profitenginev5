@@ -26,6 +26,7 @@ from synthesis_engine import ProposalSynthesisEngine
 from risk_kernel import DeterministicRiskKernel
 from paper_broker import PaperBroker
 from audit_ledger import AuditLedger
+from dynamic_risk_adjustment import DynamicRiskAdjuster
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,6 +40,16 @@ class TradingControlOS:
         self.risk_kernel = DeterministicRiskKernel(self.config['risk']['hard_limits'])
         self.paper_broker = PaperBroker(self.config)
         self.audit_ledger = AuditLedger()
+
+        # Initialize Dynamic Risk Adjuster
+        baseline_loss_limit = self.config['risk']['hard_limits'].get('max_daily_loss_usd', 200.0)
+        baseline_volatility = self.config['dynamic_risk'].get('baseline_volatility', 0.02)
+        self.risk_adjuster = DynamicRiskAdjuster(
+            baseline_daily_loss_limit=baseline_loss_limit,
+            kelly_base_fraction=self.config['dynamic_risk'].get('kelly_base_fraction', 0.05),
+            volatility_lookback_periods=self.config['dynamic_risk'].get('volatility_lookback_periods', 20),
+            regime_switch_threshold=self.config['dynamic_risk'].get('regime_switch_threshold', 0.95)
+        )
 
         self.open_proposals = {}
         self.open_orders = {}
@@ -76,6 +87,14 @@ class TradingControlOS:
             broker_offline=snapshot.get('broker_offline', False)
         )
 
+        # DYNAMIC RISK: Calculate volatility scalar for position sizing
+        if 'prices' in snapshot and len(snapshot['prices']) > 1:
+            price_array = np.array(snapshot['prices'])
+            returns = np.diff(np.log(price_array))
+            self.risk_adjuster.update_price_data(snapshot['symbol'], returns.tolist())
+        volatility_scalar = self.risk_adjuster.calculate_volatility_scalar(snapshot['symbol'])
+        logger.info(f"[{snapshot['symbol']}] Volatility scalar: {volatility_scalar:.3f}")
+
         # STEP 1: Generate proposal
         proposal = self.synthesis_engine.generate(
             market_snapshot,
@@ -94,6 +113,11 @@ class TradingControlOS:
         self.audit_ledger.log_proposal(proposal)
         self.open_proposals[proposal.proposal_id] = proposal
 
+        # DYNAMIC RISK: Adjust daily loss limit based on volatility regime
+        realized_loss = float(account_state.daily_pnl)
+        adjusted_limit, utilization_pct = self.risk_adjuster.adjust_daily_loss_limit(realized_loss)
+        logger.info(f"[{snapshot['symbol']}] Loss limit: ${adjusted_limit:.2f} (utilization: {utilization_pct:.1f}%)")
+
         # STEP 2: Risk evaluation
         risk_decision = self.risk_kernel.evaluate(
             proposal,
@@ -104,7 +128,8 @@ class TradingControlOS:
                 **snapshot
             },
             account_state,
-            list(self.open_orders.values())
+            list(self.open_orders.values()),
+            adjusted_daily_loss_limit=adjusted_limit  # Pass adjusted limit to risk kernel
         )
 
         self.audit_ledger.log_risk_decision(proposal.proposal_id, risk_decision)

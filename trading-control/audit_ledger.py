@@ -1,22 +1,35 @@
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Dict, List, Any
 from pathlib import Path
+import uuid
 
 try:
     from .models import TradeProposal, RiskApprovalDecision, ExecutionResult, TradeOutcome
 except ImportError:
     from models import TradeProposal, RiskApprovalDecision, ExecutionResult, TradeOutcome
 
+try:
+    from .compliance_automation import ComplianceAutomator
+except ImportError:
+    from compliance_automation import ComplianceAutomator
+
 class AuditLedger:
     """SQLite-backed immutable audit trail."""
 
-    def __init__(self, db_path: str = "./audit.db"):
+    def __init__(self, db_path: str = "./audit.db", compliance_db: str = "./compliance.db"):
         self.db_path = db_path
+        self.compliance_db = compliance_db
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(self.compliance_db).parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
+        # Initialize compliance automation
+        self.compliance_automator = ComplianceAutomator(
+            audit_ledger_path=self.db_path,
+            compliance_db=self.compliance_db
+        )
 
     def _init_schema(self):
         with sqlite3.connect(self.db_path) as conn:
@@ -94,6 +107,54 @@ class AuditLedger:
                 )
             """)
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS compliance_audit_trail (
+                    log_id TEXT PRIMARY KEY,
+                    timestamp TEXT,
+                    event_type TEXT,
+                    proposal_id TEXT,
+                    order_id TEXT,
+                    insider_id TEXT,
+                    compliance_check TEXT,
+                    compliance_status TEXT,
+                    details JSON,
+                    FOREIGN KEY (proposal_id) REFERENCES proposals(proposal_id),
+                    FOREIGN KEY (order_id) REFERENCES executions(order_id)
+                )
+            """)
+
+            conn.commit()
+
+    def _log_compliance_status(
+        self,
+        event_type: str,
+        compliance_check: str,
+        compliance_status: str,
+        proposal_id: str = None,
+        order_id: str = None,
+        insider_id: str = None,
+        details: Dict = None
+    ):
+        """Log compliance status to audit trail."""
+        log_id = str(uuid.uuid4())
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO compliance_audit_trail
+                (log_id, timestamp, event_type, proposal_id, order_id, insider_id,
+                 compliance_check, compliance_status, details)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                log_id,
+                datetime.utcnow().isoformat(),
+                event_type,
+                proposal_id,
+                order_id,
+                insider_id,
+                compliance_check,
+                compliance_status,
+                json.dumps(details) if details else None
+            ))
             conn.commit()
 
     def log_proposal(self, proposal: TradeProposal):
@@ -133,7 +194,7 @@ class AuditLedger:
             conn.commit()
 
     def log_risk_decision(self, proposal_id: str, decision: RiskApprovalDecision):
-        import uuid
+        decision_id = str(uuid.uuid4())
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -141,7 +202,7 @@ class AuditLedger:
                 (decision_id, proposal_id, timestamp, approved, rejection_reasons, risk_score, final_decision)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
-                str(uuid.uuid4()),
+                decision_id,
                 proposal_id,
                 datetime.utcnow().isoformat(),
                 decision.approved,
@@ -150,6 +211,35 @@ class AuditLedger:
                 decision.final_decision
             ))
             conn.commit()
+
+        # Check insider trading window for the proposal
+        try:
+            window_is_open, window_reason, window_details = self.compliance_automator.check_insider_trading_window(
+                insider_id="SYSTEM",
+                proposed_transaction_date=datetime.utcnow(),
+                security="ALL"
+            )
+            window_status = "OPEN" if window_is_open else "RESTRICTED"
+            self._log_compliance_status(
+                event_type="RISK_DECISION",
+                compliance_check="INSIDER_TRADING_WINDOW",
+                compliance_status=window_status,
+                proposal_id=proposal_id,
+                details={
+                    "decision_id": decision_id,
+                    "window_open": window_is_open,
+                    "window_reason": window_reason,
+                    "window_details": window_details
+                }
+            )
+        except Exception as e:
+            self._log_compliance_status(
+                event_type="RISK_DECISION",
+                compliance_check="INSIDER_TRADING_WINDOW",
+                compliance_status="ERROR",
+                proposal_id=proposal_id,
+                details={"error": str(e)}
+            )
 
     def log_execution(self, result: ExecutionResult, proposal_id: str):
         with sqlite3.connect(self.db_path) as conn:
@@ -173,6 +263,43 @@ class AuditLedger:
                 result.is_complete
             ))
             conn.commit()
+
+        # Generate SEC Form 4 prefill data for the executed trade
+        try:
+            form4_data = self.compliance_automator.generate_form4_prefill(
+                insider_id="SYSTEM",
+                insider_name="Automated Trading System",
+                insider_title="Trading Algorithm",
+                company_ticker="UNKNOWN",
+                cik_number="0000000000",
+                transaction_date=result.timestamp,
+                security_title="Equity Security",
+                transaction_type="acquisition" if result.quantity > 0 else "disposition",
+                shares=Decimal(str(result.quantity)),
+                price_per_share=Decimal(str(result.fill_price)),
+                beneficial_ownership=Decimal(str(result.quantity))
+            )
+            self._log_compliance_status(
+                event_type="EXECUTION",
+                compliance_check="FORM4_PREFILL_GENERATION",
+                compliance_status="GENERATED",
+                proposal_id=proposal_id,
+                order_id=result.order_id,
+                details={
+                    "form4_id": form4_data.get("metadata", {}).get("form4_id"),
+                    "filing_status": form4_data.get("metadata", {}).get("filing_status"),
+                    "window_status": form4_data.get("metadata", {}).get("window_status")
+                }
+            )
+        except Exception as e:
+            self._log_compliance_status(
+                event_type="EXECUTION",
+                compliance_check="FORM4_PREFILL_GENERATION",
+                compliance_status="ERROR",
+                proposal_id=proposal_id,
+                order_id=result.order_id,
+                details={"error": str(e)}
+            )
 
     def log_outcome(self, outcome: TradeOutcome):
         import uuid
@@ -277,3 +404,131 @@ class AuditLedger:
                 'total_rejections': 0,
                 'approval_rate_pct': 0.0
             }
+
+    def generate_daily_compliance_report(self, report_date: datetime = None) -> Dict[str, Any]:
+        """
+        Generate daily compliance report. Call this daily at 8pm UTC.
+
+        Args:
+            report_date: Date for which to generate report (default: today UTC)
+
+        Returns:
+            Daily compliance report with trade counts, violations, and status
+        """
+        if report_date is None:
+            report_date = datetime.utcnow()
+
+        report = self.compliance_automator.generate_daily_report(report_date)
+
+        # Log the report generation to audit trail
+        self._log_compliance_status(
+            event_type="DAILY_REPORT",
+            compliance_check="DAILY_COMPLIANCE_REPORT",
+            compliance_status="GENERATED",
+            details={
+                "report_id": report.get("report_id"),
+                "report_date": report.get("report_date"),
+                "total_trades": report.get("total_trades"),
+                "window_violations": report.get("window_violations"),
+                "blackout_violations": report.get("blackout_violations"),
+                "compliance_status": report.get("compliance_status")
+            }
+        )
+
+        return report
+
+    def generate_quarterly_attestation(
+        self,
+        fiscal_quarter: int,
+        fiscal_year: int,
+        attestor_name: str,
+        attestor_title: str
+    ) -> Dict[str, Any]:
+        """
+        Generate quarterly compliance attestation. Call on 1st of each quarter.
+
+        Args:
+            fiscal_quarter: Quarter number (1-4)
+            fiscal_year: Fiscal year
+            attestor_name: Name of person attesting
+            attestor_title: Title of person attesting
+
+        Returns:
+            Quarterly attestation document with Form 4 filing stats and violations summary
+        """
+        attestation = self.compliance_automator.generate_quarterly_attestation(
+            fiscal_quarter=fiscal_quarter,
+            fiscal_year=fiscal_year,
+            attestor_name=attestor_name,
+            attestor_title=attestor_title
+        )
+
+        # Log the attestation generation to audit trail
+        self._log_compliance_status(
+            event_type="QUARTERLY_ATTESTATION",
+            compliance_check="QUARTERLY_COMPLIANCE_ATTESTATION",
+            compliance_status="GENERATED",
+            details={
+                "attestation_id": attestation.get("attestation_id"),
+                "fiscal_quarter": attestation.get("fiscal_quarter"),
+                "fiscal_year": attestation.get("fiscal_year"),
+                "total_form4s_filed": attestation.get("total_form4s_filed"),
+                "late_filings": attestation.get("late_filings"),
+                "material_changes": attestation.get("material_changes"),
+                "control_effectiveness": attestation.get("control_effectiveness")
+            }
+        )
+
+        return attestation
+
+    def add_blackout_period(self, start_date: datetime, end_date: datetime, reason: str) -> Dict[str, Any]:
+        """Add a trading blackout period (e.g., quiet period, acquisition process)."""
+        return self.compliance_automator.add_blackout_period(start_date, end_date, reason)
+
+    def add_earnings_date(self, earnings_date: datetime) -> Dict[str, Any]:
+        """Add an earnings announcement date for insider trading window enforcement."""
+        return self.compliance_automator.add_earnings_date(earnings_date)
+
+    def log_compliance_violation(
+        self,
+        violation_type: str,
+        severity: str,
+        description: str,
+        insider_id: str = None,
+        remedial_action: str = None
+    ) -> Dict[str, Any]:
+        """Log compliance violation to audit trail."""
+        violation = self.compliance_automator.log_compliance_violation(
+            violation_type=violation_type,
+            severity=severity,
+            description=description,
+            insider_id=insider_id or "SYSTEM",
+            remedial_action=remedial_action
+        )
+
+        # Also log to compliance audit trail
+        self._log_compliance_status(
+            event_type="COMPLIANCE_VIOLATION",
+            compliance_check=violation_type,
+            compliance_status=f"VIOLATION_{severity}",
+            insider_id=insider_id,
+            details={
+                "violation_id": violation.get("violation_id"),
+                "violation_type": violation_type,
+                "severity": severity,
+                "description": description,
+                "remedial_action": remedial_action
+            }
+        )
+
+        return violation
+
+    def get_compliance_audit_trail(self, limit: int = 100) -> List[Dict]:
+        """Retrieve compliance audit trail logs."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM compliance_audit_trail ORDER BY timestamp DESC LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]

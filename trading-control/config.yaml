@@ -35,6 +35,12 @@ risk:
     max_open_positions: 3
     max_trades_per_day: 10
 
+dynamic_risk:
+  baseline_volatility: 0.02          # Reference volatility (2% annualized) for volatility scalar calculation
+  kelly_base_fraction: 0.05          # Base Kelly fraction (5%) before volatility/regime adjustments
+  volatility_lookback_periods: 20    # Number of periods for volatility calculation
+  regime_switch_threshold: 0.95      # Confidence threshold (95%) for market regime changes
+
 agents:
   technical:
     enabled: true

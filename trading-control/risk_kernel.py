@@ -14,7 +14,8 @@ except ImportError:
 
 class DeterministicRiskKernel:
     def __init__(self, hard_limits: Dict):
-        self.max_daily_loss = Decimal(str(hard_limits.get('max_daily_loss_usd', 200)))
+        self.baseline_daily_loss = Decimal(str(hard_limits.get('max_daily_loss_usd', 200)))
+        self.max_daily_loss = self.baseline_daily_loss  # Will be overridden by adjusted limit
         self.max_weekly_loss = Decimal(str(hard_limits.get('max_weekly_loss_usd', 1000)))
         self.max_spread_bps = hard_limits.get('max_spread_bps', 5)
         self.min_volume_usd = Decimal(str(hard_limits.get('min_volume_usd', 100000)))
@@ -25,13 +26,24 @@ class DeterministicRiskKernel:
         self.max_trades_per_day = hard_limits.get('max_trades_per_day', 10)
 
     def evaluate(self, proposal: TradeProposal, market_snapshot: Dict,
-                 account_state: AccountState, open_orders: List = None) -> RiskApprovalDecision:
+                 account_state: AccountState, open_orders: List = None,
+                 adjusted_daily_loss_limit: float = None) -> RiskApprovalDecision:
         """
         Apply ALL hard gates. ANY gate failure → rejection.
         No override possible; no human negotiation on hard limits.
+
+        Args:
+            adjusted_daily_loss_limit: Dynamic risk adjustment from DynamicRiskAdjuster.
+                If provided, overrides hardcoded limit for this evaluation.
         """
         rejections = []
         open_orders = open_orders or []
+
+        # Use adjusted limit if provided by dynamic risk adjuster, otherwise use baseline
+        if adjusted_daily_loss_limit is not None:
+            self.max_daily_loss = Decimal(str(adjusted_daily_loss_limit))
+        else:
+            self.max_daily_loss = self.baseline_daily_loss
 
         # GATE 1: Regime approval
         if not proposal.regime_signal.approved_to_trade:
@@ -44,7 +56,7 @@ class DeterministicRiskKernel:
         if account_state.broker_offline:
             rejections.append(RejectionReason.BROKER_OFFLINE)
 
-        # GATE 3: Daily loss limit
+        # GATE 3: Daily loss limit (now uses dynamic adjustment)
         if account_state.daily_pnl <= -self.max_daily_loss:
             rejections.append(RejectionReason.DAILY_LOSS_HIT)
 
