@@ -1,0 +1,365 @@
+{
+  "timestamp": "2026-06-17T09:27:20.679464",
+  "test_summary": {
+    "total_trades": 30,
+    "win_rate": 0.5333333333333333,
+    "phase_1_corr": -0.19863239043560058,
+    "phase_2_corr": 0.9934907065412001,
+    "phase_3_corr": 0.8364101758099287
+  },
+  "checkpoints": {
+    "trade_20": {
+      "matrix": [
+        [
+          1.0,
+          0.3261229894073485,
+          0.048241635788564496,
+          0.0
+        ],
+        [
+          0.3261229894073485,
+          0.9999999999999999,
+          0.6688395027849846,
+          0.0
+        ],
+        [
+          0.048241635788564496,
+          0.6688395027849846,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "diversity_score": 0.8261326453365171,
+      "avg_correlation": 0.17386735466348294,
+      "correlated_failures": 3
+    },
+    "trade_30": {
+      "matrix": [
+        [
+          0.9999999999999999,
+          0.9171625094332793,
+          0.431327142058916,
+          0.0
+        ],
+        [
+          0.9171625094332793,
+          0.9999999999999999,
+          0.25337823151268657,
+          0.0
+        ],
+        [
+          0.431327142058916,
+          0.25337823151268657,
+          0.9999999999999998,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "diversity_score": 0.7330220194991863,
+      "avg_correlation": 0.2669779805008136,
+      "correlated_failures": 1
+    }
+  },
+  "weight_adjustments": [
+    {
+      "trade_num": 20,
+      "weights": {
+        "technical": 0.20720972152674816,
+        "microstructure": 0.2211160388153167,
+        "regime": 0.25908300780645843,
+        "portfolio": 0.31259123185147664
+      },
+      "diversity_score": 0.8261326453365171
+    },
+    {
+      "trade_num": 30,
+      "weights": {
+        "technical": 0.20720972152674816,
+        "microstructure": 0.2211160388153167,
+        "regime": 0.25908300780645843,
+        "portfolio": 0.31259123185147664
+      },
+      "diversity_score": 0.7330220194991863
+    }
+  ],
+  "final_report": {
+    "diversity_score": 0.7330220194991863,
+    "avg_correlation": 0.2669779805008136,
+    "agent_weights": {
+      "technical": 0.20720972152674816,
+      "microstructure": 0.2211160388153167,
+      "regime": 0.25908300780645843,
+      "portfolio": 0.31259123185147664
+    },
+    "correlated_failures_count": 1,
+    "correlated_failures": [
+      {
+        "agent_pair": [
+          "technical",
+          "microstructure"
+        ],
+        "correlation": 0.890225374493125,
+        "shared_losses": 6,
+        "severity": "high",
+        "timestamp": "2026-06-17T09:27:20.678823"
+      }
+    ],
+    "recommendations": [
+      "GOOD: Signal diversity is healthy. Agent signals show independence.",
+      "CRITICAL: Detected 1 correlated failure patterns. Agents technical tend to fail together. Reduce position size during simultaneous signals."
+    ]
+  },
+  "trade_signals": [
+    {
+      "trade_num": 1,
+      "scenario": "independent",
+      "tech": 0.6943280309992009,
+      "micro": 0.7381591491004327,
+      "regime": 0.7575310646325043,
+      "outcome": 0
+    },
+    {
+      "trade_num": 2,
+      "scenario": "independent",
+      "tech": 0.7346963710092553,
+      "micro": 0.7045060064020747,
+      "regime": 0.8009765181769475,
+      "outcome": 1
+    },
+    {
+      "trade_num": 3,
+      "scenario": "independent",
+      "tech": 0.7674990364441225,
+      "micro": 0.654353663171501,
+      "regime": 0.8196993983924865,
+      "outcome": 1
+    },
+    {
+      "trade_num": 4,
+      "scenario": "independent",
+      "tech": 0.7898058628950839,
+      "micro": 0.5956200716548067,
+      "regime": 0.8091156912190818,
+      "outcome": 1
+    },
+    {
+      "trade_num": 5,
+      "scenario": "independent",
+      "tech": 0.7996242479906082,
+      "micro": 0.5375779745179287,
+      "regime": 0.7718166572924747,
+      "outcome": 0
+    },
+    {
+      "trade_num": 6,
+      "scenario": "independent",
+      "tech": 0.7960771446317293,
+      "micro": 0.4893909426688131,
+      "regime": 0.716934400967184,
+      "outcome": 0
+    },
+    {
+      "trade_num": 7,
+      "scenario": "independent",
+      "tech": 0.7794814049973311,
+      "micro": 0.4586666488997012,
+      "regime": 0.6579060126772456,
+      "outcome": 0
+    },
+    {
+      "trade_num": 8,
+      "scenario": "independent",
+      "tech": 0.7513194770826727,
+      "micro": 0.450255783630787,
+      "regime": 0.6091837005630486,
+      "outcome": 0
+    },
+    {
+      "trade_num": 9,
+      "scenario": "independent",
+      "tech": 0.7141069820350745,
+      "micro": 0.46548623754987795,
+      "regime": 0.5826963858801884,
+      "outcome": 1
+    },
+    {
+      "trade_num": 10,
+      "scenario": "independent",
+      "tech": 0.6711680012089801,
+      "micro": 0.5019534568704582,
+      "regime": 0.5849290870404233,
+      "outcome": 1
+    },
+    {
+      "trade_num": 11,
+      "scenario": "correlated",
+      "tech": 0.7114607246522433,
+      "micro": 0.7289449857273456,
+      "regime": 0.7354624247993607,
+      "outcome": 1
+    },
+    {
+      "trade_num": 12,
+      "scenario": "correlated",
+      "tech": 0.7668489560220163,
+      "micro": 0.778238284609436,
+      "regime": 0.7677570968074042,
+      "outcome": 1
+    },
+    {
+      "trade_num": 13,
+      "scenario": "correlated",
+      "tech": 0.7979409135260055,
+      "micro": 0.8063356871321838,
+      "regime": 0.793999229155298,
+      "outcome": 1
+    },
+    {
+      "trade_num": 14,
+      "scenario": "correlated",
+      "tech": 0.7903406228641826,
+      "micro": 0.7865683314352977,
+      "regime": 0.8118446903160671,
+      "outcome": 1
+    },
+    {
+      "trade_num": 15,
+      "scenario": "correlated",
+      "tech": 0.7417748459417232,
+      "micro": 0.7454373340894924,
+      "regime": 0.8196993983924865,
+      "outcome": 1
+    },
+    {
+      "trade_num": 16,
+      "scenario": "correlated",
+      "tech": 0.6798705012647612,
+      "micro": 0.6717919385002197,
+      "regime": 0.8168617157053834,
+      "outcome": 1
+    },
+    {
+      "trade_num": 17,
+      "scenario": "correlated",
+      "tech": 0.5974659577511731,
+      "micro": 0.572384145514613,
+      "regime": 0.8035851239978649,
+      "outcome": 0
+    },
+    {
+      "trade_num": 18,
+      "scenario": "correlated",
+      "tech": 0.5325182230646031,
+      "micro": 0.549705872719833,
+      "regime": 0.7810555816661381,
+      "outcome": 0
+    },
+    {
+      "trade_num": 19,
+      "scenario": "correlated",
+      "tech": 0.5090232277927972,
+      "micro": 0.5065749993143757,
+      "regime": 0.7512855856280596,
+      "outcome": 1
+    },
+    {
+      "trade_num": 20,
+      "scenario": "correlated",
+      "tech": 0.5144295001604522,
+      "micro": 0.4914544753562198,
+      "regime": 0.716934400967184,
+      "outcome": 0
+    },
+    {
+      "trade_num": 21,
+      "scenario": "mixed",
+      "tech": 0.7346963710092553,
+      "micro": 0.6443910240198869,
+      "regime": 0.8053099074268447,
+      "outcome": 1
+    },
+    {
+      "trade_num": 22,
+      "scenario": "mixed",
+      "tech": 0.7898058628950839,
+      "micro": 0.6818911938725774,
+      "regime": 0.7648362767041768,
+      "outcome": 1
+    },
+    {
+      "trade_num": 23,
+      "scenario": "mixed",
+      "tech": 0.7960771446317293,
+      "micro": 0.7401072310251663,
+      "regime": 0.7084884642001243,
+      "outcome": 1
+    },
+    {
+      "trade_num": 24,
+      "scenario": "mixed",
+      "tech": 0.7513194770826727,
+      "micro": 0.7618590315080859,
+      "regime": 0.6500623796143429,
+      "outcome": 0
+    },
+    {
+      "trade_num": 25,
+      "scenario": "mixed",
+      "tech": 0.6711680012089801,
+      "micro": 0.7363403036533139,
+      "regime": 0.603862766134368,
+      "outcome": 1
+    },
+    {
+      "trade_num": 26,
+      "scenario": "mixed",
+      "tech": 0.5836219335057722,
+      "micro": 0.6370011719610146,
+      "regime": 0.5812009004079465,
+      "outcome": 0
+    },
+    {
+      "trade_num": 27,
+      "scenario": "mixed",
+      "tech": 0.5192636341379618,
+      "micro": 0.537174975263118,
+      "regime": 0.5876251975251043,
+      "outcome": 0
+    },
+    {
+      "trade_num": 28,
+      "scenario": "mixed",
+      "tech": 0.500575308674624,
+      "micro": 0.5024734958071949,
+      "regime": 0.6215627654963665,
+      "outcome": 0
+    },
+    {
+      "trade_num": 29,
+      "scenario": "mixed",
+      "tech": 0.5340853268666019,
+      "micro": 0.6077569500757546,
+      "regime": 0.6747045040683064,
+      "outcome": 0
+    },
+    {
+      "trade_num": 30,
+      "scenario": "mixed",
+      "tech": 0.6080876752701612,
+      "micro": 0.5894369811860789,
+      "regime": 0.7340394622555871,
+      "outcome": 0
+    }
+  ]
+}

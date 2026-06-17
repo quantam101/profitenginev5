@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-06-17T09:26:44.390420",
+  "test_summary": {
+    "total_trades_attempted": 30,
+    "trades_accepted": 30,
+    "acceptance_rate": 1.0,
+    "win_rate": 0.5666666666666667,
+    "trades_with_outcomes": 30
+  },
+  "checkpoints": {
+    "trade_20": {
+      "matrix": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "diversity_score": 1.0,
+      "avg_correlation": 0.0,
+      "correlated_failures": 0
+    },
+    "trade_30": {
+      "matrix": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "diversity_score": 1.0,
+      "avg_correlation": 0.0,
+      "correlated_failures": 0
+    }
+  },
+  "weight_adjustments": [
+    {
+      "trade_num": 20,
+      "weights": {
+        "technical": 0.25,
+        "microstructure": 0.25,
+        "regime": 0.25,
+        "portfolio": 0.25
+      },
+      "diversity_score": 1.0
+    },
+    {
+      "trade_num": 30,
+      "weights": {
+        "technical": 0.25,
+        "microstructure": 0.25,
+        "regime": 0.25,
+        "portfolio": 0.25
+      },
+      "diversity_score": 1.0
+    }
+  ],
+  "final_report": {
+    "diversity_score": 1.0,
+    "avg_correlation": 0.0,
+    "agent_weights": {
+      "technical": 0.25,
+      "microstructure": 0.25,
+      "regime": 0.25,
+      "portfolio": 0.25
+    },
+    "correlated_failures_count": 0,
+    "correlated_failures": [],
+    "recommendations": [
+      "GOOD: Signal diversity is healthy. Agent signals show independence."
+    ]
+  }
+}

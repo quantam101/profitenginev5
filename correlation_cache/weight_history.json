@@ -1,0 +1,352 @@
+[
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303094"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23594527641457333,
+    "adjusted_weight": 0.2268239141499216,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303153"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.26455624919075266,
+    "adjusted_weight": 0.254697527863704,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303156"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2970666602871597,
+    "adjusted_weight": 0.2864683368785278,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303158"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.25853767403287176,
+    "adjusted_weight": 0.2488273525798153,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303218"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.22456668570328361,
+    "adjusted_weight": 0.21576098791613907,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303221"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2935156688134475,
+    "adjusted_weight": 0.2829930297932405,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303224"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.24263114891897994,
+    "adjusted_weight": 0.23333025081466677,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303284"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303287"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.28967890229764715,
+    "adjusted_weight": 0.2792394459924293,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303290"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23941292000775943,
+    "adjusted_weight": 0.2301978914762696,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303350"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.2684914902770311,
+    "adjusted_weight": 0.2585376740328717,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303353"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303355"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23594527641457333,
+    "adjusted_weight": 0.2268239141499216,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303415"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.26455624919075266,
+    "adjusted_weight": 0.254697527863704,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303420"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2970666602871597,
+    "adjusted_weight": 0.2864683368785278,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303423"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.25853767403287176,
+    "adjusted_weight": 0.2488273525798153,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303485"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.22456668570328361,
+    "adjusted_weight": 0.21576098791613907,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303488"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2935156688134475,
+    "adjusted_weight": 0.2829930297932405,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303490"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.24263114891897994,
+    "adjusted_weight": 0.23333025081466677,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303552"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303555"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.28967890229764715,
+    "adjusted_weight": 0.2792394459924293,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303559"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23941292000775943,
+    "adjusted_weight": 0.2301978914762696,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303621"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.2684914902770311,
+    "adjusted_weight": 0.2585376740328717,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303625"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303628"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23594527641457333,
+    "adjusted_weight": 0.2268239141499216,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303693"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.26455624919075266,
+    "adjusted_weight": 0.254697527863704,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303697"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2970666602871597,
+    "adjusted_weight": 0.2864683368785278,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303700"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.25853767403287176,
+    "adjusted_weight": 0.2488273525798153,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303762"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.22456668570328361,
+    "adjusted_weight": 0.21576098791613907,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303764"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2935156688134475,
+    "adjusted_weight": 0.2829930297932405,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303767"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.24263114891897994,
+    "adjusted_weight": 0.23333025081466677,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303831"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303833"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.28967890229764715,
+    "adjusted_weight": 0.2792394459924293,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303836"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23941292000775943,
+    "adjusted_weight": 0.2301978914762696,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303899"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.2684914902770311,
+    "adjusted_weight": 0.2585376740328717,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303901"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303904"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23594527641457333,
+    "adjusted_weight": 0.2268239141499216,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303967"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.26455624919075266,
+    "adjusted_weight": 0.254697527863704,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303970"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2970666602871597,
+    "adjusted_weight": 0.2864683368785278,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.303974"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.25853767403287176,
+    "adjusted_weight": 0.2488273525798153,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304038"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.22456668570328361,
+    "adjusted_weight": 0.21576098791613907,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304041"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.2935156688134475,
+    "adjusted_weight": 0.2829930297932405,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304044"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.24263114891897994,
+    "adjusted_weight": 0.23333025081466677,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304108"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304110"
+  },
+  {
+    "agent_name": "risk_gates",
+    "original_weight": 0.28967890229764715,
+    "adjusted_weight": 0.2792394459924293,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304113"
+  },
+  {
+    "agent_name": "regime_signal",
+    "original_weight": 0.23941292000775943,
+    "adjusted_weight": 0.2301978914762696,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304177"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.2684914902770311,
+    "adjusted_weight": 0.2585376740328717,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304179"
+  },
+  {
+    "agent_name": "technical_signal",
+    "original_weight": 0.2216637382739337,
+    "adjusted_weight": 0.21294061196415268,
+    "reason": "Correlated failure detected (reduction factor: 0.95)",
+    "timestamp": "2026-06-17T16:55:21.304182"
+  },
+  {
+    "agent_name": "kelly_signal",
+    "original_weight": 0.2614352093236269,
+    "adjusted_weight": 0.24160817681937144,
+    "reason": "Correlated failure detected (reduction factor: 0.9)",
+    "timestamp": "2026-06-17T16:55:21.304203"
+  }
+]

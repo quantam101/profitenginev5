@@ -1,0 +1,135 @@
+{
+  "verification_date": "2026-06-17",
+  "test_suite": "Backup Rotation Integration",
+  "overall_status": "PASS",
+  "summary": {
+    "total_tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "pass_rate": "100%"
+  },
+  "test_results": {
+    "script_existence": {
+      "status": "PASS",
+      "details": {
+        "backup.sh": "PASS - scripts/backup.sh exists",
+        "backup_and_rotate.py": "PASS - scripts/backup_and_rotate.py exists",
+        "verify_backup_integrity.py": "PASS - verify_backup_integrity.py exists"
+      }
+    },
+    "backup_creation": {
+      "status": "PASS",
+      "details": {
+        "archive_name": "test-backup-20260617_162637.tar.gz",
+        "archive_size": "1034830 bytes (0.99 MB)",
+        "timestamp_format": "YYYYMMDD_HHMMSS",
+        "iso_timestamp": "2026-06-17T16:26:37Z",
+        "result": "Timestamped backup archive created successfully"
+      }
+    },
+    "sha256_validation": {
+      "status": "PASS",
+      "details": {
+        "checksum_file": "PASS - .sha256 file created",
+        "archive_integrity": "PASS - Archive readable and checksummed",
+        "sha256": "f87aabc3a704ea8fe13701efc9609af014a4652065632d8adbf4af13f09fe5ad",
+        "validation_method": "sha256sum verification"
+      }
+    },
+    "backup_extraction": {
+      "status": "PASS",
+      "details": {
+        "archive_readable": "PASS - tar.gz archive opened successfully",
+        "file_count": 286,
+        "extraction_success": "PASS - All files extracted successfully",
+        "sample_files": [
+          "scripts/",
+          "scripts/agent-healthcheck.mjs",
+          "scripts/article_topics.py",
+          "scripts/autopublish_gate.py",
+          "scripts/backup.sh"
+        ]
+      }
+    },
+    "rotation_policy": {
+      "status": "PASS",
+      "details": {
+        "retention_days": 28,
+        "test_scenario": "5 simulated backups (0, 10, 20, 30, 40 days old)",
+        "expected_behavior": "Keep <=28 days, delete >28 days",
+        "deleted_count": 2,
+        "retained_count": 3,
+        "deleted_backups": [
+          "rotation-test-20260508_162638.tar.gz (40 days old)",
+          "rotation-test-20260518_162638.tar.gz (30 days old)"
+        ],
+        "retained_backups": [
+          "rotation-test-20260528_162638.tar.gz (20 days old)",
+          "rotation-test-20260607_162638.tar.gz (10 days old)",
+          "rotation-test-20260617_162638.tar.gz (0 days old)"
+        ]
+      }
+    },
+    "cleanup_mechanism": {
+      "status": "PASS",
+      "details": {
+        "old_backup_removal": "PASS - Old backups deleted correctly",
+        "checksum_cleanup": "PASS - Associated .sha256 files also removed",
+        "remaining_count": 3,
+        "cleanup_verified": true
+      }
+    },
+    "github_actions_workflow": {
+      "status": "PASS",
+      "details": {
+        "workflow_file": ".github/workflows/backup-rotation.yml",
+        "has_schedule": "PASS - Weekly schedule (Monday 02:00 UTC)",
+        "has_retention_days": "PASS - RETENTION_DAYS env var configured",
+        "has_sha256_validation": "PASS - sha256sum validation in workflow",
+        "has_rotation_logic": "PASS - Rotation job implemented",
+        "has_email_notification": "PASS - Email verification enabled",
+        "additional_features": [
+          "S3 upload support",
+          "GitHub Releases integration",
+          "Workflow dispatch for manual runs",
+          "Email notifications with HTML templates"
+        ]
+      }
+    }
+  },
+  "backup_manifest": {
+    "archive_name": "test-backup-20260617_162637.tar.gz",
+    "size_bytes": 1034830,
+    "size_mb": 0.99,
+    "sha256": "f87aabc3a704ea8fe13701efc9609af014a4652065632d8adbf4af13f09fe5ad",
+    "timestamp": "20260617_162637",
+    "iso_timestamp": "2026-06-17T16:26:37Z",
+    "included_files": 286,
+    "extracted_files": 286,
+    "extraction_status": "OK - All files restored"
+  },
+  "rotation_statistics": {
+    "test_scenario": "28-day retention policy",
+    "total_backups_tested": 5,
+    "deleted": 2,
+    "retained": 3,
+    "deletion_percentage": 40,
+    "retention_percentage": 60,
+    "policy_compliance": "PASS"
+  },
+  "acceptance_criteria": {
+    "backup_creation": "PASS - Creates BACKUP_YYYYMMDD_HHMMSS.tar.gz",
+    "sha256_checksum": "PASS - SHA256 calculated and verified",
+    "rotation_28_days": "PASS - Only 28-day backups kept",
+    "cleanup": "PASS - Old backups and checksums removed",
+    "extraction": "PASS - Backup can be extracted and restored",
+    "verification_script": "PASS - verify_backup_integrity.py present"
+  },
+  "verification_commands_for_manual_testing": [
+    "python scripts/backup_and_rotate.py --backup-dir ./test_backup",
+    "ls -lh ./test_backup/profitengine-backup-*.tar.gz",
+    "sha256sum -c ./test_backup/profitengine-backup-*.sha256",
+    "tar -tzf ./test_backup/profitengine-backup-*.tar.gz | head -20",
+    "python verify_backup_integrity.py"
+  ]
+}

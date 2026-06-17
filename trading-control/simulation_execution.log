@@ -1,0 +1,15 @@
+INFO:__main__:==========================================================================================
+INFO:__main__:INITIALIZING COMPLETE 4-PHASE TRADING SIMULATION
+INFO:__main__:==========================================================================================
+ERROR:__main__:
+\u274c Fatal error: 'dynamic_risk'
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-control\complete_4phase_simulation.py", line 512, in main
+    sim = Complete4PhaseSimulation()
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-control\complete_4phase_simulation.py", line 70, in __init__
+    self.trading_os = TradingControlOS()
+                      ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-control\app.py", line 46, in __init__
+    baseline_volatility = self.config['dynamic_risk'].get('baseline_volatility', 0.02)
+                          ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'dynamic_risk'

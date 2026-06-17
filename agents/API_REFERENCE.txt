@@ -1,0 +1,447 @@
+================================================================================
+AGENT RISK GATES - API REFERENCE
+================================================================================
+
+FILE: agents/agent_risk_gates.py (694 lines)
+VERSION: 1.0
+CREATED: 2026-06-17
+
+================================================================================
+QUICK API OVERVIEW
+================================================================================
+
+Main Class: AgentRiskGates
+
+Entry Points:
+  1. async validate_all_gates() -> ValidationReport
+  2. validate_single(gate_id: str) -> GateResult
+
+Support Classes:
+  - GateResult (dataclass) - single gate result
+  - ValidationReport (dataclass) - full validation report
+  - GateStatus (enum) - PASS/FAIL/WARN/SKIP
+  - GateSeverity (enum) - CRITICAL/HIGH/MEDIUM/LOW
+
+================================================================================
+CLASS: AgentRiskGates
+================================================================================
+
+INITIALIZATION:
+  AgentRiskGates(env: Optional[Dict[str, str]] = None, timeout_sec: int = 30)
+
+  Parameters:
+    env (Optional[Dict[str, str]]): Environment variables dict
+                                    Defaults to os.environ if not provided
+    timeout_sec (int): Overall validation timeout in seconds
+                       Default: 30
+                       Max recommended: 60
+
+  Example:
+    gates = AgentRiskGates()  # Uses os.environ
+    gates = AgentRiskGates(env={"MAX_COST_USD": "0"}, timeout_sec=15)
+
+ATTRIBUTES:
+  self.env: Dict[str, str] - environment variables
+  self.timeout_sec: int - validation timeout in seconds
+  self.logger: logging.Logger - logger instance
+
+================================================================================
+PUBLIC METHODS
+================================================================================
+
+METHOD 1: validate_all_gates()
+--------
+  Signature:
+    async def validate_all_gates(self) -> ValidationReport
+
+  Returns:
+    ValidationReport: Complete validation report with all 13 gates
+
+  Behavior:
+    - Validates all 13 gates in parallel using asyncio.gather()
+    - Timeout protection: respects self.timeout_sec
+    - Exception handling: each gate wrapped in try/except
+    - Execution timing: measures per-gate and total time
+
+  Return Structure:
+    {
+      "timestamp": "2026-06-17T12:34:56.789012+00:00",
+      "total_gates": 13,
+      "passed": 11,
+      "failed": 1,
+      "warned": 1,
+      "skipped": 0,
+      "critical_failures": 1,
+      "validation_pass": False,
+      "total_execution_time_ms": 87.5,
+      "results": [
+        {
+          "gate_id": "llm_cost_control",
+          "gate_name": "LLM Cost Control",
+          "status": "pass",
+          "severity": "critical",
+          "message": "LLM cost control enabled: max_cost_usd = 0",
+          "details": {"max_cost_usd": 0.0},
+          "timestamp": "2026-06-17T12:34:56.789012+00:00",
+          "execution_time_ms": 1.5
+        },
+        ...
+      ]
+    }
+
+  Performance:
+    Typical execution: 50-100ms for all 13 gates
+    Per-gate: 2-5ms
+    Parallelization: ~90% speedup vs sequential
+
+METHOD 2: validate_single(gate_id: str)
+--------
+  Signature:
+    def validate_single(self, gate_id: str) -> GateResult
+
+  Parameters:
+    gate_id (str): Gate identifier (see Valid IDs below)
+
+  Returns:
+    GateResult: Single gate validation result
+
+  Valid Gate IDs:
+    - "llm_cost_control"
+    - "paid_adapters_block"
+    - "security_scan_pass"
+    - "test_suite_pass"
+    - "token_optimization"
+    - "credential_isolation"
+    - "rate_limiting"
+    - "api_health_check"
+    - "webhook_validation"
+    - "database_connection"
+    - "deployment_status"
+    - "compliance_gates"
+    - "fallback_routing"
+
+  Return Structure (single gate):
+    {
+      "gate_id": "llm_cost_control",
+      "gate_name": "LLM Cost Control",
+      "status": "pass",
+      "severity": "critical",
+      "message": "LLM cost control enabled: max_cost_usd = 0",
+      "details": {"max_cost_usd": 0.0},
+      "timestamp": "2026-06-17T12:34:56.789012+00:00",
+      "execution_time_ms": 1.5
+    }
+
+  Synchronous Wrapper:
+    Note: This method runs async validators synchronously using a new event loop
+    Each call creates a fresh loop (slight overhead but simplifies integration)
+
+  Example:
+    result = gates.validate_single("llm_cost_control")
+    if result.status.value == "fail":
+        print(f"FAILED: {result.message}")
+
+================================================================================
+PRIVATE METHODS (13 Gate Validators)
+================================================================================
+
+All async, return GateResult, signature:
+  async def _validate_GATE_NAME(self) -> GateResult
+
+Gate 1: _validate_llm_cost_control() [CRITICAL]
+  Checks: MAX_COST_USD environment variable
+  Passes if: MAX_COST_USD == "0"
+  Env vars: MAX_COST_USD
+  Line: 244
+
+Gate 2: _validate_paid_adapters_block() [CRITICAL]
+  Checks: PAID_ADAPTERS_ENABLED environment variable
+  Passes if: PAID_ADAPTERS_ENABLED == "false"
+  Env vars: PAID_ADAPTERS_ENABLED
+  Line: 276
+
+Gate 3: _validate_security_scan_pass() [CRITICAL]
+  Checks: SECURITY_SCAN_PASS environment variable
+  Passes if: SECURITY_SCAN_PASS == "true"
+  Env vars: SECURITY_SCAN_PASS
+  Line: 308
+
+Gate 4: _validate_test_suite_pass() [HIGH]
+  Checks: TESTS_PASS environment variable
+  Passes if: TESTS_PASS == "true"
+  Env vars: TESTS_PASS
+  Line: 340
+
+Gate 5: _validate_token_optimization() [MEDIUM]
+  Checks: TOKEN_OPTIMIZATION environment variable
+  Passes if: TOKEN_OPTIMIZATION == "true" (default)
+  Env vars: TOKEN_OPTIMIZATION
+  Line: 372
+
+Gate 6: _validate_credential_isolation() [CRITICAL]
+  Checks: ENV_IN_REPO environment variable
+  Passes if: ENV_IN_REPO == "false"
+  Env vars: ENV_IN_REPO
+  Line: 404
+
+Gate 7: _validate_rate_limiting() [MEDIUM]
+  Checks: RATE_LIMIT_ENABLED, REQUESTS_PER_SECOND
+  Passes if: rate_limit_enabled && rps_limit > 0
+  Env vars: RATE_LIMIT_ENABLED, REQUESTS_PER_SECOND
+  Line: 437
+
+Gate 8: _validate_api_health_check() [MEDIUM]
+  Checks: HTTP GET to PROFITENGINE_URL/health
+  Passes if: status code 200
+  Env vars: PROFITENGINE_URL
+  Timeout: 5 seconds
+  Line: 470
+
+Gate 9: _validate_webhook_validation() [HIGH]
+  Checks: WEBHOOK_SIGNATURE_VALIDATION, PROFITENGINE_WEBHOOK_TOKEN
+  Passes if: validation enabled && token configured
+  Env vars: WEBHOOK_SIGNATURE_VALIDATION, PROFITENGINE_WEBHOOK_TOKEN
+  Line: 522
+
+Gate 10: _validate_database_connection() [MEDIUM]
+  Checks: TAYLOR_DB_PATH or DATABASE_URL configuration
+  Passes if: at least one configured
+  Env vars: TAYLOR_DB_PATH, DATABASE_URL
+  Line: 558
+
+Gate 11: _validate_deployment_status() [HIGH]
+  Checks: DEPLOYMENT_READY, ENVIRONMENT
+  Passes if: DEPLOYMENT_READY == "true" && ENVIRONMENT == "production"
+  Env vars: DEPLOYMENT_READY, ENVIRONMENT
+  Line: 591
+
+Gate 12: _validate_compliance_gates() [CRITICAL]
+  Checks: FTC_DISCLOSURE_ENABLED, AMAZON_ASSOCIATES_TAG
+  Passes if: FTC enabled && Amazon tag configured
+  Env vars: FTC_DISCLOSURE_ENABLED, AMAZON_ASSOCIATES_TAG
+  Line: 624
+
+Gate 13: _validate_fallback_routing() [MEDIUM]
+  Checks: FALLBACK_ROUTING_ENABLED, FALLBACK_API_URL
+  Passes if: routing enabled && backup URL configured
+  Env vars: FALLBACK_ROUTING_ENABLED, FALLBACK_API_URL
+  Line: 660
+
+================================================================================
+DATA CLASSES
+================================================================================
+
+CLASS: GateStatus (Enum)
+  Values:
+    PASS = "pass"
+    FAIL = "fail"
+    WARN = "warn"
+    SKIP = "skip"
+
+CLASS: GateSeverity (Enum)
+  Values:
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+CLASS: GateResult (Dataclass)
+  Fields:
+    gate_id: str
+    gate_name: str
+    status: GateStatus
+    severity: GateSeverity
+    message: str
+    details: Dict[str, Any] = {}
+    timestamp: str = current ISO timestamp
+    execution_time_ms: float = 0.0
+
+  Methods:
+    to_dict() -> Dict[str, Any]:
+      Converts all fields to dict with enums as .value strings
+
+CLASS: ValidationReport (Dataclass)
+  Fields:
+    timestamp: str = current ISO timestamp
+    total_gates: int = 0
+    passed: int = 0
+    failed: int = 0
+    warned: int = 0
+    skipped: int = 0
+    critical_failures: int = 0
+    results: List[GateResult] = []
+    total_execution_time_ms: float = 0.0
+    validation_pass: bool = False
+
+  Logic:
+    validation_pass = (critical_failures == 0) AND (failed == 0)
+
+  Methods:
+    to_dict() -> Dict[str, Any]:
+      Converts all fields to dict, results as list of dicts
+
+================================================================================
+ENVIRONMENT VARIABLES
+================================================================================
+
+All variables are optional with sensible defaults:
+
+LLM Cost Control:
+  MAX_COST_USD (default "0")
+  Type: float
+  Expected: "0" for compliance
+
+Paid Adapters:
+  PAID_ADAPTERS_ENABLED (default "false")
+  Type: bool (case-insensitive)
+  Expected: "false" for compliance
+
+Security:
+  SECURITY_SCAN_PASS (default "false")
+  Type: bool
+  Set: After running npm run security:scan
+
+Tests:
+  TESTS_PASS (default "false")
+  Type: bool
+  Set: After running npm test
+
+Token Optimization:
+  TOKEN_OPTIMIZATION (default "true")
+  Type: bool
+  Expected: "true" for optimal performance
+
+Credentials:
+  ENV_IN_REPO (default "false")
+  Type: bool
+  Expected: "false" (never commit .env files)
+
+Rate Limiting:
+  RATE_LIMIT_ENABLED (default "true")
+  Type: bool
+  REQUESTS_PER_SECOND (default "100")
+  Type: int
+
+API Health:
+  PROFITENGINE_URL (no default)
+  Type: string (URL)
+  Example: "https://profitengine-tau.vercel.app"
+
+Webhooks:
+  WEBHOOK_SIGNATURE_VALIDATION (default "true")
+  Type: bool
+  PROFITENGINE_WEBHOOK_TOKEN (no default)
+  Type: string (secret)
+
+Database:
+  TAYLOR_DB_PATH (default "./datacenter/taylor.db")
+  Type: string (file path)
+  DATABASE_URL (no default)
+  Type: string (connection string)
+
+Deployment:
+  DEPLOYMENT_READY (default "false")
+  Type: bool
+  ENVIRONMENT (default "development")
+  Type: string ("development" or "production")
+
+Compliance:
+  FTC_DISCLOSURE_ENABLED (default "true")
+  Type: bool
+  AMAZON_ASSOCIATES_TAG (no default)
+  Type: string
+  Example: "alreadyhere-20"
+
+Fallback:
+  FALLBACK_ROUTING_ENABLED (default "true")
+  Type: bool
+  FALLBACK_API_URL (no default)
+  Type: string (URL)
+
+================================================================================
+USAGE PATTERNS
+================================================================================
+
+PATTERN 1: Complete Validation
+  gates = AgentRiskGates()
+  report = await gates.validate_all_gates()
+  return report.to_dict()
+
+PATTERN 2: Conditional Deployment
+  gates = AgentRiskGates()
+  report = await gates.validate_all_gates()
+  if not report.validation_pass:
+      raise EnvironmentError(f"Gates failed: {report.critical_failures} critical")
+  deploy_to_production()
+
+PATTERN 3: Single Gate Debug
+  gates = AgentRiskGates()
+  result = gates.validate_single("llm_cost_control")
+  print(result.message)
+  print(result.details)
+
+PATTERN 4: Health Endpoint
+  @app.get("/health/gates")
+  async def health():
+      gates = AgentRiskGates()
+      return JSONResponse(await gates.validate_all_gates())
+
+PATTERN 5: Custom Environment
+  test_env = {
+      "MAX_COST_USD": "0",
+      "PAID_ADAPTERS_ENABLED": "false",
+      "PROFITENGINE_URL": "http://localhost:8000",
+  }
+  gates = AgentRiskGates(env=test_env)
+  report = await gates.validate_all_gates()
+
+PATTERN 6: Integration Test
+  gates = AgentRiskGates(timeout_sec=5)
+  result = gates.validate_single("api_health_check")
+  assert result.status == GateStatus.PASS, f"API down: {result.message}"
+
+================================================================================
+ERROR HANDLING
+================================================================================
+
+All validators include exception handling:
+
+  try:
+    # validation logic
+  except Exception as e:
+    return GateResult(
+        gate_id="...",
+        status=GateStatus.FAIL,  # or WARN depending on gate
+        severity=GateSeverity.CRITICAL,
+        message=f"Gate validation failed: {str(e)}"
+    )
+
+Timeout Handling:
+  If any gate exceeds 30 seconds (configurable), asyncio.TimeoutError
+  is caught and a CRITICAL failure is returned.
+
+Missing Config:
+  Most gates treat missing config as WARNING, not FAIL
+  Exception: credential_isolation is CRITICAL if violated
+
+HTTP Errors:
+  API health check treats network errors as WARN
+  Status codes >= 400 are warnings (gate-specific)
+
+================================================================================
+INTEGRATION CHECKLIST
+================================================================================
+
+Before using AgentRiskGates in production:
+
+[ ] Import: from agents.agent_risk_gates import AgentRiskGates
+[ ] Initialize: gates = AgentRiskGates()
+[ ] Call: report = await gates.validate_all_gates()
+[ ] Check: if report.validation_pass == True
+[ ] Log: store report.to_dict() for audit trail
+[ ] Monitor: track report.critical_failures over time
+[ ] Alert: notify on any critical_failures > 0
+[ ] Integrate: add health endpoint returning gates status
+[ ] Test: run test_risk_gates.py to verify installation
+
+================================================================================

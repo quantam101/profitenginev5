@@ -1,0 +1,140 @@
+================================================================================
+                   AGENT RISK GATES - QUICK REFERENCE
+================================================================================
+
+FILE LOCATION: agents/agent_risk_gates.py (694 lines)
+
+CORE COMPONENTS:
+  • AgentRiskGates (main class) - 350+ lines
+  • validate_all_gates() - async, parallel validation of all 13 gates
+  • validate_single(gate_id) - sync, single gate validation
+  • GateResult - dataclass for single gate result
+  • ValidationReport - dataclass for complete validation report
+  • GateStatus enum - PASS/FAIL/WARN/SKIP
+  • GateSeverity enum - CRITICAL/HIGH/MEDIUM/LOW
+
+THE 13 RISK GATES:
+  1. LLM Cost Control              [CRITICAL] max_cost_usd = 0
+  2. Paid Adapters Block           [CRITICAL] paid_adapters_enabled = false
+  3. Security Scan Pass            [CRITICAL] npm run security:scan passed
+  4. Test Suite Pass               [HIGH]     npm test all passing
+  5. Token Optimization            [MEDIUM]   context mesh enabled
+  6. Credential Isolation          [CRITICAL] no secrets in repo
+  7. Rate Limiting                 [MEDIUM]   rate limiting configured
+  8. API Health Check              [MEDIUM]   upstream services available
+  9. Webhook Validation            [HIGH]     webhook signatures verified
+  10. Database Connection          [MEDIUM]   persistent storage accessible
+  11. Deployment Status            [HIGH]     production ready
+  12. Compliance Gates             [CRITICAL] FTC disclosure + affiliate tags
+  13. Fallback Routing             [MEDIUM]   failover mechanisms active
+
+QUICK USAGE:
+  
+  # Validate all gates in parallel
+  import asyncio
+  from agents.agent_risk_gates import AgentRiskGates
+  
+  gates = AgentRiskGates()
+  report = await gates.validate_all_gates()
+  print(f"Pass: {report.validation_pass}")
+  print(f"Critical: {report.critical_failures}")
+  
+  # Validate single gate
+  result = gates.validate_single("llm_cost_control")
+  print(result.message)
+
+KEY FEATURES:
+  ✓ Parallel execution via asyncio.gather()
+  ✓ All 13 gates run concurrently (~50-100ms total)
+  ✓ Timeout protection (30s configurable)
+  ✓ JSON serializable results
+  ✓ Severity-based blocking logic
+  ✓ Exception resilience
+  ✓ Per-gate execution timing
+
+RETURN STRUCTURE:
+
+  ValidationReport:
+    - timestamp: ISO 8601
+    - total_gates: 13
+    - passed: count
+    - failed: count
+    - warned: count
+    - skipped: count
+    - critical_failures: count
+    - validation_pass: bool (True if critical_failures=0 and failed=0)
+    - total_execution_time_ms: float
+    - results: List[GateResult]
+  
+  GateResult:
+    - gate_id: str
+    - gate_name: str
+    - status: GateStatus (PASS/FAIL/WARN/SKIP)
+    - severity: GateSeverity (CRITICAL/HIGH/MEDIUM/LOW)
+    - message: str (human readable)
+    - details: dict (validation details)
+    - timestamp: ISO 8601
+    - execution_time_ms: float
+
+INTEGRATION EXAMPLES:
+
+  # FastAPI health endpoint
+  @app.get("/health/gates")
+  async def health_gates():
+      gates = AgentRiskGates()
+      report = await gates.validate_all_gates()
+      return report.to_dict()
+  
+  # CI/CD deployment gate
+  gates = AgentRiskGates()
+  report = await gates.validate_all_gates()
+  if report.critical_failures > 0:
+      sys.exit(1)
+  
+  # Custom environment
+  gates = AgentRiskGates(env={"MAX_COST_USD": "0", ...})
+
+ENVIRONMENT VARIABLES CHECKED:
+  - MAX_COST_USD (default 0)
+  - PAID_ADAPTERS_ENABLED (default false)
+  - SECURITY_SCAN_PASS (default false)
+  - TESTS_PASS (default false)
+  - TOKEN_OPTIMIZATION (default true)
+  - ENV_IN_REPO (default false)
+  - RATE_LIMIT_ENABLED (default true)
+  - REQUESTS_PER_SECOND (default 100)
+  - PROFITENGINE_URL
+  - PROFITENGINE_WEBHOOK_TOKEN
+  - WEBHOOK_SIGNATURE_VALIDATION (default true)
+  - TAYLOR_DB_PATH (default ./datacenter/taylor.db)
+  - DATABASE_URL
+  - DEPLOYMENT_READY (default false)
+  - ENVIRONMENT (default development)
+  - FTC_DISCLOSURE_ENABLED (default true)
+  - AMAZON_ASSOCIATES_TAG
+  - FALLBACK_ROUTING_ENABLED (default true)
+  - FALLBACK_API_URL
+
+TEST FILE: agents/test_risk_gates.py (130 lines)
+  - Full 13-gate validation example
+  - Single gate validation demo
+  - JSON output example
+  - Result formatting
+
+PERFORMANCE:
+  Per-gate:        2-5ms (async I/O bound)
+  Parallel all 13: 50-100ms
+  Memory:          ~10KB per report
+  Timeout:         30s (configurable)
+
+STATUS INDICATORS:
+  ✓ PASS  - Gate passed validation
+  ✗ FAIL  - Gate failed (blocks if critical)
+  ⚠ WARN  - Gate warning (non-blocking)
+  ⊘ SKIP  - Gate skipped (not applicable)
+
+VERSION: 1.0
+CREATED: 2026-06-17
+LAST UPDATED: 2026-06-17
+
+================================================================================

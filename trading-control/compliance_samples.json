@@ -1,0 +1,1005 @@
+{
+  "verification_timestamp": "2026-06-17T16:27:18.772031",
+  "test_status": "PASS",
+  "compliance_samples": {
+    "form4_prefills": [
+      {
+        "form4_id": "3f4405b0-dd04-4356-9beb-264e2f12aba9",
+        "created_timestamp": "2026-06-17T16:25:20.493840+00:00",
+        "insider_id": "EXEC001",
+        "insider_name": "Jane Smith",
+        "insider_title": "Chief Executive Officer",
+        "company_ticker": "AAPL",
+        "cik_number": "0000320193",
+        "transaction_date": "2026-06-17T16:25:20.484085+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "acquisition",
+        "shares_acquired": 1000.0,
+        "shares_disposed": 0.0,
+        "price_per_share": 150.5,
+        "total_value": 150500.0,
+        "beneficial_ownership": 25000.0,
+        "reporting_due_date": "2026-06-19T16:25:20.484085+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000000320193-260617-3f4405b0",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0000320193"
+          },
+          "issuer": {
+            "issuer_name": "Apple Inc.",
+            "issuer_cik": "0000320193",
+            "issuer_ticker": "AAPL"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC001",
+            "owner_name": "Jane Smith",
+            "owner_title": "Chief Executive Officer",
+            "owner_cik": "1EXEC001",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "A",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 1000.0,
+            "shares_disposed": 0.0,
+            "price_per_share": 150.5,
+            "aggregate_shares": 25000.0,
+            "aggregate_value": 150500.0
+          },
+          "form4_certification": {
+            "certifying_officer": "Jane Smith",
+            "certifying_title": "Chief Executive Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "3f4405b0-dd04-4356-9beb-264e2f12aba9",
+            "created_timestamp": "2026-06-17T16:25:20.484301+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "6bd9f418-a6a4-4c3c-8ad8-e1834f9060f9",
+        "created_timestamp": "2026-06-17T16:25:20.509982+00:00",
+        "insider_id": "EXEC002",
+        "insider_name": "John Doe",
+        "insider_title": "Chief Financial Officer",
+        "company_ticker": "MSFT",
+        "cik_number": "0000789019",
+        "transaction_date": "2026-06-17T16:25:20.499286+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "disposition",
+        "shares_acquired": 0.0,
+        "shares_disposed": 500.0,
+        "price_per_share": 370.0,
+        "total_value": 185000.0,
+        "beneficial_ownership": 10000.0,
+        "reporting_due_date": "2026-06-19T16:25:20.499286+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000000789019-260617-6bd9f418",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0000789019"
+          },
+          "issuer": {
+            "issuer_name": "Microsoft Corporation",
+            "issuer_cik": "0000789019",
+            "issuer_ticker": "MSFT"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC002",
+            "owner_name": "John Doe",
+            "owner_title": "Chief Financial Officer",
+            "owner_cik": "1EXEC002",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "D",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 0.0,
+            "shares_disposed": 500.0,
+            "price_per_share": 370.0,
+            "aggregate_shares": 10000.0,
+            "aggregate_value": 185000.0
+          },
+          "form4_certification": {
+            "certifying_officer": "John Doe",
+            "certifying_title": "Chief Financial Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "6bd9f418-a6a4-4c3c-8ad8-e1834f9060f9",
+            "created_timestamp": "2026-06-17T16:25:20.499388+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "c3fb3aa1-e61b-485b-9ddf-4d5a16b12963",
+        "created_timestamp": "2026-06-17T16:25:20.529958+00:00",
+        "insider_id": "EXEC003",
+        "insider_name": "Alice Brown",
+        "insider_title": "Chief Technology Officer",
+        "company_ticker": "GOOGL",
+        "cik_number": "0001652044",
+        "transaction_date": "2026-06-17T16:25:20.517559+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "acquisition",
+        "shares_acquired": 750.0,
+        "shares_disposed": 0.0,
+        "price_per_share": 140.25,
+        "total_value": 105187.5,
+        "beneficial_ownership": 15000.0,
+        "reporting_due_date": "2026-06-19T16:25:20.517559+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001652044-260617-c3fb3aa1",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001652044"
+          },
+          "issuer": {
+            "issuer_name": "Alphabet Inc.",
+            "issuer_cik": "0001652044",
+            "issuer_ticker": "GOOGL"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC003",
+            "owner_name": "Alice Brown",
+            "owner_title": "Chief Technology Officer",
+            "owner_cik": "1EXEC003",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "A",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 750.0,
+            "shares_disposed": 0.0,
+            "price_per_share": 140.25,
+            "aggregate_shares": 15000.0,
+            "aggregate_value": 105187.5
+          },
+          "form4_certification": {
+            "certifying_officer": "Alice Brown",
+            "certifying_title": "Chief Technology Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "c3fb3aa1-e61b-485b-9ddf-4d5a16b12963",
+            "created_timestamp": "2026-06-17T16:25:20.517679+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "b730138b-4269-4b06-af6a-2db4c1898d0b",
+        "created_timestamp": "2026-06-17T16:25:20.547101+00:00",
+        "insider_id": "EXEC004",
+        "insider_name": "Robert Johnson",
+        "insider_title": "VP Engineering",
+        "company_ticker": "AMZN",
+        "cik_number": "0001018724",
+        "transaction_date": "2026-06-17T16:25:20.536785+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "disposition",
+        "shares_acquired": 0.0,
+        "shares_disposed": 250.0,
+        "price_per_share": 180.75,
+        "total_value": 45187.5,
+        "beneficial_ownership": 5000.0,
+        "reporting_due_date": "2026-06-19T16:25:20.536785+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001018724-260617-b730138b",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001018724"
+          },
+          "issuer": {
+            "issuer_name": "Amazon.com Inc.",
+            "issuer_cik": "0001018724",
+            "issuer_ticker": "AMZN"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC004",
+            "owner_name": "Robert Johnson",
+            "owner_title": "VP Engineering",
+            "owner_cik": "1EXEC004",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "D",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 0.0,
+            "shares_disposed": 250.0,
+            "price_per_share": 180.75,
+            "aggregate_shares": 5000.0,
+            "aggregate_value": 45187.5
+          },
+          "form4_certification": {
+            "certifying_officer": "Robert Johnson",
+            "certifying_title": "VP Engineering",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "b730138b-4269-4b06-af6a-2db4c1898d0b",
+            "created_timestamp": "2026-06-17T16:25:20.536855+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "ec55f47d-aab5-4e97-b70e-d2e325ecb538",
+        "created_timestamp": "2026-06-17T16:25:20.565483+00:00",
+        "insider_id": "EXEC005",
+        "insider_name": "Sarah Williams",
+        "insider_title": "VP Sales",
+        "company_ticker": "TSLA",
+        "cik_number": "0001318605",
+        "transaction_date": "2026-06-17T16:25:20.553579+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "acquisition",
+        "shares_acquired": 600.0,
+        "shares_disposed": 0.0,
+        "price_per_share": 250.0,
+        "total_value": 150000.0,
+        "beneficial_ownership": 12000.0,
+        "reporting_due_date": "2026-06-19T16:25:20.553579+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001318605-260617-ec55f47d",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001318605"
+          },
+          "issuer": {
+            "issuer_name": "Tesla Inc.",
+            "issuer_cik": "0001318605",
+            "issuer_ticker": "TSLA"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC005",
+            "owner_name": "Sarah Williams",
+            "owner_title": "VP Sales",
+            "owner_cik": "1EXEC005",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "A",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 600.0,
+            "shares_disposed": 0.0,
+            "price_per_share": 250.0,
+            "aggregate_shares": 12000.0,
+            "aggregate_value": 150000.0
+          },
+          "form4_certification": {
+            "certifying_officer": "Sarah Williams",
+            "certifying_title": "VP Sales",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "ec55f47d-aab5-4e97-b70e-d2e325ecb538",
+            "created_timestamp": "2026-06-17T16:25:20.553680+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "0e3f78eb-74cb-4e09-8c1e-faea141c9a56",
+        "created_timestamp": "2026-06-17T16:25:20.584961+00:00",
+        "insider_id": "EXEC001",
+        "insider_name": "Jane Smith",
+        "insider_title": "Chief Executive Officer",
+        "company_ticker": "AAPL",
+        "cik_number": "0000320193",
+        "transaction_date": "2026-06-17T16:25:20.572910+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "disposition",
+        "shares_acquired": 0.0,
+        "shares_disposed": 300.0,
+        "price_per_share": 155.25,
+        "total_value": 46575.0,
+        "beneficial_ownership": 24700.0,
+        "reporting_due_date": "2026-06-19T16:25:20.572910+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000000320193-260617-0e3f78eb",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0000320193"
+          },
+          "issuer": {
+            "issuer_name": "Apple Inc.",
+            "issuer_cik": "0000320193",
+            "issuer_ticker": "AAPL"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC001",
+            "owner_name": "Jane Smith",
+            "owner_title": "Chief Executive Officer",
+            "owner_cik": "1EXEC001",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "D",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 0.0,
+            "shares_disposed": 300.0,
+            "price_per_share": 155.25,
+            "aggregate_shares": 24700.0,
+            "aggregate_value": 46575.0
+          },
+          "form4_certification": {
+            "certifying_officer": "Jane Smith",
+            "certifying_title": "Chief Executive Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "0e3f78eb-74cb-4e09-8c1e-faea141c9a56",
+            "created_timestamp": "2026-06-17T16:25:20.573042+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "c0450531-1882-423a-b19a-3060b48087c2",
+        "created_timestamp": "2026-06-17T16:25:20.601535+00:00",
+        "insider_id": "EXEC002",
+        "insider_name": "John Doe",
+        "insider_title": "Chief Financial Officer",
+        "company_ticker": "MSFT",
+        "cik_number": "0000789019",
+        "transaction_date": "2026-06-17T16:25:20.591124+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "acquisition",
+        "shares_acquired": 200.0,
+        "shares_disposed": 0.0,
+        "price_per_share": 375.5,
+        "total_value": 75100.0,
+        "beneficial_ownership": 9800.0,
+        "reporting_due_date": "2026-06-19T16:25:20.591124+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000000789019-260617-c0450531",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0000789019"
+          },
+          "issuer": {
+            "issuer_name": "Microsoft Corporation",
+            "issuer_cik": "0000789019",
+            "issuer_ticker": "MSFT"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC002",
+            "owner_name": "John Doe",
+            "owner_title": "Chief Financial Officer",
+            "owner_cik": "1EXEC002",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "A",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 200.0,
+            "shares_disposed": 0.0,
+            "price_per_share": 375.5,
+            "aggregate_shares": 9800.0,
+            "aggregate_value": 75100.0
+          },
+          "form4_certification": {
+            "certifying_officer": "John Doe",
+            "certifying_title": "Chief Financial Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "c0450531-1882-423a-b19a-3060b48087c2",
+            "created_timestamp": "2026-06-17T16:25:20.591210+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "4abfdebc-a33a-446d-adaa-a36825049cdc",
+        "created_timestamp": "2026-06-17T16:25:20.618101+00:00",
+        "insider_id": "EXEC003",
+        "insider_name": "Alice Brown",
+        "insider_title": "Chief Technology Officer",
+        "company_ticker": "GOOGL",
+        "cik_number": "0001652044",
+        "transaction_date": "2026-06-17T16:25:20.607197+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "disposition",
+        "shares_acquired": 0.0,
+        "shares_disposed": 400.0,
+        "price_per_share": 142.75,
+        "total_value": 57100.0,
+        "beneficial_ownership": 14600.0,
+        "reporting_due_date": "2026-06-19T16:25:20.607197+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001652044-260617-4abfdebc",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001652044"
+          },
+          "issuer": {
+            "issuer_name": "Alphabet Inc.",
+            "issuer_cik": "0001652044",
+            "issuer_ticker": "GOOGL"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC003",
+            "owner_name": "Alice Brown",
+            "owner_title": "Chief Technology Officer",
+            "owner_cik": "1EXEC003",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "D",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 0.0,
+            "shares_disposed": 400.0,
+            "price_per_share": 142.75,
+            "aggregate_shares": 14600.0,
+            "aggregate_value": 57100.0
+          },
+          "form4_certification": {
+            "certifying_officer": "Alice Brown",
+            "certifying_title": "Chief Technology Officer",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "4abfdebc-a33a-446d-adaa-a36825049cdc",
+            "created_timestamp": "2026-06-17T16:25:20.607310+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "fc085582-7d4e-45c2-8269-eda0c2f0cea4",
+        "created_timestamp": "2026-06-17T16:25:20.635464+00:00",
+        "insider_id": "EXEC004",
+        "insider_name": "Robert Johnson",
+        "insider_title": "VP Engineering",
+        "company_ticker": "AMZN",
+        "cik_number": "0001018724",
+        "transaction_date": "2026-06-17T16:25:20.625358+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "acquisition",
+        "shares_acquired": 100.0,
+        "shares_disposed": 0.0,
+        "price_per_share": 185.5,
+        "total_value": 18550.0,
+        "beneficial_ownership": 4900.0,
+        "reporting_due_date": "2026-06-19T16:25:20.625358+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001018724-260617-fc085582",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001018724"
+          },
+          "issuer": {
+            "issuer_name": "Amazon.com Inc.",
+            "issuer_cik": "0001018724",
+            "issuer_ticker": "AMZN"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC004",
+            "owner_name": "Robert Johnson",
+            "owner_title": "VP Engineering",
+            "owner_cik": "1EXEC004",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "A",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 100.0,
+            "shares_disposed": 0.0,
+            "price_per_share": 185.5,
+            "aggregate_shares": 4900.0,
+            "aggregate_value": 18550.0
+          },
+          "form4_certification": {
+            "certifying_officer": "Robert Johnson",
+            "certifying_title": "VP Engineering",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "fc085582-7d4e-45c2-8269-eda0c2f0cea4",
+            "created_timestamp": "2026-06-17T16:25:20.625486+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      },
+      {
+        "form4_id": "4b5038f4-5b89-4642-8929-8f774f013a76",
+        "created_timestamp": "2026-06-17T16:25:20.651181+00:00",
+        "insider_id": "EXEC005",
+        "insider_name": "Sarah Williams",
+        "insider_title": "VP Sales",
+        "company_ticker": "TSLA",
+        "cik_number": "0001318605",
+        "transaction_date": "2026-06-17T16:25:20.641267+00:00",
+        "security_title": "Common Stock",
+        "transaction_type": "disposition",
+        "shares_acquired": 0.0,
+        "shares_disposed": 150.0,
+        "price_per_share": 255.75,
+        "total_value": 38362.5,
+        "beneficial_ownership": 11850.0,
+        "reporting_due_date": "2026-06-19T16:25:20.641267+00:00",
+        "filing_status": "READY_FOR_FILING",
+        "form4_json": {
+          "form_type": "4",
+          "sec_header": {
+            "accession_number": "00000001318605-260617-4b5038f4",
+            "filing_date": "2026-06-17",
+            "period_end": "2026-06-17",
+            "filer_cik": "0001318605"
+          },
+          "issuer": {
+            "issuer_name": "Tesla Inc.",
+            "issuer_cik": "0001318605",
+            "issuer_ticker": "TSLA"
+          },
+          "reporting_owner": {
+            "owner_id": "EXEC005",
+            "owner_name": "Sarah Williams",
+            "owner_title": "VP Sales",
+            "owner_cik": "1EXEC005",
+            "phone_number": "*** REDACTED ***"
+          },
+          "non_derivative_holdings": {
+            "security_title": "Common Stock",
+            "transaction_date": "06/17/2026",
+            "transaction_code": "D",
+            "equation_satisfied": "Yes",
+            "shares_acquired": 0.0,
+            "shares_disposed": 150.0,
+            "price_per_share": 255.75,
+            "aggregate_shares": 11850.0,
+            "aggregate_value": 38362.5
+          },
+          "form4_certification": {
+            "certifying_officer": "Sarah Williams",
+            "certifying_title": "VP Sales",
+            "certification_date": "06/17/2026",
+            "certification_text": "I certify that the information set forth in this Form is true, complete and correct."
+          },
+          "metadata": {
+            "form4_id": "4b5038f4-5b89-4642-8929-8f774f013a76",
+            "created_timestamp": "2026-06-17T16:25:20.641379+00:00",
+            "reporting_due_date": "2026-06-19",
+            "filing_status": "READY_FOR_FILING",
+            "compliance_check_passed": true,
+            "window_status": "OPEN"
+          }
+        }
+      }
+    ],
+    "daily_reports": [
+      {
+        "report_id": "d42c591c-c4ed-4c91-93be-c51cafba0065",
+        "report_date": "2026-06-17",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-17",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      },
+      {
+        "report_id": "8f4c209a-aa33-4852-8a79-32f7893a3496",
+        "report_date": "2026-06-16",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-16",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      },
+      {
+        "report_id": "d14df16a-d3e8-4c86-b4fc-2d8ff2603592",
+        "report_date": "2026-06-15",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-15",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      },
+      {
+        "report_id": "a95e8fad-4838-423c-97b3-46210e8e2aca",
+        "report_date": "2026-06-17",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-17",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      },
+      {
+        "report_id": "f2f8b99d-300b-4bd2-9f06-400223d94b32",
+        "report_date": "2026-06-16",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-16",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      },
+      {
+        "report_id": "785abfea-9bd9-4cf2-b17b-fe98bc31b6f0",
+        "report_date": "2026-06-15",
+        "total_trades": 0,
+        "trades_in_window": 0,
+        "window_violations": 0,
+        "blackout_violations": 0,
+        "total_shares_traded": 0.0,
+        "total_volume_usd": 0.0,
+        "report_summary": {
+          "report_date": "2026-06-15",
+          "total_trades": 0,
+          "trades_in_window": 0,
+          "window_violations": 0,
+          "blackout_violations": 0,
+          "total_volume_usd": 0,
+          "compliance_status": "GREEN"
+        }
+      }
+    ],
+    "quarterly_attestations": [
+      {
+        "attestation_id": "9969c6c6-d0b0-4baa-8d12-6b5607b62b6e",
+        "created_timestamp": "2026-06-17T16:26:09.039168+00:00",
+        "fiscal_quarter": "1",
+        "fiscal_year": 2024,
+        "attestor_name": "John Smith, CFO",
+        "attestor_title": "Chief Financial Officer",
+        "total_form4s_filed": 40,
+        "late_filings": 0,
+        "material_changes": 0,
+        "control_effectiveness": "EFFECTIVE",
+        "attestation_statement": "\nATTESTATION OF COMPLIANCE - FORM 4 & INSIDER TRADING REGULATIONS\n\nThis attestation certifies that, based on our evaluation:\n\n1. FORM 4 FILINGS: 40 Form 4 filings were generated and marked for timely submission.\n\n2. LATE FILINGS: 0 late filings were identified.\n\n3. MATERIAL VIOLATIONS: 0 material compliance violations were detected.\n\n4. TRADING WINDOWS: Insider trading windows were monitored and enforced per Regulation FD.\n\n5. BLACKOUT PERIODS: All scheduled blackout periods were active and monitored.\n\n6. INTERNAL CONTROLS: The effectiveness of controls over insider trading compliance is EFFECTIVE.\n\nAttested by:\nJohn Smith, CFO, Chief Financial Officer\nDate: June 17, 2026\n\nThis attestation is prepared in accordance with the requirements of:\n- Section 302 of the Sarbanes-Oxley Act\n- Section 906 of the Sarbanes-Oxley Act\n- SEC Regulation FD (Fair Disclosure)\n- Rule 10b5-1 (Rule 10b5-1 Trading Plans)\n"
+      },
+      {
+        "attestation_id": "25ccfb2f-b993-4961-b14b-fb29f18489bd",
+        "created_timestamp": "2026-06-17T16:26:09.049698+00:00",
+        "fiscal_quarter": "2",
+        "fiscal_year": 2024,
+        "attestor_name": "John Smith, CFO",
+        "attestor_title": "Chief Financial Officer",
+        "total_form4s_filed": 40,
+        "late_filings": 0,
+        "material_changes": 0,
+        "control_effectiveness": "EFFECTIVE",
+        "attestation_statement": "\nATTESTATION OF COMPLIANCE - FORM 4 & INSIDER TRADING REGULATIONS\n\nThis attestation certifies that, based on our evaluation:\n\n1. FORM 4 FILINGS: 40 Form 4 filings were generated and marked for timely submission.\n\n2. LATE FILINGS: 0 late filings were identified.\n\n3. MATERIAL VIOLATIONS: 0 material compliance violations were detected.\n\n4. TRADING WINDOWS: Insider trading windows were monitored and enforced per Regulation FD.\n\n5. BLACKOUT PERIODS: All scheduled blackout periods were active and monitored.\n\n6. INTERNAL CONTROLS: The effectiveness of controls over insider trading compliance is EFFECTIVE.\n\nAttested by:\nJohn Smith, CFO, Chief Financial Officer\nDate: June 17, 2026\n\nThis attestation is prepared in accordance with the requirements of:\n- Section 302 of the Sarbanes-Oxley Act\n- Section 906 of the Sarbanes-Oxley Act\n- SEC Regulation FD (Fair Disclosure)\n- Rule 10b5-1 (Rule 10b5-1 Trading Plans)\n"
+      },
+      {
+        "attestation_id": "83456baf-8d07-444c-a839-4115d9e9f976",
+        "created_timestamp": "2026-06-17T16:26:09.058674+00:00",
+        "fiscal_quarter": "3",
+        "fiscal_year": 2024,
+        "attestor_name": "John Smith, CFO",
+        "attestor_title": "Chief Financial Officer",
+        "total_form4s_filed": 40,
+        "late_filings": 0,
+        "material_changes": 0,
+        "control_effectiveness": "EFFECTIVE",
+        "attestation_statement": "\nATTESTATION OF COMPLIANCE - FORM 4 & INSIDER TRADING REGULATIONS\n\nThis attestation certifies that, based on our evaluation:\n\n1. FORM 4 FILINGS: 40 Form 4 filings were generated and marked for timely submission.\n\n2. LATE FILINGS: 0 late filings were identified.\n\n3. MATERIAL VIOLATIONS: 0 material compliance violations were detected.\n\n4. TRADING WINDOWS: Insider trading windows were monitored and enforced per Regulation FD.\n\n5. BLACKOUT PERIODS: All scheduled blackout periods were active and monitored.\n\n6. INTERNAL CONTROLS: The effectiveness of controls over insider trading compliance is EFFECTIVE.\n\nAttested by:\nJohn Smith, CFO, Chief Financial Officer\nDate: June 17, 2026\n\nThis attestation is prepared in accordance with the requirements of:\n- Section 302 of the Sarbanes-Oxley Act\n- Section 906 of the Sarbanes-Oxley Act\n- SEC Regulation FD (Fair Disclosure)\n- Rule 10b5-1 (Rule 10b5-1 Trading Plans)\n"
+      },
+      {
+        "attestation_id": "f2296e0d-b562-4d81-a4c3-6a06299ff637",
+        "created_timestamp": "2026-06-17T16:26:09.070343+00:00",
+        "fiscal_quarter": "4",
+        "fiscal_year": 2024,
+        "attestor_name": "John Smith, CFO",
+        "attestor_title": "Chief Financial Officer",
+        "total_form4s_filed": 40,
+        "late_filings": 0,
+        "material_changes": 0,
+        "control_effectiveness": "EFFECTIVE",
+        "attestation_statement": "\nATTESTATION OF COMPLIANCE - FORM 4 & INSIDER TRADING REGULATIONS\n\nThis attestation certifies that, based on our evaluation:\n\n1. FORM 4 FILINGS: 40 Form 4 filings were generated and marked for timely submission.\n\n2. LATE FILINGS: 0 late filings were identified.\n\n3. MATERIAL VIOLATIONS: 0 material compliance violations were detected.\n\n4. TRADING WINDOWS: Insider trading windows were monitored and enforced per Regulation FD.\n\n5. BLACKOUT PERIODS: All scheduled blackout periods were active and monitored.\n\n6. INTERNAL CONTROLS: The effectiveness of controls over insider trading compliance is EFFECTIVE.\n\nAttested by:\nJohn Smith, CFO, Chief Financial Officer\nDate: June 17, 2026\n\nThis attestation is prepared in accordance with the requirements of:\n- Section 302 of the Sarbanes-Oxley Act\n- Section 906 of the Sarbanes-Oxley Act\n- SEC Regulation FD (Fair Disclosure)\n- Rule 10b5-1 (Rule 10b5-1 Trading Plans)\n"
+      }
+    ],
+    "trading_windows": [
+      {
+        "window_id": "c3e07b8c-acf7-41dc-9f72-e0e1bca093c8",
+        "timestamp": "2026-06-17T16:26:12.137593+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-08-16T16:26:12.136808+00:00",
+        "end_date": "2026-08-16T16:26:12.136808+00:00",
+        "reason": "Window open",
+        "affected_securities": "AAPL",
+        "insider_id": "EXEC001"
+      },
+      {
+        "window_id": "9113c2c4-d671-4111-9037-c8c3afa7e0fa",
+        "timestamp": "2026-06-17T16:26:12.133747+00:00",
+        "window_type": "BLACKOUT",
+        "window_state": "blackout",
+        "start_date": "2026-06-18T16:26:12.132634+00:00",
+        "end_date": "2026-07-18T16:26:12.132650+00:00",
+        "reason": "Acquisition process - confidential",
+        "affected_securities": "AAPL",
+        "insider_id": "EXEC001"
+      },
+      {
+        "window_id": "2acd1697-3c0c-4d37-a59f-a35809486927",
+        "timestamp": "2026-06-17T16:26:12.127501+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.126689+00:00",
+        "end_date": "2026-06-17T16:26:12.126689+00:00",
+        "reason": "Window open",
+        "affected_securities": "AAPL",
+        "insider_id": "EXEC001"
+      },
+      {
+        "window_id": "736174bc-521c-4177-a616-2179d244b92a",
+        "timestamp": "2026-06-17T16:26:12.119268+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.118129+00:00",
+        "end_date": "2026-06-17T16:26:12.118129+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC005"
+      },
+      {
+        "window_id": "4e5825ea-19ef-40e1-b01a-6af2ec514210",
+        "timestamp": "2026-06-17T16:26:12.108006+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.107183+00:00",
+        "end_date": "2026-06-17T16:26:12.107183+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC004"
+      },
+      {
+        "window_id": "fbea6eba-e164-4bd1-9b14-87a5a4484ceb",
+        "timestamp": "2026-06-17T16:26:12.099619+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.097948+00:00",
+        "end_date": "2026-06-17T16:26:12.097948+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC003"
+      },
+      {
+        "window_id": "a845fa7e-c929-48c9-9c6a-81ee086bcbfe",
+        "timestamp": "2026-06-17T16:26:12.087259+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.086211+00:00",
+        "end_date": "2026-06-17T16:26:12.086211+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC002"
+      },
+      {
+        "window_id": "b59a8388-19bb-4152-8011-8c83554fa83a",
+        "timestamp": "2026-06-17T16:26:12.076507+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.075696+00:00",
+        "end_date": "2026-06-17T16:26:12.075696+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC001"
+      },
+      {
+        "window_id": "d15d3ed2-277b-417d-8ac0-d014de84af80",
+        "timestamp": "2026-06-17T16:26:12.068767+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.067763+00:00",
+        "end_date": "2026-06-17T16:26:12.067763+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC005"
+      },
+      {
+        "window_id": "346b5d9f-1f82-4c03-be88-4871e1ae5f2d",
+        "timestamp": "2026-06-17T16:26:12.058033+00:00",
+        "window_type": "INTRADAY",
+        "window_state": "open",
+        "start_date": "2026-06-17T16:26:12.057191+00:00",
+        "end_date": "2026-06-17T16:26:12.057191+00:00",
+        "reason": "Window open",
+        "affected_securities": "ALL",
+        "insider_id": "EXEC004"
+      }
+    ],
+    "violations": [
+      {
+        "violation_id": "b2abcbd6-a7a3-4abd-8d70-4ce6b9e66061",
+        "violation_date": "2026-06-17T16:26:09.082147+00:00",
+        "violation_type": "LATE_FILING",
+        "severity": "HIGH",
+        "description": "Form 4 filed 2 days after required deadline",
+        "insider_id": "EXEC001",
+        "remedial_action": "Under review"
+      },
+      {
+        "violation_id": "de9c978c-4630-4bd3-9e9f-df8ac90ea26f",
+        "violation_date": "2026-06-17T16:26:09.092794+00:00",
+        "violation_type": "WINDOW_VIOLATION",
+        "severity": "CRITICAL",
+        "description": "Trade executed during blackout period",
+        "insider_id": "EXEC002",
+        "remedial_action": "Under review"
+      },
+      {
+        "violation_id": "a199bb13-b1d9-4577-a3b4-2403591cc780",
+        "violation_date": "2026-06-17T16:26:09.103592+00:00",
+        "violation_type": "INCOMPLETE_DISCLOSURE",
+        "severity": "MEDIUM",
+        "description": "Missing beneficial ownership disclosure",
+        "insider_id": "EXEC003",
+        "remedial_action": "Under review"
+      },
+      {
+        "violation_id": "628ee2b0-19db-4300-b4d4-d9931951905f",
+        "violation_date": "2026-06-17T16:26:12.213599+00:00",
+        "violation_type": "LATE_FILING",
+        "severity": "HIGH",
+        "description": "Form 4 filed 2 days after required deadline",
+        "insider_id": "EXEC001",
+        "remedial_action": "Under review"
+      },
+      {
+        "violation_id": "cdb01232-e273-471c-af25-2c98c7c0b580",
+        "violation_date": "2026-06-17T16:26:12.226808+00:00",
+        "violation_type": "WINDOW_VIOLATION",
+        "severity": "CRITICAL",
+        "description": "Trade executed during blackout period",
+        "insider_id": "EXEC002",
+        "remedial_action": "Under review"
+      },
+      {
+        "violation_id": "250b79f6-8155-4dad-b43c-933fa2694af1",
+        "violation_date": "2026-06-17T16:26:12.237634+00:00",
+        "violation_type": "INCOMPLETE_DISCLOSURE",
+        "severity": "MEDIUM",
+        "description": "Missing beneficial ownership disclosure",
+        "insider_id": "EXEC003",
+        "remedial_action": "Under review"
+      }
+    ]
+  },
+  "summary": {
+    "total_form4_records": 50,
+    "total_daily_reports": 6,
+    "total_quarterly_attestations": 8,
+    "total_trading_windows": 63,
+    "total_violations": 6,
+    "test_result": "SUCCESS",
+    "all_tests_passed": true
+  }
+}
