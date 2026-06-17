@@ -1,0 +1,259 @@
+name: CMDOS SSH Key Warden
+
+on:
+  schedule:
+    # Run every 6 hours to ensure keys are always in sync
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target system to enforce keys on'
+        required: true
+        default: 'cmdos'
+        type: choice
+        options:
+          - cmdos
+          - runtime
+          - all
+
+env:
+  CMDOS_HOST: 129.146.236.177
+  RUNTIME_HOST: 129.146.167.73
+  CMDOS_USER: opc
+  RUNTIME_USER: opc
+
+jobs:
+  keywarden:
+    name: Verify and enforce SSH authorized_keys
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH Keys
+        env:
+          CMDOS_SSH_KEY: ${{ secrets.CMDOS_SSH_KEY }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          if [ -n "$CMDOS_SSH_KEY" ]; then
+            echo "$CMDOS_SSH_KEY" > ~/.ssh/cmdos_key
+            chmod 600 ~/.ssh/cmdos_key
+            echo "cmdos_key=~/.ssh/cmdos_key" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$OCI_SSH_KEY" ]; then
+            echo "$OCI_SSH_KEY" > ~/.ssh/oci_key
+            chmod 600 ~/.ssh/oci_key
+            echo "oci_key=~/.ssh/oci_key" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$SERVER_SSH_KEY" ]; then
+            echo "$SERVER_SSH_KEY" > ~/.ssh/server_key
+            chmod 600 ~/.ssh/server_key
+            echo "server_key=~/.ssh/server_key" >> $GITHUB_ENV
+          fi
+
+      - name: Check CMDOS Connectivity
+        id: cmdos_check
+        run: |
+          if timeout 10 bash -c "</dev/tcp/${CMDOS_HOST}/22" 2>/dev/null; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+            echo "✅ CMDOS SSH port 22 is reachable"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ CMDOS SSH port 22 is NOT reachable"
+          fi
+
+      - name: Check Runtime Connectivity
+        id: runtime_check
+        run: |
+          if timeout 10 bash -c "</dev/tcp/${RUNTIME_HOST}/22" 2>/dev/null; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Runtime SSH port 22 is reachable"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Runtime SSH port 22 is NOT reachable"
+          fi
+
+      - name: Enforce authorized_keys on CMDOS
+        if: steps.cmdos_check.outputs.reachable == 'true'
+        env:
+          CMDOS_SSH_KEY: ${{ secrets.CMDOS_SSH_KEY }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          KEY_FILES=()
+          if [ -n "${CMDOS_SSH_KEY:-}" ]; then
+            printf '%s\n' "$CMDOS_SSH_KEY" > /tmp/cmdos_ssh_key
+            chmod 600 /tmp/cmdos_ssh_key
+            KEY_FILES+=("/tmp/cmdos_ssh_key")
+          fi
+          if [ -n "${OCI_SSH_KEY:-}" ]; then
+            printf '%s\n' "$OCI_SSH_KEY" > /tmp/oci_ssh_key
+            chmod 600 /tmp/oci_ssh_key
+            KEY_FILES+=("/tmp/oci_ssh_key")
+          fi
+          if [ -n "${SERVER_SSH_KEY:-}" ]; then
+            printf '%s\n' "$SERVER_SSH_KEY" > /tmp/server_ssh_key
+            chmod 600 /tmp/server_ssh_key
+            KEY_FILES+=("/tmp/server_ssh_key")
+          fi
+
+          if [ "${#KEY_FILES[@]}" -eq 0 ]; then
+            echo "::warning::No SSH private key secrets configured"
+            exit 0
+          fi
+
+          AUTH_USER=""
+          AUTH_KEY=""
+          for key_file in "${KEY_FILES[@]}"; do
+            for user in opc ubuntu; do
+              if ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 \
+                   -i "$key_file" "${user}@${CMDOS_HOST}" "echo WARDEN_OK" 2>/dev/null; then
+                AUTH_USER="$user"
+                AUTH_KEY="$key_file"
+                break 2
+              fi
+            done
+          done
+
+          if [ -n "$AUTH_USER" ] && [ -n "$AUTH_KEY" ]; then
+            echo "✅ SSH authenticated as ${AUTH_USER}@${CMDOS_HOST}"
+            echo "Enforcing authorized_keys..."
+
+            ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+                -i "$AUTH_KEY" "${AUTH_USER}@${CMDOS_HOST}" 'bash -s' << 'ENFORCE_KEYS'
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          touch ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+
+          # All authorized keys for ProfitEngine
+          declare -a KEYS=(
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWOpmhKqA1QoSoCC4fv3Ee2Ie9TpdYXuokmDaUE+I9+ez6CA0I9tFMQr8HPGYoV6nvVL5uobSq8JEaObf7iBVdDu2aZYTVVGfCYenm2s+OWEikdAyVujNJ2GGWzKETbEjziq2ag23MSJ9UC4OETQb0fxiG+n+rGmzQV/pch9PYMMlDiLemZ8c476hL5MUf8DYWbdGUxrEz2eB4gxIj292Z+Rr/YbFXY8V75M24oIzhBZZp3LMwvI/ZzC8ZYxncFivyZZHMRWuvlpRcJZMtOlNtogXFvVBJpOPnTjbyhS4cqmLV0Xtbvsfuq6ZkFEvz6M03yOPp3/r8OUVgKiU4+tY5 oci_cmdos_oci-stephen"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp2I2ngE5QRsB9HyLbZCpxBwylhntz7IaElLbcto2FU devin-deploy-profitenginev5"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICXECrB86ObQ8BnRVyRVenN+ZUHl/11z6VqusGTJfsRy profitengine-deploy@cmdos"
+          )
+
+          local added=0
+          for key in "${KEYS[@]}"; do
+            if ! grep -qF "$key" ~/.ssh/authorized_keys 2>/dev/null; then
+              echo "$key" >> ~/.ssh/authorized_keys
+              echo "  Added: ${key##* }"
+              ((added++))
+            fi
+          done
+
+          sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys
+          echo "✅ authorized_keys enforced (added $added, total $(wc -l < ~/.ssh/authorized_keys))"
+ENFORCE_KEYS
+
+            echo "::notice::CMDOS authorized_keys enforced successfully"
+          else
+            echo "::error::Cannot authenticate with any key. SSH access to CMDOS is blocked."
+            echo "Recovery: Access OCI Console serial console and run scripts/ensure-authorized-keys.sh"
+            exit 1
+          fi
+
+          rm -f /tmp/cmdos_ssh_key /tmp/oci_ssh_key /tmp/server_ssh_key
+
+      - name: Enforce authorized_keys on Runtime
+        if: steps.runtime_check.outputs.reachable == 'true'
+        env:
+          CMDOS_SSH_KEY: ${{ secrets.CMDOS_SSH_KEY }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          KEY_FILES=()
+          if [ -n "${OCI_SSH_KEY:-}" ]; then
+            printf '%s\n' "$OCI_SSH_KEY" > /tmp/oci_ssh_key
+            chmod 600 /tmp/oci_ssh_key
+            KEY_FILES+=("/tmp/oci_ssh_key")
+          fi
+          if [ -n "${SERVER_SSH_KEY:-}" ]; then
+            printf '%s\n' "$SERVER_SSH_KEY" > /tmp/server_ssh_key
+            chmod 600 /tmp/server_ssh_key
+            KEY_FILES+=("/tmp/server_ssh_key")
+          fi
+
+          if [ "${#KEY_FILES[@]}" -eq 0 ]; then
+            echo "::warning::No SSH private key secrets configured for runtime"
+            exit 0
+          fi
+
+          AUTH_USER=""
+          AUTH_KEY=""
+          for key_file in "${KEY_FILES[@]}"; do
+            for user in opc ubuntu; do
+              if ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 \
+                   -i "$key_file" "${user}@${RUNTIME_HOST}" "echo WARDEN_OK" 2>/dev/null; then
+                AUTH_USER="$user"
+                AUTH_KEY="$key_file"
+                break 2
+              fi
+            done
+          done
+
+          if [ -n "$AUTH_USER" ] && [ -n "$AUTH_KEY" ]; then
+            echo "✅ SSH authenticated as ${AUTH_USER}@${RUNTIME_HOST}"
+            echo "Enforcing authorized_keys..."
+
+            ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+                -i "$AUTH_KEY" "${AUTH_USER}@${RUNTIME_HOST}" 'bash -s' << 'ENFORCE_KEYS'
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          touch ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+
+          declare -a KEYS=(
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWOpmhKqA1QoSoCC4fv3Ee2Ie9TpdYXuokmDaUE+I9+ez6CA0I9tFMQr8HPGYoV6nvVL5uobSq8JEaObf7iBVdDu2aZYTVVGfCYenm2s+OWEikdAyVujNJ2GGWzKETbEjziq2ag23MSJ9UC4OETQb0fxiG+n+rGmzQV/pch9PYMMlDiLemZ8c476hL5MUf8DYWbdGUxrEz2eB4gxIj292Z+Rr/YbFXY8V75M24oIzhBZZp3LMwvI/ZzC8ZYxncFivyZZHMRWuvlpRcJZMtOlNtogXFvVBJpOPnTjbyhS4cqmLV0Xtbvsfuq6ZkFEvz6M03yOPp3/r8OUVgKiU4+tY5 oci_cmdos_oci-stephen"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp2I2ngE5QRsB9HyLbZCpxBwylhntz7IaElLbcto2FU devin-deploy-profitenginev5"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions"
+          )
+
+          local added=0
+          for key in "${KEYS[@]}"; do
+            if ! grep -qF "$key" ~/.ssh/authorized_keys 2>/dev/null; then
+              echo "$key" >> ~/.ssh/authorized_keys
+              echo "  Added: ${key##* }"
+              ((added++))
+            fi
+          done
+
+          sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys
+          echo "✅ authorized_keys enforced (added $added, total $(wc -l < ~/.ssh/authorized_keys))"
+ENFORCE_KEYS
+
+            echo "::notice::Runtime authorized_keys enforced successfully"
+          else
+            echo "::error::Cannot authenticate with any key. SSH access to runtime is blocked."
+            exit 1
+          fi
+
+          rm -f /tmp/oci_ssh_key /tmp/server_ssh_key
+
+      - name: Report Summary
+        if: always()
+        run: |
+          echo "### SSH Keywarden Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**CMDOS (129.146.236.177)**: ${{ steps.cmdos_check.outputs.reachable == 'true' && '✅ Enforced' || '⚠️ Unreachable' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Runtime (129.146.167.73)**: ${{ steps.runtime_check.outputs.reachable == 'true' && '✅ Enforced' || '⚠️ Unreachable' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Recovery**: If SSH access is blocked, use OCI Console serial console and run:" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
+          echo "bash scripts/ensure-authorized-keys.sh" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
