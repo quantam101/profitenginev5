@@ -1,0 +1,123 @@
+system:
+  environment: sandbox  # sandbox | preview | live
+  mode: paper           # paper | shadow | assisted | autonomous
+  log_level: INFO
+
+accounts:
+  sandbox:
+    broker: robinhood
+    account_type: agentic_sandbox
+    initial_capital: 5000.00
+    api_base: https://sandbox.robinhood.com
+
+  preview:
+    broker: robinhood
+    account_type: preview
+    initial_capital: 50.00
+    api_base: https://api.robinhood.com
+
+  live:
+    broker: robinhood
+    account_type: agentic
+    initial_capital: 0.00  # Set by user
+    api_base: https://api.robinhood.com
+
+risk:
+  hard_limits:
+    max_daily_loss_usd: 200.00
+    max_weekly_loss_usd: 1000.00
+    max_position_size_pct: 5.0
+    max_spread_bps: 25          # Increased from 5 to 25 for real market spreads (AAPL/MSFT typically 10-15 bps)
+    min_volume_usd: 100000
+    min_reward_risk_ratio: 2.0
+    max_correlation: 0.7
+    quote_stale_threshold_sec: 15   # Increased from 5 to 15 for yfinance delays
+    max_open_positions: 3
+    max_trades_per_day: 10
+
+agents:
+  technical:
+    enabled: true
+    rsi_period: 14
+    rsi_oversold_threshold: 35
+    rsi_overbought_threshold: 65
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    confidence_min: 0.65
+
+  microstructure:
+    enabled: true
+    imbalance_threshold: 0.20
+    liquidity_depth_levels: 5
+    slippage_budget_bps: 2
+    confidence_min: 0.60
+
+  regime:
+    enabled: true
+    volatility_percentile_threshold: 60
+    event_risk_max: 0.3
+    correlation_stress_threshold: 0.4
+    no_trade_regimes:
+      - news_driven
+      - circuit_breaker
+      - trading_halted
+
+  portfolio:
+    enabled: true
+    kelly_fraction: 0.25
+    max_correlated_exposure: 0.7
+    drawdown_forecast_window_min: 60
+
+execution:
+  order_type: limit
+  time_in_force: day
+  post_only: true
+  timeout_sec: 15
+  fill_timeout_sec: 5
+  slippage_model_buffer_pct: 1.5
+
+paper_broker:
+  use_mock_fills: true
+  fill_delay_ms: 100
+  slippage_bps_range: [0.5, 2.0]
+
+backtest:
+  start_date: "2019-01-01"
+  end_date: "2024-12-31"
+  initial_capital: 100000
+  commission_bps: 1.0
+  slippage_model: "historical"
+  assets:
+    - AAPL
+    - MSFT
+    - TSLA
+    - AMZN
+    - GOOGL
+
+promotion_gates:
+  paper_phase:
+    required_trades: 30
+    min_win_rate: 0.40
+    min_profit_factor: 1.15
+    max_drawdown_pct: 10.0
+
+  assisted_live_phase:
+    required_trades: 4
+    min_win_rate: 0.40
+    min_profit_factor: 1.10
+    slippage_model_error_bps: 15
+    capital_max_usd: 50.0
+
+  restricted_automation_phase:
+    required_trades: 50
+    min_win_rate: 0.45
+    min_profit_factor: 1.30
+    max_drawdown_pct: 5.0
+    capital_max_usd: 250.0
+
+audit:
+  enabled: true
+  database: sqlite:///./audit.db
+  log_file: ./logs/trading.log
+  retention_days: 365

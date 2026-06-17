@@ -7,12 +7,16 @@ Run: python gumroad-complete-automation.py
 
 import requests
 import json
+import os
 from datetime import datetime
 
 # Configuration
-GUMROAD_TOKEN = "alynEcVBjH8tPrFgxbwLLxP2hpKlSlqqaVOTcvoPSYk"
-GUMROAD_USERNAME = "alreadyhere"
+GUMROAD_TOKEN = os.environ.get("GUMROAD_API_KEY", "")
+GUMROAD_USERNAME = os.environ.get("GUMROAD_USERNAME", "alreadyhere")
 API_URL = "https://api.gumroad.com/v2"
+
+if not GUMROAD_TOKEN:
+    raise ValueError("GUMROAD_API_KEY environment variable not set")
 
 # Product definitions
 PRODUCTS = [

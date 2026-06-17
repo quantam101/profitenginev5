@@ -70,7 +70,7 @@ class FacelessMarketingAutomation:
         if platforms is None:
             platforms = ["tiktok", "instagram", "youtube"]
 
-        print(f"\n🎬 Generating video: {title}")
+        print(f"\n[RENDER] Generating video: {title}")
 
         # Generate video using the video engine
         video_path = await self.video_engine.produce_article_video(
@@ -80,7 +80,7 @@ class FacelessMarketingAutomation:
         if not video_path:
             raise Exception("Video generation failed")
 
-        print(f"   ✅ Video generated: {video_path}")
+        print(f"   [OK] Video generated: {video_path}")
 
         # Post to all platforms
         results = {}
@@ -90,10 +90,10 @@ class FacelessMarketingAutomation:
                     platform, video_path, title, body
                 )
                 results[platform] = {"status": "posted", "url": post_url}
-                print(f"   ✅ Posted to {platform}: {post_url}")
+                print(f"   [OK] Posted to {platform}: {post_url}")
             except Exception as e:
                 results[platform] = {"status": "failed", "error": str(e)}
-                print(f"   ❌ Failed to post to {platform}: {e}")
+                print(f"   [FAIL] Failed to post to {platform}: {e}")
 
         return {"video_path": video_path, "posts": results}
 
@@ -162,7 +162,7 @@ async def main():
     """Run the complete marketing automation"""
 
     print("=" * 60)
-    print("🚀 FACELESS MARKETING AUTOMATION ENGINE")
+    print("[LAUNCH] FACELESS MARKETING AUTOMATION ENGINE")
     print("=" * 60)
 
     automation = FacelessMarketingAutomation()
@@ -232,7 +232,7 @@ async def main():
         },
     ]
 
-    print("\n📹 Generating 5 short-form videos...\n")
+    print("\n[VIDEO] Generating 5 short-form videos...\n")
 
     for i, script in enumerate(content_scripts, 1):
         try:
@@ -242,22 +242,22 @@ async def main():
                 platforms=["tiktok", "instagram", "youtube"],
             )
 
-            print(f"\n✅ Video {i}/5 complete")
+            print(f"\n[OK] Video {i}/5 complete")
             print(f"   Path: {result['video_path']}")
             print(f"   Posts: {json.dumps(result['posts'], indent=2)}")
 
         except Exception as e:
-            print(f"\n❌ Video {i}/5 failed: {e}")
+            print(f"\n[ERROR] Video {i}/5 failed: {e}")
             continue
 
     print("\n" + "=" * 60)
-    print("🎉 MARKETING AUTOMATION COMPLETE")
+    print("[SUCCESS] MARKETING AUTOMATION COMPLETE")
     print("=" * 60)
     print("""
 5 videos generated and posted to:
-✅ TikTok
-✅ Instagram Reels
-✅ YouTube Shorts
+[OK] TikTok
+[OK] Instagram Reels
+[OK] YouTube Shorts
 
 NEXT STEPS:
 1. Email signup pages created in ConvertKit

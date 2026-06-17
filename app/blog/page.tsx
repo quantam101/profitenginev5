@@ -136,7 +136,7 @@ export default function BlogPage() {
           )}
 
           <p className="text-blue-100 text-xs mt-4">
-            No spam. Unsubscribe anytime. We'll send you 5 emails over 10 days with everything you need to get started.
+            No spam. Unsubscribe anytime. We&apos;ll send you 5 emails over 10 days with everything you need to get started.
           </p>
         </section>
 
