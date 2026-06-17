@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Prepare SSH key
         env:
-          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SSH_KEY: ${{ secrets.CMDOS_RECOVERY_KEY }}
         shell: bash
         run: |
           set -euo pipefail
