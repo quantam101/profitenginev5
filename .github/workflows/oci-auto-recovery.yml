@@ -30,11 +30,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RECOVERY_HOST: ${{ vars.OCI_RUNTIME_HOST || '129.146.167.73' }}
+  CMDOS_HOST: ${{ vars.CMDOS_HOST || '129.146.236.177' }}
+  RECOVERY_HOST: ${{ vars.CMDOS_HOST || '129.146.236.177' }}
   RECOVERY_USER: ${{ vars.OCI_RUNTIME_USER || 'opc' }}
   RECOVERY_PORT: ${{ vars.OCI_RUNTIME_SSH_PORT || '22' }}
-  RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'https://api.profitengine.alreadyherellc.com' }}
-  OCI_RUNTIME_INSTANCE_NAME: ${{ vars.OCI_RUNTIME_INSTANCE_NAME || 'profitenginev5-runtime' }}
+  RUNTIME_API_URL: ${{ vars.RUNTIME_API_URL || secrets.RUNTIME_API_URL || 'http://129.146.236.177:8000' }}
+  CMDOS_INSTANCE_NAME: ${{ vars.CMDOS_INSTANCE_NAME || 'cmdos-runtime' }}
 
 jobs:
   recover:

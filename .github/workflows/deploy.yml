@@ -3,13 +3,13 @@ name: OCI Runtime Mirror Deploy
 on:
   workflow_dispatch:
     inputs:
-      oci_host:
-        description: 'OCI public IP or DNS name to check'
+      cmdos_host:
+        description: 'Command OS server IP or DNS name to deploy to'
         required: false
-        default: '129.146.167.73'
+        default: '129.146.236.177'
         type: string
       app_dir:
-        description: 'Checkout path on OCI host'
+        description: 'Checkout path on CMDOS host'
         required: false
         default: '/home/opc/profitenginev5'
         type: string
@@ -20,13 +20,13 @@ on:
         type: boolean
 
 concurrency:
-  group: oci-runtime-mirror-deploy
+  group: cmdos-deploy
   cancel-in-progress: true
 
 env:
-  DEFAULT_OCI_HOST: '129.146.167.73'
+  CMDOS_HOST: '129.146.236.177'
   DEFAULT_APP_DIR: '/home/opc/profitenginev5'
-  HEALTH_URL: 'https://api.profitengine.alreadyherellc.com/health'
+  HEALTH_URL: 'http://129.146.236.177/health'
 
 jobs:
   oci_preflight:
@@ -48,9 +48,9 @@ jobs:
           SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
           set -uo pipefail
-          HOST="${{ github.event.inputs.oci_host }}"
+          HOST="${{ github.event.inputs.cmdos_host }}"
           APP_DIR="${{ github.event.inputs.app_dir }}"
-          if [ -z "$HOST" ]; then HOST="$DEFAULT_OCI_HOST"; fi
+          if [ -z "$HOST" ]; then HOST="$CMDOS_HOST"; fi
           if [ -z "$APP_DIR" ]; then APP_DIR="$DEFAULT_APP_DIR"; fi
 
           check_url() {

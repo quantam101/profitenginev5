@@ -1,20 +1,108 @@
 version: '3.9'
 services:
-  profitengine:
+  # Command OS Dashboard & Web UI
+  cmdos:
     image: profitengine:v5
     build: { context: .., dockerfile: Dockerfile }
     restart: unless-stopped
     ports: ["3000:3000"]
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SITE_URL=http://129.146.236.177:3000
+      - RUNTIME_API_URL=http://runtime:8000
+      - BACKEND_API_URL=http://backend:8001
+      - ORACLE_API_URL=http://cmdos:3000
     volumes:
-      - pe5_data:/app/data
-      - pe5_logs:/app/logs
+      - cmdos_data:/app/data
+      - cmdos_logs:/app/logs
     env_file: ../.env
+    networks:
+      - cmdos-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/status/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
+    depends_on:
+      - runtime
+      - backend
+
+  # Runtime API (Python FastAPI)
+  runtime:
+    image: profitengine-runtime:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile.runtime
+    restart: unless-stopped
+    ports: ["8000:8000"]
+    environment:
+      - ENVIRONMENT=production
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - runtime_data:/app/data
+      - runtime_logs:/app/logs
+    env_file: ../.env
+    networks:
+      - cmdos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # Backend API (FastAPI - ProofPublish, distillation, enterprise)
+  backend:
+    image: profitengine-backend:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    ports: ["8001:8001"]
+    environment:
+      - ENVIRONMENT=production
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+    env_file: ../.env
+    networks:
+      - cmdos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      - runtime
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - cmdos-network
+    depends_on:
+      - cmdos
+      - runtime
+      - backend
+
 volumes:
-  pe5_data:
-  pe5_logs:
+  cmdos_data:
+  cmdos_logs:
+  runtime_data:
+  runtime_logs:
+  backend_data:
+  backend_logs:
+
+networks:
+  cmdos-network:
+    driver: bridge

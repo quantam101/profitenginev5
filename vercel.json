@@ -6,6 +6,8 @@
   "outputDirectory": ".next",
   "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "env": {
-    "RUNTIME_API_URL": "https://api.profitengine.alreadyherellc.com"
+    "RUNTIME_API_URL": "http://129.146.236.177:8000",
+    "BACKEND_API_URL": "http://129.146.236.177:8001",
+    "ORACLE_API_URL": "http://129.146.236.177:3000"
   }
 }
