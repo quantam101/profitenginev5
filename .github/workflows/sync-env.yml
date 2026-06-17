@@ -23,11 +23,11 @@ concurrency:
 
 jobs:
   sync:
-    name: Sync .env on 129.146.167.73
+    name: Sync .env on CMDOS 129.146.236.177
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      OCI_HOST: 129.146.167.73
+      OCI_HOST: 129.146.236.177
       APP_DIR: /home/opc/profitenginev5
     steps:
       - name: Prepare SSH key
@@ -41,14 +41,75 @@ jobs:
 
       - name: Upsert secrets into host .env
         env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          GUMROAD_SELLER_ID: ${{ secrets.GUMROAD_SELLER_ID }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+          BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+          RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         shell: bash
         run: |
           set -euo pipefail
-          # Each synced key is one "NAME VALUE" line on stdin; the remote
-          # side rewrites .env idempotently. Add new keys to this printf
-          # list and the env: block above to extend.
-          printf 'OPENROUTER_API_KEY %s\n' "$OPENROUTER_API_KEY" \
+          # Sync all profit-related secrets to server .env
+          cat > /tmp/secrets_sync.txt << 'SECRETS_EOF'
+          STRIPE_SECRET_KEY $STRIPE_SECRET_KEY
+          STRIPE_API_KEY $STRIPE_API_KEY
+          STRIPE_WEBHOOK_SECRET $STRIPE_WEBHOOK_SECRET
+          GUMROAD_ACCESS_TOKEN $GUMROAD_ACCESS_TOKEN
+          GUMROAD_SELLER_ID $GUMROAD_SELLER_ID
+          OPENROUTER_API_KEY $OPENROUTER_API_KEY
+          GROQ_API_KEY $GROQ_API_KEY
+          GEMINI_API_KEY $GEMINI_API_KEY
+          OPENAI_API_KEY $OPENAI_API_KEY
+          MONGODB_URL $MONGODB_URL
+          DATABASE_URL $DATABASE_URL
+          BEEHIIV_API_KEY $BEEHIIV_API_KEY
+          BEEHIIV_PUBLICATION_ID $BEEHIIV_PUBLICATION_ID
+          DEVTO_API_KEY $DEVTO_API_KEY
+          HASHNODE_API_KEY $HASHNODE_API_KEY
+          HASHNODE_PUB_ID $HASHNODE_PUB_ID
+          MEDIUM_API_KEY $MEDIUM_API_KEY
+          MEDIUM_AUTHOR_ID $MEDIUM_AUTHOR_ID
+          YOUTUBE_CLIENT_ID $YOUTUBE_CLIENT_ID
+          YOUTUBE_CLIENT_SECRET $YOUTUBE_CLIENT_SECRET
+          YOUTUBE_REFRESH_TOKEN $YOUTUBE_REFRESH_TOKEN
+          TELEGRAM_BOT_TOKEN $TELEGRAM_BOT_TOKEN
+          TELEGRAM_CHAT_ID $TELEGRAM_CHAT_ID
+          GITHUB_TOKEN $GITHUB_TOKEN
+          CONTENT_REPO_TOKEN $CONTENT_REPO_TOKEN
+          HF_TOKEN $HF_TOKEN
+          PROFITENGINE_WEBHOOK_TOKEN $PROFITENGINE_WEBHOOK_TOKEN
+          RUNTIME_API_URL $RUNTIME_API_URL
+          AWS_ACCESS_KEY_ID $AWS_ACCESS_KEY_ID
+          AWS_SECRET_ACCESS_KEY $AWS_SECRET_ACCESS_KEY
+          SECRETS_EOF
+
+          # Expand variables and sync to server
+          eval "cat /tmp/secrets_sync.txt" \
             | ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 \
                   -i /tmp/deploy_key opc@"$OCI_HOST" \
               'set -euo pipefail
@@ -63,7 +124,7 @@ jobs:
                  grep -v "^${name}=" "$f" > "$f.tmp" || true
                  printf "%s=%s\n" "$name" "$value" >> "$f.tmp"
                  mv "$f.tmp" "$f" && chmod 600 "$f"
-                 echo "synced: $name"
+                 echo "✅ synced: $name"
                done'
 
       - name: Restart services to load new env
@@ -73,7 +134,7 @@ jobs:
           set -euo pipefail
           ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 \
               -i /tmp/deploy_key opc@"$OCI_HOST" \
-            'cd /home/opc/profitenginev5 && docker compose up -d --no-deps --no-build runtime backend taylor && docker compose ps --format "{{.Name}} {{.Status}}"'
+            'cd /home/opc/profitenginev5/deploy && docker compose -f docker-compose.prod.yml restart && echo "✅ Services restarted" && docker compose -f docker-compose.prod.yml ps'
 
       - name: Cleanup SSH key
         if: always()
