@@ -112,7 +112,7 @@ export default function BlogPage() {
 
           {submitted ? (
             <div className="bg-green-500 bg-opacity-20 border border-green-300 rounded-lg p-4">
-              <p className="text-green-100 font-semibold">✅ Check your email for the welcome sequence!</p>
+              <p className="text-green-100 font-semibold">Check your email for the welcome sequence.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-2 flex-col sm:flex-row">
@@ -147,22 +147,18 @@ export default function BlogPage() {
             {[
               {
                 title: 'Institutional Partnerships',
-                description: 'Build $25K+ contracts with nonprofits & government orgs',
-                icon: '🏢'
+                description: 'Build $25K+ contracts with nonprofits & government orgs'
               },
               {
                 title: 'Vehicle Recovery',
-                description: 'Buy cars for $500, flip for $6K. Here\'s the exact system.',
-                icon: '🚗'
+                description: 'Buy cars for $500, flip for $6K. Here\'s the exact system.'
               },
               {
                 title: 'Gig Work Scaling',
-                description: 'Run 30-50 jobs/month at 75% margin with contractors',
-                icon: '📈'
+                description: 'Run 30-50 jobs/month at 75% margin with contractors'
               }
             ].map((pillar, idx) => (
               <div key={idx} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
-                <div className="text-4xl mb-3">{pillar.icon}</div>
                 <h3 className="text-lg font-bold mb-2 text-gray-900">{pillar.title}</h3>
                 <p className="text-gray-600 text-sm">{pillar.description}</p>
               </div>
@@ -331,7 +327,7 @@ export default function BlogPage() {
                 <ul className="space-y-2 mb-6">
                   {product.features.map((feature, i) => (
                     <li key={i} className="text-sm flex items-start gap-2">
-                      <span className={product.highlight ? 'text-blue-200' : 'text-blue-600'}>✓</span>
+                      <span className={product.highlight ? 'text-blue-200' : 'text-blue-600'} aria-hidden="true">-</span>
                       {feature}
                     </li>
                   ))}

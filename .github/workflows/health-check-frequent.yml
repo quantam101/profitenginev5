@@ -1,6 +1,8 @@
 name: Health Check - Runtime API (Every 5 Minutes)
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -88,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          MESSAGE="🚨 RUNTIME API DOWN
+          MESSAGE="RUNTIME API DOWN
 
 Endpoint: ${{ steps.health.outputs.url }}
 HTTP Code: ${{ steps.health.outputs.http_code }}
@@ -97,7 +99,7 @@ Time: $TIMESTAMP
 AUTO-RECOVERY TRIGGERED:
 - Step 1: OCI SSH recovery (reboot)
 - Step 2: Wait 3 mins for recovery
-- Step 3: If still down → hard restart
+- Step 3: If still down -> hard restart
 - Step 4: Verify API health
 
 Check GitHub Actions: https://github.com/${{ github.repository }}/actions"

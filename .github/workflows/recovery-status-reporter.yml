@@ -1,6 +1,8 @@
 name: Recovery Status Report
 
 on:
+  push:
+    branches: [main]
   workflow_run:
     workflows:
       - 'OCI Auto-Recovery - SSH and Control Plane Recovery'
@@ -19,8 +21,16 @@ env:
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 jobs:
+  workflow_guard:
+    name: Workflow guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm workflow has a runnable job
+        run: echo "Recovery status reporter loaded with a runnable guard job."
+
   report_status:
     name: Report Recovery Status
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -87,9 +97,9 @@ jobs:
         run: |
           set -euo pipefail
           STATUS="${{ steps.current_status.outputs.status }}"
-          EMOJI=$([ "$STATUS" = "HEALTHY" ] && echo "✅" || echo "⚠️")
+          PREFIX=$([ "$STATUS" = "HEALTHY" ] && echo "OK" || echo "WARNING")
 
-          MESSAGE="${EMOJI} Runtime Status: $STATUS
+          MESSAGE="${PREFIX}: Runtime Status: $STATUS
 
 Endpoint: ${{ env.RUNTIME_API_URL }}
 HTTP: ${{ steps.current_status.outputs.http_code }}
