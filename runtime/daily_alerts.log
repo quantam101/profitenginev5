@@ -1,0 +1,16 @@
+2026-06-18 14:59:17,003 - daily_alerts - WARNING - No email provider fully configured
+2026-06-18 14:59:17,004 - daily_alerts - INFO - Generating daily alert...
+2026-06-18 14:59:17,326 - __main__ - WARNING - No email provider fully configured
+2026-06-18 14:59:17,326 - __main__ - INFO - Generating daily alert...
+2026-06-18 14:59:17,358 - daily_alerts - ERROR - sendgrid package not installed
+2026-06-18 14:59:17,359 - daily_alerts - ERROR - boto3 package not installed
+2026-06-18 14:59:17,359 - daily_alerts - WARNING - Telegram not configured (TELEGRAM_BOT_TOKEN not set)
+2026-06-18 14:59:17,359 - daily_alerts - WARNING - Slack not configured
+2026-06-18 14:59:23,613 - daily_alerts - WARNING - No email provider fully configured
+2026-06-18 14:59:23,613 - daily_alerts - INFO - Generating daily alert...
+2026-06-18 14:59:23,891 - __main__ - WARNING - No email provider fully configured
+2026-06-18 14:59:23,892 - __main__ - INFO - Generating daily alert...
+2026-06-18 14:59:23,930 - daily_alerts - ERROR - sendgrid package not installed
+2026-06-18 14:59:23,930 - daily_alerts - ERROR - boto3 package not installed
+2026-06-18 14:59:23,930 - daily_alerts - WARNING - Telegram not configured (TELEGRAM_BOT_TOKEN not set)
+2026-06-18 14:59:23,930 - daily_alerts - WARNING - Slack not configured

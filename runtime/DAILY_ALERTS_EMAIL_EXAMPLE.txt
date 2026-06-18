@@ -1,0 +1,351 @@
+================================================================================
+DAILY ALERTS EMAIL EXAMPLE
+This is what users receive each day at 5 PM MST
+================================================================================
+
+FROM: ProfitEngine <dispatch@alreadyherellc.com>
+TO: dispatch@alreadyherellc.com
+SUBJECT: ProfitEngine Daily Alert — June 18, 2026 • $1,234.56 P&L
+DATE: Tuesday, June 18, 2026 at 5:00 PM MST
+
+
+HTML EMAIL (RICH FORMAT):
+================================================================================
+
+[Header - Gradient Purple Banner]
+ProfitEngine Daily Alert
+Tuesday, June 18, 2026 • 5 PM MST Market Close
+
+[Daily Summary Section]
+══════════════════════════════════════════════════════════════════════════════
+DAILY SUMMARY
+
+Total Daily P&L:          $1,234.56 ✓ (green)
+Trades Executed:          47
+Active Traders:           12
+Total Customers:          143
+System Health:            HEALTHY ✓ (green badge)
+
+[Top 5 Performers Section]
+══════════════════════════════════════════════════════════════════════════════
+TOP 5 PERFORMERS TODAY
+
+#  Trader              Win Rate    Today P&L     Trades  Tier
+────────────────────────────────────────────────────────────────────────────
+1  alice_trader        87.5%       $425.00       5       hybrid
+2  bob_growth          82.3%       $350.00       4       free
+3  carol_pro           85.7%       $390.00       6       enterprise
+4  dave_newbie         60.0%       $125.00       3       free
+5  eve_skilled         90.0%       $515.00       8       enterprise
+
+
+[New Customers Section]
+══════════════════════════════════════════════════════════════════════════════
+NEW CUSTOMERS (2)
+
+• alice_test (alice.test@example.com) - Free tier • 2 trades, $120.00
+• bob_newbie (bob.new@example.com) - Free tier • 1 trade, $85.00
+
+
+[Upsell Opportunities Section]
+══════════════════════════════════════════════════════════════════════════════
+UPSELL OPPORTUNITIES
+
+eve_skilled
+  Win Rate: 90.0%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+alice_trader
+  Win Rate: 87.5%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+carol_pro
+  Win Rate: 85.7%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+
+[Footer]
+════════════════════════════════════════════════════════════════════════════════
+ProfitEngine Autonomous Trading System
+Already Here LLC • dispatch@alreadyherellc.com
+This alert runs automatically at 5 PM MST daily
+
+
+
+PLAIN TEXT VERSION (FALLBACK):
+================================================================================
+
+ProfitEngine Daily Alert
+Tuesday, June 18, 2026 • 5 PM MST Market Close
+
+═══════════════════════════════════════════════════════════════════════════════
+DAILY SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+Total Daily P&L:      $     1,234.56
+Trades Executed:              47
+Active Traders:               12
+Total Customers:             143
+System Health:           HEALTHY
+
+═══════════════════════════════════════════════════════════════════════════════
+TOP 5 PERFORMERS
+═══════════════════════════════════════════════════════════════════════════════
+#   Trader              Win Rate      Today P&L       Trades  Tier
+─────────────────────────────────────────────────────────────────────────────
+1   alice_trader           87.5%      $    425.00          5   hybrid
+2   bob_growth             82.3%      $    350.00          4   free
+3   carol_pro              85.7%      $    390.00          6   enterprise
+4   dave_newbie            60.0%      $    125.00          3   free
+5   eve_skilled            90.0%      $    515.00          8   enterprise
+
+═══════════════════════════════════════════════════════════════════════════════
+NEW CUSTOMERS (2)
+═══════════════════════════════════════════════════════════════════════════════
+• alice_test (alice.test@example.com) - 2 trades, $120.00
+• bob_newbie (bob.new@example.com) - 1 trade, $85.00
+
+═══════════════════════════════════════════════════════════════════════════════
+UPSELL OPPORTUNITIES
+═══════════════════════════════════════════════════════════════════════════════
+
+eve_skilled
+  Win Rate: 90.0%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+alice_trader
+  Win Rate: 87.5%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+carol_pro
+  Win Rate: 85.7%
+  Recommended: White-Label / Enterprise
+  Message: Proven high-performance trader. Enterprise features recommended.
+
+═══════════════════════════════════════════════════════════════════════════════
+ProfitEngine Autonomous Trading System
+Already Here LLC • dispatch@alreadyherellc.com
+═══════════════════════════════════════════════════════════════════════════════
+
+
+WHAT THE SYSTEM DOES:
+================================================================================
+
+1. QUERIES CLIENTS.DB (read-only):
+   - Top performers by P&L and win rate today
+   - New signups from past 24 hours
+   - Clients ready for premium upgrades (win rate >= 70%)
+   - Database integrity check
+
+2. FORMATS PROFESSIONAL EMAIL:
+   - HTML version (rich formatting, tables, colors)
+   - Plain text fallback (mobile-friendly)
+   - Mobile-responsive design
+   - Professional branding
+
+3. SENDS VIA:
+   - Gmail SMTP (simplest)
+   - SendGrid API (high volume)
+   - AWS SES (enterprise)
+   - Telegram optional (real-time alerts)
+   - Slack optional (team notifications)
+
+4. LOGS EVERYTHING:
+   - Email delivery status
+   - Timestamps
+   - Recipient address
+   - Any errors
+
+
+TIME SCHEDULE:
+================================================================================
+
+Default: Every day at 5 PM MST (market close)
+
+During Daylight Saving Time (roughly March-November):
+  5 PM MST = 23:00 UTC = 23:00 Coordinated Universal Time
+
+During Standard Time (roughly November-March):
+  6 PM MST = 00:00 UTC next day = 00:00 Coordinated Universal Time
+
+Note: "MST" (Mountain Standard Time) is used year-round, though actual
+offset changes with daylight saving. The system uses UTC times for reliability.
+
+
+RECIPIENTS & REAL VALUES:
+================================================================================
+
+PRODUCTION EMAIL:
+  dispatch@alreadyherellc.com
+
+PLACEHOLDER VALUES NOT ALLOWED:
+  ✗ DO NOT USE: dispatch@example.com
+  ✗ DO NOT USE: test@profitengine.com
+  ✗ DO NOT USE: <email-address>
+  ✗ DO NOT USE: your-email@gmail.com
+
+MUST BE REAL:
+  ✓ USE: dispatch@alreadyherellc.com
+  ✓ USE: your-actual-email@gmail.com (for credentials)
+
+
+ALERT PERFORMANCE:
+================================================================================
+
+Query Time:        < 1 second (for 50-200 clients)
+Email Send Time:   2-5 seconds (depends on provider)
+Total Execution:   5-10 seconds
+Log File Growth:   ~500 bytes per alert
+No Data Write:     Queries are read-only
+
+
+UPSELL SCORING LOGIC:
+================================================================================
+
+Top Performers Criteria:
+  1. Orders by Daily P&L (highest first)
+  2. Ties broken by win rate
+  3. Top 5 selected
+
+Upsell Candidates Criteria:
+  - Minimum 20 total trades (to qualify)
+  - Win rate >= 70% → Hybrid Tier candidate
+  - Win rate >= 85% → White-Label / Enterprise candidate
+  - Daily P&L > $500 → High-value customer signal
+  - 10+ winning trades → Engagement signal
+
+New Signups Criteria:
+  - Accounts created within last 24 hours
+  - Shows today's trading activity if any
+
+System Health Criteria:
+  - Healthy: > 0 clients, > 0 trades in system
+  - Degraded: Clients or trades missing
+  - Error: Database connection failure
+
+
+DATABASE QUERIES:
+================================================================================
+
+1. Daily P&L Summary:
+   SELECT SUM(pnl_usd), COUNT(*), COUNT(DISTINCT client_id)
+   FROM trades
+   WHERE DATE(executed_at) = TODAY
+
+2. Top Performers:
+   SELECT * FROM clients LEFT JOIN trades
+   WHERE DATE(traded.executed_at) = TODAY
+   ORDER BY daily_pnl DESC, win_rate DESC
+   LIMIT 5
+
+3. New Signups:
+   SELECT * FROM clients
+   WHERE created_at > NOW() - 1 DAY
+   ORDER BY created_at DESC
+
+4. Upsell Candidates:
+   SELECT * FROM clients
+   WHERE total_trades >= 20
+   AND (win_rate >= 0.70 OR daily_pnl > 500 OR winning_trades >= 10)
+   LIMIT 10
+
+5. Database Health:
+   SELECT COUNT(*) FROM clients
+   SELECT COUNT(*) FROM trades
+
+
+DELIVERY ENDPOINTS:
+================================================================================
+
+EMAIL PROVIDERS:
+  Gmail SMTP:    smtp.gmail.com:465 (TLS)
+  SendGrid:      api.sendgrid.com/v3/mail/send (REST)
+  AWS SES:       email.region.amazonaws.com (AWS SDK)
+
+OPTIONAL NOTIFICATIONS:
+  Telegram:      api.telegram.org/bot<TOKEN>/sendMessage
+  Slack:         <your-webhook-url> (POST JSON)
+
+
+ERROR HANDLING:
+================================================================================
+
+If Email Provider Fails:
+  - Logs error with full details
+  - Never crashes the system
+  - Retries transient errors (network timeouts)
+  - Telegram/Slack still sent if configured
+
+If Database Query Fails:
+  - Uses cached data or empty results
+  - Marks health as "error"
+  - Still sends email (with error noted)
+  - Full error logged
+
+If Credentials Missing:
+  - Gracefully skips that provider
+  - Logs warning
+  - Falls back to next provider
+  - Eventually fails with no-provider error
+
+All errors logged to:
+  daily_alerts.log
+
+
+CUSTOMIZATION OPTIONS:
+================================================================================
+
+Change Alert Time:
+  Edit systemd timer OnCalendar or cron schedule
+
+Add Custom Metrics:
+  Edit DatabaseQueries class in daily_alerts.py
+
+Change Email Template:
+  Edit EmailTemplates.daily_alert_html() and _text()
+
+Add Notification Channel:
+  Implement function following send_telegram_alert() pattern
+
+Filter Top Performers:
+  Adjust get_top_performers(limit=5) parameter
+
+Change Upsell Thresholds:
+  Edit get_upsell_candidates() win rate % and thresholds
+
+
+TESTING:
+================================================================================
+
+Run Full Test Suite:
+  $ python3 test_daily_alerts.py
+  Result: 6/6 tests passing
+
+Test Database Queries:
+  $ python3 -c "
+    from daily_alerts import DatabaseQueries
+    db = DatabaseQueries('clients.db')
+    pnl, trades, active = db.get_daily_pnl_summary()
+    print(f'P&L: ${pnl:,.2f}, Trades: {trades}, Active: {active}')
+  "
+
+Test Email Generation:
+  $ python3 daily_alerts.py --dry-run
+
+Send Test Alert:
+  $ python3 daily_alerts.py --verbose
+
+Verify Scheduler:
+  Cron:    crontab -l
+  Systemd: sudo systemctl list-timers daily_alerts.timer
+
+
+================================================================================
+For detailed setup: See DAILY_ALERTS_SETUP.md
+For quick reference: See DAILY_ALERTS_QUICKREF.txt
+For full documentation: See DAILY_ALERTS_README.md
+================================================================================

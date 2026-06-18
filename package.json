@@ -21,6 +21,7 @@
     "test:integration": "node tests/health-contract.test.mjs",
     "test:ai-gateway": "node tests/ai-gateway.test.mjs",
     "test:skill-gateway": "node tests/skill-gateway.test.mjs",
+    "test:export": "node tests/export-system.test.mjs",
     "test:opportunity": "python -m pytest tests/test_opportunity_intelligence.py -q",
     "test:content-factory": "python -m pytest tests/test_content_factory.py -q",
     "test:autopublish-gate": "python -m pytest tests/test_autopublish_gate.py -q",

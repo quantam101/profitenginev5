@@ -1,0 +1,21 @@
+[Unit]
+Description=ProfitEngine Daily Alert Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=opc
+WorkingDirectory=/home/opc/profitengine/runtime
+ExecStart=/usr/bin/python3 /home/opc/profitengine/runtime/daily_alerts.py
+StandardOutput=append:/home/opc/profitengine/runtime/daily_alerts.log
+StandardError=append:/home/opc/profitengine/runtime/daily_alerts.log
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+# Retry on failure
+Restart=on-failure
+RestartSec=30
+MaxRetries=3
+
+# Timeout
+TimeoutStartSec=300

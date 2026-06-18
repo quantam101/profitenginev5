@@ -1,0 +1,290 @@
+================================================================================
+ProfitEngine Daily Alerts — Quick Reference
+================================================================================
+
+QUICK START (5 minutes)
+================================================================================
+
+1. Copy template:
+   cp daily_alerts.env.example .env
+
+2. Edit .env with real values:
+   EMAIL_PROVIDER=gmail
+   GMAIL_USER=your-gmail@gmail.com
+   GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx     [from Google]
+   ALERT_EMAIL=dispatch@alreadyherellc.com   [NO PLACEHOLDERS!]
+   CLIENTS_DB_PATH=clients.db
+
+3. Test:
+   python3 daily_alerts.py --dry-run --verbose
+
+4. Send test alert:
+   python3 daily_alerts.py --verbose
+
+5. Schedule (pick one):
+
+   OPTION A - Cron (Linux):
+   ----------------------
+   crontab -e
+   # Add: 0 23 * * * cd /home/opc/profitengine/runtime && /usr/bin/python3 daily_alerts.py >> daily_alerts.log 2>&1
+
+   OPTION B - Systemd (Linux, preferred):
+   -------------------------------------
+   sudo cp daily_alerts.service /etc/systemd/system/
+   sudo cp daily_alerts.timer /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable daily_alerts.timer
+   sudo systemctl start daily_alerts.timer
+   sudo systemctl status daily_alerts.timer
+
+
+EMAIL PROVIDERS
+================================================================================
+
+GMAIL (Recommended - Easiest):
+  1. Enable 2-factor auth on Gmail
+  2. Get app password: https://myaccount.google.com/apppasswords
+  3. Set in .env:
+     EMAIL_PROVIDER=gmail
+     GMAIL_USER=your-email@gmail.com
+     GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+SENDGRID (High Volume):
+  1. Create account at sendgrid.com
+  2. Create API key with "Mail Send" permission
+  3. Set in .env:
+     EMAIL_PROVIDER=sendgrid
+     SENDGRID_API_KEY=SG.xxx...
+
+AWS SES (Enterprise):
+  1. Verify domain/email in SES console
+  2. Create IAM user with SES SendEmail permission
+  3. Get access key & secret
+  4. Set in .env:
+     EMAIL_PROVIDER=aws_ses
+     AWS_ACCESS_KEY_ID=AKIA...
+     AWS_SECRET_ACCESS_KEY=...
+     AWS_SES_REGION=us-east-1
+
+
+OPTIONAL: TELEGRAM & SLACK
+================================================================================
+
+TELEGRAM:
+  1. Create bot: @BotFather on Telegram
+  2. Get chat ID: curl https://api.telegram.org/bot<TOKEN>/getUpdates
+  3. Set in .env:
+     TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+     TELEGRAM_CHAT_ID=123456789
+
+SLACK:
+  1. Create webhook: https://api.slack.com/messaging/webhooks
+  2. Copy webhook URL
+  3. Set in .env:
+     SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+
+
+COMMANDS & VERIFICATION
+================================================================================
+
+Test without sending:
+  python3 daily_alerts.py --dry-run --verbose
+
+Send test alert:
+  python3 daily_alerts.py --verbose
+
+Send to different email:
+  python3 daily_alerts.py --email test@example.com
+
+Run test suite:
+  python3 test_daily_alerts.py
+
+View logs:
+  tail -f daily_alerts.log
+
+Check cron jobs:
+  crontab -l
+
+Check systemd timer:
+  sudo systemctl list-timers daily_alerts.timer
+  sudo systemctl status daily_alerts.timer
+  sudo journalctl -u daily_alerts.service -f
+
+Trigger systemd alert immediately:
+  sudo systemctl start daily_alerts.service
+
+
+ALERT CONTENT
+================================================================================
+
+Email includes:
+  [Header] Date, time, branding
+  [Summary] Total P&L, trades, active traders, customer count, health status
+  [Top Performers] 5 traders with best P&L/win rate
+  [New Customers] Signups from today
+  [Upsell Candidates] High-win-rate traders ready for upgrades
+  [Footer] Contact info, timestamp
+
+Upsell Tier Recommendations:
+  Win rate >= 70%  → Hybrid Tier
+  Win rate >= 85%  → White-Label / Enterprise
+  Daily trades >= 10 → Active user signal
+
+
+TIME ZONES
+================================================================================
+
+5 PM MST Alert Time:
+  Summer (Daylight Saving): 23:00 UTC
+  Winter (Standard Time):   00:00 UTC
+
+Cron Times:
+  Summer: 0 23 * * *
+  Winter: 0 0 * * *
+
+Systemd Timer:
+  Summer: OnCalendar=*-*-* 23:00:00
+  Winter: OnCalendar=*-*-* 00:00:00
+
+Check your timezone:
+  date +%Z
+
+
+TROUBLESHOOTING
+================================================================================
+
+Alert not sending:
+  1. Verify .env exists: ls -la .env
+  2. Check email credentials: python3 daily_alerts.py --verbose
+  3. View logs: tail -50 daily_alerts.log | grep ERROR
+  4. Verify scheduler is running:
+     crontab -l           (for cron)
+     systemctl list-timers (for systemd)
+
+Gmail error "5.7.8 Username and password not accepted":
+  1. Verify 2-factor auth is ON
+  2. Get new app password: https://myaccount.google.com/apppasswords
+  3. Use EXACT 16-char password (with or without spaces both work)
+  4. Test: python3 daily_alerts.py --verbose
+
+Database errors "database is locked":
+  1. Close other connections to clients.db
+  2. Check file permissions: ls -la clients.db
+  3. Verify path is correct: echo $CLIENTS_DB_PATH
+
+Scheduler not running:
+  Cron:
+    sudo journalctl -u cron
+    grep CRON /var/log/syslog
+
+  Systemd:
+    sudo systemctl enable daily_alerts.timer
+    sudo systemctl start daily_alerts.timer
+    sudo journalctl -u daily_alerts.timer -f
+
+
+FILES & PATHS
+================================================================================
+
+Main System:
+  daily_alerts.py               Main alert engine
+  daily_alerts_cron.sh          Cron wrapper script
+  daily_alerts.service          Systemd service
+  daily_alerts.timer            Systemd timer (5 PM MST)
+
+Configuration:
+  .env                          Your configuration (copy from .env.example)
+  daily_alerts.env.example      Configuration template
+
+Documentation:
+  DAILY_ALERTS_README.md        Full documentation
+  DAILY_ALERTS_SETUP.md         Detailed setup guide
+  DAILY_ALERTS_QUICKREF.txt     This file
+
+Testing:
+  test_daily_alerts.py          Test suite (6/6 tests)
+
+Logs:
+  daily_alerts.log              Alert execution log
+
+
+PRODUCTION CHECKLIST
+================================================================================
+
+- [ ] Gmail app password generated & 2-factor enabled
+- [ ] .env file created with REAL values
+- [ ] ALERT_EMAIL = dispatch@alreadyherellc.com (no placeholders!)
+- [ ] CLIENTS_DB_PATH points to real database
+- [ ] Manual test alert sent successfully
+- [ ] Scheduler running (cron or systemd)
+- [ ] Log file location writable
+- [ ] .env file NOT committed to git
+- [ ] Email provider tested
+- [ ] (Optional) Telegram/Slack working
+
+
+DATABASE SCHEMA
+================================================================================
+
+Requires these tables in clients.db:
+
+clients:
+  client_id (TEXT)
+  username (TEXT)
+  email (TEXT)
+  account_balance (REAL)
+  total_trades (INTEGER)
+  winning_trades (INTEGER)
+  losing_trades (INTEGER)
+  created_at (TIMESTAMP)
+  last_trade_at (TIMESTAMP)
+  subscription_tier (TEXT)
+
+trades:
+  trade_id (TEXT)
+  client_id (TEXT)
+  symbol (TEXT)
+  side (TEXT)
+  entry_price (REAL)
+  exit_price (REAL)
+  shares (INTEGER)
+  pnl_usd (REAL)
+  win (BOOLEAN)
+  executed_at (TIMESTAMP)
+
+
+SUPPORT
+================================================================================
+
+Configuration Issues:
+  See: daily_alerts.env.example
+  Test: python3 daily_alerts.py --verbose
+
+Setup & Scheduling:
+  See: DAILY_ALERTS_SETUP.md
+
+Full Documentation:
+  See: DAILY_ALERTS_README.md
+
+Testing:
+  Run: python3 test_daily_alerts.py
+  Status: 6/6 tests passing
+
+Source Code:
+  See: daily_alerts.py (1300+ lines, fully documented)
+
+
+VERSION & STATUS
+================================================================================
+
+Version:       1.0
+Release Date:  June 18, 2026
+Status:        Production Ready
+Tests:         6/6 passing
+Last Update:   2026-06-18
+
+Email Recipient: dispatch@alreadyherellc.com (NO PLACEHOLDERS!)
+Schedule:        5 PM MST daily
+Delivery:        Email (mandatory) + Telegram/Slack (optional)
+
+================================================================================

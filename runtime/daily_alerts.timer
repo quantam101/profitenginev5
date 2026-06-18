@@ -1,0 +1,17 @@
+[Unit]
+Description=ProfitEngine Daily Alert Timer (5 PM MST)
+Requires=daily_alerts.service
+
+[Timer]
+# Run at 23:00 UTC = 5 PM MST (summer time)
+# For standard time (winter), change to 00:00 UTC = 6 PM MST
+OnCalendar=*-*-* 23:00:00
+
+# Run immediately if system was offline at scheduled time
+Persistent=true
+
+# Randomize start within 30 seconds to avoid thundering herd
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

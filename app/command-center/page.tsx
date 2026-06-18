@@ -1,8 +1,22 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 
-export const dynamic = 'force-static';
+import TradingDashboard from './TradingDashboard';
+
+export const dynamic = 'force-dynamic';
 
 const CHECKS = [
+  {
+    label: 'Trading Dashboard',
+    status: 'live',
+    detail: 'Real-time trading metrics and performance analytics.',
+    href: '/command-center/trading',
+  },
+  {
+    label: 'Revenue Dashboard',
+    status: 'live',
+    detail: 'Business metrics for MRR, ARR, LTV, and profitability across customer tiers.',
+    href: '/command-center/revenue',
+  },
   {
     label: 'Production homepage',
     status: 'online',
@@ -34,9 +48,23 @@ const ACTIONS = [
   'Keep the unfinished Replit/backend path out of the production critical path.',
   'Do not re-enable protected dashboard middleware until NextAuth secrets and provider config are verified.',
   'Use this page as the stable operator landing screen while backend architecture is repaired.',
+  'Access trading dashboard via /command-center/trading for real-time performance metrics.',
 ];
 
-export default function CommandCenterPage() {
+interface PageProps {
+  searchParams?: {
+    view?: string;
+  };
+}
+
+export default function CommandCenterPage({ searchParams }: PageProps) {
+  const view = searchParams?.view;
+
+  // Show trading dashboard if requested
+  if (view === 'trading') {
+    return <TradingDashboard />;
+  }
+
   return (
     <main
       style={{
@@ -52,9 +80,17 @@ export default function CommandCenterPage() {
           <a href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
             ProfitEngine v5
           </a>
-          <a href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
-            AI VP Cash Desk
-          </a>
+          <div style={{ display: 'flex', gap: 24 }}>
+            <a href="/command-center/trading" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+              Trading Dashboard
+            </a>
+            <a href="/command-center/revenue" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+              Revenue Dashboard
+            </a>
+            <a href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+              AI VP Cash Desk
+            </a>
+          </div>
         </nav>
 
         <header style={{ marginBottom: 36 }}>

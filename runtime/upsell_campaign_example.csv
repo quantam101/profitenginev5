@@ -1,0 +1,4 @@
+priority_rank,username,client_id,tier_recommendation,base_score,estimated_upsell_value_usd,sales_message
+1,diana_pro,client_004,hybrid,42.5,$250.00,"Hi diana_pro,  Your 90.0% win rate shows strong trading discipline. Our Hybrid tier adds premium features and support—interested in learning more?"
+2,alice_trader,client_001,hybrid,42.1,$50.00,"Hi alice_trader,  Your 85.7% win rate shows strong trading discipline. Our Hybrid tier adds premium features and support—interested in learning more?"
+3,bob_scalper,client_002,hybrid,37.1,$125.00,"Hi bob_scalper,  Your 90.0% win rate shows strong trading discipline. Our Hybrid tier adds premium features and support—interested in learning more?"

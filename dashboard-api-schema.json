@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Trading Dashboard API Response",
+  "description": "Real-time trading metrics and leaderboards from clients.db",
+  "type": "object",
+  "required": [
+    "active_traders_today",
+    "top_performers_by_win_rate",
+    "biggest_gainers",
+    "new_signups_today",
+    "avg_daily_pnl",
+    "upsell_candidates",
+    "timestamp",
+    "summary"
+  ],
+  "properties": {
+    "active_traders_today": {
+      "type": "integer",
+      "description": "Count of unique traders with at least one trade today",
+      "minimum": 0
+    },
+    "top_performers_by_win_rate": {
+      "type": "array",
+      "description": "Top 5 traders ranked by win rate percentage (last 30 days)",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["rank", "user_id", "username", "win_rate", "total_pnl", "total_trades"],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "description": "Ranking position (1-5)",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "user_id": {
+            "type": "string",
+            "description": "Unique trader identifier"
+          },
+          "username": {
+            "type": "string",
+            "description": "Display name or ID fallback"
+          },
+          "win_rate": {
+            "type": "number",
+            "description": "Percentage of winning trades (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "total_pnl": {
+            "type": "number",
+            "description": "Total profit/loss in USD"
+          },
+          "total_trades": {
+            "type": "integer",
+            "description": "Total number of completed trades",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "biggest_gainers": {
+      "type": "array",
+      "description": "Top 5 traders ranked by P&L percentage gain",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["rank", "user_id", "username", "pnl_percent", "total_pnl", "total_trades"],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "description": "Ranking position (1-5)",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "user_id": {
+            "type": "string",
+            "description": "Unique trader identifier"
+          },
+          "username": {
+            "type": "string",
+            "description": "Display name or ID fallback"
+          },
+          "pnl_percent": {
+            "type": "number",
+            "description": "Percentage gain on capital",
+            "minimum": -999999,
+            "maximum": 999999
+          },
+          "total_pnl": {
+            "type": "number",
+            "description": "Total profit/loss in USD"
+          },
+          "total_trades": {
+            "type": "integer",
+            "description": "Total number of completed trades",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "new_signups_today": {
+      "type": "integer",
+      "description": "Count of new traders registered today",
+      "minimum": 0
+    },
+    "avg_daily_pnl": {
+      "type": "number",
+      "description": "Average profit/loss per trade across all traders"
+    },
+    "upsell_candidates": {
+      "type": "array",
+      "description": "Traders ready for premium tier upgrade (score > 0.5)",
+      "items": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "username",
+          "current_pnl",
+          "win_rate",
+          "total_trades",
+          "days_active",
+          "urgency"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Unique trader identifier"
+          },
+          "username": {
+            "type": "string",
+            "description": "Display name or ID fallback"
+          },
+          "current_pnl": {
+            "type": "number",
+            "description": "Total profit/loss in USD"
+          },
+          "win_rate": {
+            "type": "number",
+            "description": "Percentage of winning trades (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "total_trades": {
+            "type": "integer",
+            "description": "Total number of completed trades",
+            "minimum": 10,
+            "maximum": 10000
+          },
+          "days_active": {
+            "type": "integer",
+            "description": "Days since account creation",
+            "minimum": 0
+          },
+          "urgency": {
+            "type": "string",
+            "description": "Sales urgency level",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO 8601 timestamp when metrics were generated",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary statistics for today",
+      "required": [
+        "total_trades_today",
+        "total_pnl_today",
+        "total_active_traders"
+      ],
+      "properties": {
+        "total_trades_today": {
+          "type": "integer",
+          "description": "Total trades executed today",
+          "minimum": 0
+        },
+        "total_pnl_today": {
+          "type": "number",
+          "description": "Total platform P&L today in USD"
+        },
+        "total_active_traders": {
+          "type": "integer",
+          "description": "Total number of active traders",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "active_traders_today": 42,
+      "top_performers_by_win_rate": [
+        {
+          "rank": 1,
+          "user_id": "trader_001",
+          "username": "ProTrader_24",
+          "win_rate": 78.5,
+          "total_pnl": 45230.50,
+          "total_trades": 157
+        },
+        {
+          "rank": 2,
+          "user_id": "trader_002",
+          "username": "WinMaster",
+          "win_rate": 72.3,
+          "total_pnl": 28950.75,
+          "total_trades": 143
+        }
+      ],
+      "biggest_gainers": [
+        {
+          "rank": 1,
+          "user_id": "trader_045",
+          "username": "RocketGains",
+          "pnl_percent": 156.8,
+          "total_pnl": 7850.00,
+          "total_trades": 32
+        }
+      ],
+      "new_signups_today": 5,
+      "avg_daily_pnl": 342.15,
+      "upsell_candidates": [
+        {
+          "user_id": "trader_001",
+          "username": "ProTrader_24",
+          "current_pnl": 45230.50,
+          "win_rate": 78.5,
+          "total_trades": 157,
+          "days_active": 45,
+          "urgency": "high"
+        }
+      ],
+      "timestamp": "2026-06-18T14:23:45.123Z",
+      "summary": {
+        "total_trades_today": 342,
+        "total_pnl_today": 8754.23,
+        "total_active_traders": 42
+      }
+    }
+  ]
+}

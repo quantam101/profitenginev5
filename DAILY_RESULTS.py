@@ -2,18 +2,185 @@
 """
 Daily Results Reporter (5 PM MST)
 Updates daily-command with end-of-day metrics and declares daily winner
+Stores daily trading results in clients.db database
 """
 
 import os
 import json
 import re
+import sqlite3
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 def get_mst_time():
     """Get current time in MST"""
     utc_now = datetime.now(timezone.utc)
     mst = utc_now.astimezone(timezone(timedelta(hours=-7)))
     return mst
+
+def init_clients_database(db_path="clients.db"):
+    """Initialize clients database with required tables if they don't exist"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Create users table if not exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE,
+                system_id TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Create daily_trades table if not exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS daily_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                system TEXT,
+                num_trades INTEGER,
+                win_rate REAL,
+                balance REAL,
+                pnl_dollars REAL,
+                pnl_percent REAL,
+                wins INTEGER,
+                losses INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, date, system)
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database initialization error: {e}")
+        return False
+
+def get_or_create_user(email=None, system_id=None, db_path="clients.db"):
+    """Get existing user or create new one with email and system_id"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Try to get existing user by system_id first (preferred)
+        if system_id:
+            cursor.execute("SELECT id FROM users WHERE system_id = ?", (system_id,))
+            result = cursor.fetchone()
+            if result:
+                conn.close()
+                return result[0]
+
+        # Try to get existing user by email
+        if email:
+            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            result = cursor.fetchone()
+            if result:
+                conn.close()
+                return result[0]
+
+        # Create new user with system_id, using unique email based on system_id
+        unique_email = email or f"{system_id or 'default'}@profitengine.local"
+        cursor.execute(
+            "INSERT INTO users (email, system_id) VALUES (?, ?)",
+            (unique_email, system_id or "system-default")
+        )
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return user_id
+    except sqlite3.Error as e:
+        print(f"Error managing user: {e}")
+        return None
+
+def store_daily_results(report, db_path="clients.db"):
+    """Store daily trading results in clients database"""
+    try:
+        # Initialize database if needed
+        init_clients_database(db_path)
+
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        date_str = report.get("date")
+        stored_records = []
+
+        # Store System A results
+        system_a = report.get("system_a", {})
+        if system_a and system_a.get("trades_today") is not None:
+            user_id = get_or_create_user(
+                system_id="system-a",
+                db_path=db_path
+            )
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO daily_trades
+                (user_id, date, system, num_trades, win_rate, balance, pnl_dollars, pnl_percent, wins, losses)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                date_str,
+                "System A (Local/Aggressive)",
+                system_a.get("trades_today", 0),
+                (system_a.get("wins", 0) / max(system_a.get("trades_today", 1), 1) * 100) if system_a.get("trades_today") else 0,
+                system_a.get("current_balance", 100.0),
+                system_a.get("pnl_dollars", 0.0),
+                system_a.get("pnl_percent", 0.0),
+                system_a.get("wins", 0),
+                system_a.get("losses", 0)
+            ))
+            stored_records.append({
+                "system": "System A",
+                "user_id": user_id,
+                "date": date_str,
+                "trades": system_a.get("trades_today", 0),
+                "pnl_percent": system_a.get("pnl_percent", 0.0)
+            })
+
+        # Store System B results
+        system_b = report.get("system_b", {})
+        if system_b and system_b.get("trades_today") not in ("TBD", None):
+            user_id = get_or_create_user(
+                system_id="system-b",
+                db_path=db_path
+            )
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO daily_trades
+                (user_id, date, system, num_trades, win_rate, balance, pnl_dollars, pnl_percent, wins, losses)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                date_str,
+                "System B (Vercel/Conservative)",
+                system_b.get("trades_today", 0),
+                (system_b.get("wins", 0) / max(system_b.get("trades_today", 1), 1) * 100) if system_b.get("trades_today") else 0,
+                system_b.get("current_balance", 100.0),
+                system_b.get("pnl_dollars", 0.0),
+                system_b.get("pnl_percent", 0.0),
+                system_b.get("wins", 0),
+                system_b.get("losses", 0)
+            ))
+            stored_records.append({
+                "system": "System B",
+                "user_id": user_id,
+                "date": date_str,
+                "trades": system_b.get("trades_today", 0),
+                "pnl_percent": system_b.get("pnl_percent", 0.0)
+            })
+
+        conn.commit()
+        conn.close()
+
+        return stored_records
+    except sqlite3.Error as e:
+        print(f"Database error storing results: {e}")
+        return []
 
 def parse_system_a_metrics():
     """Extract System A metrics from autonomous_trading.log"""
@@ -179,6 +346,18 @@ def main():
 
         print("Daily results saved to daily_results.jsonl")
         print("Daily command updated")
+
+        # Store in clients.db database
+        print("\n[Database] Storing trading results in clients.db...")
+        stored_records = store_daily_results(report)
+
+        if stored_records:
+            print(f"[Database] Successfully stored {len(stored_records)} record(s):")
+            for record in stored_records:
+                print(f"  - {record['system']}: {record['trades']} trades, {record['pnl_percent']:.2f}% P&L")
+            print("[Database] Daily trading results persisted")
+        else:
+            print("[Database] WARNING: No trading results were stored")
 
         return report, winner
     else:
