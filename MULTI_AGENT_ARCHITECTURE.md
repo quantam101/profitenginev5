@@ -44,24 +44,31 @@
 │ │ • Order mgmt     │  │ • Rebalancing    │  │ • Alerts & rec  │ │
 │ └──────────────────┘  └──────────────────┘  └─────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
+                    ┌────────────┬────────────┐
+                    │            │            │
+                    ▼            ▼            ▼
+        ┌──────────────────┐  ┌────────────────────────┐
+        │ NATIVE MCP       │  │ MOBILE DASHBOARD API   │
+        │ ENGINE           │  │ (Real-time WebSocket)  │
+        │ • 11 strategies  │  │ ────────────────────── │
+        │ • Risk gates     │  │ • FastAPI server       │
+        │ • Paper trading  │  │ • Port 8001            │
+        │ • Robinhood MCP  │  │ • REST endpoints       │
+        └──────────────────┘  │ • Live WebSocket       │
+                              │ • Mobile-friendly UI   │
+                              └────────────────────────┘
+                                    ▲
+                                    │
+                            Phone/Tablet/Laptop
+                            (Any Device on Network)
                               │
-                              ▼
-                  ┌─────────────────────┐
-                  │ NATIVE MCP ENGINE   │
-                  │ • 11 strategies     │
-                  │ • Risk gates        │
-                  │ • Paper trading     │
-                  │ • Robinhood MCP     │
-                  └─────────────────────┘
-                              │
-                              ▼
-                  ┌─────────────────────┐
-                  │ MARKET DATA FEEDS   │
-                  │ • Finnhub (RT)      │
-                  │ • Yahoo Finance     │
-                  │ • Order Books       │
-                  │ • News/Sentiment    │
-                  └─────────────────────┘
+                    ┌─────────────────────┐
+                    │ MARKET DATA FEEDS   │
+                    │ • Finnhub (RT)      │
+                    │ • Yahoo Finance     │
+                    │ • Order Books       │
+                    │ • News/Sentiment    │
+                    └─────────────────────┘
 ```
 
 ---
@@ -289,6 +296,43 @@ report = await agent.execute({
 
 ---
 
+## Mobile Dashboard API
+
+**Purpose:** Real-time trading monitoring accessible from any device
+
+**Features:**
+- **Real-time Display** — Balance, P&L, positions, trades, alerts
+- **WebSocket Updates** — Low-latency live data (5-second refresh)
+- **Mobile Responsive** — Works on phones, tablets, laptops, desktops
+- **Network Accessible** — No installation, works from any browser
+- **CORS Enabled** — Accessible from any device on your network
+
+**REST Endpoints:**
+- `GET /api/status` — Current metrics (balance, P&L, positions, trades)
+- `GET /api/portfolio` — Detailed position list with progress toward $1000
+- `GET /api/trades` — Recent trades with entry/exit prices
+- `GET /api/performance` — Win rate, total trades, daily P&L
+
+**WebSocket Endpoint:**
+- `WS /ws/live` — Real-time updates every 5 seconds
+
+**Access:**
+```
+http://[your-machine-ip]:8001
+```
+
+The startup logs will display your machine's IP address for easy access from your phone or tablet.
+
+**Dashboard Contents:**
+- Account balance with progress bar to $1000 target
+- Today's P&L and percentage
+- All open positions with entry prices and shares
+- Trades executed today count
+- System status and agent health
+- Recent alerts and warnings
+
+---
+
 ## Approval & Activation
 
 ### Prerequisites (Before Approval)
@@ -419,15 +463,34 @@ Paper Trader / Robinhood (Actual trades)
 
 ### Local Development
 ```bash
-python -m runtime.master_orchestrator_ai
-# Runs on your machine, connects to Finnhub, logs locally
+python LAUNCH_AUTONOMOUS_TRADING.py
+# Launches:
+# - Master Orchestrator on autonomous loop
+# - 6 specialized agents
+# - Mobile Dashboard API on port 8001
+# - Paper trading simulator with real market data
+# Logs: autonomous_trading.log, paper_trading_audit.jsonl
+```
+
+### Mobile Access (Same Network)
+```bash
+# From phone/tablet browser:
+http://[your-machine-ip]:8001
+
+# Displays:
+# - Real-time balance and progress
+# - Open positions
+# - Recent trades
+# - System status
+# - Alerts
 ```
 
 ### OCI Production (24/7)
 ```bash
 # GitHub Actions auto-deploys on merge
 # Server: 129.146.236.177:8000
-# Monitoring: Dashboard at https://dashboard.profitengine.local
+# Mobile Dashboard: http://129.146.236.177:8001
+# Monitoring: Dashboard accessible from any device
 ```
 
 ---

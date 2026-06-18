@@ -18,14 +18,37 @@ $env:FINNHUB_API_KEY = "your_finnhub_key_here"
 export FINNHUB_API_KEY="your_finnhub_key_here"
 ```
 
-### Step 2: Start Autonomous Trading System
+### Step 2: Start Autonomous Trading System (with Mobile Dashboard)
 
 ```bash
 cd "C:\Users\alrea\Downloads\profitengine-v5-final (1)"
 python LAUNCH_AUTONOMOUS_TRADING.py
 ```
 
-### Step 3: Monitor in Real-Time
+The system will launch:
+- **Master Orchestrator** — Trading decisions, agent coordination
+- **6 Specialized Agents** — Market data, signals, risk validation, execution, monitoring, reporting
+- **Mobile Dashboard API** — Real-time trading data accessible from phone/tablet
+
+### Step 3: Access Mobile Dashboard
+
+Once the system launches, you'll see the mobile dashboard URL in the logs:
+
+```
+📱 MOBILE DASHBOARD:
+  Access from phone/tablet:
+  - Same network: http://192.168.x.x:8001
+  - Shows real-time balance, P&L, positions, trades, performance
+  - Auto-refreshes every 5 seconds
+  - Works on any device (phone, tablet, laptop)
+```
+
+**On your phone/tablet:**
+1. Open a browser
+2. Navigate to `http://[your-machine-ip]:8001`
+3. See live trading dashboard with real-time updates
+
+### Step 4: Monitor in Real-Time
 
 While the system is running, you can:
 
@@ -36,7 +59,7 @@ tail -f autonomous_trading.log
 # View detailed audit trail
 tail -f paper_trading_audit.jsonl | python -m json.tool
 
-# Check dashboard status
+# Check orchestrator status
 curl http://0.0.0.0:8000/orchestrator/status
 ```
 
@@ -173,6 +196,21 @@ grep "P&L\|balance\|pnl" autonomous_trading.log
 # Count trades per day
 grep "EXECUTED" autonomous_trading.log | wc -l
 ```
+
+### Mobile Dashboard
+
+The mobile dashboard is automatically launched on port 8001 and provides:
+- Real-time account balance with progress bar toward $1000 target
+- Current P&L and P&L % for today
+- Open positions with entry prices and share counts
+- Total trades executed today
+- System status and agent health
+- Recent alerts and warnings
+- Auto-refreshes every 5 seconds
+- Works on phones, tablets, and laptops
+- Accessible from any browser on your network
+
+**Access:** `http://[your-machine-ip]:8001`
 
 ### Logs & Audit Trail
 

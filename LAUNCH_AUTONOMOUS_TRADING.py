@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LAUNCH AUTONOMOUS TRADING SYSTEM
-Master Orchestrator + Paper Trading Simulator
+Master Orchestrator + Paper Trading Simulator + Mobile Dashboard
 $100 → $1000 Challenge
 """
 
@@ -9,6 +9,7 @@ import os
 import sys
 import asyncio
 import logging
+import socket
 from datetime import datetime
 
 logging.basicConfig(
@@ -53,8 +54,10 @@ async def launch_system():
     try:
         from runtime.master_orchestrator_ai import MasterOrchestratorAI
         from runtime.paper_trader_pro import MarketDataProvider
+        from runtime.mobile_dashboard_api import MobileDashboardAPI
         logger.info("  [OK] Master Orchestrator imported")
         logger.info("  [OK] Paper Trading Simulator imported")
+        logger.info("  [OK] Mobile Dashboard API imported")
     except Exception as e:
         logger.error(f"  [ERROR] Failed to import: {e}")
         return False
@@ -99,29 +102,60 @@ async def launch_system():
     logger.info("\nStarting autonomous 24/7 trading operation...")
     logger.info("Target: $100 → $1000")
     logger.info("Timeline: 4-6 weeks (based on historical backtests)")
+
+    # Get local machine IP for mobile dashboard access
+    try:
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+    except:
+        local_ip = "localhost"
+
     logger.info("\nLive monitoring:")
     logger.info("  - Trades logged to: autonomous_trading.log")
-    logger.info("  - Dashboard: http://0.0.0.0:8000/orchestrator/status")
+    logger.info("  - Dashboard API: http://0.0.0.0:8000/orchestrator/status")
+    logger.info("  - Mobile Dashboard: http://" + local_ip + ":8001")
     logger.info("  - Audit trail: paper_trading_audit.jsonl")
-    logger.info("\nPress Ctrl+C to stop\n")
+    logger.info("\n📱 MOBILE DASHBOARD:")
+    logger.info("  Access from phone/tablet:")
+    logger.info("  - Same network: http://" + local_ip + ":8001")
+    logger.info("  - Shows real-time balance, P&L, positions, trades, performance")
+    logger.info("  - Auto-refreshes every 5 seconds")
+    logger.info("  - Works on any device (phone, tablet, laptop)\n")
+    logger.info("Press Ctrl+C to stop\n")
+
+    # Initialize mobile dashboard API with orchestrator reference
+    mobile_api = MobileDashboardAPI(orchestrator=master_ai)
 
     # Start autonomous operation
     try:
-        await master_ai.run_autonomous_24_7()
+        # Run both orchestrator and mobile dashboard in parallel
+        await asyncio.gather(
+            master_ai.run_autonomous_24_7(),
+            mobile_api.start(host="0.0.0.0", port=8001)
+        )
     except KeyboardInterrupt:
         logger.info("\nShutdown signal received")
+        logger.info("Stopping Master Orchestrator and Mobile Dashboard...")
         master_ai.running = False
-        status = await master_ai.get_status()
 
-        logger.info("\n" + "="*80)
-        logger.info("FINAL REPORT")
-        logger.info("="*80)
-        logger.info(f"Orchestrator Status: {status['orchestrator']['status']}")
-        logger.info(f"Decisions Made: {status['orchestrator']['decisions_made']}")
-        logger.info(f"Final Balance: ${status['portfolio']['balance']:.2f}")
-        logger.info(f"P&L: {status['portfolio']['pnl']:.2f}%")
-        logger.info(f"Trades Today: {status['portfolio']['trades_today']}")
-        logger.info(f"Positions Open: {status['portfolio']['positions_open']}")
+        # Give services time to shut down gracefully
+        await asyncio.sleep(1)
+
+        try:
+            status = await master_ai.get_status()
+
+            logger.info("\n" + "="*80)
+            logger.info("FINAL REPORT")
+            logger.info("="*80)
+            logger.info(f"Orchestrator Status: {status['orchestrator']['status']}")
+            logger.info(f"Decisions Made: {status['orchestrator']['decisions_made']}")
+            logger.info(f"Final Balance: ${status['portfolio']['balance']:.2f}")
+            logger.info(f"P&L: {status['portfolio']['pnl']:.2f}%")
+            logger.info(f"Trades Today: {status['portfolio']['trades_today']}")
+            logger.info(f"Positions Open: {status['portfolio']['positions_open']}")
+            logger.info("="*80)
+        except:
+            pass
     except Exception as e:
         logger.error(f"System error: {e}", exc_info=True)
         return False

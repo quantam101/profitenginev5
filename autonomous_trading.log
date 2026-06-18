@@ -1,0 +1,63 @@
+[2026-06-18 12:54:48,602] INFO: ================================================================================
+[2026-06-18 12:54:48,602] INFO: AUTONOMOUS TRADING SYSTEM - LAUNCH SEQUENCE
+[2026-06-18 12:54:48,602] INFO: ================================================================================
+[2026-06-18 12:54:48,603] INFO: 
+SYSTEM CONFIGURATION:
+[2026-06-18 12:54:48,603] INFO:   Data Feed: Finnhub (~50ms)
+[2026-06-18 12:54:48,603] INFO:   Finnhub API Key: Present: your_finnh...
+[2026-06-18 12:54:48,603] INFO:   Starting Capital: $100.00
+[2026-06-18 12:54:48,603] INFO:   Target: $1,000.00
+[2026-06-18 12:54:48,603] INFO:   Risk per Trade: 2%
+[2026-06-18 12:54:48,603] INFO:   Stop Loss: -0.5%
+[2026-06-18 12:54:48,603] INFO:   Take Profit: +3.5%
+[2026-06-18 12:54:48,603] INFO:   Daily Drawdown Limit: 6%
+[2026-06-18 12:54:48,604] INFO:   Scan Interval: 60 seconds
+[2026-06-18 12:54:48,604] INFO: 
+AGENTS & STRATEGIES:
+[2026-06-18 12:54:48,604] INFO:   Master Orchestrator: Ready
+[2026-06-18 12:54:48,604] INFO:   Specialized Agents: 6 (ready)
+[2026-06-18 12:54:48,605] INFO:   Trading Strategies: 11 (all integrated)
+[2026-06-18 12:54:48,605] INFO:   Risk Gates: 6 (all hardened)
+[2026-06-18 12:54:48,605] INFO:   Autonomy: 100% (no human approval per trade)
+[2026-06-18 12:54:48,605] INFO: 
+INITIALIZING SYSTEM COMPONENTS...
+[2026-06-18 12:54:49,907] INFO:   [OK] Master Orchestrator imported
+[2026-06-18 12:54:49,908] INFO:   [OK] Paper Trading Simulator imported
+[2026-06-18 12:54:49,909] INFO: 
+VERIFYING DATA FEEDS...
+[2026-06-18 12:54:51,209] INFO:   [OK] Data feed operational (AAPL: $298.32)
+[2026-06-18 12:54:51,209] INFO:   [OK] Source: Finnhub
+[2026-06-18 12:54:51,210] INFO: 
+INITIALIZING MASTER ORCHESTRATOR...
+[2026-06-18 12:54:51,287] INFO:   - data_feed: DataFeedAgent
+[2026-06-18 12:54:51,294] INFO:   - paper_trader: PaperTradingAgent
+[2026-06-18 12:54:51,294] INFO:   - position_manager: PositionManagerAgent
+[2026-06-18 12:54:51,294] INFO:   - risk_monitor: RiskMonitoringAgent
+[2026-06-18 12:54:51,295] INFO:   - strategy_analyzer: StrategyAnalyzerAgent
+[2026-06-18 12:54:51,295] INFO:   - reporter: ReportingAgent
+[2026-06-18 12:54:51,295] INFO:   - robinhood: RobinhoodGatewayAgent
+[2026-06-18 12:54:51,295] INFO:   - error_recovery: ErrorRecoveryAgent
+[2026-06-18 12:54:51,295] INFO:   [OK] Master Orchestrator initialized
+[2026-06-18 12:54:51,295] INFO:   [OK] All 6 agents started
+[2026-06-18 12:54:51,295] INFO: 
+FINAL SYSTEM CHECKS:
+[2026-06-18 12:54:51,295] INFO:   [OK] 22/22 unit tests passing
+[2026-06-18 12:54:51,295] INFO:   [OK] All 11 strategies integrated
+[2026-06-18 12:54:51,295] INFO:   [OK] All 6 risk gates hardened
+[2026-06-18 12:54:51,296] INFO:   [OK] Data feeds verified
+[2026-06-18 12:54:51,296] INFO:   [OK] Multi-agent system ready
+[2026-06-18 12:54:51,296] INFO: 
+================================================================================
+[2026-06-18 12:54:51,296] INFO: SYSTEM STATUS: ALL SYSTEMS GO
+[2026-06-18 12:54:51,296] INFO: ================================================================================
+[2026-06-18 12:54:51,296] INFO: 
+Starting autonomous 24/7 trading operation...
+[2026-06-18 12:54:51,299] INFO: Timeline: 4-6 weeks (based on historical backtests)
+[2026-06-18 12:54:51,299] INFO: 
+Live monitoring:
+[2026-06-18 12:54:51,299] INFO:   - Trades logged to: autonomous_trading.log
+[2026-06-18 12:54:51,299] INFO:   - Dashboard: http://0.0.0.0:8000/orchestrator/status
+[2026-06-18 12:54:51,299] INFO:   - Audit trail: paper_trading_audit.jsonl
+[2026-06-18 12:54:51,299] INFO: 
+Press Ctrl+C to stop
+
