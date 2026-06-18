@@ -1,4 +1,4 @@
-import Link from 'next/link';
+export const dynamic = 'force-static';
 
 const CHECKS = [
   {
@@ -47,12 +47,12 @@ export default function CommandCenterPage() {
     >
       <section style={{ maxWidth: 1040, margin: '0 auto' }}>
         <nav style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 56 }}>
-          <Link href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
+          <a href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
             ProfitEngine v5
-          </Link>
-          <Link href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+          </a>
+          <a href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
             AI VP Cash Desk
-          </Link>
+          </a>
         </nav>
 
         <header style={{ marginBottom: 36 }}>
@@ -70,7 +70,7 @@ export default function CommandCenterPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
           {CHECKS.map((check) => (
-            <Link
+            <a
               key={check.label}
               href={check.href}
               style={{
@@ -88,7 +88,7 @@ export default function CommandCenterPage() {
               </span>
               <h2 style={{ margin: '10px 0', fontSize: 22 }}>{check.label}</h2>
               <p style={{ color: '#a8bed0', lineHeight: 1.5, margin: 0 }}>{check.detail}</p>
-            </Link>
+            </a>
           ))}
         </div>
 
