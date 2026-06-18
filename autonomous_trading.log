@@ -1450,3 +1450,199 @@ Live monitoring: autonomous_trading.log
 [2026-06-18 14:15:44,860] INFO: [PHASE 4] Monitoring & Recovery
 [2026-06-18 14:15:44,860] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
 [2026-06-18 14:15:44,860] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:16:14,868] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:16:14,869] INFO:    Data source 0 collected
+[2026-06-18 14:16:14,869] INFO:    Data source 1 collected
+[2026-06-18 14:16:14,869] INFO:    Data source 2 collected
+[2026-06-18 14:16:14,869] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:16:14,869] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:16:14,869] INFO: [PHASE 3] Execution
+[2026-06-18 14:16:14,869] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:16:14,869] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:16:14,869] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:16:14,870] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:16:14,870] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:16:14,870] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:16:14,870] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:16:44,871] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:16:44,871] INFO:    Data source 0 collected
+[2026-06-18 14:16:44,871] INFO:    Data source 1 collected
+[2026-06-18 14:16:44,871] INFO:    Data source 2 collected
+[2026-06-18 14:16:44,871] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:16:44,871] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:16:44,871] INFO: [PHASE 3] Execution
+[2026-06-18 14:16:44,871] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:16:44,871] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:16:44,871] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:16:44,871] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:16:44,871] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:16:44,871] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:16:44,871] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:17:14,873] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:17:14,873] INFO:    Data source 0 collected
+[2026-06-18 14:17:14,873] INFO:    Data source 1 collected
+[2026-06-18 14:17:14,873] INFO:    Data source 2 collected
+[2026-06-18 14:17:14,873] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:17:14,873] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:17:14,873] INFO: [PHASE 3] Execution
+[2026-06-18 14:17:14,873] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:17:14,874] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:17:14,874] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:17:14,874] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:17:14,874] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:17:14,874] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:17:14,874] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:17:44,881] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:17:44,881] INFO:    Data source 0 collected
+[2026-06-18 14:17:44,881] INFO:    Data source 1 collected
+[2026-06-18 14:17:44,882] INFO:    Data source 2 collected
+[2026-06-18 14:17:44,882] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:17:44,882] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:17:44,882] INFO: [PHASE 3] Execution
+[2026-06-18 14:17:44,882] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:17:44,882] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:17:44,882] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:17:44,882] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:17:44,882] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:17:44,882] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:17:44,882] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:18:14,883] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:18:14,883] INFO:    Data source 0 collected
+[2026-06-18 14:18:14,884] INFO:    Data source 1 collected
+[2026-06-18 14:18:14,884] INFO:    Data source 2 collected
+[2026-06-18 14:18:14,884] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:18:14,884] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:18:14,884] INFO: [PHASE 3] Execution
+[2026-06-18 14:18:14,884] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:18:14,884] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:18:14,884] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:18:14,884] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:18:14,884] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:18:14,884] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:18:14,884] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:18:44,892] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:18:44,892] INFO:    Data source 0 collected
+[2026-06-18 14:18:44,892] INFO:    Data source 1 collected
+[2026-06-18 14:18:44,893] INFO:    Data source 2 collected
+[2026-06-18 14:18:44,893] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:18:44,893] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:18:44,893] INFO: [PHASE 3] Execution
+[2026-06-18 14:18:44,893] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:18:44,893] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:18:44,893] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:18:44,893] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:18:44,893] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:18:44,893] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:18:44,894] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:19:14,902] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:19:14,903] INFO:    Data source 0 collected
+[2026-06-18 14:19:14,903] INFO:    Data source 1 collected
+[2026-06-18 14:19:14,903] INFO:    Data source 2 collected
+[2026-06-18 14:19:14,903] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:19:14,903] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:19:14,903] INFO: [PHASE 3] Execution
+[2026-06-18 14:19:14,903] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:19:14,903] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:19:14,903] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:19:14,903] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:19:14,903] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:19:14,903] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:19:14,903] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:19:44,911] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:19:44,911] INFO:    Data source 0 collected
+[2026-06-18 14:19:44,911] INFO:    Data source 1 collected
+[2026-06-18 14:19:44,911] INFO:    Data source 2 collected
+[2026-06-18 14:19:44,911] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:19:44,911] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:19:44,911] INFO: [PHASE 3] Execution
+[2026-06-18 14:19:44,911] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:19:44,911] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:19:44,911] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:19:44,911] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:19:44,912] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:19:44,912] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:19:44,912] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:20:14,919] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:20:14,919] INFO:    Data source 0 collected
+[2026-06-18 14:20:14,919] INFO:    Data source 1 collected
+[2026-06-18 14:20:14,919] INFO:    Data source 2 collected
+[2026-06-18 14:20:14,919] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:20:14,919] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:20:14,919] INFO: [PHASE 3] Execution
+[2026-06-18 14:20:14,919] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:20:14,919] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:20:14,919] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:20:14,919] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:20:14,919] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:20:14,919] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:20:14,919] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:20:44,924] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:20:44,925] INFO:    Data source 0 collected
+[2026-06-18 14:20:44,925] INFO:    Data source 1 collected
+[2026-06-18 14:20:44,925] INFO:    Data source 2 collected
+[2026-06-18 14:20:44,925] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:20:44,925] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:20:44,925] INFO: [PHASE 3] Execution
+[2026-06-18 14:20:44,925] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:20:44,925] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:20:44,925] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:20:44,925] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:20:44,925] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:20:44,925] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:20:44,925] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:21:14,925] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:21:14,925] INFO:    Data source 0 collected
+[2026-06-18 14:21:14,925] INFO:    Data source 1 collected
+[2026-06-18 14:21:14,925] INFO:    Data source 2 collected
+[2026-06-18 14:21:14,926] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:21:14,926] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:21:14,926] INFO: [PHASE 3] Execution
+[2026-06-18 14:21:14,926] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:21:14,926] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:21:14,926] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:21:14,926] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:21:14,926] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:21:14,926] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:21:14,926] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:21:44,934] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:21:44,935] INFO:    Data source 0 collected
+[2026-06-18 14:21:44,935] INFO:    Data source 1 collected
+[2026-06-18 14:21:44,935] INFO:    Data source 2 collected
+[2026-06-18 14:21:44,935] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:21:44,935] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:21:44,935] INFO: [PHASE 3] Execution
+[2026-06-18 14:21:44,935] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:21:44,935] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:21:44,935] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:21:44,935] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:21:44,935] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:21:44,935] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:21:44,935] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:22:14,939] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:22:14,939] INFO:    Data source 0 collected
+[2026-06-18 14:22:14,939] INFO:    Data source 1 collected
+[2026-06-18 14:22:14,940] INFO:    Data source 2 collected
+[2026-06-18 14:22:14,940] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:22:14,940] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:22:14,940] INFO: [PHASE 3] Execution
+[2026-06-18 14:22:14,940] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:22:14,940] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:22:14,940] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:22:14,940] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:22:14,940] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:22:14,940] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:22:14,940] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-18 14:22:44,948] INFO: [PHASE 1] Data Collection
+[2026-06-18 14:22:44,948] INFO:    Data source 0 collected
+[2026-06-18 14:22:44,949] INFO:    Data source 1 collected
+[2026-06-18 14:22:44,949] INFO:    Data source 2 collected
+[2026-06-18 14:22:44,949] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-18 14:22:44,949] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-18 14:22:44,949] INFO: [PHASE 3] Execution
+[2026-06-18 14:22:44,949] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-18 14:22:44,949] INFO:    Risk validated: 2 signals approved
+[2026-06-18 14:22:44,949] INFO:    Trade: AAPL BUY @ $190.35
+[2026-06-18 14:22:44,949] INFO:    Trade: TSLA SELL @ $250.0
+[2026-06-18 14:22:44,949] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-18 14:22:44,949] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-18 14:22:44,949] INFO:  PHASE 5: Reporting & Optimization

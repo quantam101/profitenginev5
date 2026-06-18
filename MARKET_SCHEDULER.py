@@ -12,8 +12,8 @@ import time
 import subprocess
 from datetime import datetime, timezone, timedelta
 
-MARKET_START_MST = 4.5   # 4:30 AM
-MARKET_END_MST = 17.0    # 5 PM
+MARKET_START_MST = 4.0   # 4:00 AM (pre-market opens)
+MARKET_END_MST = 17.0    # 5:00 PM (market close)
 CHECK_INTERVAL = 60      # Check every minute
 
 def get_mst_hour():
