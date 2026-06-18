@@ -115,7 +115,7 @@ async def launch_system():
     logger.info("  - Dashboard API: http://0.0.0.0:8000/orchestrator/status")
     logger.info("  - Mobile Dashboard: http://" + local_ip + ":8001")
     logger.info("  - Audit trail: paper_trading_audit.jsonl")
-    logger.info("\n📱 MOBILE DASHBOARD:")
+    logger.info("\n[MOBILE DASHBOARD]")
     logger.info("  Access from phone/tablet:")
     logger.info("  - Same network: http://" + local_ip + ":8001")
     logger.info("  - Shows real-time balance, P&L, positions, trades, performance")
@@ -169,7 +169,7 @@ def main():
     print("PROFITENGINE v5 - AUTONOMOUS TRADING SYSTEM")
     print("="*80)
     print("\nLaunching Master Orchestrator AI...")
-    print("Paper Trading: $100 → $1000")
+    print("Paper Trading: $100 -> $1000")
     print("11 Strategies | 6 Risk Gates | 100% Autonomous\n")
 
     # Check for Finnhub key
