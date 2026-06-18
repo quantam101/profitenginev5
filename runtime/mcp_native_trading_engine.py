@@ -28,10 +28,10 @@ except ImportError:
 # ============================================================================
 ZERO: Final[Decimal] = Decimal("0.00")
 PRECISION: Final[Decimal] = Decimal("0.01")
-BULL_STOP_MULT: Final[Decimal] = Decimal("0.985")  # -1.5% Stop Loss (optimized)
-BULL_TP_MULT: Final[Decimal] = Decimal("1.07")     # +7% Take Profit (optimized)
-BEAR_STOP_MULT: Final[Decimal] = Decimal("1.015")  # +1.5% Stop Loss (shorts, optimized)
-BEAR_TP_MULT: Final[Decimal] = Decimal("0.93")     # -7% Take Profit (shorts, optimized)
+BULL_STOP_MULT: Final[Decimal] = Decimal("0.99")   # -1.0% Stop Loss (tighter, higher win%)
+BULL_TP_MULT: Final[Decimal] = Decimal("1.10")     # +10% Take Profit (higher conviction trades only)
+BEAR_STOP_MULT: Final[Decimal] = Decimal("1.01")   # +1.0% Stop Loss (shorts, tighter)
+BEAR_TP_MULT: Final[Decimal] = Decimal("0.90")     # -10% Take Profit (shorts, higher conviction)
 
 MAX_RISK_PER_TRADE: Final[Decimal] = Decimal("4.00")   # 4% of account (2x increase)
 MAX_DAILY_DRAWDOWN: Final[Decimal] = Decimal("12.00")  # 12% circuit breaker (2x increase)

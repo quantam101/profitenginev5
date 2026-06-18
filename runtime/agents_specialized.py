@@ -295,9 +295,15 @@ class RiskValidationAgent(IAgent):
         if self.daily_drawdown > Decimal("12.00"):
             return {"approved": False, "reason": "Daily drawdown limit exceeded"}
 
-        # Gate 2: Minimum conviction threshold (optimized: 0.75)
-        if signal.get("conviction", 0) < 0.75:
-            return {"approved": False, "reason": "Signal conviction below threshold"}
+        # Gate 2: Enhanced signal quality (0.85 confidence + 3+ strategy consensus)
+        conviction = signal.get("conviction", 0)
+        strategy_agreement = signal.get("strategy_agreement", 0)
+
+        if conviction < 0.85:
+            return {"approved": False, "reason": f"Conviction {conviction:.2f} below 0.85 threshold"}
+
+        if strategy_agreement < 3:
+            return {"approved": False, "reason": f"Only {strategy_agreement} strategies agree (need 3+)"}
 
         # Gate 3: Position size limit ($1000)
         position_value = Decimal(str(signal.get("price", 0))) * Decimal("10")
