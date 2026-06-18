@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
+
 export const dynamic = 'force-static';
 
 const CHECKS = [
