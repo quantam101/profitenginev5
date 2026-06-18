@@ -12,6 +12,16 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 import time
+import sys
+import os
+
+# Add runtime directory to path
+runtime_dir = os.path.dirname(os.path.abspath(__file__))
+if runtime_dir not in sys.path:
+    sys.path.insert(0, runtime_dir)
+
+from mcp_native_trading_engine import PORTFOLIO
+from decimal import Decimal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("MasterOrchestrator")
@@ -195,6 +205,15 @@ class MasterOrchestratorAI:
         """Phase 3: Execute trades via agents based on Master AI decision"""
         logger.info("[PHASE 3] Execution")
 
+        # Step 0: Update prices on all open positions (always happens, every cycle)
+        import random
+        for symbol, position in PORTFOLIO.positions.items():
+            base_price = float(position["entry_price"])
+            # High volatility for demo (±15%) to ensure exits trigger regularly
+            movement = random.uniform(-0.15, 0.15)
+            new_price = base_price * (1 + movement)
+            position["current_price"] = new_price
+
         # Step 1: Paper trader generates signals
         signals = await self.agents["paper_trader"].generate_trading_signals()
         logger.info(f"   Trading signals: {len(signals)} symbols analyzed")
@@ -218,6 +237,13 @@ class MasterOrchestratorAI:
         # Check position health
         health = await self.agents["position_manager"].check_position_health()
         logger.info(f"  [HEALTH] Position health: {health}")
+
+        # Manage exits (stop loss / take profit)
+        exits = await self.agents["position_manager"].manage_exits()
+        if exits:
+            logger.info(f"  [EXITS] {len(exits)} positions closed")
+            for exit_trade in exits:
+                logger.info(f"    - {exit_trade}")
 
         # Monitor risk gates
         risk_status = await self.agents["risk_monitor"].check_all_gates()
@@ -362,46 +388,94 @@ class PaperTradingAgent(TaskAgent):
 
     async def generate_trading_signals(self) -> List[Dict[str, Any]]:
         """Run all 11 strategies and generate composite signals"""
+        import random
+
         self.status = AgentStatus.RUNNING
         try:
-            signals = [
-                {
-                    "symbol": "AAPL",
-                    "side": "BUY",
-                    "price": 190.35,
-                    "conviction": 0.67,
+            # Generate new trading signals
+            base_prices = {
+                "AAPL": 190.35,
+                "MSFT": 420.50,
+                "NVDA": 875.00,
+                "TSLA": 250.00,
+                "AMD": 165.20,
+                "GOOG": 182.75,
+            }
+
+            signals = []
+            for symbol, base_price in list(base_prices.items())[:2]:  # Only signal 2 at a time
+                # Skip if position already open
+                if symbol in PORTFOLIO.positions:
+                    continue
+
+                # Add realistic price variation
+                price_variation = random.uniform(0.98, 1.02)
+                signal_price = base_price * price_variation
+
+                # Alternate BUY/SELL signals
+                side = "BUY" if random.random() > 0.5 else "SELL"
+                conviction = random.uniform(0.70, 0.95)  # High conviction trades only
+
+                signals.append({
+                    "symbol": symbol,
+                    "side": side,
+                    "price": signal_price,
+                    "conviction": conviction,
                     "strategies": ["rsi_2", "kama_trend", "momentum"],
-                },
-                {
-                    "symbol": "TSLA",
-                    "side": "SELL",
-                    "price": 250.00,
-                    "conviction": 0.52,
-                    "strategies": ["vwap_deviation", "ofi"],
-                },
-            ]
+                })
+
             self.tasks_completed += 1
             return signals
         except Exception as e:
             self.errors += 1
+            logger.error(f"Signal generation failed: {e}")
             raise
 
     async def execute_trade(self, signal: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute a single trade"""
+        """Execute a single trade and track position"""
         try:
+            symbol = signal["symbol"]
+            side = signal["side"]
+            price = Decimal(str(signal["price"]))
+            shares = Decimal("1")
+
+            # Calculate stop loss and take profit
+            if side == "BUY":
+                stop_loss = price * Decimal("0.99")  # -1%
+                take_profit = price * Decimal("1.10")  # +10%
+            else:  # SELL
+                stop_loss = price * Decimal("1.01")  # +1%
+                take_profit = price * Decimal("0.90")  # -10%
+
+            # Track position in portfolio
+            PORTFOLIO.positions[symbol] = {
+                "symbol": symbol,
+                "side": side,
+                "entry_price": price,
+                "current_price": price,
+                "shares": shares,
+                "stop_loss": stop_loss,
+                "take_profit": take_profit,
+                "timestamp": datetime.now().isoformat(),
+            }
+
             result = {
                 "status": "EXECUTED",
                 "trade_id": f"TRD_{int(time.time())}",
-                "symbol": signal["symbol"],
-                "side": signal["side"],
-                "price": signal["price"],
-                "shares": 1,
+                "symbol": symbol,
+                "side": side,
+                "price": float(price),
+                "shares": float(shares),
+                "stop_loss": float(stop_loss),
+                "take_profit": float(take_profit),
                 "timestamp": datetime.now().isoformat(),
             }
             self.tasks_completed += 1
+            logger.info(f"Trade executed: {symbol} {side} @ ${float(price)} | SL: ${float(stop_loss)} | TP: ${float(take_profit)}")
             return result
         except Exception as e:
             self.errors += 1
+            logger.error(f"Trade execution failed: {e}")
             raise
 
 
@@ -420,8 +494,54 @@ class PositionManagerAgent(TaskAgent):
         return {"all_healthy": True, "check_count": 5}
 
     async def manage_exits(self) -> List[Dict[str, Any]]:
-        """Check for stop loss and take profit exits"""
-        return []
+        """Check for stop loss and take profit exits on all open positions"""
+        exits = []
+
+        if not PORTFOLIO.positions:
+            return exits
+
+        for symbol, position in list(PORTFOLIO.positions.items()):
+            try:
+                entry_price = Decimal(str(position["entry_price"]))
+                current_price = Decimal(str(position.get("current_price", entry_price)))
+                stop_loss = Decimal(str(position["stop_loss"]))
+                take_profit = Decimal(str(position["take_profit"]))
+                side = position["side"]
+                shares = Decimal(str(position["shares"]))
+
+                exit_reason = None
+                if side == "BUY":
+                    if current_price <= stop_loss:
+                        exit_reason = "STOP_LOSS"
+                    elif current_price >= take_profit:
+                        exit_reason = "TAKE_PROFIT"
+                else:  # SELL
+                    if current_price >= stop_loss:
+                        exit_reason = "STOP_LOSS"
+                    elif current_price <= take_profit:
+                        exit_reason = "TAKE_PROFIT"
+
+                if exit_reason:
+                    pnl = (current_price - entry_price) * shares
+                    if side == "SELL":
+                        pnl = -pnl
+
+                    PORTFOLIO.account_balance += pnl
+                    exit_trade = {
+                        "symbol": symbol,
+                        "exit_reason": exit_reason,
+                        "entry_price": float(entry_price),
+                        "exit_price": float(current_price),
+                        "pnl": float(pnl),
+                        "balance": float(PORTFOLIO.account_balance)
+                    }
+                    exits.append(exit_trade)
+                    del PORTFOLIO.positions[symbol]
+                    logger.info(f"  [EXIT] {symbol}: {exit_reason} | P&L: ${float(pnl):.2f} | Balance: ${float(PORTFOLIO.account_balance):.2f}")
+            except Exception as e:
+                logger.warning(f"Error managing exit for {symbol}: {e}")
+
+        return exits
 
 
 class RiskMonitoringAgent(TaskAgent):
