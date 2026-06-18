@@ -291,17 +291,17 @@ class RiskValidationAgent(IAgent):
 
     def _validate_signal(self, signal: Dict) -> Dict[str, Any]:
         """Apply 6 risk gates to a signal"""
-        # Gate 1: Daily drawdown circuit breaker
-        if self.daily_drawdown > Decimal("6.00"):
+        # Gate 1: Daily drawdown circuit breaker (optimized: 12% limit)
+        if self.daily_drawdown > Decimal("12.00"):
             return {"approved": False, "reason": "Daily drawdown limit exceeded"}
 
-        # Gate 2: Minimum conviction threshold
-        if signal.get("conviction", 0) < 0.25:
+        # Gate 2: Minimum conviction threshold (optimized: 0.75)
+        if signal.get("conviction", 0) < 0.75:
             return {"approved": False, "reason": "Signal conviction below threshold"}
 
-        # Gate 3: Position size limit ($500)
+        # Gate 3: Position size limit ($1000)
         position_value = Decimal(str(signal.get("price", 0))) * Decimal("10")
-        if position_value > Decimal("500.00"):
+        if position_value > Decimal("1000.00"):
             return {"approved": False, "reason": "Position size exceeds limit"}
 
         # Gate 4: Account balance guard
@@ -389,8 +389,8 @@ class TradeExecutionAgent(IAgent):
                 "entry_price": signal["price"],
                 "shares": 10,
                 "total_value": signal["price"] * 10,
-                "stop_loss": signal["price"] * (0.995 if signal["side"] == "BUY" else 1.005),
-                "take_profit": signal["price"] * (1.035 if signal["side"] == "BUY" else 0.965),
+                "stop_loss": signal["price"] * (0.985 if signal["side"] == "BUY" else 1.015),
+                "take_profit": signal["price"] * (1.07 if signal["side"] == "BUY" else 0.93),
                 "status": "OPEN",
                 "timestamp": datetime.now().isoformat(),
             }

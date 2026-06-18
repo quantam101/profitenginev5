@@ -28,14 +28,14 @@ except ImportError:
 # ============================================================================
 ZERO: Final[Decimal] = Decimal("0.00")
 PRECISION: Final[Decimal] = Decimal("0.01")
-BULL_STOP_MULT: Final[Decimal] = Decimal("0.995")  # -0.5% Stop Loss (aggressive)
-BULL_TP_MULT: Final[Decimal] = Decimal("1.035")    # +3.5% Take Profit
-BEAR_STOP_MULT: Final[Decimal] = Decimal("1.005")  # +0.5% Stop Loss (shorts)
-BEAR_TP_MULT: Final[Decimal] = Decimal("0.965")    # -3.5% Take Profit (shorts)
+BULL_STOP_MULT: Final[Decimal] = Decimal("0.985")  # -1.5% Stop Loss (optimized)
+BULL_TP_MULT: Final[Decimal] = Decimal("1.07")     # +7% Take Profit (optimized)
+BEAR_STOP_MULT: Final[Decimal] = Decimal("1.015")  # +1.5% Stop Loss (shorts, optimized)
+BEAR_TP_MULT: Final[Decimal] = Decimal("0.93")     # -7% Take Profit (shorts, optimized)
 
-MAX_RISK_PER_TRADE: Final[Decimal] = Decimal("2.00")  # 2% of account
-MAX_DAILY_DRAWDOWN: Final[Decimal] = Decimal("6.00")  # 6% circuit breaker
-POSITION_SIZE_LIMIT: Final[Decimal] = Decimal("500.00")  # $500 per trade
+MAX_RISK_PER_TRADE: Final[Decimal] = Decimal("4.00")   # 4% of account (2x increase)
+MAX_DAILY_DRAWDOWN: Final[Decimal] = Decimal("12.00")  # 12% circuit breaker (2x increase)
+POSITION_SIZE_LIMIT: Final[Decimal] = Decimal("1000.00")  # $1000 per trade (2x increase)
 
 class MarketRegime(Enum):
     BULL = "bull"
@@ -103,7 +103,7 @@ class ExecutionReceipt:
 PORTFOLIO = PortfolioState(
     account_balance=Decimal("100.00"),  # Start with $100 for paper trading
     total_drawdown_today=Decimal("0.00"),
-    max_daily_drawdown_limit=Decimal("6.00"),
+    max_daily_drawdown_limit=Decimal("12.00"),  # Optimized for aggressive growth
     cached_max_trade_value=POSITION_SIZE_LIMIT,
     positions={},
     trade_log=[]

@@ -127,8 +127,8 @@ class MasterOrchestratorAI:
                 # Phase 5: Reporting & Optimization
                 await self._phase_report_and_optimize()
 
-                # Sleep before next cycle (60 seconds = 1 scan)
-                await asyncio.sleep(60)
+                # Sleep before next cycle (30 seconds = optimized scan interval)
+                await asyncio.sleep(30)
 
             except Exception as e:
                 logger.error(f"❌ Orchestrator error: {e}", exc_info=True)
@@ -165,12 +165,12 @@ class MasterOrchestratorAI:
             "confidence": 0.0,
         }
 
-        # Analyze market regime
-        if self.context.daily_drawdown > 6.0:
+        # Analyze market regime (optimized thresholds for faster growth)
+        if self.context.daily_drawdown > 12.0:
             decision["risk_level"] = "CRITICAL"
             decision["recommended_actions"].append("HALT_TRADING")
             decision["confidence"] = 1.0
-        elif self.context.daily_drawdown > 3.0:
+        elif self.context.daily_drawdown > 6.0:
             decision["risk_level"] = "HIGH"
             decision["recommended_actions"].append("REDUCE_SIZE")
             decision["confidence"] = 0.95
