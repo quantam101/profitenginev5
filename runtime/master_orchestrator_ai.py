@@ -87,7 +87,7 @@ class MasterOrchestratorAI:
 
     async def initialize(self):
         """Initialize all task agents"""
-        logger.info("🤖 Master Orchestrator initializing...")
+        logger.info("[INIT] Master Orchestrator initializing...")
 
         # Create specialized agents
         self.agents = {
@@ -101,14 +101,14 @@ class MasterOrchestratorAI:
             "error_recovery": ErrorRecoveryAgent(self),
         }
 
-        logger.info(f"✅ Initialized {len(self.agents)} task agents")
+        logger.info(f"[OK] Initialized {len(self.agents)} task agents")
         for agent_id, agent in self.agents.items():
             logger.info(f"  - {agent_id}: {agent.__class__.__name__}")
 
     async def run_autonomous_24_7(self):
         """Main loop: Run all agents coordinated, 24/7 autonomous operation"""
         self.running = True
-        logger.info("🟢 Starting 24/7 autonomous operation...")
+        logger.info("[RUN] Starting 24/7 autonomous operation...")
 
         while self.running:
             try:
@@ -131,13 +131,13 @@ class MasterOrchestratorAI:
                 await asyncio.sleep(30)
 
             except Exception as e:
-                logger.error(f"❌ Orchestrator error: {e}", exc_info=True)
+                logger.error(f" Orchestrator error: {e}", exc_info=True)
                 self.context.alerts.append(f"Orchestrator error: {str(e)}")
                 await asyncio.sleep(5)  # Brief pause before retry
 
     async def _phase_data_collection(self):
         """Phase 1: Parallel data gathering from all sources"""
-        logger.info("📊 PHASE 1: Data Collection")
+        logger.info("[PHASE 1] Data Collection")
 
         tasks = [
             self.agents["data_feed"].fetch_market_data(),
@@ -149,13 +149,13 @@ class MasterOrchestratorAI:
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"  ⚠️ Data source {i} failed: {result}")
+                logger.error(f"   Data source {i} failed: {result}")
             else:
-                logger.info(f"  ✅ Data source {i} collected")
+                logger.info(f"   Data source {i} collected")
 
     async def _phase_analyze_and_decide(self):
         """Phase 2: Master AI analyzes data and makes decisions"""
-        logger.info("🧠 PHASE 2: Master AI Decision Making")
+        logger.info("[PHASE 2] Master AI Decision Making")
 
         decision = {
             "timestamp": datetime.now().isoformat(),
@@ -183,69 +183,69 @@ class MasterOrchestratorAI:
         if self.context.account_balance >= self.context.target_balance:
             decision["recommended_actions"].append("TARGET_REACHED")
             decision["status"] = "SUCCESS"
-            logger.info(f"🎉 TARGET REACHED: ${self.context.account_balance:.2f}")
+            logger.info(f" TARGET REACHED: ${self.context.account_balance:.2f}")
             self.running = False
 
         self.decision_log.append(decision)
-        logger.info(f"  🎯 Decision: {decision['recommended_actions']}")
+        logger.info(f"   Decision: {decision['recommended_actions']}")
 
         return decision
 
     async def _phase_execute(self):
         """Phase 3: Execute trades via agents based on Master AI decision"""
-        logger.info("⚡ PHASE 3: Execution")
+        logger.info("[PHASE 3] Execution")
 
         # Step 1: Paper trader generates signals
         signals = await self.agents["paper_trader"].generate_trading_signals()
-        logger.info(f"  📈 Trading signals: {len(signals)} symbols analyzed")
+        logger.info(f"   Trading signals: {len(signals)} symbols analyzed")
 
         # Step 2: Risk monitor validates each signal
         validated = await self.agents["risk_monitor"].validate_signals(signals)
-        logger.info(f"  ✅ Risk validated: {len(validated)} signals approved")
+        logger.info(f"   Risk validated: {len(validated)} signals approved")
 
         # Step 3: Execute validated trades
         for signal in validated:
             result = await self.agents["paper_trader"].execute_trade(signal)
             if result.get("status") == "EXECUTED":
-                logger.info(f"  ✔️ Trade: {result['symbol']} {result['side']} @ ${result['price']}")
+                logger.info(f"   Trade: {result['symbol']} {result['side']} @ ${result['price']}")
                 self.context.trades_today += 1
                 self.context.trade_log.append(result)
 
     async def _phase_monitor_and_recover(self):
         """Phase 4: Monitor positions and recover from errors"""
-        logger.info("👁️ PHASE 4: Monitoring & Recovery")
+        logger.info("[PHASE 4] Monitoring & Recovery")
 
         # Check position health
         health = await self.agents["position_manager"].check_position_health()
-        logger.info(f"  🏥 Position health: {health}")
+        logger.info(f"  [HEALTH] Position health: {health}")
 
         # Monitor risk gates
         risk_status = await self.agents["risk_monitor"].check_all_gates()
         if not risk_status.get("all_clear", True):
-            logger.warning(f"  ⚠️ Risk gates triggered: {risk_status}")
+            logger.warning(f"   Risk gates triggered: {risk_status}")
             await self.agents["error_recovery"].handle_risk_violation(risk_status)
 
         # Check for agent failures
         failed_agents = self._detect_failed_agents()
         if failed_agents:
-            logger.warning(f"  ❌ Failed agents: {failed_agents}")
+            logger.warning(f"   Failed agents: {failed_agents}")
             for agent_id in failed_agents:
                 await self.agents["error_recovery"].recover_agent(agent_id)
 
     async def _phase_report_and_optimize(self):
         """Phase 5: Generate reports and optimize strategy"""
-        logger.info("📋 PHASE 5: Reporting & Optimization")
+        logger.info(" PHASE 5: Reporting & Optimization")
 
         # Generate daily report if needed
         if self._should_generate_report():
             report = await self.agents["reporter"].generate_daily_report(self.context)
-            logger.info(f"  📊 Daily Report: ${self.context.account_balance:.2f} | PnL: {self.context.total_pnl:.2f}%")
+            logger.info(f"   Daily Report: ${self.context.account_balance:.2f} | PnL: {self.context.total_pnl:.2f}%")
 
         # Strategy analysis and optimization
         if self._should_optimize():
             optimization = await self.agents["strategy_analyzer"].optimize_strategy()
             self.optimization_history.append(optimization)
-            logger.info(f"  ⚙️ Strategy optimized: {optimization.get('improvement', 0):.1f}% improvement")
+            logger.info(f"  ⚙ Strategy optimized: {optimization.get('improvement', 0):.1f}% improvement")
 
     # ========================================================================
     # HELPER METHODS
@@ -491,7 +491,7 @@ class RobinhoodGatewayAgent(TaskAgent):
 
     async def connect(self, api_key: str):
         """Connect to Robinhood MCP"""
-        logger.info("🔗 Connecting to Robinhood...")
+        logger.info(" Connecting to Robinhood...")
 
     async def execute_live_trade(self, signal: Dict[str, Any]) -> Dict[str, Any]:
         """Execute live trade on Robinhood"""
@@ -506,11 +506,11 @@ class ErrorRecoveryAgent(TaskAgent):
 
     async def handle_risk_violation(self, violation: Dict[str, Any]):
         """Handle risk gate violations"""
-        logger.warning(f"🚨 Risk violation: {violation}")
+        logger.warning(f" Risk violation: {violation}")
 
     async def recover_agent(self, agent_id: str):
         """Recover a failed agent"""
-        logger.info(f"🔧 Recovering agent: {agent_id}")
+        logger.info(f" Recovering agent: {agent_id}")
 
 
 # ============================================================================
@@ -525,7 +525,7 @@ async def main():
     try:
         await master_ai.run_autonomous_24_7()
     except KeyboardInterrupt:
-        logger.info("🛑 Orchestrator stopped by user")
+        logger.info(" Orchestrator stopped by user")
         master_ai.running = False
 
 

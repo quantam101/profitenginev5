@@ -499,7 +499,7 @@ class ProductionSocialEngine:
                                      video_path: Optional[str] = None) -> None:
         """Blast one piece of content to ALL configured platforms at once."""
         hashtags = " ".join(f"#{t.replace(' ', '')}" for t in (tags or [])[:5])
-        telegram_msg = f"📝 <b>{text[:200]}</b>\n\n🔗 {url}\n\n{hashtags}"
+        telegram_msg = f" <b>{text[:200]}</b>\n\n {url}\n\n{hashtags}"
         linkedin_msg = f"{text[:600]}\n\n{url}\n\n{hashtags}"
         reddit_title = text[:300]
 

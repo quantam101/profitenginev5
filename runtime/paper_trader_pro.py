@@ -427,7 +427,7 @@ class PaperTradingSimulator:
         logger.info(f"Balance: ${PORTFOLIO.account_balance:.2f} | Target: ${target} | Progress: {progress:.1f}%")
 
         if PORTFOLIO.account_balance >= target:
-            logger.info("🎉 TARGET REACHED! $1000 achieved!")
+            logger.info(" TARGET REACHED! $1000 achieved!")
             self.running = False
 
     def save_audit_trail(self, filename: str = "paper_trading_audit.jsonl"):

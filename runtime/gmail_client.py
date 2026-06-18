@@ -71,7 +71,7 @@ def send_publish_digest(published_articles: list, cycle_metrics: dict) -> bool:
 
     body_html = f"""
     <html><body style='font-family:sans-serif;color:#333;max-width:600px;margin:auto'>
-    <h2 style='color:#00aa55'>ProfitEngine — Content Published ✅</h2>
+    <h2 style='color:#00aa55'>ProfitEngine — Content Published </h2>
     <p><strong>{len(published_articles)}</strong> article(s) published this cycle.</p>
     <table style='width:100%;border-collapse:collapse'>
       <thead><tr>

@@ -241,7 +241,7 @@ def build_message(
 
     # Header
     lines += [
-        f"📊 *ProfitEngine Daily Digest*",
+        f" *ProfitEngine Daily Digest*",
         f"_{date_label} · 07:00 UTC_",
         "",
     ]
@@ -255,17 +255,17 @@ def build_message(
         rev_line += f"  ({txn} txn{'s' if txn != 1 else ''})"
     if "best_stream" in revenue:
         rev_line += f"\n  Best stream: {revenue['best_stream']}"
-    lines += ["💰 *Revenue (yesterday)*", rev_line, ""]
+    lines += [" *Revenue (yesterday)*", rev_line, ""]
 
     # HITL Approvals
     pending   = approvals.get("pending", 0)
     high_risk = approvals.get("high_risk", 0)
     if pending == 0:
-        appr_line = "  ✅ No pending approvals"
+        appr_line = "   No pending approvals"
     elif high_risk:
-        appr_line = f"  🔴 *{pending} pending*  ({high_risk} high-risk — review now)"
+        appr_line = f"   *{pending} pending*  ({high_risk} high-risk — review now)"
     else:
-        appr_line = f"  🟡 {pending} pending  (no high-risk)"
+        appr_line = f"   {pending} pending  (no high-risk)"
     lines += ["✋ *HITL Approvals*", appr_line, ""]
 
     # Agent Runs
@@ -273,20 +273,20 @@ def build_message(
     err = runs.get("errored",   0)
     cost  = runs.get("total_cost_usd",  0.0)
     saved = runs.get("total_saved_usd", 0.0)
-    runs_line = f"  ✅ {ok} ok  •  ❌ {err} error{'s' if err != 1 else ''}"
+    runs_line = f"   {ok} ok  •   {err} error{'s' if err != 1 else ''}"
     if ok + err > 0:
-        runs_line += f"\n  💾 Cost: ${cost:.4f}  Saved: ${saved:.4f}"
-    lines += ["🤖 *Agent Runs (yesterday)*", runs_line, ""]
+        runs_line += f"\n   Cost: ${cost:.4f}  Saved: ${saved:.4f}"
+    lines += [" *Agent Runs (yesterday)*", runs_line, ""]
 
     # Catch & Correct
     count = cnc.get("count", 0)
     if count == 0:
-        cnc_line = "  ✅ No findings yesterday"
+        cnc_line = "   No findings yesterday"
     else:
-        cnc_line = f"  📝 {count} finding{'s' if count != 1 else ''} logged"
+        cnc_line = f"   {count} finding{'s' if count != 1 else ''} logged"
         for s in cnc.get("samples", []):
             cnc_line += f"\n    • {s}"
-    lines += ["🔍 *Catch & Correct*", cnc_line, ""]
+    lines += [" *Catch & Correct*", cnc_line, ""]
 
     # System health
     if pow_:
@@ -295,12 +295,12 @@ def build_message(
         passed  = pow_.get("passed_cycles", 0)
         failed  = pow_.get("failed_cycles", 0)
         guards  = pow_.get("guard_blocks", 0)
-        health_emoji = "✅" if score >= 0.9 else ("⚠️" if score >= 0.7 else "🔴")
+        health_emoji = "" if score >= 0.9 else ("" if score >= 0.7 else "")
         pow_line = (
             f"  {health_emoji} PoW: {score:.2f}  •  Uptime: {uptime:.2f}%\n"
             f"  Cycles: {passed} ok / {failed} failed  •  Guard blocks: {guards}"
         )
-        lines += ["⚙️ *System Health*", pow_line, ""]
+        lines += ["⚙ *System Health*", pow_line, ""]
 
     # Footer
     lines += [f"[Open Dashboard]({DASHBOARD_URL})"]

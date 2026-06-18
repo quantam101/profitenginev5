@@ -74,7 +74,7 @@ class MarketDataAgent(IAgent):
     async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Fetch and process market data for all symbols"""
         try:
-            logger.info(f"🔄 {self.name}: Fetching data for {len(self.symbols)} symbols...")
+            logger.info(f" {self.name}: Fetching data for {len(self.symbols)} symbols...")
 
             # In production: fetch from Finnhub API
             self.market_data = {
@@ -103,7 +103,7 @@ class MarketDataAgent(IAgent):
                 "timestamp": datetime.now().isoformat(),
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     def _detect_regime(self) -> str:
@@ -166,7 +166,7 @@ class TradingSignalAgent(IAgent):
             symbols = task.get("symbols", ["AAPL", "MSFT", "NVDA"])
             market_data = task.get("market_data", {})
 
-            logger.info(f"📊 {self.name}: Generating signals for {len(symbols)} symbols...")
+            logger.info(f" {self.name}: Generating signals for {len(symbols)} symbols...")
 
             signals = []
             for symbol in symbols:
@@ -205,7 +205,7 @@ class TradingSignalAgent(IAgent):
                 "signals_generated": len(signals),
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     def _run_strategy(self, strategy_name: str, data: Dict) -> float:
@@ -262,7 +262,7 @@ class RiskValidationAgent(IAgent):
         """Validate signals and apply risk gates"""
         try:
             signals = task.get("signals", [])
-            logger.info(f"🛡️ {self.name}: Validating {len(signals)} signals...")
+            logger.info(f" {self.name}: Validating {len(signals)} signals...")
 
             validated = []
             rejected = []
@@ -286,7 +286,7 @@ class RiskValidationAgent(IAgent):
                 "rejected_count": len(rejected),
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     def _validate_signal(self, signal: Dict) -> Dict[str, Any]:
@@ -358,7 +358,7 @@ class TradeExecutionAgent(IAgent):
         """Execute validated trading signals"""
         try:
             signals = task.get("signals", [])
-            logger.info(f"⚡ {self.name}: Executing {len(signals)} trades...")
+            logger.info(f" {self.name}: Executing {len(signals)} trades...")
 
             executed = []
             for signal in signals:
@@ -376,7 +376,7 @@ class TradeExecutionAgent(IAgent):
                 "count": len(executed),
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     def _execute_trade(self, signal: Dict) -> Optional[Dict[str, Any]]:
@@ -394,10 +394,10 @@ class TradeExecutionAgent(IAgent):
                 "status": "OPEN",
                 "timestamp": datetime.now().isoformat(),
             }
-            logger.info(f"  ✔️ {signal['symbol']}: {signal['side']} @ ${signal['price']}")
+            logger.info(f"   {signal['symbol']}: {signal['side']} @ ${signal['price']}")
             return trade
         except Exception as e:
-            logger.error(f"  ❌ Trade failed: {e}")
+            logger.error(f"   Trade failed: {e}")
             return None
 
     async def heartbeat(self) -> Dict[str, Any]:
@@ -440,7 +440,7 @@ class PositionMonitoringAgent(IAgent):
         """Monitor all open positions and process exits"""
         try:
             self.positions = task.get("positions", {})
-            logger.info(f"👁️ {self.name}: Monitoring {len(self.positions)} positions...")
+            logger.info(f" {self.name}: Monitoring {len(self.positions)} positions...")
 
             exits = []
             for symbol, position in self.positions.items():
@@ -461,7 +461,7 @@ class PositionMonitoringAgent(IAgent):
                 "positions_monitored": len(self.positions),
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     def _check_exit(
@@ -523,7 +523,7 @@ class ReportingAgent(IAgent):
     async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Generate comprehensive report"""
         try:
-            logger.info(f"📋 {self.name}: Generating report...")
+            logger.info(f" {self.name}: Generating report...")
 
             report = {
                 "timestamp": datetime.now().isoformat(),
@@ -544,7 +544,7 @@ class ReportingAgent(IAgent):
                 "report": report,
             }
         except Exception as e:
-            logger.error(f"❌ {self.name} failed: {e}")
+            logger.error(f" {self.name} failed: {e}")
             return {"status": "ERROR", "error": str(e)}
 
     async def heartbeat(self) -> Dict[str, Any]:
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     agents = AgentFactory.create_all_agents()
 
     async def test():
-        logger.info("🤖 Initializing specialized agents...")
+        logger.info(" Initializing specialized agents...")
         for name, agent in agents.items():
             heartbeat = await agent.heartbeat()
             logger.info(f"  {name}: {heartbeat['status']}")

@@ -43,7 +43,7 @@ class MobileDashboardAPI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        logger.info("✅ CORS enabled (phone/tablet access allowed)")
+        logger.info(" CORS enabled (phone/tablet access allowed)")
 
     def _setup_routes(self):
         """Setup all API endpoints"""
@@ -156,7 +156,7 @@ class MobileDashboardAPI:
         async def websocket_live(websocket: WebSocket):
             """WebSocket for live updates (low-latency phone updates)"""
             await websocket.accept()
-            logger.info("📱 Phone connected to live WebSocket")
+            logger.info(" Phone connected to live WebSocket")
 
             try:
                 while True:
@@ -371,7 +371,7 @@ class MobileDashboardAPI:
 </head>
 <body>
     <div class="header">
-        <h1>🎯 ProfitEngine</h1>
+        <h1> ProfitEngine</h1>
         <p>Autonomous Trading System</p>
     </div>
 
@@ -424,12 +424,12 @@ class MobileDashboardAPI:
     </div>
 
     <div class="section" id="alertsSection" style="display: none;">
-        <div class="section-title">⚠️ Alerts</div>
+        <div class="section-title"> Alerts</div>
         <div id="alertsList"></div>
     </div>
 
     <button class="btn" onclick="location.reload()">
-        🔄 Refresh
+         Refresh
     </button>
 
     <script>
@@ -492,7 +492,7 @@ class MobileDashboardAPI:
                     document.getElementById('alertsSection').style.display = 'block';
                     document.getElementById('alertsList').innerHTML =
                         status.alerts.slice(-5).map(a =>
-                            `<div class="alert-item">⚠️ ${a}</div>`
+                            `<div class="alert-item"> ${a}</div>`
                         ).join('');
                 }
 
@@ -529,7 +529,7 @@ class MobileDashboardAPI:
         logger.info("="*80)
         logger.info("MOBILE DASHBOARD API STARTING")
         logger.info("="*80)
-        logger.info(f"\n📱 Phone/Tablet Access:")
+        logger.info(f"\n Phone/Tablet Access:")
         logger.info(f"  Dashboard: http://your_machine_ip:8000")
         logger.info(f"  Endpoints:")
         logger.info(f"    - GET /api/status (current metrics)")

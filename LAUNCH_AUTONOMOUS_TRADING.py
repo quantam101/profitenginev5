@@ -129,11 +129,23 @@ async def launch_system():
 
     # Start autonomous operation
     try:
-        # Run both orchestrator and mobile dashboard in parallel
-        await asyncio.gather(
-            master_ai.run_autonomous_24_7(),
-            mobile_api.start(host="0.0.0.0", port=8001)
-        )
+        # Run orchestrator (dashboard is optional)
+        # Try to start dashboard in background, but don't block if it fails
+        try:
+            dashboard_task = asyncio.create_task(mobile_api.start(host="0.0.0.0", port=8001))
+        except Exception as e:
+            logger.warning(f"Dashboard failed to start: {e}. Continuing with orchestrator only.")
+            dashboard_task = None
+
+        # Run orchestrator (main trading loop)
+        if dashboard_task:
+            await asyncio.gather(
+                master_ai.run_autonomous_24_7(),
+                dashboard_task,
+                return_exceptions=True
+            )
+        else:
+            await master_ai.run_autonomous_24_7()
     except KeyboardInterrupt:
         logger.info("\nShutdown signal received")
         logger.info("Stopping Master Orchestrator and Mobile Dashboard...")

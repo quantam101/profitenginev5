@@ -227,3 +227,310 @@ Live monitoring:
 [2026-06-18 13:13:24,115] INFO:     - GET /api/performance (statistics)
 [2026-06-18 13:13:24,115] INFO:     - WS /ws/live (real-time updates)
 
+[2026-06-18 13:17:38,422] INFO: ================================================================================
+[2026-06-18 13:17:38,422] INFO: AUTONOMOUS TRADING SYSTEM - LAUNCH SEQUENCE
+[2026-06-18 13:17:38,422] INFO: ================================================================================
+[2026-06-18 13:17:38,422] INFO: 
+SYSTEM CONFIGURATION (OPTIMIZED FOR 1-WEEK TIMELINE):
+[2026-06-18 13:17:38,422] INFO:   Data Feed: Yahoo Finance (1-5 min)
+[2026-06-18 13:17:38,422] INFO:   Finnhub API Key: Not set
+[2026-06-18 13:17:38,422] INFO:   Starting Capital: $100.00
+[2026-06-18 13:17:38,422] INFO:   Target: $1,000.00
+[2026-06-18 13:17:38,434] INFO:   Risk per Trade: 4% (was 2%)
+[2026-06-18 13:17:38,434] INFO:   Stop Loss: -1.5% (was -0.5%)
+[2026-06-18 13:17:38,434] INFO:   Take Profit: +7% (was +3.5%)
+[2026-06-18 13:17:38,434] INFO:   Daily Drawdown Limit: 12% (was 6%)
+[2026-06-18 13:17:38,434] INFO:   Scan Interval: 30 seconds (was 60 seconds)
+[2026-06-18 13:17:38,434] INFO:   Confidence Threshold: >0.75 (high-conviction trades only)
+[2026-06-18 13:17:38,434] INFO: 
+AGENTS & STRATEGIES:
+[2026-06-18 13:17:38,434] INFO:   Master Orchestrator: Ready
+[2026-06-18 13:17:38,434] INFO:   Specialized Agents: 6 (ready)
+[2026-06-18 13:17:38,434] INFO:   Trading Strategies: 11 (all integrated)
+[2026-06-18 13:17:38,434] INFO:   Risk Gates: 6 (all hardened)
+[2026-06-18 13:17:38,434] INFO:   Autonomy: 100% (no human approval per trade)
+[2026-06-18 13:17:38,434] INFO: 
+INITIALIZING SYSTEM COMPONENTS...
+[2026-06-18 13:17:40,172] INFO:   [OK] Master Orchestrator imported
+[2026-06-18 13:17:40,172] INFO:   [OK] Paper Trading Simulator imported
+[2026-06-18 13:17:40,173] INFO:   [OK] Mobile Dashboard API imported
+[2026-06-18 13:17:40,173] INFO: 
+VERIFYING DATA FEEDS...
+[2026-06-18 13:17:41,122] INFO:   [OK] Data feed operational (AAPL: $298.01)
+[2026-06-18 13:17:41,122] INFO:   [OK] Source: Yahoo Finance
+[2026-06-18 13:17:41,122] INFO: 
+INITIALIZING MASTER ORCHESTRATOR...
+[2026-06-18 13:17:41,125] INFO:   - data_feed: DataFeedAgent
+[2026-06-18 13:17:41,125] INFO:   - paper_trader: PaperTradingAgent
+[2026-06-18 13:17:41,125] INFO:   - position_manager: PositionManagerAgent
+[2026-06-18 13:17:41,125] INFO:   - risk_monitor: RiskMonitoringAgent
+[2026-06-18 13:17:41,125] INFO:   - strategy_analyzer: StrategyAnalyzerAgent
+[2026-06-18 13:17:41,125] INFO:   - reporter: ReportingAgent
+[2026-06-18 13:17:41,125] INFO:   - robinhood: RobinhoodGatewayAgent
+[2026-06-18 13:17:41,125] INFO:   - error_recovery: ErrorRecoveryAgent
+[2026-06-18 13:17:41,125] INFO:   [OK] Master Orchestrator initialized
+[2026-06-18 13:17:41,125] INFO:   [OK] All 6 agents started
+[2026-06-18 13:17:41,125] INFO: 
+FINAL SYSTEM CHECKS:
+[2026-06-18 13:17:41,125] INFO:   [OK] 22/22 unit tests passing
+[2026-06-18 13:17:41,125] INFO:   [OK] All 11 strategies integrated
+[2026-06-18 13:17:41,125] INFO:   [OK] All 6 risk gates hardened
+[2026-06-18 13:17:41,125] INFO:   [OK] Data feeds verified
+[2026-06-18 13:17:41,125] INFO:   [OK] Multi-agent system ready
+[2026-06-18 13:17:41,125] INFO: 
+================================================================================
+[2026-06-18 13:17:41,125] INFO: SYSTEM STATUS: ALL SYSTEMS GO
+[2026-06-18 13:17:41,125] INFO: ================================================================================
+[2026-06-18 13:17:41,125] INFO: 
+Starting autonomous 24/7 trading operation...
+[2026-06-18 13:17:41,125] INFO: Timeline: 4-6 weeks (based on historical backtests)
+[2026-06-18 13:17:41,126] INFO: 
+Live monitoring:
+[2026-06-18 13:17:41,126] INFO:   - Trades logged to: autonomous_trading.log
+[2026-06-18 13:17:41,126] INFO:   - Dashboard API: http://0.0.0.0:8000/orchestrator/status
+[2026-06-18 13:17:41,126] INFO:   - Mobile Dashboard: http://192.168.0.6:8001
+[2026-06-18 13:17:41,126] INFO:   - Audit trail: paper_trading_audit.jsonl
+[2026-06-18 13:17:41,126] INFO: 
+[MOBILE DASHBOARD]
+[2026-06-18 13:17:41,126] INFO:   Access from phone/tablet:
+[2026-06-18 13:17:41,126] INFO:   - Same network: http://192.168.0.6:8001
+[2026-06-18 13:17:41,126] INFO:   - Shows real-time balance, P&L, positions, trades, performance
+[2026-06-18 13:17:41,126] INFO:   - Auto-refreshes every 5 seconds
+[2026-06-18 13:17:41,126] INFO:   - Works on any device (phone, tablet, laptop)
+
+[2026-06-18 13:17:41,126] INFO: Press Ctrl+C to stop
+
+[2026-06-18 13:17:41,129] INFO: ================================================================================
+[2026-06-18 13:17:41,129] INFO: MOBILE DASHBOARD API STARTING
+[2026-06-18 13:17:41,129] INFO: ================================================================================
+[2026-06-18 13:17:41,130] INFO:   Dashboard: http://your_machine_ip:8000
+[2026-06-18 13:17:41,130] INFO:   Endpoints:
+[2026-06-18 13:17:41,130] INFO:     - GET /api/status (current metrics)
+[2026-06-18 13:17:41,130] INFO:     - GET /api/portfolio (positions)
+[2026-06-18 13:17:41,130] INFO:     - GET /api/trades (recent trades)
+[2026-06-18 13:17:41,130] INFO:     - GET /api/performance (statistics)
+[2026-06-18 13:17:41,130] INFO:     - WS /ws/live (real-time updates)
+
+[2026-06-18 13:17:41,214] ERROR: Task exception was never retrieved
+future: <Task finished name='Task-1' coro=<launch_system() done, defined at C:\Users\alrea\Downloads\profitengine-v5-final (1)\LAUNCH_AUTONOMOUS_TRADING.py:25> exception=SystemExit(1)>
+Traceback (most recent call last):
+  File "C:\Users\alrea\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 164, in startup
+    server = await loop.create_server(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 1627, in create_server
+    raise OSError(err.errno, msg) from None
+OSError: [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): [winerror 10048] only one usage of each socket address (protocol/network address/port) is normally permitted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\LAUNCH_AUTONOMOUS_TRADING.py", line 192, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\LAUNCH_AUTONOMOUS_TRADING.py", line 185, in main
+    result = asyncio.run(launch_system())
+  File "C:\Python314\Lib\asyncio\runners.py", line 203, in run
+    with Runner(debug=debug, loop_factory=loop_factory) as runner:
+         ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 63, in __exit__
+    self.close()
+    ~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 71, in close
+    _cancel_all_tasks(loop)
+    ~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 215, in _cancel_all_tasks
+    loop.run_until_complete(tasks.gather(*to_cancel, return_exceptions=True))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 706, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 677, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 2046, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\events.py", line 94, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\LAUNCH_AUTONOMOUS_TRADING.py", line 133, in launch_system
+    await asyncio.gather(
+    ...<2 lines>...
+    )
+  File "C:\Python314\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 706, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 677, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 2046, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\events.py", line 94, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\runtime\mobile_dashboard_api.py", line 549, in start
+    await server.serve()
+  File "C:\Users\alrea\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 71, in serve
+    await self._serve(sockets)
+  File "C:\Users\alrea\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 86, in _serve
+    await self.startup(sockets=sockets)
+  File "C:\Users\alrea\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 174, in startup
+    sys.exit(1)
+    ~~~~~~~~^^^
+SystemExit: 1
+[2026-06-18 13:18:07,503] INFO: ================================================================================
+[2026-06-18 13:18:07,503] INFO: AUTONOMOUS TRADING SYSTEM - LAUNCH SEQUENCE
+[2026-06-18 13:18:07,503] INFO: ================================================================================
+[2026-06-18 13:18:07,504] INFO: 
+SYSTEM CONFIGURATION (OPTIMIZED FOR 1-WEEK TIMELINE):
+[2026-06-18 13:18:07,504] INFO:   Data Feed: Yahoo Finance (1-5 min)
+[2026-06-18 13:18:07,504] INFO:   Finnhub API Key: Not set
+[2026-06-18 13:18:07,504] INFO:   Starting Capital: $100.00
+[2026-06-18 13:18:07,504] INFO:   Target: $1,000.00
+[2026-06-18 13:18:07,504] INFO:   Risk per Trade: 4% (was 2%)
+[2026-06-18 13:18:07,504] INFO:   Stop Loss: -1.5% (was -0.5%)
+[2026-06-18 13:18:07,504] INFO:   Take Profit: +7% (was +3.5%)
+[2026-06-18 13:18:07,504] INFO:   Daily Drawdown Limit: 12% (was 6%)
+[2026-06-18 13:18:07,504] INFO:   Scan Interval: 30 seconds (was 60 seconds)
+[2026-06-18 13:18:07,504] INFO:   Confidence Threshold: >0.75 (high-conviction trades only)
+[2026-06-18 13:18:07,504] INFO: 
+AGENTS & STRATEGIES:
+[2026-06-18 13:18:07,504] INFO:   Master Orchestrator: Ready
+[2026-06-18 13:18:07,504] INFO:   Specialized Agents: 6 (ready)
+[2026-06-18 13:18:07,504] INFO:   Trading Strategies: 11 (all integrated)
+[2026-06-18 13:18:07,504] INFO:   Risk Gates: 6 (all hardened)
+[2026-06-18 13:18:07,504] INFO:   Autonomy: 100% (no human approval per trade)
+[2026-06-18 13:18:07,504] INFO: 
+INITIALIZING SYSTEM COMPONENTS...
+[2026-06-18 13:18:09,231] INFO:   [OK] Master Orchestrator imported
+[2026-06-18 13:18:09,231] INFO:   [OK] Paper Trading Simulator imported
+[2026-06-18 13:18:09,231] INFO:   [OK] Mobile Dashboard API imported
+[2026-06-18 13:18:09,231] INFO: 
+VERIFYING DATA FEEDS...
+[2026-06-18 13:18:10,060] INFO:   [OK] Data feed operational (AAPL: $298.01)
+[2026-06-18 13:18:10,060] INFO:   [OK] Source: Yahoo Finance
+[2026-06-18 13:18:10,061] INFO: 
+INITIALIZING MASTER ORCHESTRATOR...
+[2026-06-18 13:18:10,064] INFO:   - data_feed: DataFeedAgent
+[2026-06-18 13:18:10,064] INFO:   - paper_trader: PaperTradingAgent
+[2026-06-18 13:18:10,064] INFO:   - position_manager: PositionManagerAgent
+[2026-06-18 13:18:10,064] INFO:   - risk_monitor: RiskMonitoringAgent
+[2026-06-18 13:18:10,064] INFO:   - strategy_analyzer: StrategyAnalyzerAgent
+[2026-06-18 13:18:10,064] INFO:   - reporter: ReportingAgent
+[2026-06-18 13:18:10,064] INFO:   - robinhood: RobinhoodGatewayAgent
+[2026-06-18 13:18:10,065] INFO:   - error_recovery: ErrorRecoveryAgent
+[2026-06-18 13:18:10,065] INFO:   [OK] Master Orchestrator initialized
+[2026-06-18 13:18:10,065] INFO:   [OK] All 6 agents started
+[2026-06-18 13:18:10,065] INFO: 
+FINAL SYSTEM CHECKS:
+[2026-06-18 13:18:10,065] INFO:   [OK] 22/22 unit tests passing
+[2026-06-18 13:18:10,065] INFO:   [OK] All 11 strategies integrated
+[2026-06-18 13:18:10,065] INFO:   [OK] All 6 risk gates hardened
+[2026-06-18 13:18:10,065] INFO:   [OK] Data feeds verified
+[2026-06-18 13:18:10,065] INFO:   [OK] Multi-agent system ready
+[2026-06-18 13:18:10,065] INFO: 
+================================================================================
+[2026-06-18 13:18:10,065] INFO: SYSTEM STATUS: ALL SYSTEMS GO
+[2026-06-18 13:18:10,065] INFO: ================================================================================
+[2026-06-18 13:18:10,065] INFO: 
+Starting autonomous 24/7 trading operation...
+[2026-06-18 13:18:10,066] INFO: Timeline: 4-6 weeks (based on historical backtests)
+[2026-06-18 13:18:10,066] INFO: 
+Live monitoring:
+[2026-06-18 13:18:10,066] INFO:   - Trades logged to: autonomous_trading.log
+[2026-06-18 13:18:10,066] INFO:   - Dashboard API: http://0.0.0.0:8000/orchestrator/status
+[2026-06-18 13:18:10,066] INFO:   - Mobile Dashboard: http://192.168.0.6:8001
+[2026-06-18 13:18:10,066] INFO:   - Audit trail: paper_trading_audit.jsonl
+[2026-06-18 13:18:10,066] INFO: 
+[MOBILE DASHBOARD]
+[2026-06-18 13:18:10,066] INFO:   Access from phone/tablet:
+[2026-06-18 13:18:10,066] INFO:   - Same network: http://192.168.0.6:8001
+[2026-06-18 13:18:10,066] INFO:   - Shows real-time balance, P&L, positions, trades, performance
+[2026-06-18 13:18:10,067] INFO:   - Auto-refreshes every 5 seconds
+[2026-06-18 13:18:10,067] INFO:   - Works on any device (phone, tablet, laptop)
+
+[2026-06-18 13:18:10,067] INFO: Press Ctrl+C to stop
+
+[2026-06-18 13:18:10,070] INFO: ================================================================================
+[2026-06-18 13:18:10,070] INFO: MOBILE DASHBOARD API STARTING
+[2026-06-18 13:18:10,070] INFO: ================================================================================
+[2026-06-18 13:18:10,070] INFO:   Dashboard: http://your_machine_ip:8000
+[2026-06-18 13:18:10,070] INFO:   Endpoints:
+[2026-06-18 13:18:10,070] INFO:     - GET /api/status (current metrics)
+[2026-06-18 13:18:10,071] INFO:     - GET /api/portfolio (positions)
+[2026-06-18 13:18:10,071] INFO:     - GET /api/trades (recent trades)
+[2026-06-18 13:18:10,071] INFO:     - GET /api/performance (statistics)
+[2026-06-18 13:18:10,071] INFO:     - WS /ws/live (real-time updates)
+
+[2026-06-18 13:18:28,662] INFO: ================================================================================
+[2026-06-18 13:18:28,662] INFO: AUTONOMOUS TRADING ENGINE - OPTIMIZED FOR 1-WEEK TIMELINE
+[2026-06-18 13:18:28,662] INFO: ================================================================================
+[2026-06-18 13:18:28,662] INFO: 
+OPTIMIZED CONFIGURATION:
+[2026-06-18 13:18:28,662] INFO:   Risk per Trade: 4%
+[2026-06-18 13:18:28,662] INFO:   Take Profit: +7%
+[2026-06-18 13:18:28,662] INFO:   Stop Loss: -1.5%
+[2026-06-18 13:18:28,663] INFO:   Daily Drawdown Limit: 12%
+[2026-06-18 13:18:28,666] INFO:   Scan Interval: 30 seconds
+[2026-06-18 13:18:28,666] INFO:   Confidence Threshold: >0.75
+[2026-06-18 13:18:28,666] INFO:   Timeline: 1 week (7x acceleration)
+[2026-06-18 13:18:28,666] INFO: 
+Initializing Master Orchestrator...
+[2026-06-18 13:18:28,680] INFO:   - data_feed: DataFeedAgent
+[2026-06-18 13:18:28,680] INFO:   - paper_trader: PaperTradingAgent
+[2026-06-18 13:18:28,680] INFO:   - position_manager: PositionManagerAgent
+[2026-06-18 13:18:28,680] INFO:   - risk_monitor: RiskMonitoringAgent
+[2026-06-18 13:18:28,680] INFO:   - strategy_analyzer: StrategyAnalyzerAgent
+[2026-06-18 13:18:28,680] INFO:   - reporter: ReportingAgent
+[2026-06-18 13:18:28,680] INFO:   - robinhood: RobinhoodGatewayAgent
+[2026-06-18 13:18:28,680] INFO:   - error_recovery: ErrorRecoveryAgent
+[2026-06-18 13:18:28,680] INFO:   [OK] Master Orchestrator ready
+[2026-06-18 13:18:28,680] INFO: 
+================================================================================
+[2026-06-18 13:18:28,680] INFO: STARTING 24/7 AUTONOMOUS TRADING OPERATION
+[2026-06-18 13:18:28,680] INFO: ================================================================================
+[2026-06-18 13:18:28,680] INFO: 
+Live monitoring: autonomous_trading.log
+[2026-06-18 13:18:28,680] INFO: Press Ctrl+C to stop
+
+[2026-06-18 13:33:13,567] INFO: ================================================================================
+[2026-06-18 13:33:13,567] INFO: AUTONOMOUS TRADING ENGINE - OPTIMIZED FOR 1-WEEK TIMELINE
+[2026-06-18 13:33:13,567] INFO: ================================================================================
+[2026-06-18 13:33:13,567] INFO: 
+OPTIMIZED CONFIGURATION:
+[2026-06-18 13:33:13,567] INFO:   Risk per Trade: 4%
+[2026-06-18 13:33:13,567] INFO:   Take Profit: +7%
+[2026-06-18 13:33:13,567] INFO:   Stop Loss: -1.5%
+[2026-06-18 13:33:13,567] INFO:   Daily Drawdown Limit: 12%
+[2026-06-18 13:33:13,569] INFO:   Scan Interval: 30 seconds
+[2026-06-18 13:33:13,569] INFO:   Confidence Threshold: >0.75
+[2026-06-18 13:33:13,569] INFO:   Timeline: 1 week (7x acceleration)
+[2026-06-18 13:33:13,570] INFO: 
+Initializing Master Orchestrator...
+[2026-06-18 13:33:13,585] INFO:   - data_feed: DataFeedAgent
+[2026-06-18 13:33:13,585] INFO:   - paper_trader: PaperTradingAgent
+[2026-06-18 13:33:13,585] INFO:   - position_manager: PositionManagerAgent
+[2026-06-18 13:33:13,585] INFO:   - risk_monitor: RiskMonitoringAgent
+[2026-06-18 13:33:13,585] INFO:   - strategy_analyzer: StrategyAnalyzerAgent
+[2026-06-18 13:33:13,585] INFO:   - reporter: ReportingAgent
+[2026-06-18 13:33:13,585] INFO:   - robinhood: RobinhoodGatewayAgent
+[2026-06-18 13:33:13,585] INFO:   - error_recovery: ErrorRecoveryAgent
+[2026-06-18 13:33:13,585] INFO:   [OK] Master Orchestrator ready
+[2026-06-18 13:33:13,585] INFO: 
+================================================================================
+[2026-06-18 13:33:13,585] INFO: STARTING 24/7 AUTONOMOUS TRADING OPERATION
+[2026-06-18 13:33:13,585] INFO: ================================================================================
+[2026-06-18 13:33:13,585] INFO: 
+Live monitoring: autonomous_trading.log
+[2026-06-18 13:33:13,585] INFO: Press Ctrl+C to stop
+
