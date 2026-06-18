@@ -36,7 +36,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<RecoveryStatus
       try {
         const response = await fetch(`${runtime_url}${path}`, {
           method: 'GET',
-          timeout: 10000,
           signal: AbortSignal.timeout(10000),
         });
 

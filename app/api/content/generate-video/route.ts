@@ -26,8 +26,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const runtimeUrl = process.env.RUNTIME_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+
     // Call Python video engine endpoint
-    const videoResponse = await fetch('http://localhost:8000/api/v1/video/generate', {
+    const videoResponse = await fetch(`${runtimeUrl}/api/v1/video/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Post to configured social platforms
     const postResults = await Promise.allSettled(
-      platforms.map(platform => postToSocialMedia(platform, videoData, title))
+      platforms.map((platform: string) => postToSocialMedia(platform, videoData, title))
     );
 
     return NextResponse.json({
@@ -75,7 +77,7 @@ async function postToSocialMedia(
   videoData: { video_path: string; title: string; description: string },
   title: string
 ) {
-  const socialConfig = {
+  const socialConfig: Record<string, { apiEndpoint: string; accessToken: string | undefined }> = {
     tiktok: {
       apiEndpoint: 'https://open.tiktokapis.com/v1/video/upload/',
       accessToken: process.env.TIKTOK_ACCESS_TOKEN,
@@ -98,23 +100,28 @@ async function postToSocialMedia(
     },
   };
 
-  const config = socialConfig[platform as keyof typeof socialConfig];
+  const config = socialConfig[platform];
   if (!config || !config.accessToken) {
     throw new Error(`No configuration for platform: ${platform}`);
   }
 
+  const configWithToken: { apiEndpoint: string; accessToken: string } = {
+    ...config,
+    accessToken: config.accessToken,
+  };
+
   // Platform-specific posting logic
   switch (platform) {
     case 'tiktok':
-      return postToTikTok(videoData, config);
+      return postToTikTok(videoData, configWithToken);
     case 'instagram':
-      return postToInstagram(videoData, config);
+      return postToInstagram(videoData, configWithToken);
     case 'youtube':
-      return postToYouTube(videoData, config);
+      return postToYouTube(videoData, configWithToken);
     case 'twitter':
-      return postToTwitter(videoData, config);
+      return postToTwitter(videoData, configWithToken);
     case 'linkedin':
-      return postToLinkedIn(videoData, config);
+      return postToLinkedIn(videoData, configWithToken);
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
