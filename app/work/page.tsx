@@ -2,33 +2,11 @@
 
 import { JobPostingForm } from '@/components/JobPostingForm';
 import { JobBoard } from '@/components/JobBoard';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 export default function WorkPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/api/auth/signin?callbackUrl=/work');
-    }
-  }, [status, router]);
-
-  if (status === 'loading' || !session) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Local Work Intake</h1>
           <p className="text-lg text-gray-600">
@@ -36,7 +14,6 @@ export default function WorkPage() {
           </p>
         </div>
 
-        {/* Daily Target Status */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-blue-900 mb-4">Today&apos;s Target</h2>
           <div className="grid grid-cols-3 gap-4">
@@ -57,20 +34,16 @@ export default function WorkPage() {
           </div>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Job Posting Form */}
           <div>
             <JobPostingForm />
           </div>
 
-          {/* Job Board */}
           <div>
             <JobBoard />
           </div>
         </div>
 
-        {/* Instructions */}
         <div className="mt-12 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold mb-4">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -80,7 +53,7 @@ export default function WorkPage() {
               </div>
               <h3 className="font-semibold mb-2">Post a Job</h3>
               <p className="text-sm text-gray-600">
-                Fill out the form with job details. Minimum pay: $300, Maximum distance: 35 miles.
+                Fill out the form with job details. Minimum pay: $300, maximum route distance: 35 miles.
               </p>
             </div>
             <div>
@@ -89,48 +62,46 @@ export default function WorkPage() {
               </div>
               <h3 className="font-semibold mb-2">Accept Jobs</h3>
               <p className="text-sm text-gray-600">
-                Browse available jobs and click &quot;Accept Job&quot; to lock it in. Jobs must be completed same-day.
+                Browse available jobs and confirm pay, route, scope, risk, and approval before accepting.
               </p>
             </div>
             <div>
               <div className="flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-900 font-bold rounded-full mb-3">
                 3
               </div>
-              <h3 className="font-semibold mb-2">Complete & Get Paid</h3>
+              <h3 className="font-semibold mb-2">Complete & Track</h3>
               <p className="text-sm text-gray-600">
-                Execute the job, collect payment same-day via Stripe. Deposits arrive instantly.
+                Execute the job, document proof of work, and track payment status before closing it out.
               </p>
             </div>
           </div>
         </div>
 
-        {/* FAQ */}
         <div className="mt-8 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold mb-4">FAQ</h2>
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold mb-2">How much can I earn?</h3>
               <p className="text-sm text-gray-600">
-                Typical jobs pay $300&ndash;$500 with 2&ndash;4 hour duration. Experienced contractors can complete 2&ndash;3 jobs per day.
+                Target stack is $500+ daily revenue by combining field dispatch, hauling, and local service work.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Do you take a commission?</h3>
+              <h3 className="font-semibold mb-2">Is this protected by login?</h3>
               <p className="text-sm text-gray-600">
-                No commission. Jobs are free to post and accept. We keep 100% of the reputation value.
+                Login is temporarily disabled while the backend and auth stack are repaired. Do not store sensitive customer data here.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">How do I get paid?</h3>
+              <h3 className="font-semibold mb-2">How do payments work?</h3>
               <p className="text-sm text-gray-600">
-                Customers pay via Stripe during or immediately after the job. Deposits hit your account same-day.
+                Payment links, deposits, and invoices must be verified through the approved payment platform before dispatch.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Clock script */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
