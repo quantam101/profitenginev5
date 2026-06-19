@@ -440,7 +440,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install httpx pillow
+          pip install httpx pillow python-dotenv
 
       - name: Publish article + social blast
         id: publish
