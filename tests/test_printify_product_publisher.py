@@ -5,18 +5,14 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from scripts.printify_product_publisher import (
     PRODUCT_TEMPLATES,
-    TOPIC_PRODUCT_MAP,
     PODProduct,
     PrintifyPublisher,
-    ProductDesign,
     PublishResult,
 )
 

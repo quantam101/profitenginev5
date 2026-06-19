@@ -550,7 +550,6 @@ Keywords: {', '.join(keywords)}
                     product_type = data.get("product_type", "unknown")
                     status = data.get("status", "draft")
                     sales = data.get("sales_count", 0)
-                    profit = data.get("profit_margin_pct", 0)
                     price = data.get("price_usd", 0)
 
                     stats["total_products"] += 1
