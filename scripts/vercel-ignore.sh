@@ -18,14 +18,18 @@ if [ -z "$changed_files" ]; then
 fi
 
 # Only these paths affect the public Next.js/Vercel app surface.
-# Ops-only, Docker-only, docs-only, and runtime-worker-only changes should not
+# Ops-only, docs-only, and runtime-worker-only changes should not
 # consume Vercel deployment quota.
-build_regex='^(app|pages|components|lib|public|styles|src)/|^(package.json|package-lock.json|next\.config\.(js|mjs|ts)|tsconfig\.json|postcss\.config\.(js|mjs|cjs)|tailwind\.config\.(js|mjs|ts)|middleware\.(js|ts)|instrumentation\.(js|ts)|vercel\.json)$'
+#
+# Deployment-control files are included intentionally. Changes that remove or
+# harden competing platform config, especially Railway config, must be allowed
+# to produce a clean Vercel deployment instead of being silently skipped.
+build_regex='^(app|pages|components|lib|public|styles|src)/|^(package.json|package-lock.json|next\.config\.(js|mjs|ts)|tsconfig\.json|postcss\.config\.(js|mjs|cjs)|tailwind\.config\.(js|mjs|ts)|middleware\.(js|ts)|instrumentation\.(js|ts)|vercel\.json|Dockerfile|railway\.toml|nixpacks\.toml|Procfile|scripts/vercel-ignore\.sh)$|^\.github/workflows/'
 
 while IFS= read -r file; do
   [ -z "$file" ] && continue
   if [[ "$file" =~ $build_regex ]]; then
-    echo "Vercel build required because web-surface file changed: $file"
+    echo "Vercel build required because web-surface or deployment-control file changed: $file"
     exit 1
   fi
 done <<< "$changed_files"
