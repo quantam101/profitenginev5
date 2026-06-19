@@ -20,10 +20,10 @@ from datetime import datetime
 import sys
 
 try:
-    from runtime.hybrid_trading_engine import HybridTradingEngine, CombinedSignal, MarketRegime
+    from runtime.hybrid_trading_engine import HybridTradingEngine, CombinedSignal
     from runtime.finnhub_client import get_finnhub_client, FinnhubClient
 except ImportError as e:
-    print(f"ERROR: Cannot import modules: {e}")
+    print("ERROR: Cannot import modules: {}".format(e))
     sys.exit(1)
 
 logging.basicConfig(
@@ -50,7 +50,7 @@ class PreMarketTradingSession:
         self.skipped_trades = []
         self.current_portfolio_value = starting_balance
         self.is_real_money = False
-        logger.info(f"TARGET: Reach ${self.target_balance:,.2f} from ${starting_balance:,.2f}")
+        logger.info("TARGET: Reach ${:,.2f} from ${:,.2f}".format(self.target_balance, starting_balance))
         logger.info(f"MODE: Paper trading with real Finnhub prices (11-strategy hybrid engine)")
 
     async def run(self) -> dict:
@@ -90,8 +90,10 @@ class PreMarketTradingSession:
                 self.current_portfolio_value = account['portfolio_value']
                 self.is_real_money = account['is_real_money']
 
-                progress = ((self.current_portfolio_value - self.starting_balance) /
-                           (self.target_balance - self.starting_balance)) * 100
+                progress = (
+                    (self.current_portfolio_value - self.starting_balance) /
+                    (self.target_balance - self.starting_balance)
+                ) * 100
                 mode = "[REAL MONEY]" if self.is_real_money else "[PAPER]"
                 logger.info(f"{mode} Portfolio: ${self.current_portfolio_value:,.2f} ({progress:.1f}% to target)")
 

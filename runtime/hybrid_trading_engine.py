@@ -13,11 +13,9 @@ Efficiency: Sub-100ms order execution, 99.9% uptime
 Proficiency: 80%+ win rate, regime-adaptive weighting
 """
 
-import asyncio
-import json
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 import numpy as np

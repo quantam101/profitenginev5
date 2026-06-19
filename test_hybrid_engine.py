@@ -4,12 +4,9 @@ Validates all 11 strategies fire correctly and produce coherent signals
 """
 
 import asyncio
-import json
-from datetime import datetime
 from runtime.hybrid_trading_engine import (
     HybridTradingEngine,
     MarketRegime,
-    StrategySignal,
 )
 
 
@@ -36,7 +33,7 @@ async def test_hybrid_engine():
     regime, metrics = engine.signal_combiner.regime_detector.detect(test_prices)
     print(f"Market Regime: {regime.value}")
     print(f"Metrics: {metrics}")
-    assert regime in [MarketRegime.BULL, MarketRegime.CHOPPY, MarketRegime.HIGH_VOL_TREND, MarketRegime.CRISIS]
+    assert regime in (MarketRegime.BULL, MarketRegime.CHOPPY, MarketRegime.HIGH_VOL_TREND, MarketRegime.CRISIS)
     print("[OK] Regime detection working")
 
     # Test 2: Verify all 11 strategies generate signals
@@ -60,7 +57,7 @@ async def test_hybrid_engine():
         "momentum_scanner"
     ]
 
-    print(f"Expected 11 strategies: {len(expected_strategies)}")
+    print("Expected 11 strategies: {}".format(len(expected_strategies)))
     print(f"Generated {len(signals)} signals")
 
     for expected in expected_strategies:
@@ -95,7 +92,7 @@ async def test_hybrid_engine():
     print("-" * 70)
     compliant, reason = await engine.compliance.check_compliance("AAPL", "BUY", 0)
     print(f"AAPL BUY compliance: {compliant} ({reason})")
-    assert compliant == True
+    assert compliant is True
     print("[OK] Compliance check passed")
 
     # Test 6: Position sizing
@@ -118,8 +115,9 @@ async def test_hybrid_engine():
     print("-" * 70)
     can_trade = engine.risk.check_daily_limit()
     print(f"Can trade (daily loss < 6%): {can_trade}")
-    print(f"Daily loss so far: ${engine.risk.daily_loss:.2f} / ${engine.account_balance * 0.06:.2f} limit")
-    assert can_trade == True
+    daily_limit = engine.account_balance * 0.06
+    print(f"Daily loss so far: ${engine.risk.daily_loss:.2f} / ${daily_limit:.2f} limit")
+    assert can_trade is True
     print("[OK] Circuit breaker operational")
 
     # Test 8: Status monitoring
