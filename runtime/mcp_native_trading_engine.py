@@ -33,9 +33,9 @@ BULL_TP_MULT: Final[Decimal] = Decimal("1.10")     # +10% Take Profit (higher co
 BEAR_STOP_MULT: Final[Decimal] = Decimal("1.01")   # +1.0% Stop Loss (shorts, tighter)
 BEAR_TP_MULT: Final[Decimal] = Decimal("0.90")     # -10% Take Profit (shorts, higher conviction)
 
-MAX_RISK_PER_TRADE: Final[Decimal] = Decimal("4.00")   # 4% of account (2x increase)
-MAX_DAILY_DRAWDOWN: Final[Decimal] = Decimal("12.00")  # 12% circuit breaker (2x increase)
-POSITION_SIZE_LIMIT: Final[Decimal] = Decimal("1000.00")  # $1000 per trade (2x increase)
+MAX_RISK_PER_TRADE: Final[Decimal] = Decimal("4.00")   # 4% of account
+MAX_DAILY_DRAWDOWN: Final[Decimal] = Decimal("6.00")  # 6% daily circuit breaker
+POSITION_SIZE_LIMIT: Final[Decimal] = Decimal("1000.00")  # $1000 per trade
 
 class MarketRegime(Enum):
     BULL = "bull"
@@ -103,7 +103,7 @@ class ExecutionReceipt:
 PORTFOLIO = PortfolioState(
     account_balance=Decimal("100.00"),  # Start with $100 for paper trading
     total_drawdown_today=Decimal("0.00"),
-    max_daily_drawdown_limit=Decimal("12.00"),  # Optimized for aggressive growth
+    max_daily_drawdown_limit=MAX_DAILY_DRAWDOWN,
     cached_max_trade_value=POSITION_SIZE_LIMIT,
     positions={},
     trade_log=[]
@@ -266,7 +266,7 @@ class RiskSupervisor:
         """
         # Gate 1: Daily drawdown circuit breaker
         if PORTFOLIO.total_drawdown_today >= PORTFOLIO.max_daily_drawdown_limit:
-            return False, None, "Daily drawdown limit exceeded (6% circuit breaker activated)"
+            return False, None, f"Daily drawdown limit exceeded ({PORTFOLIO.max_daily_drawdown_limit}% circuit breaker activated)"
 
         # Gate 2: Minimum signal conviction
         if abs(signal_strength) < 0.25:

@@ -140,7 +140,12 @@ class ClientsDB:
             conn.commit()
             user_id = cursor.lastrowid
 
-        return self.get_user(user_id)
+        user = self.get_user(user_id)
+
+        # Auto-create upsell tracking record
+        self.create_upsell_tracking(user_id)
+
+        return user
 
     def get_user(self, user_id: int) -> Optional[User]:
         """Get user by ID."""
@@ -414,7 +419,7 @@ class ClientsDB:
                 "date": worst_day.date,
                 "pnl": worst_day.pnl_dollars
             } if worst_day else None,
-            "current_balance": history[0].balance if history else 0.0,
+            "current_balance": history[-1].balance if history else 0.0,
         }
 
     def get_tier_breakdown(self) -> Dict[str, int]:
@@ -550,6 +555,10 @@ class ClientsDB:
             revenue_tier: Revenue tier ('none', 'trial', 'paid-basic', 'paid-pro', 'paid-elite')
             amount: Revenue amount to add
         """
+        tracking = self.get_upsell_tracking(user_id)
+        if not tracking:
+            tracking = self.create_upsell_tracking(user_id)
+
         with self._get_conn() as conn:
             cursor = conn.cursor()
             cursor.execute(
