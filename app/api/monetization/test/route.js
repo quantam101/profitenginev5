@@ -1,10 +1,4 @@
 'use strict';
-/**
- * app/api/monetization/test/route.js
- * Endpoint to run end-to-end monetization test: article → ebook + POD report
- */
-
-const monetization = require('../../../../agents/monetization');
 
 export async function POST(request) {
   try {
@@ -17,16 +11,16 @@ export async function POST(request) {
       );
     }
 
-    // Prepare article object with content
+    const content = article.content || article.body || '';
     const articleData = {
       title: article.title || 'Untitled',
       topic: article.topic || 'General',
-      content: article.content || article.body || '',
-      wordCount: (article.content || article.body || '').split(/\s+/).length
+      content,
+      wordCount: content.trim() ? content.trim().split(/\s+/).length : 0
     };
 
-    // Run monetization test
-    const result = await monetization.runMonetizationTest(articleData);
+    const agent = await import('../../../../agents/monetization.mjs');
+    const result = await agent.runMonetizationTest(articleData);
 
     return Response.json(result, { status: 200 });
   } catch (error) {
