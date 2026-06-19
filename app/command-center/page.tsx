@@ -52,15 +52,15 @@ const ACTIONS = [
 ];
 
 interface PageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     view?: string;
-  };
+  }>;
 }
 
-export default function CommandCenterPage({ searchParams }: PageProps) {
-  const view = searchParams?.view;
+export default async function CommandCenterPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const view = resolvedSearchParams?.view;
 
-  // Show trading dashboard if requested
   if (view === 'trading') {
     return <TradingDashboard />;
   }
