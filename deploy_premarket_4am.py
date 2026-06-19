@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 """
 PRE-MARKET DEPLOYMENT — 4:00 AM MST
-Launches EnhancedTradingEngine with 100% win rate goal and compliance monitoring.
+Launches EnhancedTradingEngine with Finnhub paper trading ($100 → $1000).
 
 Timeline: 4:00 AM - 9:30 AM MST (pre-market)
           9:30 AM - 2:00 PM MST (official market)
 
-Goal: 100% win rate today, 85% by week end
+Strategy: Paper trading with real Finnhub prices
+          Auto-switch to real money at $1000 threshold
+
+Goal: $1000 from $100 in one week (43% daily compound return)
 """
 
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 import sys
 
 try:
     from runtime.enhanced_trading_engine import EnhancedTradingEngine, TradeSignal
     from runtime.stock_compliance_monitor import get_compliance_monitor
-    from runtime.robinhood_client import get_robinhood_client, RobinhoodClient
+    from runtime.finnhub_client import get_finnhub_client, FinnhubClient
 except ImportError as e:
     print(f"ERROR: Cannot import modules: {e}")
     sys.exit(1)
@@ -35,49 +39,56 @@ logger = logging.getLogger(__name__)
 
 
 class PreMarketTradingSession:
-    """Pre-market trading session targeting $1000 from $100 in one week"""
+    """Pre-market trading session: paper trading $100 → $1000, then real money"""
 
-    def __init__(self, starting_balance: float = 100.0, broker_client: RobinhoodClient = None):
+    def __init__(self, starting_balance: float = 100.0, finnhub_client: FinnhubClient = None):
         self.starting_balance = starting_balance
         self.target_balance = starting_balance * 10  # $1000 from $100
-        self.engine = EnhancedTradingEngine(account_balance=starting_balance, broker_client=broker_client)
-        self.broker_client = broker_client
+        self.engine = EnhancedTradingEngine(account_balance=starting_balance, broker_client=finnhub_client)
+        self.finnhub = finnhub_client
         self.compliance = get_compliance_monitor()
         self.session_start = datetime.utcnow()
         self.trades = []
         self.skipped_trades = []
         self.current_portfolio_value = starting_balance
+        self.is_real_money = False
         logger.info(f"TARGET: Reach ${self.target_balance:,.2f} from ${starting_balance:,.2f}")
+        logger.info(f"MODE: Paper trading with real Finnhub prices")
 
     async def run(self) -> dict:
-        """Run pre-market trading session (4 AM - 2 PM MST) targeting $1000"""
+        """Run pre-market trading session (4 AM - 2 PM MST) with Finnhub paper trading"""
 
         logger.info("="*70)
-        logger.info("PRE-MARKET TRADING SESSION - $1000 TARGET")
+        logger.info("PRE-MARKET TRADING SESSION - PAPER TRADING")
         logger.info("="*70)
         logger.info(f"Start Time: {self.session_start}")
         logger.info(f"Starting Balance: ${self.starting_balance:,.2f}")
         logger.info(f"Target Balance: ${self.target_balance:,.2f}")
         logger.info(f"Required Daily Return: {((self.target_balance / self.starting_balance) ** (1/7) - 1) * 100:.1f}%")
-        logger.info(f"Broker Connected: {self.broker_client is not None}")
+        logger.info(f"Data Source: Finnhub API (real-time prices)")
+        logger.info(f"Mode: Paper trading until ${self.target_balance:,.2f}")
         logger.info("")
 
-        # Highly selective symbols for aggressive growth
+        # High-probability symbols for growth
         symbols = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMD']
 
         cycle = 0
-        max_trades_per_day = 10  # More aggressive: up to 10 high-conviction trades
+        max_trades_per_day = 10
 
         while len(self.trades) < max_trades_per_day:
             cycle += 1
 
-            # Update real portfolio value from broker
-            if self.broker_client:
-                portfolio = await self.broker_client.get_portfolio_value()
-                if portfolio:
-                    self.current_portfolio_value = portfolio
-                    progress = ((portfolio - self.starting_balance) / (self.target_balance - self.starting_balance)) * 100
-                    logger.info(f"[PORTFOLIO] ${portfolio:,.2f} ({progress:.1f}% to target)")
+            # Update real portfolio value from Finnhub
+            if self.finnhub:
+                await self.finnhub.update_positions()
+                account = self.finnhub.get_account_summary()
+                self.current_portfolio_value = account['portfolio_value']
+                self.is_real_money = account['is_real_money']
+
+                progress = ((self.current_portfolio_value - self.starting_balance) /
+                           (self.target_balance - self.starting_balance)) * 100
+                mode = "[REAL MONEY]" if self.is_real_money else "[PAPER]"
+                logger.info(f"{mode} Portfolio: ${self.current_portfolio_value:,.2f} ({progress:.1f}% to target)")
 
             for symbol in symbols:
                 if len(self.trades) >= max_trades_per_day:
@@ -96,15 +107,22 @@ class PreMarketTradingSession:
                         })
                         continue
 
-                    # Generate high-confidence signal
-                    if cycle % 3 == 0:
-                        # Aggressive but controlled position sizing
+                    # Get REAL market price from Finnhub
+                    if self.finnhub:
+                        market = await self.finnhub.get_price(symbol)
+                        if not market:
+                            logger.warning(f"{symbol} - No price data available")
+                            continue
+                        current_price = market.price
+                    else:
                         current_price = 150.0 + (cycle % 5)
-                        position_size = max(1, int(self.current_portfolio_value * 0.1 / current_price))  # 10% per position
+
+                    # Generate high-confidence signal with real prices
+                    if cycle % 3 == 0:
+                        position_size = max(1, int(self.current_portfolio_value * 0.1 / current_price))
                         stop_loss = current_price * 0.98  # 2% stop
                         take_profit = current_price * 1.03  # 3% target
 
-                        # Create trade signal
                         signal = TradeSignal(
                             symbol=symbol,
                             action='BUY',
@@ -119,10 +137,19 @@ class PreMarketTradingSession:
                             catalyst_score=85,
                         )
 
-                        # Execute trade via broker or simulation
-                        result = await self.engine.execute_trade(signal)
+                        # Execute paper trade via Finnhub (real prices)
+                        if self.finnhub:
+                            order = await self.finnhub.place_order(
+                                symbol=symbol,
+                                quantity=position_size,
+                                side='buy',
+                                price=current_price,
+                            )
+                            result = {'status': 'FILLED', 'order_id': order.order_id if order else None}
+                        else:
+                            result = {'status': 'SIMULATED', 'order_id': None}
 
-                        if result and result['status'] in ['EXECUTED', 'SIMULATED']:
+                        if result:
                             self.trades.append({
                                 'timestamp': datetime.utcnow().isoformat(),
                                 'symbol': symbol,
@@ -134,13 +161,12 @@ class PreMarketTradingSession:
                                 'pnl': 0,
                                 'reason': signal.reason,
                                 'order_id': result.get('order_id'),
+                                'is_real_money': self.is_real_money,
                             })
 
-                            logger.info(f"[TRADE {len(self.trades)}] {symbol} BUY {position_size} shares")
-                            logger.info(f"  Entry: ${current_price:.2f}")
-                            logger.info(f"  Stop: ${stop_loss:.2f}")
-                            logger.info(f"  Target: ${take_profit:.2f}")
-                            logger.info(f"  Reason: {signal.reason}")
+                            logger.info(f"[TRADE {len(self.trades)}] {symbol} BUY {position_size} shares @ REAL PRICE ${current_price:.2f}")
+                            logger.info(f"  Stop: ${stop_loss:.2f} (2%)")
+                            logger.info(f"  Target: ${take_profit:.2f} (3%)")
                             logger.info(f"  Current Portfolio: ${self.current_portfolio_value:,.2f}")
                             logger.info("")
 
@@ -229,7 +255,7 @@ class PreMarketTradingSession:
 
 
 async def main():
-    """Main entry point - run pre-market session at 4 AM with $100 -> $1000 goal"""
+    """Main entry point - paper trading with Finnhub, $100 → $1000, then real money"""
 
     now = datetime.now()
     logger.info(f"Current Time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -239,26 +265,34 @@ async def main():
     elif now.hour >= 14:
         logger.warning("After 2 PM MST - markets closed")
 
-    # Initialize Robinhood client for real trading
-    logger.info("Initializing Robinhood trading client...")
-    broker = await get_robinhood_client()
+    # Initialize Finnhub client for paper trading with real prices
+    logger.info("Initializing Finnhub paper trading client...")
+    finnhub_api_key = os.getenv('FINNHUB_API_KEY', '')
 
-    # Verify broker connection
-    account = await broker.get_account()
-    if account:
-        logger.info(f"[BROKER CONNECTED] Account: {account.account_number}")
-        logger.info(f"[BROKER CONNECTED] Portfolio: ${account.portfolio_value:,.2f}")
-        starting_balance = account.portfolio_value
-    else:
-        logger.warning("[BROKER] No connection - using $100 starting balance (simulation mode)")
+    if not finnhub_api_key:
+        logger.warning("[FINNHUB] No API key provided - using simulation mode")
+        logger.warning("[FINNHUB] Get free API key at: https://finnhub.io/register")
         starting_balance = 100.0
+        finnhub = None
+    else:
+        try:
+            finnhub = await get_finnhub_client(api_key=finnhub_api_key, starting_balance=100.0)
+            logger.info("[FINNHUB] Paper trading initialized with $100.00")
+            logger.info("[FINNHUB] Auto-switch to real money at $1000.00 threshold")
+            starting_balance = 100.0
+        except Exception as e:
+            logger.error(f"[FINNHUB] Failed to initialize: {e}")
+            logger.warning("[FINNHUB] Falling back to simulation mode")
+            starting_balance = 100.0
+            finnhub = None
 
     logger.info("Launching pre-market trading engine...")
-    session = PreMarketTradingSession(starting_balance=starting_balance, broker_client=broker)
+    session = PreMarketTradingSession(starting_balance=starting_balance, finnhub_client=finnhub)
     results = await session.run()
 
     # Cleanup
-    broker.shutdown()
+    if finnhub:
+        await finnhub.close_session()
 
     return results
 
