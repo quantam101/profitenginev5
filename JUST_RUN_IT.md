@@ -1,66 +1,48 @@
-# JUST RUN IT — No Setup Required
+# FINNHUB LIVE MARKET PAPER TRADING — 2-Minute Setup
 
-## One Command at 4:00 AM
+## Required: Finnhub API Key (Free)
 
+No simulation. Live market prices only.
+
+---
+
+## Setup (2 Minutes)
+
+### Step 1: Get Free Finnhub API Key (1 min)
+```
+https://finnhub.io/register
+→ Sign up (free)
+→ Copy API key
+```
+
+### Step 2: Set Environment Variable (1 command)
+```powershell
+$env:FINNHUB_API_KEY = "your_api_key_here"
+```
+
+### Step 3: Launch at 4:00 AM
 ```bash
 python deploy_premarket_4am.py
 ```
-
-That's it. Everything else is automatic.
 
 ---
 
 ## What Happens
 
-### If you have Finnhub API key (OPTIONAL)
 ```
-[FINNHUB] ✓ Paper trading with real market data
-[FINNHUB] ✓ Real prices from Finnhub API
-[FINNHUB] ✓ Starting: $100.00
-[FINNHUB] ✓ Auto-switch to real money at $1000.00 threshold
-[MODE] FINNHUB_PAPER
-```
+[FINNHUB] ✓ Connected to Finnhub API
+[FINNHUB] ✓ Live market prices enabled
+[FINNHUB] ✓ Paper trading mode: $100.00 starting
+[FINNHUB] ✓ Auto-switch to real money at $1000.00
 
-### If no Finnhub API key (DEFAULT)
+[PAPER] Portfolio: $100.00 (0.0% to target)
+[TRADE 1] AAPL BUY 6 shares @ $150.42 (REAL FINNHUB PRICE)
+[PAPER] Portfolio: $100.87 (0.1% to target)
 ```
-[NO API KEY] Running paper trading in simulation mode
-[SIMULATION] ✓ Paper trading with simulated prices
-[SIMULATION] ✓ Strategy validation mode
-[SIMULATION] ✓ Starting: $100.00
-[MODE] SIMULATION
-```
-
-**Both modes run the exact same strategy.**  
-**Same win rate, same P&L calculation, same signals.**  
-The only difference: live prices vs simulated prices.
 
 ---
 
-## To Get Live Market Prices (Optional)
-
-If you want real Finnhub prices instead of simulation:
-
-### 1. Register (2 minutes)
-```
-https://finnhub.io/register
-Sign up → Copy API key
-```
-
-### 2. Set API Key (1 command)
-```powershell
-$env:FINNHUB_API_KEY = "your_api_key_here"
-```
-
-### 3. Launch (same command)
-```bash
-python deploy_premarket_4am.py
-```
-
-Now it'll show `[MODE] FINNHUB_PAPER` with real prices.
-
----
-
-## Expected Output (Either Mode)
+## Expected Output (Live Finnhub Prices)
 
 ```
 ======================================================================
@@ -70,8 +52,8 @@ Start Time: 2026-06-19T04:00:00
 Starting Balance: $100.00
 Target Balance: $1000.00
 Required Daily Return: 38.9%
-Data Source: [Finnhub API OR Simulation] (prices)
-Mode: LIVE MARKET paper trading OR Paper trading (validation/testing)
+Data Source: Finnhub API (live market prices)
+Mode: LIVE MARKET paper trading
 
 [PAPER] Portfolio: $100.00 (0.0% to target)
 [TRADE 1] AAPL BUY 6 shares @ PRICE $150.42
@@ -126,22 +108,21 @@ Day 4+: Real money (if you set up Robinhood)
 
 ## FAQ
 
-**Q: Do I need to do anything right now?**  
-A: Nope. Just run at 4 AM tomorrow.
+**Q: Do I need Finnhub API key?**  
+A: Yes, required. (Free registration, takes 2 minutes)
 
-**Q: What if I don't get Finnhub API key?**  
-A: Still works. Uses simulation mode with same strategy.
+**Q: How do I get it?**  
+A: https://finnhub.io/register → Sign up → Copy key
 
-**Q: What's the difference?**  
-A: Live prices (Finnhub) vs simulated prices (no API key).  
-Strategy is identical either way.
+**Q: What if I don't have the API key set?**  
+A: System won't start. Error message shows exact setup steps.
 
-**Q: Can I add the API key later?**  
-A: Yes. Run with simulation today, add key tomorrow, get live prices.
+**Q: Can I test without the API key?**  
+A: No. Live market data only — no simulation mode.
 
 **Q: What happens when I hit $1000?**  
 A: If/when you add Robinhood credentials, it switches to real money.  
-For now, paper trading all the way.
+For now, paper trading with live Finnhub prices.
 
 **Q: How do I switch to real Robinhood money?**  
 A: After paper trading validates, see `PHASE_2_ROBINHOOD_SWITCH.md`
@@ -150,10 +131,12 @@ A: After paper trading validates, see `PHASE_2_ROBINHOOD_SWITCH.md`
 
 ## Ready?
 
-4:00 AM tomorrow.  
-One command.  
-Watch it trade.
+1. **Get API Key:** https://finnhub.io/register (2 min)
+2. **Set Variable:** `$env:FINNHUB_API_KEY = "your_key"`
+3. **Launch:** 4:00 AM tomorrow
 
 ```bash
 python deploy_premarket_4am.py
 ```
+
+Live market paper trading with real Finnhub prices.

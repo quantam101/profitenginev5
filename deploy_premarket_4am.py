@@ -262,7 +262,7 @@ class PreMarketTradingSession:
 
 
 async def main():
-    """Main entry point - Finnhub paper trading ($100 → $1000) by default"""
+    """Main entry point - Finnhub live market paper trading (required, no simulation)"""
 
     now = datetime.now()
     logger.info(f"Current Time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -272,45 +272,65 @@ async def main():
     elif now.hour >= 14:
         logger.warning("After 2 PM MST - markets closed")
 
-    # Initialize Finnhub client for paper trading
-    logger.info("Initializing paper trading client...")
+    # Finnhub API key is REQUIRED (no simulation mode)
+    logger.info("="*70)
+    logger.info("FINNHUB LIVE MARKET PAPER TRADING REQUIRED")
+    logger.info("="*70)
+
     finnhub_api_key = os.getenv('FINNHUB_API_KEY', '')
-    finnhub = None
-    trading_mode = "SIMULATION"
 
-    if finnhub_api_key:
-        try:
-            finnhub = await get_finnhub_client(api_key=finnhub_api_key, starting_balance=100.0)
-            logger.info("[FINNHUB] ✓ Paper trading with real market data")
-            logger.info("[FINNHUB] ✓ Real prices from Finnhub API")
-            logger.info("[FINNHUB] ✓ Starting: $100.00")
-            logger.info("[FINNHUB] ✓ Auto-switch to real money at $1000.00 threshold")
-            trading_mode = "FINNHUB_PAPER"
-            starting_balance = 100.0
-        except Exception as e:
-            logger.error(f"[FINNHUB] Failed to initialize: {e}")
-            logger.warning("[FINNHUB] Falling back to simulation mode (no live prices)")
-            finnhub = None
-            trading_mode = "SIMULATION"
-            starting_balance = 100.0
-    else:
-        logger.info("[NO API KEY] Running paper trading in simulation mode")
-        logger.info("[NO API KEY] To use live Finnhub prices, set: FINNHUB_API_KEY=your_key")
-        logger.info("[NO API KEY] Get free key at: https://finnhub.io/register")
-        logger.info("[SIMULATION] ✓ Paper trading with simulated prices")
-        logger.info("[SIMULATION] ✓ Strategy validation mode (same as real prices)")
-        logger.info("[SIMULATION] ✓ Starting: $100.00")
-        trading_mode = "SIMULATION"
+    if not finnhub_api_key:
+        logger.error("[FINNHUB] ERROR: API KEY REQUIRED")
+        logger.error("[FINNHUB] No credentials provided - cannot proceed")
+        logger.error("")
+        logger.error("SETUP REQUIRED (2 minutes):")
+        logger.error("")
+        logger.error("1. Register for FREE Finnhub API key:")
+        logger.error("   https://finnhub.io/register")
+        logger.error("")
+        logger.error("2. Copy your API key from dashboard")
+        logger.error("")
+        logger.error("3. Set environment variable (PowerShell):")
+        logger.error("   $env:FINNHUB_API_KEY = \"your_api_key_here\"")
+        logger.error("")
+        logger.error("4. Run again:")
+        logger.error("   python deploy_premarket_4am.py")
+        logger.error("")
+        logger.error("="*70)
+        sys.exit(1)
+
+    # Initialize Finnhub client for live market paper trading
+    logger.info("Initializing Finnhub live market paper trading...")
+    try:
+        finnhub = await get_finnhub_client(api_key=finnhub_api_key, starting_balance=100.0)
+        logger.info("[FINNHUB] ✓ Connected to Finnhub API")
+        logger.info("[FINNHUB] ✓ Live market prices enabled")
+        logger.info("[FINNHUB] ✓ Paper trading mode: $100.00 starting")
+        logger.info("[FINNHUB] ✓ Auto-switch to real money at $1000.00")
+        logger.info("")
         starting_balance = 100.0
+    except Exception as e:
+        logger.error(f"[FINNHUB] FATAL: Failed to connect to Finnhub API")
+        logger.error(f"[FINNHUB] Error: {e}")
+        logger.error("")
+        logger.error("Possible causes:")
+        logger.error("- Invalid API key")
+        logger.error("- Network connection issue")
+        logger.error("- Finnhub API rate limit exceeded")
+        logger.error("")
+        logger.error("Fix:")
+        logger.error("- Verify API key is correct")
+        logger.error("- Check internet connection")
+        logger.error("- Wait 60 seconds and retry")
+        logger.error("")
+        sys.exit(1)
 
-    logger.info(f"[MODE] {trading_mode}")
     logger.info("Launching pre-market trading engine...")
     session = PreMarketTradingSession(starting_balance=starting_balance, finnhub_client=finnhub)
     results = await session.run()
 
     # Cleanup
-    if finnhub:
-        await finnhub.close_session()
+    await finnhub.close_session()
 
     return results
 
