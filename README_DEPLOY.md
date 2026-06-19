@@ -21,12 +21,12 @@ The stack comes up at:
 
 ## Provider migration matrix
 
-| Concern | On-[removed] | Off-[removed] |
-|---------|-------------|--------------|
-| LLM     | `[removed] | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` |
-| Stripe  | `STRIPE_API_KEY=sk_test_[removed] | `STRIPE_API_KEY=sk_live_...` |
-| Mongo   | Pod-local | Mongo Atlas / Railway plugin / RDS |
-| Hosting | `*.preview.[removed] | Your domain |
+| Concern | Local | Production |
+|---------|-------|-----------|
+| LLM     | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` | Same (use production keys) |
+| Stripe  | `STRIPE_API_KEY=sk_test_...` | `STRIPE_API_KEY=sk_live_...` |
+| Mongo   | Docker Compose (local) | MongoDB Atlas / Neon |
+| Hosting | localhost | Vercel (frontend) + OCI (backend) |
 
 The Distiller (`backend/services/llm_provider.py`) and Stripe transport
 (`backend/services/stripe_transport.py`) detect which set of keys you
@@ -34,23 +34,11 @@ have and route accordingly. **Same code, both worlds.**
 
 ## Hosting options
 
-### Railway (easiest — full stack on one platform)
-1. New project → **Deploy from GitHub** → pick `quantam101/profitenginev5`
-2. Add the **MongoDB plugin** → copy the `MONGO_URL` into the service env
-3. Set the env vars from `.env.example` (Stripe + Anthropic + Gemini)
-4. Healthcheck path is `/api/health` (already configured in `railway.toml`)
-5. Repeat for `Dockerfile.frontend` as a second service
-
-### Vercel + Railway (recommended for production)
-- **Frontend** → Vercel: import the GitHub repo, set root dir to `frontend`, `REACT_APP_BACKEND_URL` = your Railway backend URL
-- **Backend**  → Railway: deploys via `Dockerfile`, add Mongo plugin
-- DNS: point apex/`www` to Vercel, point `api.yourdomain.com` to Railway
-
-### AWS / GCP (enterprise scale)
-- Backend: ECS Fargate / Cloud Run (FastAPI Docker image)
-- Frontend: S3 + CloudFront / Cloud Storage + CDN
-- Mongo: DocumentDB / Atlas on the same VPC
-- Secrets: AWS Secrets Manager / GCP Secret Manager → injected as env vars
+### Vercel + OCI (production-ready)
+- **Frontend** → Vercel: import the GitHub repo, auto-deploys on `main` push
+- **Backend** → OCI Always Free E2.1.Micro: Go + SQLite + Caddy via Docker Compose
+- **Database** → SQLite (local) + Litestream backup, or MongoDB Atlas for scale
+- **DNS:** point apex/`www` to Vercel, point `api.yourdomain.com` to OCI (129.146.236.177)
 
 ## Stripe live-mode checklist
 
@@ -76,8 +64,7 @@ CI (`.github/workflows/ci.yml`) runs the same gate on every PR.
 
 ## Rolling back
 
-Each deploy is immutable in Railway/Vercel — one-click rollback to any
-previous build. Mongo: take a snapshot before schema changes (`mongodump`).
+Vercel: one-click rollback via dashboard. OCI: Litestream snapshots for database rollback.
 
 ## What doesn't work off-[removed]
 

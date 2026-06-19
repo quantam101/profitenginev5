@@ -1,10 +1,10 @@
 # 🚨 Runtime API Recovery Runbook
 
 ## Critical Facts
-- **Single point of failure**: OCI instance `profitenginev5-runtime` at `129.146.167.73`
+- **Primary backend**: OCI instance `cmdos` at `129.146.236.177` (Go + SQLite)
 - **Detection**: Health check runs every 5 minutes (GitHub Actions)
-- **Impact when down**: ALL backend operations blocked (newsletters, digests, AI ops, alerts)
-- **Typical MTTR**: 2-5 minutes (reboot) to 10+ minutes (if instance stopped)
+- **Impact when down**: Lead intake, RFQ dispatch, affiliate attribution blocked
+- **Typical MTTR**: 1-2 minutes (container restart) to 5 minutes (full reboot)
 
 ---
 
@@ -13,7 +13,7 @@
 ### Step 1: Check OCI Console Status
 1. Log into **console.oracle.com**
 2. Navigate to **Compute → Instances**
-3. Find **profitenginev5-runtime**
+3. Find **cmdos** (Always Free E2.1.Micro)
 4. Check the **State** column:
    - 🟢 **RUNNING** → Go to Step 2 (Reboot)
    - 🔴 **STOPPED** → Go to Step 3 (Start Instance)
@@ -67,18 +67,19 @@ curl https://api.profitengine.alreadyherellc.com/health
 3. Check if system is responsive: `ps aux`
 4. Check Docker: `docker ps`
 
-**Option B: Cloud Shell via OCI Console**
+**Option B: SSH via Cloud Shell**
 ```bash
 # From OCI Console, open Cloud Shell
-ssh ubuntu@129.146.167.73  # or opc@129.146.167.73
+ssh opc@129.146.236.177
 
-# Check Docker runtime
-docker ps | grep runtime
-docker logs <runtime-container-id> --tail 50
+# Check Docker containers
+docker ps
 
-# Restart runtime manually
-cd /home/opc/profitenginev5
-bash scripts/oci-runtime-update.sh
+# Check backend logs
+docker logs -f alreadyhere-backend --tail 50
+
+# Restart containers if needed
+docker compose -f /opt/alreadyhere-backend/docker-compose.yml restart
 ```
 
 ### If Network is the Issue
@@ -95,7 +96,7 @@ bash scripts/oci-runtime-update.sh
 | Endpoint | Method | Expected Response |
 |----------|--------|-------------------|
 | `https://api.profitengine.alreadyherellc.com/health` | GET | HTTP 200, `{"status": "ok"}` |
-| `http://129.146.167.73/health` | GET | HTTP 200 (internal check) |
+| `http://129.146.236.177/health` | GET | HTTP 200 (internal check) |
 | `https://profitengine-tau.vercel.app` | GET | HTTP 200 (frontend, Vercel) |
 
 ---
@@ -117,10 +118,10 @@ gh workflow run oci-runtime-mirror-deploy.yml --ref main
 
 ## 🛡️ Prevention
 
-### Permanent Fix: Redundancy
-- [ ] Set up failover instance (Heroku, AWS, Railway)
-- [ ] Route `api.profitengine.alreadyherellc.com` to failover if OCI is down
-- [ ] Implement automatic DNS failover
+### Instance Resilience
+- [ ] Enable automatic restart on crash (OCI Console → Instance Options)
+- [ ] Set up Litestream backup for SQLite database
+- [ ] Monitor disk usage (70% guard as per project rules)
 
 ### Monitoring Improvements
 - [ ] Add PagerDuty/Slack alerts to GitHub Actions
@@ -154,7 +155,7 @@ After recovery, verify all systems:
 curl -v https://api.profitengine.alreadyherellc.com/health
 
 # 2. Docker containers running
-ssh opc@129.146.167.73 'docker ps'
+ssh opc@129.146.236.177 'docker ps'
 
 # 3. Frontend still works
 curl https://profitengine-tau.vercel.app

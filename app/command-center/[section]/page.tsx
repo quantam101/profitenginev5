@@ -55,7 +55,7 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
           {sectionTitles[safeSection]}
         </h1>
         <p style={{ color: '#a8bed0', maxWidth: 720, fontSize: 18, lineHeight: 1.6 }}>
-          This static status page is available while backend, auth, and Replit/Railway integrations are isolated from the Vercel production frontend.
+          This static status page is available while backend and auth integrations are isolated from the Vercel production frontend.
         </p>
         <div
           style={{

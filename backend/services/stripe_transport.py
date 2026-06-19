@@ -1,7 +1,7 @@
 """Stripe transport — native `stripe` SDK only.
 
 Uses the official stripe Python SDK for all operations.
-Works anywhere: Vercel, OCI, Railway, local dev.
+Works anywhere: Vercel, OCI, local dev.
 """
 from __future__ import annotations
 
