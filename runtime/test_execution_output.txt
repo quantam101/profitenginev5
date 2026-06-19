@@ -1,0 +1,86 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\alrea\Downloads\profitengine-v5-final (1)
+configfile: pytest.ini
+plugins: anyio-4.13.0, asyncio-1.4.0, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 64 items
+
+test_enhanced_trading.py::TestMultiframeValidator::test_multiframe_validator_initialization PASSED [  1%]
+test_enhanced_trading.py::TestMultiframeValidator::test_timeframe_signal_creation PASSED [  3%]
+test_enhanced_trading.py::TestMultiframeValidator::test_timeframe_signal_buy_condition PASSED [  4%]
+test_enhanced_trading.py::TestMultiframeValidator::test_timeframe_signal_sell_condition PASSED [  6%]
+test_enhanced_trading.py::TestMultiframeValidator::test_timeframe_signal_no_signal_condition PASSED [  7%]
+test_enhanced_trading.py::TestMultiframeValidator::test_validator_get_timeframe_signals PASSED [  9%]
+test_enhanced_trading.py::TestMultiframeValidator::test_validator_signal_confirmation_2plus PASSED [ 10%]
+test_enhanced_trading.py::TestMultiframeValidator::test_validator_signal_rejection_insufficient_confirmations PASSED [ 12%]
+test_enhanced_trading.py::TestMultiframeValidator::test_validator_confidence_score PASSED [ 14%]
+test_enhanced_trading.py::TestCatalystScoring::test_catalyst_scorer_initialization PASSED [ 15%]
+test_enhanced_trading.py::TestCatalystScoring::test_catalyst_score_calculation PASSED [ 17%]
+test_enhanced_trading.py::TestCatalystScoring::test_fda_catalyst_weighting PASSED [ 18%]
+test_enhanced_trading.py::TestCatalystScoring::test_earnings_catalyst_weighting PASSED [ 20%]
+test_enhanced_trading.py::TestCatalystScoring::test_analyst_rating_catalyst_weighting PASSED [ 21%]
+test_enhanced_trading.py::TestCatalystScoring::test_catalyst_confidence_boost PASSED [ 23%]
+test_enhanced_trading.py::TestCatalystScoring::test_multiple_catalysts_weighting PASSED [ 25%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_watchlist_initialization PASSED [ 26%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_get_all_symbols PASSED [ 28%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_get_symbols_by_category PASSED [ 29%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_symbol_prioritization PASSED [ 31%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_watchlist_filtering_by_volatility PASSED [ 32%]
+test_enhanced_trading.py::TestSymbolWatchlist::test_watchlist_market_categories PASSED [ 34%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_atr_calculation PASSED [ 35%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_stop_loss_calculation_long PASSED [ 37%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_stop_loss_calculation_short PASSED [ 39%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_take_profit_calculation_long PASSED [ 40%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_take_profit_calculation_short PASSED [ 42%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_volatility_adjustment_normal PASSED [ 43%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_volatility_adjustment_high PASSED [ 45%]
+test_enhanced_trading.py::TestDynamicRiskManagement::test_risk_reward_ratio_calculation PASSED [ 46%]
+test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_buy PASSED [ 48%]
+test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_not_in_watchlist PASSED [ 50%]
+test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_low_confidence PASSED [ 51%]
+test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_includes_risk_metrics PASSED [ 53%]
+test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_caches_last_signal PASSED [ 54%]
+test_enhanced_trading.py::TestPositionSizing::test_position_size_calculation PASSED [ 56%]
+test_enhanced_trading.py::TestPositionSizing::test_position_size_respects_max_single PASSED [ 57%]
+test_enhanced_trading.py::TestPositionSizing::test_position_size_respects_risk_per_trade PASSED [ 59%]
+test_enhanced_trading.py::TestPositionSizing::test_position_size_minimum_one_share PASSED [ 60%]
+test_enhanced_trading.py::TestPositionSizing::test_position_sizing_multiple_positions PASSED [ 62%]
+test_enhanced_trading.py::TestPositionSizing::test_max_concurrent_trades_limit PASSED [ 64%]
+test_enhanced_trading.py::TestSignalExecution::test_execute_signal_success PASSED [ 65%]
+test_enhanced_trading.py::TestSignalExecution::test_execute_creates_tracked_position PASSED [ 67%]
+test_enhanced_trading.py::TestSignalExecution::test_execute_none_signal_fails PASSED [ 68%]
+test_enhanced_trading.py::TestSignalExecution::test_execute_low_confidence_fails PASSED [ 70%]
+test_enhanced_trading.py::TestSignalExecution::test_execute_adds_to_trade_history PASSED [ 71%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_position_updates_pnl_long_profit PASSED [ 73%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_position_updates_pnl_long_loss PASSED [ 75%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_position_at_stop_loss PASSED [ 76%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_position_at_take_profit PASSED [ 78%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_nonexistent_position PASSED [ 79%]
+test_enhanced_trading.py::TestPositionMonitoring::test_monitor_all_positions PASSED [ 81%]
+test_enhanced_trading.py::TestPortfolioAnalytics::test_get_portfolio_metrics_empty PASSED [ 82%]
+test_enhanced_trading.py::TestPortfolioAnalytics::test_get_portfolio_metrics_with_positions PASSED [ 84%]
+test_enhanced_trading.py::TestPortfolioAnalytics::test_export_signals PASSED [ 85%]
+test_enhanced_trading.py::TestPortfolioAnalytics::test_export_positions PASSED [ 87%]
+test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_aapl_last_5_days PASSED [ 89%]
+test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_msft_last_5_days PASSED [ 90%]
+test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_nvda_last_5_days PASSED [ 92%]
+test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_portfolio_aapl_msft_nvda PASSED [ 93%]
+test_enhanced_trading.py::TestIntegration::test_full_trading_workflow PASSED [ 95%]
+test_enhanced_trading.py::TestIntegration::test_multiple_concurrent_positions PASSED [ 96%]
+test_enhanced_trading.py::TestIntegration::test_position_limit_enforcement PASSED [ 98%]
+test_enhanced_trading.py::test_suite_summary PASSED                      [100%]
+
+============================== warnings summary ===============================
+runtime/test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_buy
+runtime/test_enhanced_trading.py::TestSignalGenerationPipeline::test_signal_generation_low_confidence
+runtime/test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_nvda_last_5_days
+runtime/test_enhanced_trading.py::TestHistoricalDataBacktesting::test_backtest_portfolio_aapl_msft_nvda
+  C:\Users\alrea\AppData\Roaming\Python\Python314\site-packages\_pytest\stash.py:108: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    del self._storage[key]
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 64 passed, 4 warnings in 10.18s =======================
