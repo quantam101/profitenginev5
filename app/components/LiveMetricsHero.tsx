@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Live Metrics Hero Section
  * Displays real-time trading metrics updated every 5 minutes
