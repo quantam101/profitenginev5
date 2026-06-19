@@ -2,12 +2,16 @@
 """
 Standalone article generator + publisher for ProfitEngine.
 
-Generates an SEO article via Groq (free tier) and publishes to:
-  1. GitHub Pages (quantam101/content)
+Generates an SEO article via HuggingFace (primary), Groq, or Gemini and publishes to:
+  1. GitHub Pages (quantam101/content) — always published
   2. Dev.to (if DEVTO_API_KEY is set)
+  3. Hashnode (if HASHNODE_API_KEY and HASHNODE_PUBLICATION_ID set; paid-only since 2026-05-13)
+  4. Medium (if MEDIUM_API_KEY and MEDIUM_AUTHOR_ID set)
+  5. Social platforms via EAOS engine (if canonical_url exists)
 
 Usage:
     python scripts/publish_article.py
+    CONTENT_VERIFY_ONLY=true python scripts/publish_article.py  # verify credentials only
 
 Required env vars:
     GROQ_API_KEY           — from console.groq.com
@@ -18,9 +22,14 @@ Optional:
     GITHUB_CONTENT_BRANCH  — default: main
     GITHUB_CONTENT_DIR     — default: posts
     DEVTO_API_KEY          — from dev.to/settings/extensions
+    HASHNODE_API_KEY       — from hashnode.com/settings/developer (paid-only)
+    HASHNODE_PUBLICATION_ID — publication ID or host slug
+    MEDIUM_API_KEY         — from medium.com/@{username}/settings
+    MEDIUM_AUTHOR_ID       — from Medium API /me endpoint
     ARTICLE_TOPIC          — override the default topic
     CONTENT_VERIFY_ONLY    — true to verify credentials without publishing
     GMAOS_GROQ_MODEL       — default: llama-3.3-70b-versatile
+    PAID_ADAPTERS_ENABLED  — set to true to enable Hashnode (requires paid Pro plan)
 """
 from __future__ import annotations
 
@@ -36,6 +45,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
+from dotenv import load_dotenv
+
+# Load .env file if it exists
+load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env")
 
 # Make runtime.eaos importable when running from repo root on CI
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -56,7 +69,7 @@ HF_MODELS: List[str] = [
     "mistralai/Mistral-7B-Instruct-v0.3",
     "microsoft/Phi-3-mini-4k-instruct",
 ]
-GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
+GH_TOKEN = os.getenv("CONTENT_REPO_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
 GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
 GH_BRANCH = os.getenv("GITHUB_CONTENT_BRANCH", "main").strip()
@@ -239,7 +252,7 @@ def _call_hf_inference(prompt: str, model: str | None = None) -> str:
 
 def generate_article(topic: str) -> Dict[str, Any]:
     if not GROQ_KEY and not GEMINI_KEY and not HF_TOKEN:
-        sys.exit("❌ No LLM provider configured — set GROQ_API_KEY, GEMINI_API_KEY, or HF_TOKEN")
+        sys.exit("[ERROR] No LLM provider configured - set GROQ_API_KEY, GEMINI_API_KEY, or HF_TOKEN")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
     affiliate_keywords = list(_affiliate_map().keys())
@@ -250,9 +263,17 @@ def generate_article(topic: str) -> Dict[str, Any]:
             "and do not turn the article into an advertisement): "
             + ", ".join(affiliate_keywords)
         )
-    # Try each Groq model in priority order, then Gemini, then HuggingFace
+    # Try HuggingFace first (primary), then Groq, then Gemini
     raw = ""
-    if GROQ_KEY:
+    if HF_TOKEN:
+        for hf_model in HF_MODELS:
+            try:
+                raw = _call_hf_inference(prompt, model=hf_model)
+                print(f"[AI] Provider: HuggingFace ({hf_model})")
+                break
+            except Exception as e:
+                print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
+    if not raw and GROQ_KEY:
         for model in GROQ_MODELS:
             try:
                 raw = _call_groq(prompt, model=model)
@@ -266,14 +287,6 @@ def generate_article(topic: str) -> Dict[str, Any]:
             print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
         except Exception as e:
             print(f"[AI] Gemini failed ({e})")
-    if not raw and HF_TOKEN:
-        for hf_model in HF_MODELS:
-            try:
-                raw = _call_hf_inference(prompt, model=hf_model)
-                print(f"[AI] Provider: HuggingFace ({hf_model})")
-                break
-            except Exception as e:
-                print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
@@ -425,7 +438,7 @@ def _mask_configured(value: str) -> str:
 
 def _verify_github_content() -> bool:
     if not GH_TOKEN:
-        print("[VERIFY][FAIL] GitHub Pages: GITHUB_CONTENT_TOKEN missing")
+        print("[VERIFY][FAIL] GitHub Pages: CONTENT_REPO_TOKEN missing")
         return False
     try:
         r = httpx.get(
@@ -518,9 +531,7 @@ def _verify_hashnode() -> bool:
 def _verify_medium() -> bool:
     if not MEDIUM_KEY or not MEDIUM_AUTHOR_ID:
         print(
-            "[VERIFY][SKIP] Medium: "
-            f"MEDIUM_API_KEY={_mask_configured(MEDIUM_KEY)}, "
-            f"MEDIUM_AUTHOR_ID={_mask_configured(MEDIUM_AUTHOR_ID)}"
+            "[VERIFY][SKIP] Medium: API key or author ID not configured"
         )
         return True
     try:
@@ -628,7 +639,7 @@ def make_jekyll_post(article: Dict[str, Any], date_str: str) -> str:
 
 def publish_github(filename: str, content: str, commit_msg: str) -> str:
     if not GH_TOKEN:
-        raise RuntimeError("GITHUB_CONTENT_TOKEN not set")
+        raise RuntimeError("CONTENT_REPO_TOKEN not set")
     path = f"{GH_DIR}/{filename}"
     content_b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
     sha = _get_sha(path)
@@ -795,7 +806,7 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
 # ── Medium publish ─────────────────────────────────────────────────────────────
 def publish_medium(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     if not MEDIUM_KEY or not MEDIUM_AUTHOR_ID:
-        print("[SKIP] MEDIUM_API_KEY or MEDIUM_AUTHOR_ID not set -- skipping Medium")
+        print("[SKIP] Medium: API key or author ID not configured")
         return None
     title = article.get("title", "Untitled")
     meta = article.get("meta_description", "")
