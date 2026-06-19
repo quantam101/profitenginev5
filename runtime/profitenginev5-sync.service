@@ -1,0 +1,42 @@
+[Unit]
+Description=ProfitEngine v5 Daily Sync Service
+Documentation=file:///opt/profitengine/runtime/PROFITENGINEV5_SYNC_README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=profitengine
+Group=profitengine
+WorkingDirectory=/opt/profitengine
+
+# Load environment variables from .env
+EnvironmentFile=/opt/profitengine/.env
+EnvironmentFile=-/opt/profitengine/.env.local
+
+# Execution
+ExecStart=/usr/bin/python3 /opt/profitengine/runtime/profitenginev5_sync_daily.py
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=profitenginev5-sync
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/tmp/profitenginev5
+
+# Resource limits
+TimeoutStartSec=300
+CPUQuota=50%
+MemoryLimit=512M
+
+# Restart on failure
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -175,15 +175,15 @@ class DatabaseQueries:
             cursor = conn.cursor()
             today = datetime.now(timezone.utc).date()
 
-            # Get today's trades
+            # Get today's trades from daily_trades table
             cursor.execute("""
                 SELECT
-                    COUNT(*) as trade_count,
-                    SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) as winning_trades,
-                    SUM(COALESCE(pnl_usd, 0)) as total_pnl
-                FROM trades
-                WHERE DATE(executed_at) = ?
-            """, (today,))
+                    SUM(num_trades) as trade_count,
+                    SUM(win_count) as winning_trades,
+                    SUM(COALESCE(pnl_dollars, 0)) as total_pnl
+                FROM daily_trades
+                WHERE DATE(date) = ?
+            """, (today.isoformat(),))
 
             row = cursor.fetchone()
             trade_count = row["trade_count"] or 0
@@ -191,10 +191,10 @@ class DatabaseQueries:
 
             # Get active traders today
             cursor.execute("""
-                SELECT COUNT(DISTINCT client_id) as active_count
-                FROM trades
-                WHERE DATE(executed_at) = ?
-            """, (today,))
+                SELECT COUNT(DISTINCT user_id) as active_count
+                FROM daily_trades
+                WHERE DATE(date) = ?
+            """, (today.isoformat(),))
 
             active_row = cursor.fetchone()
             active_count = active_row["active_count"] or 0
@@ -218,47 +218,45 @@ class DatabaseQueries:
 
             cursor.execute("""
                 SELECT
-                    c.client_id,
+                    ts.user_id,
                     c.username,
                     c.email,
-                    c.account_balance,
-                    c.total_trades,
-                    c.winning_trades,
-                    c.losing_trades,
-                    c.subscription_tier,
-                    c.created_at,
-                    c.last_trade_at,
-                    COALESCE(SUM(CASE WHEN DATE(t.executed_at) = ? THEN COALESCE(t.pnl_usd, 0) ELSE 0 END), 0) as daily_pnl,
-                    COUNT(CASE WHEN DATE(t.executed_at) = ? THEN 1 ELSE NULL END) as daily_trades
-                FROM clients c
-                LEFT JOIN trades t ON c.client_id = t.client_id
-                WHERE DATE(t.executed_at) = ?
-                GROUP BY c.client_id
-                ORDER BY daily_pnl DESC, (c.winning_trades * 1.0 / c.total_trades) DESC
+                    ts.total_pnl as account_balance,
+                    ts.total_trades,
+                    ts.winning_trades,
+                    ts.losing_trades,
+                    c.tier as subscription_tier,
+                    c.account_created as created_at,
+                    COALESCE(dt.pnl_dollars, 0) as daily_pnl,
+                    COALESCE(dt.num_trades, 0) as daily_trades
+                FROM trader_stats ts
+                LEFT JOIN clients c ON ts.user_id = c.user_id
+                LEFT JOIN daily_trades dt ON ts.user_id = dt.user_id AND DATE(dt.date) = ?
+                WHERE ts.total_trades > 0
+                ORDER BY daily_pnl DESC, ts.win_rate DESC
                 LIMIT ?
-            """, (today, today, today, limit))
+            """, (today.isoformat(), limit))
 
             performers = []
             now = datetime.now(timezone.utc)
 
             for row in cursor.fetchall():
                 created = datetime.fromisoformat(row["created_at"]) if row["created_at"] else now
-                last_trade = datetime.fromisoformat(row["last_trade_at"]) if row["last_trade_at"] else None
-                days_since = (now - created).days
+                days_since = (now - created).days if isinstance(created, datetime) else 0
 
                 perf = ClientPerformance(
-                    client_id=row["client_id"],
-                    username=row["username"],
+                    client_id=row["user_id"],
+                    username=row["username"] or "Unknown",
                     email=row["email"],
-                    account_balance=row["account_balance"],
-                    total_trades=row["total_trades"],
-                    winning_trades=row["winning_trades"],
-                    losing_trades=row["losing_trades"],
-                    daily_pnl=row["daily_pnl"],
-                    daily_trades=row["daily_trades"],
-                    subscription_tier=row["subscription_tier"],
+                    account_balance=float(row["account_balance"] or 0),
+                    total_trades=row["total_trades"] or 0,
+                    winning_trades=row["winning_trades"] or 0,
+                    losing_trades=row["losing_trades"] or 0,
+                    daily_pnl=float(row["daily_pnl"] or 0),
+                    daily_trades=row["daily_trades"] or 0,
+                    subscription_tier=row["subscription_tier"] or "Free",
                     days_since_signup=days_since,
-                    last_trade_time=last_trade,
+                    last_trade_time=None,
                 )
                 performers.append(perf)
 
@@ -280,57 +278,55 @@ class DatabaseQueries:
 
             cursor.execute("""
                 SELECT
-                    client_id,
-                    username,
-                    email,
-                    account_balance,
-                    total_trades,
-                    winning_trades,
-                    losing_trades,
-                    subscription_tier,
-                    created_at,
-                    last_trade_at
-                FROM clients
-                WHERE created_at > ?
-                ORDER BY created_at DESC
+                    c.user_id,
+                    c.username,
+                    c.email,
+                    c.tier as subscription_tier,
+                    c.account_created as created_at,
+                    ts.total_trades,
+                    ts.winning_trades,
+                    ts.losing_trades,
+                    ts.total_pnl as account_balance
+                FROM clients c
+                LEFT JOIN trader_stats ts ON c.user_id = ts.user_id
+                WHERE c.account_created > ?
+                ORDER BY c.account_created DESC
             """, (cutoff_date.isoformat(),))
 
             signups = []
             now = datetime.now(timezone.utc)
+            today = now.date()
 
             for row in cursor.fetchall():
                 created = datetime.fromisoformat(row["created_at"]) if row["created_at"] else now
-                last_trade = datetime.fromisoformat(row["last_trade_at"]) if row["last_trade_at"] else None
-                days_since = (now - created).days
+                days_since = (now - created).days if isinstance(created, datetime) else 0
 
                 # Get today's stats for this new client
-                today = now.date()
                 cursor.execute("""
                     SELECT
-                        COALESCE(SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END), 0) as winning_trades,
-                        COALESCE(SUM(pnl_usd), 0) as daily_pnl,
-                        COUNT(*) as daily_trades
-                    FROM trades
-                    WHERE client_id = ? AND DATE(executed_at) = ?
-                """, (row["client_id"], today))
+                        COALESCE(pnl_dollars, 0) as daily_pnl,
+                        COALESCE(num_trades, 0) as daily_trades
+                    FROM daily_trades
+                    WHERE user_id = ? AND DATE(date) = ?
+                """, (row["user_id"], today.isoformat()))
 
                 trade_row = cursor.fetchone()
-                daily_pnl = trade_row["daily_pnl"] if trade_row else 0.0
-                daily_trades = trade_row["daily_trades"] if trade_row else 0
+                daily_pnl = float(trade_row["daily_pnl"] if trade_row else 0.0)
+                daily_trades = int(trade_row["daily_trades"] if trade_row else 0)
 
                 perf = ClientPerformance(
-                    client_id=row["client_id"],
-                    username=row["username"],
+                    client_id=row["user_id"],
+                    username=row["username"] or "Unknown",
                     email=row["email"],
-                    account_balance=row["account_balance"],
-                    total_trades=row["total_trades"],
-                    winning_trades=row["winning_trades"],
-                    losing_trades=row["losing_trades"],
+                    account_balance=float(row["account_balance"] or 0),
+                    total_trades=row["total_trades"] or 0,
+                    winning_trades=row["winning_trades"] or 0,
+                    losing_trades=row["losing_trades"] or 0,
                     daily_pnl=daily_pnl,
                     daily_trades=daily_trades,
-                    subscription_tier=row["subscription_tier"],
+                    subscription_tier=row["subscription_tier"] or "Free",
                     days_since_signup=days_since,
-                    last_trade_time=last_trade,
+                    last_trade_time=None,
                 )
                 signups.append(perf)
 
@@ -346,7 +342,7 @@ class DatabaseQueries:
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) as count FROM clients")
+            cursor.execute("SELECT COUNT(DISTINCT user_id) as count FROM clients")
             result = cursor.fetchone()
             conn.close()
             return result["count"] if result else 0
@@ -393,30 +389,28 @@ class DatabaseQueries:
 
             cursor.execute("""
                 SELECT
-                    c.client_id,
+                    ts.user_id,
                     c.username,
                     c.email,
-                    c.account_balance,
-                    c.total_trades,
-                    c.winning_trades,
-                    c.losing_trades,
-                    c.subscription_tier,
-                    COALESCE(SUM(CASE WHEN DATE(t.executed_at) = ? THEN COALESCE(t.pnl_usd, 0) ELSE 0 END), 0) as daily_pnl
-                FROM clients c
-                LEFT JOIN trades t ON c.client_id = t.client_id
-                WHERE c.total_trades >= 20  -- Minimum trading activity
-                GROUP BY c.client_id
-                HAVING
-                    (c.winning_trades * 1.0 / c.total_trades >= 0.70)  -- 70%+ win rate
-                    OR (daily_pnl > 500)  -- High daily P&L
-                    OR (c.winning_trades >= 10)  -- Lots of winners
-                ORDER BY (c.winning_trades * 1.0 / c.total_trades) DESC
+                    ts.total_pnl as account_balance,
+                    ts.total_trades,
+                    ts.winning_trades,
+                    ts.losing_trades,
+                    ts.win_rate,
+                    c.tier as subscription_tier,
+                    COALESCE(dt.pnl_dollars, 0) as daily_pnl
+                FROM trader_stats ts
+                LEFT JOIN clients c ON ts.user_id = c.user_id
+                LEFT JOIN daily_trades dt ON ts.user_id = dt.user_id AND DATE(dt.date) = ?
+                WHERE ts.total_trades >= 20
+                    AND (ts.win_rate >= 0.70 OR COALESCE(dt.pnl_dollars, 0) > 500 OR ts.winning_trades >= 10)
+                ORDER BY ts.win_rate DESC
                 LIMIT 10
-            """, (today,))
+            """, (today.isoformat(),))
 
             candidates = []
             for row in cursor.fetchall():
-                win_rate = (row["winning_trades"] / row["total_trades"] * 100) if row["total_trades"] > 0 else 0
+                win_rate = float(row["win_rate"] or 0) * 100
 
                 # Determine tier recommendation
                 if win_rate >= 85:
@@ -430,14 +424,14 @@ class DatabaseQueries:
                     message = "Active trader with growth potential."
 
                 candidates.append({
-                    "client_id": row["client_id"],
-                    "username": row["username"],
+                    "client_id": row["user_id"],
+                    "username": row["username"] or "Unknown",
                     "email": row["email"],
                     "win_rate": round(win_rate, 1),
-                    "total_trades": row["total_trades"],
-                    "daily_pnl": round(row["daily_pnl"], 2),
-                    "account_balance": round(row["account_balance"], 2),
-                    "current_tier": row["subscription_tier"],
+                    "total_trades": row["total_trades"] or 0,
+                    "daily_pnl": round(float(row["daily_pnl"] or 0), 2),
+                    "account_balance": round(float(row["account_balance"] or 0), 2),
+                    "current_tier": row["subscription_tier"] or "Free",
                     "recommended_tier": tier,
                     "sales_message": message,
                     "priority": "high" if win_rate >= 85 else "medium",

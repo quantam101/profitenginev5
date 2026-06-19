@@ -1,0 +1,23 @@
+[Unit]
+Description=ProfitEngine v5 Daily Sync Timer
+Documentation=file:///opt/profitengine/runtime/PROFITENGINEV5_SYNC_README.md
+Requires=profitenginev5-sync.service
+
+[Timer]
+# Run every day at 5 PM MST (midnight UTC)
+# Accounting for daylight saving time (MST is -7 from UTC, MDT is -6 from UTC)
+# Using UTC time ensures consistency across DST changes
+OnCalendar=daily
+OnCalendar=*-*-* 00:00:00
+
+# Run immediately if the system was powered down during the scheduled time
+Persistent=true
+
+# Some randomization to avoid thundering herd (if multiple systems sync)
+RandomizedDelaySec=300
+
+# Accuracy (system timer resolution)
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target

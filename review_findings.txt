@@ -1,0 +1,110 @@
+# Documentation Review Findings
+
+## ACCURACY ISSUES FOUND
+
+### 1. CRITICAL: Container Count Discrepancy
+- **Doc claims**: "7 containers -> 6 containers"  
+- **Actual config**: 8 services (backend, caddy, ollama, postgres, runtime, taylor, uptime-kuma, web)
+- **Impact**: MODERATE - Documentation is outdated
+- **Locations**: 
+  * SCHEDULER_IMPLEMENTATION_SUMMARY.md line 170
+  * ARCHITECTURE_BEFORE_AFTER.md line 223
+  * SCHEDULER_MIGRATION_GUIDE.md line 221
+  * DEPLOY_CHECKLIST.md lines 141-147
+
+### 2. CRITICAL: Incomplete Service List in DEPLOY_CHECKLIST
+- **Issue**: Expected output lists only 6 services, missing "ollama"
+- **Location**: DEPLOY_CHECKLIST.md lines 141-147
+- **Fix**: Add ollama to expected services list
+
+### 3. UNVERIFIED CLAIMS: Memory/CPU Savings
+- **Doc claims**: "~1 GB memory freed, 1 CPU core freed"
+- **Status**: NO BASELINE MEASUREMENTS PROVIDED
+- **Risk**: Marketing claims without data
+- **Impact**: LOW - Informational but unsubstantiated
+
+### 4. AsyncIOScheduler Integration Not Documented
+- **Issue**: No explanation of why AsyncIOScheduler chosen over BackgroundScheduler
+- **Problem**: AsyncIOScheduler requires event loop - FastAPI provides this but not documented
+- **Risk**: Users unfamiliar with asyncio may not understand setup
+- **Impact**: MEDIUM - Technical accuracy gap
+
+### 5. Container Count Ambiguity
+- **Issue**: Different docs reference different counts (7->6 vs 8 services)
+- **Cause**: ollama service added but not reflected in documentation
+- **Impact**: MODERATE - Confusing for operators
+
+## ACCURACY VERIFIED
+
+### Correctly Documented
+- APScheduler >= 3.10.0 in requirements.txt [OK]
+- n8n service removed from docker-compose.yml [OK]
+- Endpoints added correctly (/scheduler/jobs, /health) [OK]
+- Scheduler startup/shutdown handlers in api.py [OK]
+- Daily 7am UTC trigger configuration [OK]
+- Error recovery logic (lifelong-catch-correct) [OK]
+- Webhook endpoints unchanged [OK]
+- 142 lines in scheduler.py [OK]
+
+### Implementation Correctly Matches Docs
+- AsyncIOScheduler imported correctly [OK]
+- CronTrigger for 7am UTC [OK]
+- execute_agent() async [OK]
+- run_daily_content_pipeline() async [OK]
+- Graceful shutdown with wait=True [OK]
+- Job status endpoint format [OK]
+
+## SPECIFIC FILE ISSUES
+
+### SCHEDULER_IMPLEMENTATION_SUMMARY.md
+- Line 170: "Result: 6 containers -> 6 containers (but n8n removed)"
+  FIX: Update to reflect 8 services with ollama
+
+### ARCHITECTURE_BEFORE_AFTER.md
+- Line 9-10: "BEFORE: 7 Containers" - INCORRECT (should be 8)
+- Line 56: "AFTER: 6 Containers" - INCORRECT (should be 7)
+- Missing "ollama" from both diagrams
+
+### DEPLOY_CHECKLIST.md
+- Lines 141-147: Service list is incomplete, missing ollama
+- Should list: caddy, web, runtime, postgres, taylor, backend, uptime, ollama
+
+### SCHEDULER_MIGRATION_GUIDE.md
+- Line 221-222: Container counts outdated
+
+## DEPLOYMENT CHECKLIST VALIDATION
+
+Pre-Deployment: [PASS]
+Local Testing: [PASS]
+Deploy to Git: [PASS]
+CI/CD Wait: [PASS]
+Verification Commands: [PASS] - but service list incomplete
+Revenue Streams: [PASS]
+Post-Deployment: [PASS]
+Monitoring: [PASS]
+Rollback: [PASS]
+Sign-Off: [PASS]
+
+## QUALITY ASSESSMENT
+
+| Aspect | Score | Notes |
+|--------|-------|-------|
+| Technical Accuracy | 75/100 | Container counts wrong, ollama missing |
+| Implementation Accuracy | 95/100 | Code matches docs (except counts) |
+| Completeness | 80/100 | AsyncIOScheduler docs missing |
+| Clarity | 85/100 | Generally clear, some ambiguity |
+| Deployment Safety | 85/100 | Checklist usable but incomplete |
+| OVERALL | 82/100 | USABLE WITH 5 CORRECTIONS REQUIRED |
+
+## ISSUES TO FIX
+
+1. [HIGH] Update container counts from 7->6 to 8->7 in all docs
+2. [HIGH] Add ollama to service lists in verification sections
+3. [HIGH] Update ARCHITECTURE diagrams to show 8 services
+4. [MEDIUM] Document AsyncIOScheduler choice and event loop requirement
+5. [MEDIUM] Add baseline measurements for performance claims or remove claims
+6. [LOW] Add note explaining ollama service added during development
+
+READY FOR DEPLOYMENT: YES - with corrections
+CORRECTIONS REQUIRED BEFORE: Content updates to docs (code is solid)
+

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List
@@ -11,8 +12,11 @@ from pydantic import BaseModel, Field
 from .cost_guard import CostGuard
 from .cycle_log import CycleLog
 from .registry import RegistryError, RuntimeRegistry
+from .scheduler import get_scheduler, start_scheduler, stop_scheduler, get_jobs_status
 from .sovereign_core import SovereignAutomationCore
 from .telegram_gateway import format_runtime_reply, parse_update, send_telegram_message, stable_embedding, verify_secret
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="ProfitEngine Runtime API", version="0.1.0")
 registry = RuntimeRegistry()
@@ -89,14 +93,45 @@ async def add_request_id(request: Request, call_next):
     return response
 
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[api.startup] Initializing ProfitEngine Runtime...")
+    try:
+        start_scheduler()
+        logger.info("[api.startup] ✓ Scheduler started successfully")
+    except Exception as e:
+        logger.error(f"[api.startup] Failed to start scheduler: {e}", exc_info=True)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[api.shutdown] Shutting down ProfitEngine Runtime...")
+    try:
+        stop_scheduler()
+        logger.info("[api.shutdown] ✓ Scheduler stopped")
+    except Exception as e:
+        logger.error(f"[api.shutdown] Error stopping scheduler: {e}", exc_info=True)
+
+
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    sched = get_scheduler()
     return {
         "ok": True,
         "service": "profitengine-runtime",
         "mode": health_cost_guard.status()["mode"],
         "registry": registry.status(),
+        "scheduler": {
+            "running": sched.running,
+            "jobs": len(sched.get_jobs()),
+        },
     }
+
+
+@app.get("/scheduler/jobs")
+def scheduler_jobs() -> Dict[str, Any]:
+    """Return status and details of all scheduled jobs."""
+    return get_jobs_status()
 
 
 @app.get("/agents")
