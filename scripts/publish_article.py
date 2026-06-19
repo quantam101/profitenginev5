@@ -2,7 +2,7 @@
 """
 Standalone article generator + publisher for ProfitEngine.
 
-Generates an SEO article via HuggingFace (primary), Groq, or Gemini and publishes to:
+Generates an SEO article via Groq (primary, free credits), then HuggingFace, then Gemini and publishes to:
   1. GitHub Pages (quantam101/content) — always published
   2. Dev.to (if DEVTO_API_KEY is set)
   3. Hashnode (if HASHNODE_API_KEY and HASHNODE_PUBLICATION_ID set; paid-only since 2026-05-13)
@@ -263,17 +263,9 @@ def generate_article(topic: str) -> Dict[str, Any]:
             "and do not turn the article into an advertisement): "
             + ", ".join(affiliate_keywords)
         )
-    # Try HuggingFace first (primary), then Groq, then Gemini
+    # Try Groq first (free credits), then HuggingFace, then Gemini
     raw = ""
-    if HF_TOKEN:
-        for hf_model in HF_MODELS:
-            try:
-                raw = _call_hf_inference(prompt, model=hf_model)
-                print(f"[AI] Provider: HuggingFace ({hf_model})")
-                break
-            except Exception as e:
-                print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
-    if not raw and GROQ_KEY:
+    if GROQ_KEY:
         for model in GROQ_MODELS:
             try:
                 raw = _call_groq(prompt, model=model)
@@ -281,6 +273,14 @@ def generate_article(topic: str) -> Dict[str, Any]:
                 break
             except Exception as e:
                 print(f"[AI] Groq/{model} failed ({e}), trying next...")
+    if not raw and HF_TOKEN:
+        for hf_model in HF_MODELS:
+            try:
+                raw = _call_hf_inference(prompt, model=hf_model)
+                print(f"[AI] Provider: HuggingFace ({hf_model})")
+                break
+            except Exception as e:
+                print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
     if not raw and GEMINI_KEY:
         try:
             raw = _call_gemini(prompt)

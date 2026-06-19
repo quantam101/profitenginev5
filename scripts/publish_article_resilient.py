@@ -6,7 +6,7 @@ Purpose:
 - Preserve the existing scripts/publish_article.py implementation.
 - Add a deterministic article fallback when all LLM providers fail.
 - Make GitHub Pages publication mandatory instead of silently passing after failure.
-- Keep verify-only mode aligned with the current provider chain: HuggingFace -> Groq -> Gemini.
+- Keep verify-only mode aligned with the current provider chain: Groq (free) -> HuggingFace -> Gemini.
 - Optimize affiliate output so posts monetize without becoming link catalogs.
 - Attach a revenue execution brief so each article becomes a business action trigger.
 """
