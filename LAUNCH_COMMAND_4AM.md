@@ -1,6 +1,18 @@
 # 4 AM LAUNCH — QUICK START
 
-## ONE-LINE LAUNCH
+## BEFORE LAUNCH: Get Finnhub API Key (2 min)
+
+```bash
+# 1. Go to: https://finnhub.io/register
+# 2. Sign up (free)
+# 3. Copy your API key
+# 4. Set environment variable:
+
+$env:FINNHUB_API_KEY = "your_api_key_here"
+```
+
+## ONE-LINE LAUNCH (at 4:00 AM MST)
+
 ```bash
 python deploy_premarket_4am.py
 ```
@@ -10,32 +22,31 @@ python deploy_premarket_4am.py
 ### Console Output (Real-Time)
 ```
 ======================================================================
-PRE-MARKET TRADING SESSION - $1000 TARGET
+PRE-MARKET TRADING SESSION - PAPER TRADING
 ======================================================================
 Start Time: 2026-06-19T04:00:00
 Starting Balance: $100.00
 Target Balance: $1000.00
-Required Daily Return: 128.0%
-Broker Connected: True
+Data Source: Finnhub API (real-time prices)
+Mode: Paper trading until $1000.00
 
-[BROKER CONNECTED] Account: mock_account
-[BROKER CONNECTED] Portfolio: $100.00
+[FINNHUB] Paper trading initialized with $100.00
+[FINNHUB] Auto-switch to real money at $1000.00 threshold
+
+[PAPER] Portfolio: $100.00 (0.0% to target)
 
 ======================================================================
-[TRADE 1] AAPL BUY 6 shares
-  Entry: $150.00
-  Stop: $147.00
-  Target: $154.50
-  Reason: MultiFrame(3/3) + Catalyst(85%) + Compliance OK
+[TRADE 1] AAPL BUY 6 shares @ REAL PRICE $150.42
+  Stop: $147.41 (2%)
+  Target: $154.93 (3%)
   Current Portfolio: $100.00
 
-[PORTFOLIO] $100.50 (0.5% to target)
+[PAPER] Portfolio: $100.87 (0.1% to target)
 
-[TRADE 2] MSFT BUY 3 shares
-  Entry: $151.00
-  Stop: $148.98
-  Target: $155.53
-  Current Portfolio: $101.50
+[TRADE 2] MSFT BUY 3 shares @ REAL PRICE $301.50
+  Stop: $295.47 (2%)
+  Target: $310.55 (3%)
+  Current Portfolio: $101.75
 
 ...
 
@@ -55,8 +66,9 @@ Total Trades: 5
 Win Rate: 100.0%
 Trades Won: 5/5
 Compliance Blocks: 0
+Mode: PAPER TRADING (real money auto-activates at $1000)
 ======================================================================
-PROGRESS! $3.45 gained (daily rate needed: 128.0%)
+PROGRESS! $3.45 gained (daily rate needed: 43% compounded)
 Results saved to premarket_trading_summary.json
 ```
 
