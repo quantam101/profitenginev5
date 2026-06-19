@@ -69,7 +69,7 @@ export default function LandingPage() {
           </details>
 
           <details className="faq-item">
-            <summary className="faq-question">What's the real win rate?</summary>
+            <summary className="faq-question">What&apos;s the real win rate?</summary>
             <p className="faq-answer">
               Our system is currently tracking live win rates across the community, updated every 5
               minutes. Check back to see the latest performance in the metrics above.
@@ -97,7 +97,7 @@ export default function LandingPage() {
             <summary className="faq-question">Is this a scam?</summary>
             <p className="faq-answer">
               No—we show real, verified results from real customers. All metrics on this page update
-              live from our system. We don't make promises we can't prove, and we're transparent
+              live from our system. We don&apos;t make promises we can&apos;t prove, and we&apos;re transparent
               about risks. Check our <a href="/api/landing-metrics">public API</a> to verify
               everything independently.
             </p>
@@ -106,8 +106,8 @@ export default function LandingPage() {
           <details className="faq-item">
             <summary className="faq-question">What happens if the market crashes?</summary>
             <p className="faq-answer">
-              We have stop-loss orders and risk management built in. Our system doesn't guarantee
-              profits—no system can. We're designed to minimize losses and maximize consistent
+              We have stop-loss orders and risk management built in. Our system doesn&apos;t guarantee
+              profits—no system can. We&apos;re designed to minimize losses and maximize consistent
               gains. Real results are shown above.
             </p>
           </details>

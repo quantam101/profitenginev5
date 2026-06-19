@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface RevenueMetrics {
   timestamp: string;
@@ -309,7 +310,7 @@ const LeaderboardTable = ({
                       ? cell > 1000 && cell !== Math.floor(cell)
                         ? `$${(cell / 1000).toFixed(1)}k`
                         : cell.toLocaleString()
-                      : cell}
+                      : (cell as React.ReactNode)}
                   </td>
                 ))}
               </tr>
@@ -432,22 +433,22 @@ export default function RevenueDashboard() {
       <section style={{ maxWidth: 1280, margin: '0 auto' }}>
         {/* Navigation */}
         <nav style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 56 }}>
-          <a href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
+          <Link href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
             ProfitEngine v5
-          </a>
+          </Link>
           <div style={{ display: 'flex', gap: 24 }}>
-            <a href="/command-center" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+            <Link href="/command-center" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
               Command Center
-            </a>
-            <a href="/command-center/trading" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+            </Link>
+            <Link href="/command-center/trading" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
               Trading
-            </a>
-            <a href="/command-center/revenue" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 600 }}>
+            </Link>
+            <Link href="/command-center/revenue" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 600 }}>
               Revenue
-            </a>
-            <a href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+            </Link>
+            <Link href="/ai-vp" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
               AI VP
-            </a>
+            </Link>
           </div>
         </nav>
 

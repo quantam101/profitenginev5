@@ -256,19 +256,21 @@ export async function getSectionMetrics(): Promise<SectionMetrics[]> {
   }
 }
 
-export default {
-  trackConversion,
-  trackCtaClick,
-  trackSignup,
-  trackTierSelected,
-  trackFaqOpen,
-  trackMetricView,
-  trackPerformerView,
-  trackChartInteraction,
-  trackLinkClick,
-  trackScrollDepth,
-  getConversionMetrics,
-  getSectionMetrics,
-  initializeTracking,
-  UTMBuilder,
-};
+export default function ConversionTracker() {
+  return {
+    trackConversion,
+    trackCtaClick,
+    trackSignup,
+    trackTierSelected,
+    trackFaqOpen,
+    trackMetricView,
+    trackPerformerView,
+    trackChartInteraction,
+    trackLinkClick,
+    trackScrollDepth,
+    getConversionMetrics,
+    getSectionMetrics,
+    initializeTracking,
+    UTMBuilder,
+  };
+}

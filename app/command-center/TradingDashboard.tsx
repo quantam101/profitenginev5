@@ -133,7 +133,7 @@ const LeaderboardTable = ({
                       textAlign: cidx === 0 ? 'left' : 'right',
                     }}
                   >
-                    {cell}
+                    {cell as React.ReactNode}
                   </td>
                 ))}
               </tr>

@@ -23,10 +23,19 @@
  *   });
  */
 
-import Database from 'better-sqlite3';
+'use server';
+
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import path from 'path';
+
+// Lazy load better-sqlite3 to avoid build errors when module is not installed
+let Database: any;
+try {
+  Database = require('better-sqlite3');
+} catch (e) {
+  Database = null;
+}
 
 export interface User {
   id: number;
@@ -81,10 +90,14 @@ export interface DailyTradesInput {
 }
 
 export class ClientsDB {
-  private db: Database.Database;
+  private db: any;
   private dbPath: string;
 
   constructor(dbPath?: string) {
+    if (!Database) {
+      throw new Error('better-sqlite3 module not installed. Run: npm install better-sqlite3');
+    }
+
     if (!dbPath) {
       // Default to project root/clients.db
       const projectRoot = path.resolve(__dirname, '..');

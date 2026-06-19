@@ -493,7 +493,7 @@ function SuccessSection() {
         Verification Submitted!
       </h2>
       <p style={{ color: '#9fb0c6', fontSize: '16px', lineHeight: '1.6', marginBottom: '24px' }}>
-        Your KYC information has been received. We'll review your submission within 24 hours.
+        Your KYC information has been received. We&apos;ll review your submission within 24 hours.
       </p>
       <p style={{ color: '#9fb0c6', fontSize: '14px', marginBottom: '24px' }}>
         Check your email for status updates and next steps.

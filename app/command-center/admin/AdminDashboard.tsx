@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import SystemControlTab from './tabs/SystemControlTab';
 import CustomerManagementTab from './tabs/CustomerManagementTab';
 import TradingSignalsTab from './tabs/TradingSignalsTab';
@@ -62,16 +63,16 @@ const AdminDashboard = ({ session }: { session: AdminSessionData }) => {
         {/* Header */}
         <header style={{ marginBottom: 36 }}>
           <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <a href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800, fontSize: 18 }}>
+            <Link href="/" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800, fontSize: 18 }}>
               ProfitEngine v5
-            </a>
+            </Link>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: '#a8bed0' }}>
               <div>
                 <span style={{ color: '#7dd3fc' }}>Admin:</span> {session.email || 'Unknown'}
               </div>
-              <a href="/command-center" style={{ color: '#7dd3fc', textDecoration: 'none' }}>
+              <Link href="/command-center" style={{ color: '#7dd3fc', textDecoration: 'none' }}>
                 ← Back to Command Center
-              </a>
+              </Link>
             </div>
           </nav>
 

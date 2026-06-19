@@ -384,7 +384,7 @@ export default function ExportPage() {
               Can I use the CSV export in TurboTax or tax software?
             </h4>
             <p style={styles.faqAnswer}>
-              Yes! Use the "Tax Report CSV" format which includes cost basis,
+              Yes! Use the &quot;Tax Report CSV&quot; format which includes cost basis,
               proceeds, and holding period. Consult your tax software for import
               instructions.
             </p>

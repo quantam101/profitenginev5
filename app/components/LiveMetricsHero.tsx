@@ -85,7 +85,7 @@ function TopPerformerCard({ rank, tier, winRate, pnl30d, tradeDays, description 
           Trading Days: <span className="stat-value">{tradeDays}</span>
         </div>
       </div>
-      <div className="performer-description">"{description}"</div>
+      <div className="performer-description">&quot;{description}&quot;</div>
     </div>
   );
 }
