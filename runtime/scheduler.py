@@ -1,10 +1,22 @@
 """
 APScheduler integration for ProfitEngine automated workflows.
-Replaces n8n with native Python scheduling.
+Replaces n8n with native Python scheduling using AsyncIOScheduler.
+
+Architecture:
+  - Uses AsyncIOScheduler (not BackgroundScheduler) to support async jobs
+  - Runs natively in FastAPI's event loop for proper async/await execution
+  - Jobs execute in the same process as the API (no HTTP overhead)
 
 Workflows:
   - Daily content pipeline at 7am UTC (content-pipeline agent + error recovery)
   - Webhook endpoints for external triggers (blog crosspost, call logging, etc.)
+
+Why AsyncIOScheduler?
+  - The scheduler must execute async functions (run_daily_content_pipeline)
+  - BackgroundScheduler only supports sync functions → would silently fail
+  - AsyncIOScheduler integrates with FastAPI's event loop perfectly
+  - No separate thread pool or process needed → simpler deployment
+  - Lower memory footprint than thread-pool alternatives
 """
 
 import logging
@@ -37,10 +49,10 @@ async def execute_agent(
     system_declaration: str = "Registry-governed scheduled execution.",
 ) -> Dict[str, Any]:
     """
-    Execute an agent via the registry.
+    Execute an agent via the registry (scheduler context, no HTTP).
     Imported locally to avoid circular dependencies at module load time.
     """
-    from .api import execute, ExecuteRequest
+    from .api import _execute_agent_internal, ExecuteRequest
 
     req = ExecuteRequest(
         objective=objective,
@@ -49,7 +61,7 @@ async def execute_agent(
         system_declaration=system_declaration,
         actor="scheduler",
     )
-    return execute(req)
+    return await _execute_agent_internal(req)
 
 
 async def run_daily_content_pipeline() -> None:

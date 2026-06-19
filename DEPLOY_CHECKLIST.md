@@ -137,7 +137,7 @@ ssh opc@129.146.167.73
 # 1. Check running containers
 docker compose ps
 
-# Should show (no n8n):
+# Should show (no n8n, ollama under local-llm profile):
 # caddy     ✓
 # web       ✓
 # runtime   ✓ (new with scheduler)
@@ -145,6 +145,7 @@ docker compose ps
 # taylor    ✓
 # backend   ✓
 # uptime    ✓
+# ollama    ✓ (optional, local-llm profile only)
 
 # 2. Check runtime logs
 docker compose logs runtime | tail -20

@@ -482,9 +482,8 @@ def income_summary() -> Dict[str, Any]:
     return summary
 
 
-@app.post("/execute")
-def execute(payload: ExecuteRequest, request: Request) -> Dict[str, Any]:
-    _check_webhook_token(request)
+async def _execute_agent_internal(payload: ExecuteRequest) -> Dict[str, Any]:
+    """Internal agent execution without HTTP context. Used by both HTTP routes and scheduler."""
     try:
         core = SovereignAutomationCore()
         result = core.execute(
@@ -496,13 +495,20 @@ def execute(payload: ExecuteRequest, request: Request) -> Dict[str, Any]:
             actor=payload.actor,
             agent_id=payload.agent_id,
         )
+        return asdict(result)
     except RegistryError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return asdict(result)
+
+
+@app.post("/execute")
+async def execute(payload: ExecuteRequest, request: Request) -> Dict[str, Any]:
+    """HTTP route for agent execution with webhook token validation."""
+    _check_webhook_token(request)
+    return await _execute_agent_internal(payload)
 
 
 def _check_webhook_token(request: Request) -> None:

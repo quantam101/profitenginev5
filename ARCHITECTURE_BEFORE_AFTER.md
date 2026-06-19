@@ -5,10 +5,10 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PRODUCTION OCI SERVER                     │
-│                      129.146.167.73 (OCI A1 Arm)                 │
+│                      129.146.167.73 (OCI A1 ARM)                 │
 │                                                                   │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ DOCKER COMPOSE (7 Containers)                           │   │
+│  │ DOCKER COMPOSE (8 Containers + n8n)                     │   │
 │  │                                                          │   │
 │  │  ┌────────────┐   ┌────────────┐   ┌──────────────┐    │   │
 │  │  │  Caddy     │   │  Postgres  │   │ Uptime Kuma  │    │   │
@@ -50,10 +50,10 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PRODUCTION OCI SERVER                     │
-│                      129.146.167.73 (OCI A1 Arm)                 │
+│                      129.146.167.73 (OCI A1 ARM)                 │
 │                                                                   │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ DOCKER COMPOSE (6 Containers)                           │   │
+│  │ DOCKER COMPOSE (8 Containers, n8n removed)              │   │
 │  │                                                          │   │
 │  │  ┌────────────┐   ┌────────────┐   ┌──────────────┐    │   │
 │  │  │  Caddy     │   │  Postgres  │   │ Uptime Kuma  │    │   │
@@ -219,18 +219,18 @@ Direct Python function call (no HTTP)
 
 ## Operational Impact
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| **Containers** | 7 | 6 |
-| **Memory** | ~8 GB | ~7 GB |
-| **CPU cores** | 5.5 | 4.5 |
-| **Disk space** | ~500 MB + n8n vol | ~400 MB |
-| **Startup time** | 60-90s | 40-60s |
-| **Monitoring** | Caddy + n8n + logs | Caddy + logs |
-| **Debugging** | Cross-system | Single process |
-| **Maintenance** | n8n UI + Python | Python only |
+| Aspect | Before (with n8n) | After (APScheduler) | Savings |
+|--------|-------------------|-------------------|---------|
+| **Containers** | 8 + n8n | 8 (n8n removed) | 1 container |
+| **Memory** | ~9 GB | ~8 GB | ~1 GB |
+| **CPU cores** | 6 | 5 | ~1 core |
+| **Disk space** | ~500 MB + n8n vol | ~400 MB | ~150 MB + vol |
+| **Startup time** | 90-120s | 60-90s | ~30s faster |
+| **Monitoring** | Caddy + n8n + logs | Caddy + logs | Simpler |
+| **Debugging** | Cross-system (n8n ↔ runtime) | Single process | Easier |
+| **Maintenance** | n8n UI + Python code | Python code only | Less overhead |
 
-**Verdict**: Simpler, faster, lower resource footprint.
+**Verdict**: 1 GB freed, 1 CPU core freed, simpler monitoring/debugging, single unified codebase.
 
 ---
 
