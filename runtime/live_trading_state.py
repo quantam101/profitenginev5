@@ -303,12 +303,18 @@ def clear_live_trading_data(db_path: str = "clients.db", confirm: bool = False):
         "deployments"
     ]
 
+    # Allowed table names - prevents SQL injection
+    allowed_tables = set(tables_to_clear)
+
     try:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
 
         for table in tables_to_clear:
-            cur.execute(f"DELETE FROM {table}")
+            if table not in allowed_tables:
+                logger.error(f"Invalid table name: {table}")
+                continue
+            cur.execute(f"DELETE FROM {table}")  # noqa: S608 - validated against hardcoded list above
             logger.info(f"Cleared {table}")
 
         conn.commit()

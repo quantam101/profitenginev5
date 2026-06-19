@@ -1084,7 +1084,7 @@ class StripePaymentProcessor:
     def _generate_id(self, prefix: str) -> str:
         """Generate unique ID with prefix"""
         timestamp = str(int(time.time() * 1000))
-        random_part = hashlib.md5(
+        random_part = hashlib.sha256(
             f"{prefix}{timestamp}".encode()
         ).hexdigest()[:8]
         return f"{prefix}-{timestamp}-{random_part}"
