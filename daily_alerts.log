@@ -1,8 +1,0 @@
-2026-06-18 20:26:52,206 - __main__ - WARNING - No email provider fully configured
-2026-06-18 20:26:52,206 - __main__ - INFO - Generating daily alert...
-2026-06-18 20:26:52,213 - __main__ - ERROR - Error querying daily P&L: no such column: pnl_usd
-2026-06-18 20:26:52,213 - __main__ - ERROR - Error querying top performers: no such column: c.client_id
-2026-06-18 20:26:52,214 - __main__ - ERROR - Error querying new signups: no such column: client_id
-2026-06-18 20:26:52,214 - __main__ - ERROR - Error querying upsell candidates: no such column: c.client_id
-2026-06-18 20:27:50,659 - __main__ - WARNING - No email provider fully configured
-2026-06-18 20:27:50,661 - __main__ - INFO - Generating daily alert...
