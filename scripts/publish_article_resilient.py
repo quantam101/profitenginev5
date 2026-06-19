@@ -38,6 +38,13 @@ except (ImportError, AttributeError) as e:
     print(f"[WARN] ecommerce_publishers import failed: {e}")
     publish_to_all_ecommerce = None  # type: ignore[assignment]
 
+try:
+    from priority_publishers import publish_to_priority_platforms, generate_priority_report
+except (ImportError, AttributeError) as e:
+    print(f"[WARN] priority_publishers import failed: {e}")
+    publish_to_priority_platforms = None  # type: ignore[assignment]
+    generate_priority_report = None  # type: ignore[assignment]
+
 _ORIGINAL_VERIFY_AI_PROVIDER: Callable[[], bool] = publisher._verify_ai_provider  # type: ignore[attr-defined]
 _ORIGINAL_AFFILIATE_MAP: Callable[[], Dict[str, str]] = publisher._affiliate_map  # type: ignore[attr-defined]
 
@@ -733,6 +740,306 @@ def _create_printify_product(article: Dict[str, Any], product_type: str) -> Opti
         }
 
 
+def _extract_tips_from_article(article: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Extract 5-10 'Tip of the Day' posts from article content."""
+    body = str(article.get("body", ""))
+    title = str(article.get("title", ""))
+    tags = article.get("tags", [])
+
+    tips = []
+
+    # Extract tips from section headers
+    sections = re.split(r'^## ', body, flags=re.MULTILINE)[1:]
+
+    for i, section in enumerate(sections[:10], 1):
+        lines = section.split('\n')
+        section_title = lines[0] if lines else "Tip"
+        section_body = '\n'.join(lines[1:])
+
+        # Extract first 1-2 sentences as tip
+        sentences = re.split(r'(?<=[.!?])\s+', section_body)
+        if sentences:
+            tip_text = ' '.join(sentences[:2]).strip()
+            if len(tip_text) > 20:
+                tips.append({
+                    "title": f"Tip {i}: {section_title[:50]}",
+                    "content": tip_text[:280],  # Keep short for social
+                    "source_article": title,
+                    "tags": tags,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+
+    return tips[:10]
+
+
+def _generate_video_script(article: Dict[str, Any]) -> Dict[str, str]:
+    """Generate short-form video script from article (for TikTok/Reels)."""
+    title = str(article.get("title", ""))
+    body = str(article.get("body", ""))
+    tags = article.get("tags", [])
+
+    # Extract 2-3 key points for 15-30 second video
+    sentences = re.split(r'(?<=[.!?])\s+', body)
+    key_points = [s.strip() for s in sentences if len(s.strip()) > 30][:3]
+
+    script_lines = [
+        f"Did you know? {title}",
+        "",
+    ]
+
+    for i, point in enumerate(key_points, 1):
+        # Truncate to video-friendly length
+        truncated = point[:120] + ("..." if len(point) > 120 else "")
+        script_lines.append(f"{i}. {truncated}")
+
+    script_lines.extend([
+        "",
+        "Read the full article for implementation details.",
+        "Link in bio / Check pinned comment",
+    ])
+
+    return {
+        "platform": "short_form",  # TikTok, Instagram Reels, YouTube Shorts
+        "duration": "15-30 seconds",
+        "script": "\n".join(script_lines),
+        "tags": tags,
+        "hashtags": ["#" + t for t in tags[:5]] + ["#automation", "#smallbusiness"],
+        "cta": "Read full article",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _generate_youtube_ai_video_option(article: Dict[str, Any]) -> Dict[str, str]:
+    """Generate AI video script for YouTube (longer form, 3-5 min)."""
+    title = str(article.get("title", ""))
+    body = str(article.get("body", ""))
+    tags = article.get("tags", [])
+
+    # Break body into sections for video chapters
+    sections = re.split(r'^## ', body, flags=re.MULTILINE)[1:]
+
+    chapters = []
+    for i, section in enumerate(sections[:5], 1):
+        lines = section.split('\n')
+        section_title = lines[0] if lines else f"Point {i}"
+        section_body = '\n'.join(lines[1:])
+
+        # Extract first 2-3 sentences
+        sentences = re.split(r'(?<=[.!?])\s+', section_body)
+        chapter_content = ' '.join(sentences[:3]).strip()
+
+        chapters.append({
+            "timestamp": f"0:{i*45}-0:{(i+1)*45}",  # Rough timing estimate
+            "title": section_title[:60],
+            "content": chapter_content[:500],
+        })
+
+    intro = f"In this video, we explore {title.lower()}. Whether you're looking to improve efficiency, increase revenue, or reduce risk, this guide walks you through practical implementation steps."
+
+    outro = f"If this was helpful, please like and subscribe for more automation and revenue strategies. Check the description for the full article, ebook, and related resources."
+
+    return {
+        "platform": "youtube",
+        "duration": "3-5 minutes",
+        "title": f"{title} - Complete Guide",
+        "intro": intro,
+        "chapters": chapters,
+        "outro": outro,
+        "tags": tags,
+        "description_highlights": [
+            "Full article available on our blog",
+            "Free ebook PDF download link",
+            "Related videos in playlist",
+            "Implementation checklist in comments",
+        ],
+        "thumbnail_description": f"{title} - Small Business Automation",
+        "cta_timestamp": "3:45",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _create_newsletter_issue(article: Dict[str, Any], canonical_url: str) -> Dict[str, str]:
+    """Create a newsletter issue featuring the article."""
+    title = str(article.get("title", ""))
+    body = str(article.get("body", ""))
+    tags = article.get("tags", [])
+
+    # Extract summary (first 2-3 paragraphs)
+    paragraphs = body.split('\n\n')
+    summary = '\n\n'.join(paragraphs[:2])
+
+    # Extract action items from Revenue Execution Brief
+    action_section = ""
+    if "## Revenue Execution Brief" in body:
+        brief_start = body.find("## Revenue Execution Brief")
+        action_section = body[brief_start:brief_start+1000]
+
+    newsletter_content = f"""Subject: {title} + Implementation Guide
+
+Hi there,
+
+We just published a detailed guide on {title.lower()}.
+
+**Key Takeaway:**
+{summary[:250]}...
+
+**What You'll Learn:**
+- Practical workflow steps
+- Revenue-focused implementation
+- First actions to take this week
+- Risk controls and margin rules
+
+**Read the Full Article:**
+{canonical_url}
+
+**Download the Ebook:**
+Premium version with checklists and templates available on Gumroad.
+
+{action_section if action_section else ""}
+
+**Next Steps:**
+1. Read the article (5-10 min)
+2. Pick one revenue event to improve
+3. Build your minimum working system
+4. Share your results with us
+
+Questions? Reply to this email.
+
+Best,
+Already Here LLC
+---
+Practical AI automation for small business revenue
+dispatch@alreadyherellc.com"""
+
+    return {
+        "type": "newsletter",
+        "title": f"Newsletter Issue: {title}",
+        "subject": f"{title} + Implementation Guide",
+        "content": newsletter_content,
+        "featured_article_url": canonical_url,
+        "tags": tags,
+        "send_to_segments": ["all_subscribers"],
+        "estimated_read_time": "5-7 minutes",
+        "cta_primary": "Read Full Article",
+        "cta_primary_url": canonical_url,
+        "cta_secondary": "Download Ebook",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _create_news_update(article: Dict[str, Any], canonical_url: str) -> Dict[str, str]:
+    """Create a news/update post from article."""
+    title = str(article.get("title", ""))
+    body = str(article.get("body", ""))
+    tags = article.get("tags", [])
+
+    # Extract key insight
+    sentences = re.split(r'(?<=[.!?])\s+', body)
+    key_insight = next((s.strip() for s in sentences if len(s.strip()) > 50), body[:150])
+
+    return {
+        "type": "news_update",
+        "headline": f"UPDATE: {title}",
+        "summary": key_insight[:280],
+        "full_article_url": canonical_url,
+        "tags": tags,
+        "priority": "high" if any(t in tags for t in ["revenue", "automation", "ai"]) else "normal",
+        "notification": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _build_unified_distribution_plan(
+    article: Dict[str, Any],
+    canonical_url: str,
+) -> Dict[str, Any]:
+    """Build unified content distribution plan from single article."""
+    title = str(article.get("title", ""))
+    body = str(article.get("body", ""))
+    word_count = _word_count(body)
+
+    # Extract all content variants
+    tips = _extract_tips_from_article(article)
+    short_video = _generate_video_script(article)
+    long_video = _generate_youtube_ai_video_option(article)
+    newsletter = _create_newsletter_issue(article, canonical_url)
+    news_update = _create_news_update(article, canonical_url)
+
+    # Count total distribution channels
+    total_channels = 10 + (len(tips) // 2)  # Base 10 + social tips
+
+    return {
+        "article": {
+            "title": title,
+            "url": canonical_url,
+            "word_count": word_count,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "distribution_plan": {
+            "primary_channels": {
+                "blog": canonical_url,
+                "ebook": "gumroad",
+                "pod_products": "printify",
+                "newsletter": newsletter,
+                "news_update": news_update,
+            },
+            "short_form_content": {
+                "tiktok_reels_shorts": short_video,
+                "tips_of_day": tips,
+                "tips_count": len(tips),
+            },
+            "long_form_content": {
+                "youtube_video": long_video,
+                "video_chapters": len(long_video.get("chapters", [])),
+            },
+        },
+        "content_variants_generated": {
+            "blog_article": 1,
+            "ebook": 1,
+            "pod_products": "2-3",
+            "newsletter_issues": 1,
+            "news_updates": 1,
+            "short_videos": 1,
+            "video_scripts": 1,
+            "daily_tips": len(tips),
+            "total_content_pieces": 1 + 1 + 3 + 1 + 1 + len(tips) + 1,
+        },
+        "reach_estimate": {
+            "total_channels": total_channels,
+            "blog_traffic_estimate": "50-200 organic views",
+            "social_reach_estimate": "500-2000 impressions",
+            "newsletter_reach_estimate": "100-500 subscribers",
+            "revenue_potential_usd": {
+                "ebook_sales_low": 0.5,
+                "ebook_sales_high": 50.0,
+                "pod_sales_low": 5.0,
+                "pod_sales_high": 100.0,
+                "total_potential_low": 5.50,
+                "total_potential_high": 150.0,
+                "realistic_estimate": 50.0,
+            },
+        },
+        "implementation_timeline": {
+            "content_generation": "1-2 hours",
+            "distribution": "2-4 hours",
+            "monitoring": "ongoing",
+            "total_effort_estimate": "3-6 hours",
+        },
+        "next_actions": [
+            "Review and approve all generated content variants",
+            "Schedule social media posts (spread over 2 weeks)",
+            "Publish newsletter issue to email list",
+            "Queue YouTube video for editing and upload",
+            "Approve POD product designs on Printify",
+            "Monitor conversion metrics across all channels",
+            "Collect customer feedback on article usefulness",
+            "Link related articles to new content",
+            "Create follow-up content series on trending angle",
+            "Analyze which channel drives most conversions",
+        ],
+    }
+
+
 def _build_monetization_report(
     article: Dict[str, Any],
     canonical_url: str,
@@ -765,6 +1072,9 @@ def _build_monetization_report(
     # Social platform counts
     social_count = len([v for k, v in social_results.items() if isinstance(v, dict) and v.get("status") == "success"])
 
+    # Extract tips for distribution
+    tips = _extract_tips_from_article(article)
+
     # Estimate revenue potential
     revenue_estimate = {
         "gumroad_ebook": GUMROAD_BASE_PRICE if ebook_created else 0,
@@ -796,6 +1106,7 @@ def _build_monetization_report(
         },
         "distribution": {
             "social_platforms": social_count,
+            "daily_tips_queued": len(tips),
             "canonical_url": canonical_url,
         },
         "revenue_potential": revenue_estimate,
@@ -805,6 +1116,9 @@ def _build_monetization_report(
             "Add product links to related articles",
             "Create email sequence promoting the ebook",
             "Track affiliate clicks and conversions",
+            "Publish daily tips across social platforms",
+            "Queue short-form video content for distribution",
+            "Schedule newsletter issue delivery",
         ],
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
@@ -906,6 +1220,27 @@ def main() -> None:
                 distribution_report["social_media"][platform] = {"status": "skipped", "reason": "no_credentials"}
                 distribution_report["summary"]["skipped"] += 1
 
+        # Priority Stack Publishing (B - Dev.to, Hashnode, Beehiiv, Telegram, YouTube)
+        if publish_to_priority_platforms is not None:
+            try:
+                priority_results = publish_to_priority_platforms(article)
+                priority_report = generate_priority_report(article, priority_results) if generate_priority_report else {}
+                distribution_report["priority_platforms"] = {
+                    "platforms": priority_results,
+                    "report": priority_report
+                }
+                print(f"[DISTRIBUTE][OK] Priority platforms distribution completed")
+            except (ImportError, AttributeError) as e:
+                print(f"[DISTRIBUTE][SKIP] Priority publishers module unavailable (missing dependencies): {e}")
+                distribution_report["priority_platforms"] = {"status": "skipped", "reason": "module_unavailable"}
+            except Exception as exc:
+                exc_msg = str(exc).encode('ascii', 'replace').decode('ascii')
+                print(f"[DISTRIBUTE][WARN] Priority platforms distribution failed: {exc_msg}")
+                distribution_report["priority_platforms"] = {"status": "failed", "error": exc_msg}
+        else:
+            print("[DISTRIBUTE][SKIP] Priority publishers module not available (import failed)")
+            distribution_report["priority_platforms"] = {"status": "skipped", "reason": "module_import_failed"}
+
         # E-commerce Distribution (includes Gumroad & Printify)
         ecommerce_creds = _check_ecommerce_credentials()
         ecommerce_results_all = {}
@@ -971,6 +1306,10 @@ def main() -> None:
             len([k for k in distribution_report["ecommerce"].keys()])
         )
 
+        # Build unified distribution plan
+        print("[DISTRIBUTE] Building unified content distribution plan...")
+        unified_plan = _build_unified_distribution_plan(article, canonical_url)
+
         # Build monetization report
         monetization_report = _build_monetization_report(
             article,
@@ -978,6 +1317,124 @@ def main() -> None:
             distribution_report["social_media"],
             distribution_report["ecommerce"],
         )
+
+        # Generate content dashboard
+        tips = _extract_tips_from_article(article)
+        short_video = _generate_video_script(article)
+        long_video = _generate_youtube_ai_video_option(article)
+        newsletter = _create_newsletter_issue(article, canonical_url)
+        news_update = _create_news_update(article, canonical_url)
+
+        content_dashboard = {
+            "report_date": datetime.now(timezone.utc).isoformat(),
+            "article": {
+                "title": article.get("title", ""),
+                "canonical_url": canonical_url,
+                "word_count": _word_count(article.get("body", "")),
+                "tags": article.get("tags", []),
+            },
+            "generated_content_items": {
+                "blog_article": {
+                    "status": "published",
+                    "url": canonical_url,
+                    "distribution_channels": 1,
+                },
+                "ebook": {
+                    "status": "queued" if GUMROAD_ENABLED else "disabled",
+                    "price": GUMROAD_BASE_PRICE if GUMROAD_ENABLED else None,
+                    "distribution_channels": 1,
+                },
+                "pod_products": {
+                    "count": len(_get_product_suggestions(article)),
+                    "types": _get_product_suggestions(article),
+                    "status": "queued" if PRINTIFY_ENABLED else "disabled",
+                    "distribution_channels": len(_get_product_suggestions(article)),
+                },
+                "daily_tips": {
+                    "count": len(tips),
+                    "status": "ready_for_distribution",
+                    "distribution_channels": len(tips) * 5,  # Each tip can go to multiple platforms
+                    "sample_tips": [{"title": t.get("title", ""), "content": t.get("content", "")} for t in tips[:3]],
+                },
+                "short_form_videos": {
+                    "script_generated": True,
+                    "platforms": ["tiktok", "instagram_reels", "youtube_shorts"],
+                    "duration": "15-30 seconds",
+                    "script_preview": short_video.get("script", "")[:200],
+                    "hashtags": short_video.get("hashtags", []),
+                    "distribution_channels": 3,
+                },
+                "long_form_video": {
+                    "script_generated": True,
+                    "platform": "youtube",
+                    "duration": "3-5 minutes",
+                    "chapters": len(long_video.get("chapters", [])),
+                    "title": long_video.get("title", ""),
+                    "distribution_channels": 1,
+                },
+                "newsletter_issue": {
+                    "status": "ready_to_send",
+                    "subject": newsletter.get("subject", ""),
+                    "estimated_reach": "100-500 subscribers",
+                    "distribution_channels": 1,
+                },
+                "news_update": {
+                    "status": "ready_to_publish",
+                    "headline": news_update.get("headline", ""),
+                    "priority": news_update.get("priority", "normal"),
+                    "distribution_channels": 1,
+                },
+            },
+            "distribution_summary": {
+                "total_content_pieces_generated": (
+                    1 +  # Blog article
+                    (1 if GUMROAD_ENABLED else 0) +  # Ebook
+                    (len(_get_product_suggestions(article)) if PRINTIFY_ENABLED else 0) +  # POD products
+                    len(tips) +  # Daily tips
+                    1 +  # Short video
+                    1 +  # Long video
+                    1 +  # Newsletter
+                    1  # News update
+                ),
+                "total_distribution_channels": (
+                    1 +  # Blog
+                    1 +  # Gumroad
+                    (len(_get_product_suggestions(article)) if PRINTIFY_ENABLED else 0) +  # Printify
+                    (len(tips) * 5) +  # Tips across platforms
+                    3 +  # Short video (TikTok, Reels, Shorts)
+                    1 +  # YouTube
+                    (len(distribution_report.get("social_media", {})) or 0) +  # Social platforms
+                    1 +  # Newsletter
+                    1  # News update
+                ),
+                "revenue_potential": {
+                    "ebook_revenue": GUMROAD_BASE_PRICE if GUMROAD_ENABLED else 0,
+                    "pod_revenue_conservative": (len(_get_product_suggestions(article)) * 5.0) if PRINTIFY_ENABLED else 0,
+                    "estimated_total_low": (GUMROAD_BASE_PRICE if GUMROAD_ENABLED else 0) + (len(_get_product_suggestions(article)) * 5.0 if PRINTIFY_ENABLED else 0),
+                    "estimated_total_high": (GUMROAD_BASE_PRICE * 10 if GUMROAD_ENABLED else 0) + (len(_get_product_suggestions(article)) * 20.0 if PRINTIFY_ENABLED else 0),
+                    "currency": "USD",
+                },
+            },
+            "implementation_checklist": [
+                "Review and approve all generated content",
+                "Upload short-form video script to TikTok/Reels/Shorts editor",
+                "Send newsletter issue to email subscribers",
+                "Post daily tips to social media (staggered schedule)",
+                "Approve POD product designs on Printify",
+                "Schedule YouTube video for editing and publishing",
+                "Monitor conversion metrics across all channels",
+                "Collect feedback on article usefulness",
+                "Update internal links from related content",
+                "Plan next content cluster topic based on performance",
+            ],
+            "next_steps": [
+                "1. Review this dashboard and approve content",
+                "2. Begin scheduling social posts (1 tip per day)",
+                "3. Upload and publish video content",
+                "4. Monitor metrics daily for first week",
+                "5. Scale top-performing content to more platforms",
+            ],
+        }
 
         # Save distribution report
         report_file = f"distribution_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
@@ -997,6 +1454,24 @@ def main() -> None:
         except Exception as exc:
             print(f"[MONETIZE][WARN] Failed to save monetization report: {exc}")
 
+        # Save unified distribution plan
+        unified_plan_file = f"unified_distribution_plan_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+        try:
+            with open(unified_plan_file, "w") as f:
+                json.dump(unified_plan, f, indent=2)
+            print(f"[DISTRIBUTE][OK] Unified plan saved to {unified_plan_file}")
+        except Exception as exc:
+            print(f"[DISTRIBUTE][WARN] Failed to save unified plan: {exc}")
+
+        # Save content dashboard
+        dashboard_file = f"content_dashboard_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+        try:
+            with open(dashboard_file, "w") as f:
+                json.dump(content_dashboard, f, indent=2)
+            print(f"[DASHBOARD][OK] Content dashboard saved to {dashboard_file}")
+        except Exception as exc:
+            print(f"[DASHBOARD][WARN] Failed to save content dashboard: {exc}")
+
         # Log summary
         print(f"[DISTRIBUTE][SUMMARY] Successful: {distribution_report['summary']['successful']}, "
               f"Failed: {distribution_report['summary']['failed']}, "
@@ -1005,10 +1480,19 @@ def main() -> None:
         # Log monetization summary
         ebook_status = "CREATED" if monetization_report.get("monetization", {}).get("ebook", {}).get("created") else "NOT CREATED"
         pod_count = len(monetization_report.get("monetization", {}).get("pod_products", {}).get("products", []))
-        print(f"[MONETIZE][SUMMARY] Ebook: {ebook_status}, POD Products Queued: {pod_count}")
+        total_tips = len(_extract_tips_from_article(article))
+        print(f"[MONETIZE][SUMMARY] Ebook: {ebook_status}, POD Products Queued: {pod_count}, Daily Tips: {total_tips}")
+
+        # Log distribution summary
+        total_channels = content_dashboard.get("distribution_summary", {}).get("total_distribution_channels", 0)
+        revenue_low = content_dashboard.get("distribution_summary", {}).get("revenue_potential", {}).get("estimated_total_low", 0)
+        revenue_high = content_dashboard.get("distribution_summary", {}).get("revenue_potential", {}).get("estimated_total_high", 0)
+        print(f"[DASHBOARD][SUMMARY] Total Channels: {total_channels}, Revenue Potential: ${revenue_low}-${revenue_high}")
 
         publish_state["distribution_report"] = distribution_report
         publish_state["monetization_report"] = monetization_report
+        publish_state["unified_plan"] = unified_plan
+        publish_state["content_dashboard"] = content_dashboard
 
 
 if __name__ == "__main__":
