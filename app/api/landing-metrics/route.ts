@@ -1,15 +1,17 @@
 /**
  * Landing Page Metrics API
- * Returns real-time trading metrics from clients.db via landing_page_generator.py
+ * Returns runtime trading metrics from clients.db via landing_page_generator.py.
  *
  * Endpoint: GET /api/landing-metrics
- * Cache: 5 minutes (matches update frequency)
+ * Cache: runtime response cache only
  * Response: JSON with hero, social proof, performance, pricing, and trust metrics
  */
 
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
-import path from 'path';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Cache metrics in memory with 5-minute TTL
 interface CachedMetrics {
@@ -21,7 +23,9 @@ let cachedMetrics: CachedMetrics | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Execute Python landing_page_generator to collect metrics
+ * Execute Python landing_page_generator to collect metrics.
+ * This must stay runtime-only because Vercel build workers do not have the
+ * production SQLite tables mounted.
  */
 async function getLandingMetrics(): Promise<any> {
   // Check cache first
@@ -32,9 +36,6 @@ async function getLandingMetrics(): Promise<any> {
   }
 
   return new Promise((resolve, reject) => {
-    // Spawn Python process to run generator
-    const pythonPath = path.join(process.cwd(), 'app', 'landing_page_generator.py');
-
     const python = spawn('python3', [
       '-c',
       `
@@ -63,7 +64,7 @@ print(gen.generate_metrics_json(metrics))
 
     python.on('close', (code) => {
       if (code !== 0) {
-        console.error('[metrics] Python error:', errorOutput);
+        console.warn('[metrics] Python metrics unavailable, returning fallback:', errorOutput);
         reject(new Error(`Python process exited with code ${code}: ${errorOutput}`));
         return;
       }
@@ -79,7 +80,7 @@ print(gen.generate_metrics_json(metrics))
 
         resolve(metrics);
       } catch (err) {
-        console.error('[metrics] JSON parse error:', err);
+        console.warn('[metrics] JSON parse unavailable, returning fallback:', err);
         reject(new Error(`Failed to parse metrics JSON: ${err}`));
       }
     });
@@ -87,12 +88,13 @@ print(gen.generate_metrics_json(metrics))
 }
 
 /**
- * Fallback metrics in case Python fails
- * This ensures the API never fully breaks
+ * Fallback metrics in case Python/database metrics are unavailable.
+ * This prevents frontend breakage while keeping the response honest.
  */
 function getFallbackMetrics() {
   return {
     timestamp: new Date().toISOString(),
+    mode: 'fallback',
     hero: {
       current_win_rate: '0.0%',
       total_users: 0,
@@ -133,24 +135,19 @@ export async function GET() {
       },
     });
   } catch (err) {
-    console.error('[metrics] Error:', err);
+    console.warn('[metrics] Returning fallback metrics:', err);
 
-    // Return fallback metrics with 200 status to prevent frontend errors
-    // but include an error flag
     return NextResponse.json(
       {
         ...getFallbackMetrics(),
         error: 'Metrics temporarily unavailable',
       },
       {
-        status: 200, // Still 200 to prevent frontend from breaking
+        status: 200,
         headers: {
-          'Cache-Control': 'public, s-maxage=60', // Cache fallback for 1 minute
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       }
     );
   }
 }
-
-// Preload metrics on startup
-export const revalidate = 300; // Next.js ISR: revalidate every 5 minutes
