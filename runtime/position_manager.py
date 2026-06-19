@@ -6,7 +6,7 @@ Handles position entry, monitoring, and exit (CRITICAL — currently missing)
 import logging
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Tuple, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class PositionManager:
         position = Position(
             symbol=symbol,
             entry_price=entry_price,
-            entry_time=datetime.utcnow().isoformat(),
+            entry_time=datetime.now(UTC).isoformat(),
             quantity=quantity,
             stop_loss=stop_loss,
             take_profit=take_profit,
@@ -178,14 +178,14 @@ class PositionManager:
             pnl_percent = ((position.entry_price - exit_price) / position.entry_price) * 100
 
         entry_dt = datetime.fromisoformat(position.entry_time)
-        duration = int((datetime.utcnow() - entry_dt).total_seconds() / 60)
+        duration = int((datetime.now(UTC) - entry_dt).total_seconds() / 60)
 
         trade = ClosedTrade(
             symbol=position.symbol,
             entry_price=position.entry_price,
             exit_price=exit_price,
             entry_time=position.entry_time,
-            exit_time=datetime.utcnow().isoformat(),
+            exit_time=datetime.now(UTC).isoformat(),
             quantity=position.quantity,
             side=position.side,
             pnl=pnl,

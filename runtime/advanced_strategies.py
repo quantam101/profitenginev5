@@ -300,7 +300,6 @@ class DiffusionRegimeDetector:
 
         volatility = np.std(returns)
         skewness = (np.mean(returns) - np.median(returns)) / (np.std(returns) + 1e-6)
-        kurtosis = ((returns - np.mean(returns)) ** 4).mean() / (volatility ** 4 + 1e-6)
 
         if volatility > 0.05 and skewness < -0.5:
             regime = "crisis"
