@@ -49,10 +49,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
-from dotenv import load_dotenv
 
-# Load .env file if it exists
-load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env")
+# Load .env file if available (local dev only; CI uses GitHub Secrets)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env")
+except ImportError:
+    pass  # dotenv not installed; use environment variables from CI/shell
 
 # Make runtime.eaos importable when running from repo root on CI
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
