@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Railway Disabled Policy Check
+        run: bash scripts/check-no-railway.sh
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
