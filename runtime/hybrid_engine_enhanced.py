@@ -29,8 +29,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 from runtime.advanced_strategies import (
     AdvancedStrategyOrchestrator,
-    AdvancedSignal,
-    AdvancedSignalType
+    AdvancedSignal
 )
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ All 11 strategies with real formulas, parameter optimization, and backtested win
 """
 
 import numpy as np
-from typing import List, Tuple, Dict
+from typing import List, Dict
 from dataclasses import dataclass
 
 
@@ -125,11 +125,6 @@ class KAMATrend:
             efficiency_ratio = 0.0
         else:
             efficiency_ratio = change / volatility
-
-        fastest = 0.666  # 2-period EMA
-        slowest = 0.0645  # 30-period EMA
-        smoothing = efficiency_ratio * (fastest - slowest) + slowest
-        kama_multiplier = smoothing ** 2
 
         trend_strength = efficiency_ratio
         trend_direction = 1.0 if closes[-1] > closes[0] else -1.0

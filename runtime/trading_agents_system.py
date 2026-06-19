@@ -17,10 +17,8 @@ One Responsibility Per Agent → Maximum Autonomy + Clarity
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any
 from datetime import datetime
-from enum import Enum
 import time
 
 from runtime.strategy_implementations import (
@@ -28,7 +26,7 @@ from runtime.strategy_implementations import (
     StatArbKalman, MomentumScanner
 )
 from runtime.advanced_strategies import AdvancedStrategyOrchestrator
-from runtime.position_manager import PositionManager, ClosedTrade
+from runtime.position_manager import PositionManager
 from runtime.error_handling import ErrorRecoveryHandler, ErrorSeverity, CircuitBreaker
 
 logging.basicConfig(level=logging.INFO)
@@ -435,7 +433,6 @@ class ErrorRecoveryAgent(IAgent):
     async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Handle error with appropriate recovery strategy"""
         try:
-            error_type = task.get("error_type")
             error_message = task.get("error_message", "")
             context = task.get("context", {})
 

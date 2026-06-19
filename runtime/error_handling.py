@@ -5,7 +5,7 @@ Handles failures gracefully with retry, fallback, and graceful degradation
 
 import logging
 import time
-from typing import Callable, Any, Optional, TypeVar, Dict, List
+from typing import Callable, Any, Optional, TypeVar, Dict
 from functools import wraps
 from enum import Enum
 
