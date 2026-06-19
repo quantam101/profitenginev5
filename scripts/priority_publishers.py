@@ -242,7 +242,7 @@ def publish_to_priority_platforms(article: Dict[str, Any]) -> Dict[str, Optional
     results = {}
 
     print("\n[PUBLISHING] Priority Stack Platforms")
-    print("─" * 60)
+    print("-" * 60)
 
     # Dev.to
     results["dev.to"] = publish_to_devto(article)
@@ -259,7 +259,7 @@ def publish_to_priority_platforms(article: Dict[str, Any]) -> Dict[str, Optional
     # Telegram Notification
     notify_telegram_publication(article, results)
 
-    print("─" * 60)
+    print("-" * 60)
     return results
 
 
