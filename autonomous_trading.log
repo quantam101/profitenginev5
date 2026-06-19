@@ -8462,3 +8462,142 @@ Live monitoring: autonomous_trading.log
 [2026-06-19 05:59:09,031] INFO:   [EXITS] 1 positions closed
 [2026-06-19 05:59:09,031] INFO:     - {'symbol': 'AAPL', 'exit_reason': 'STOP_LOSS', 'entry_price': 192.7966971321493, 'exit_price': 166.50175300705155, 'pnl': -26.29494412509775, 'balance': -3593.0426505873957}
 [2026-06-19 05:59:09,031] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 05:59:39,045] INFO: [PHASE 1] Data Collection
+[2026-06-19 05:59:39,045] INFO:    Data source 0 collected
+[2026-06-19 05:59:39,046] INFO:    Data source 1 collected
+[2026-06-19 05:59:39,046] INFO:    Data source 2 collected
+[2026-06-19 05:59:39,046] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 05:59:39,046] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 05:59:39,046] INFO: [PHASE 3] Execution
+[2026-06-19 05:59:39,046] INFO:    Trading signals: 1 symbols analyzed
+[2026-06-19 05:59:39,046] INFO:    Risk validated: 1 signals approved
+[2026-06-19 05:59:39,046] INFO: Trade executed: AAPL SELL @ $188.32108987811085 | SL: $190.20430077689196 | TP: $169.48898089029976
+[2026-06-19 05:59:39,046] INFO:    Trade: AAPL SELL @ $188.32108987811085
+[2026-06-19 05:59:39,046] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 05:59:39,046] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 05:59:39,046] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:00:09,047] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:00:09,047] INFO:    Data source 0 collected
+[2026-06-19 06:00:09,047] INFO:    Data source 1 collected
+[2026-06-19 06:00:09,047] INFO:    Data source 2 collected
+[2026-06-19 06:00:09,047] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:00:09,047] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:00:09,047] INFO: [PHASE 3] Execution
+[2026-06-19 06:00:09,047] INFO:    Trading signals: 0 symbols analyzed
+[2026-06-19 06:00:09,047] INFO:    Risk validated: 0 signals approved
+[2026-06-19 06:00:09,047] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:00:09,047] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:00:09,047] INFO:   [EXIT] AAPL: STOP_LOSS | P&L: $-7.45 | Balance: $-3600.49
+[2026-06-19 06:00:09,047] INFO:   [EXITS] 1 positions closed
+[2026-06-19 06:00:09,047] INFO:     - {'symbol': 'AAPL', 'exit_reason': 'STOP_LOSS', 'entry_price': 188.32108987811085, 'exit_price': 195.76619737211058, 'pnl': -7.44510749399973, 'balance': -3600.4877580813954}
+[2026-06-19 06:00:09,048] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:00:39,058] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:00:39,059] INFO:    Data source 0 collected
+[2026-06-19 06:00:39,059] INFO:    Data source 1 collected
+[2026-06-19 06:00:39,059] INFO:    Data source 2 collected
+[2026-06-19 06:00:39,059] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:00:39,059] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:00:39,059] INFO: [PHASE 3] Execution
+[2026-06-19 06:00:39,059] INFO:    Trading signals: 1 symbols analyzed
+[2026-06-19 06:00:39,060] INFO:    Risk validated: 1 signals approved
+[2026-06-19 06:00:39,060] INFO: Trade executed: AAPL SELL @ $187.31378953455612 | SL: $189.1869274299017 | TP: $168.5824105811005
+[2026-06-19 06:00:39,060] INFO:    Trade: AAPL SELL @ $187.31378953455612
+[2026-06-19 06:00:39,060] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:00:39,060] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:00:39,060] INFO:   [EXIT] MSFT: STOP_LOSS | P&L: $-51.31 | Balance: $-3651.80
+[2026-06-19 06:00:39,060] INFO:   [EXITS] 1 positions closed
+[2026-06-19 06:00:39,060] INFO:     - {'symbol': 'MSFT', 'exit_reason': 'STOP_LOSS', 'entry_price': 426.13479170779675, 'exit_price': 477.4494901370225, 'pnl': -51.31469842922575, 'balance': -3651.802456510621}
+[2026-06-19 06:00:39,060] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:01:09,073] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:01:09,074] INFO:    Data source 0 collected
+[2026-06-19 06:01:09,074] INFO:    Data source 1 collected
+[2026-06-19 06:01:09,074] INFO:    Data source 2 collected
+[2026-06-19 06:01:09,074] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:01:09,074] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:01:09,074] INFO: [PHASE 3] Execution
+[2026-06-19 06:01:09,074] INFO:    Trading signals: 1 symbols analyzed
+[2026-06-19 06:01:09,074] INFO:    Risk validated: 1 signals approved
+[2026-06-19 06:01:09,074] INFO: Trade executed: MSFT SELL @ $423.00936210591914 | SL: $427.23945572697835 | TP: $380.70842589532725
+[2026-06-19 06:01:09,074] INFO:    Trade: MSFT SELL @ $423.00936210591914
+[2026-06-19 06:01:09,074] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:01:09,074] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:01:09,074] INFO:   [EXIT] AAPL: TAKE_PROFIT | P&L: $21.98 | Balance: $-3629.83
+[2026-06-19 06:01:09,074] INFO:   [EXITS] 1 positions closed
+[2026-06-19 06:01:09,074] INFO:     - {'symbol': 'AAPL', 'exit_reason': 'TAKE_PROFIT', 'entry_price': 187.31378953455612, 'exit_price': 165.33655525015556, 'pnl': 21.97723428440056, 'balance': -3629.825222226221}
+[2026-06-19 06:01:09,074] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:01:39,088] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:01:39,088] INFO:    Data source 0 collected
+[2026-06-19 06:01:39,088] INFO:    Data source 1 collected
+[2026-06-19 06:01:39,088] INFO:    Data source 2 collected
+[2026-06-19 06:01:39,088] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:01:39,088] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:01:39,088] INFO: [PHASE 3] Execution
+[2026-06-19 06:01:39,088] INFO:    Trading signals: 1 symbols analyzed
+[2026-06-19 06:01:39,088] INFO:    Risk validated: 1 signals approved
+[2026-06-19 06:01:39,088] INFO: Trade executed: AAPL BUY @ $191.20385344744085 | SL: $189.29181491296643 | TP: $210.32423879218493
+[2026-06-19 06:01:39,088] INFO:    Trade: AAPL BUY @ $191.20385344744085
+[2026-06-19 06:01:39,088] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:01:39,088] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:01:39,088] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:02:09,104] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:02:09,105] INFO:    Data source 0 collected
+[2026-06-19 06:02:09,105] INFO:    Data source 1 collected
+[2026-06-19 06:02:09,105] INFO:    Data source 2 collected
+[2026-06-19 06:02:09,105] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:02:09,105] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:02:09,105] INFO: [PHASE 3] Execution
+[2026-06-19 06:02:09,105] INFO:    Trading signals: 0 symbols analyzed
+[2026-06-19 06:02:09,105] INFO:    Risk validated: 0 signals approved
+[2026-06-19 06:02:09,105] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:02:09,105] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:02:09,105] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:02:39,119] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:02:39,120] INFO:    Data source 0 collected
+[2026-06-19 06:02:39,120] INFO:    Data source 1 collected
+[2026-06-19 06:02:39,120] INFO:    Data source 2 collected
+[2026-06-19 06:02:39,120] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:02:39,120] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:02:39,120] INFO: [PHASE 3] Execution
+[2026-06-19 06:02:39,120] INFO:    Trading signals: 0 symbols analyzed
+[2026-06-19 06:02:39,120] INFO:    Risk validated: 0 signals approved
+[2026-06-19 06:02:39,120] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:02:39,120] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:02:39,120] INFO:   [EXIT] MSFT: STOP_LOSS | P&L: $-34.55 | Balance: $-3664.37
+[2026-06-19 06:02:39,120] INFO:   [EXIT] AAPL: STOP_LOSS | P&L: $-9.66 | Balance: $-3674.03
+[2026-06-19 06:02:39,120] INFO:   [EXITS] 2 positions closed
+[2026-06-19 06:02:39,121] INFO:     - {'symbol': 'MSFT', 'exit_reason': 'STOP_LOSS', 'entry_price': 423.00936210591914, 'exit_price': 457.5557334052185, 'pnl': -34.54637129929936, 'balance': -3664.37159352552}
+[2026-06-19 06:02:39,121] INFO:     - {'symbol': 'AAPL', 'exit_reason': 'STOP_LOSS', 'entry_price': 191.20385344744085, 'exit_price': 181.54686528216337, 'pnl': -9.65698816527748, 'balance': -3674.0285816907976}
+[2026-06-19 06:02:39,121] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:03:09,133] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:03:09,134] INFO:    Data source 0 collected
+[2026-06-19 06:03:09,134] INFO:    Data source 1 collected
+[2026-06-19 06:03:09,134] INFO:    Data source 2 collected
+[2026-06-19 06:03:09,134] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:03:09,134] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:03:09,134] INFO: [PHASE 3] Execution
+[2026-06-19 06:03:09,134] INFO:    Trading signals: 2 symbols analyzed
+[2026-06-19 06:03:09,134] INFO:    Risk validated: 2 signals approved
+[2026-06-19 06:03:09,134] INFO: Trade executed: AAPL SELL @ $190.48070117774049 | SL: $192.3855081895179 | TP: $171.43263105996644
+[2026-06-19 06:03:09,135] INFO:    Trade: AAPL SELL @ $190.48070117774049
+[2026-06-19 06:03:09,135] INFO: Trade executed: MSFT SELL @ $416.9117269932524 | SL: $421.08084426318493 | TP: $375.22055429392714
+[2026-06-19 06:03:09,135] INFO:    Trade: MSFT SELL @ $416.9117269932524
+[2026-06-19 06:03:09,135] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:03:09,135] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:03:09,135] INFO:  PHASE 5: Reporting & Optimization
+[2026-06-19 06:03:39,148] INFO: [PHASE 1] Data Collection
+[2026-06-19 06:03:39,149] INFO:    Data source 0 collected
+[2026-06-19 06:03:39,149] INFO:    Data source 1 collected
+[2026-06-19 06:03:39,149] INFO:    Data source 2 collected
+[2026-06-19 06:03:39,149] INFO: [PHASE 2] Master AI Decision Making
+[2026-06-19 06:03:39,149] INFO:    Decision: ['CONTINUE_TRADING']
+[2026-06-19 06:03:39,149] INFO: [PHASE 3] Execution
+[2026-06-19 06:03:39,149] INFO:    Trading signals: 0 symbols analyzed
+[2026-06-19 06:03:39,150] INFO:    Risk validated: 0 signals approved
+[2026-06-19 06:03:39,150] INFO: [PHASE 4] Monitoring & Recovery
+[2026-06-19 06:03:39,150] INFO:   [HEALTH] Position health: {'all_healthy': True, 'check_count': 5}
+[2026-06-19 06:03:39,150] INFO:   [EXIT] AAPL: STOP_LOSS | P&L: $-20.62 | Balance: $-3694.64
+[2026-06-19 06:03:39,150] INFO:   [EXIT] MSFT: STOP_LOSS | P&L: $-48.41 | Balance: $-3743.06
+[2026-06-19 06:03:39,150] INFO:   [EXITS] 2 positions closed
+[2026-06-19 06:03:39,150] INFO:     - {'symbol': 'AAPL', 'exit_reason': 'STOP_LOSS', 'entry_price': 190.48070117774049, 'exit_price': 211.09681873114835, 'pnl': -20.61611755340786, 'balance': -3694.644699244205}
+[2026-06-19 06:03:39,150] INFO:     - {'symbol': 'MSFT', 'exit_reason': 'STOP_LOSS', 'entry_price': 416.9117269932524, 'exit_price': 465.32642543843616, 'pnl': -48.41469844518376, 'balance': -3743.0593976893892}
+[2026-06-19 06:03:39,150] INFO:  PHASE 5: Reporting & Optimization
