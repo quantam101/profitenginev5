@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 interface DashboardMetrics {
   active_traders_today: number;
@@ -39,14 +39,16 @@ interface DashboardMetrics {
   };
 }
 
-interface MetricCard {
+interface MetricCardProps {
   label: string;
   value: string | number;
   detail?: string;
   type?: 'positive' | 'negative' | 'neutral';
 }
 
-const MetricCard = ({ label, value, detail, type = 'neutral' }: MetricCard) => {
+type TableRow = Record<string, ReactNode>;
+
+const MetricCard = ({ label, value, detail, type = 'neutral' }: MetricCardProps) => {
   const colorClass =
     type === 'positive'
       ? '#4ade80'
@@ -82,7 +84,7 @@ const LeaderboardTable = ({
 }: {
   title: string;
   headers: string[];
-  rows: any[];
+  rows: TableRow[];
 }) => {
   return (
     <div style={{ marginTop: 24 }}>
@@ -98,9 +100,9 @@ const LeaderboardTable = ({
         >
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(125, 211, 252, 0.25)' }}>
-              {headers.map((h) => (
+              {headers.map((header) => (
                 <th
-                  key={h}
+                  key={header}
                   style={{
                     padding: '12px 16px',
                     textAlign: 'left',
@@ -111,33 +113,37 @@ const LeaderboardTable = ({
                     letterSpacing: 0.5,
                   }}
                 >
-                  {h}
+                  {header}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
-              <tr
-                key={idx}
-                style={{
-                  borderBottom: '1px solid rgba(125, 211, 252, 0.1)',
-                  background: idx % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent',
-                }}
-              >
-                {Object.values(row).map((cell, cidx) => (
-                  <td
-                    key={cidx}
-                    style={{
-                      padding: '12px 16px',
-                      textAlign: cidx === 0 ? 'left' : 'right',
-                    }}
-                  >
-                    {cell as React.ReactNode}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const entries = Object.entries(row);
+              const rowKey = entries.map(([key, value]) => `${key}:${String(value)}`).join('|');
+
+              return (
+                <tr
+                  key={rowKey}
+                  style={{
+                    borderBottom: '1px solid rgba(125, 211, 252, 0.1)',
+                  }}
+                >
+                  {entries.map(([key, cell], cellIndex) => (
+                    <td
+                      key={`${rowKey}:${key}`}
+                      style={{
+                        padding: '12px 16px',
+                        textAlign: cellIndex === 0 ? 'left' : 'right',
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -151,7 +157,7 @@ export default function TradingDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -161,22 +167,21 @@ export default function TradingDashboard() {
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
       }
-      const data = await res.json();
+      const data = (await res.json()) as DashboardMetrics;
       setMetrics(data);
       setLastUpdate(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
-      console.error('Dashboard error:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Refresh every 60 seconds
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   if (loading && !metrics) {
     return (
@@ -240,7 +245,6 @@ export default function TradingDashboard() {
       }}
     >
       <section style={{ maxWidth: 1280, margin: '0 auto' }}>
-        {/* Header */}
         <header style={{ marginBottom: 36 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -274,7 +278,6 @@ export default function TradingDashboard() {
           </div>
         </header>
 
-        {/* Key Metrics Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
           <MetricCard
             label="Active Traders Today"
@@ -300,49 +303,45 @@ export default function TradingDashboard() {
           />
         </div>
 
-        {/* Top Performers */}
         <LeaderboardTable
           title="Top 5 Performers (Win Rate)"
           headers={['Rank', 'Trader', 'Win Rate', 'P&L', 'Trades']}
-          rows={metrics.top_performers_by_win_rate.map((p) => ({
-            rank: p.rank,
-            trader: p.username,
-            winRate: `${p.win_rate.toFixed(1)}%`,
-            pnl: `$${p.total_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-            trades: p.total_trades,
+          rows={metrics.top_performers_by_win_rate.map((performer) => ({
+            rank: performer.rank,
+            trader: performer.username,
+            winRate: `${performer.win_rate.toFixed(1)}%`,
+            pnl: `$${performer.total_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
+            trades: performer.total_trades,
           }))}
         />
 
-        {/* Biggest Gainers */}
         <LeaderboardTable
           title="Top 5 Biggest Gainers (P&L %)"
           headers={['Rank', 'Trader', 'Gain %', 'Total P&L', 'Trades']}
-          rows={metrics.biggest_gainers.map((g) => ({
-            rank: g.rank,
-            trader: g.username,
-            gainPercent: `${g.pnl_percent.toFixed(1)}%`,
-            pnl: `$${g.total_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-            trades: g.total_trades,
+          rows={metrics.biggest_gainers.map((gainer) => ({
+            rank: gainer.rank,
+            trader: gainer.username,
+            gainPercent: `${gainer.pnl_percent.toFixed(1)}%`,
+            pnl: `$${gainer.total_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
+            trades: gainer.total_trades,
           }))}
         />
 
-        {/* Upsell Candidates */}
         {metrics.upsell_candidates.length > 0 && (
           <LeaderboardTable
             title="Upsell Candidates (Premium Ready)"
             headers={['Trader', 'P&L', 'Win Rate', 'Trades', 'Days Active', 'Urgency']}
-            rows={metrics.upsell_candidates.map((u) => ({
-              trader: u.username,
-              pnl: `$${u.current_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-              winRate: `${u.win_rate.toFixed(1)}%`,
-              trades: u.total_trades,
-              daysActive: u.days_active,
-              urgency: u.urgency.toUpperCase(),
+            rows={metrics.upsell_candidates.map((candidate) => ({
+              trader: candidate.username,
+              pnl: `$${candidate.current_pnl.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
+              winRate: `${candidate.win_rate.toFixed(1)}%`,
+              trades: candidate.total_trades,
+              daysActive: candidate.days_active,
+              urgency: candidate.urgency.toUpperCase(),
             }))}
           />
         )}
 
-        {/* Footer Note */}
         <footer style={{ marginTop: 40, padding: '24px', border: '1px solid rgba(125, 211, 252, 0.1)', borderRadius: 12 }}>
           <p style={{ color: '#a8bed0', fontSize: 12, margin: 0 }}>
             Dashboard updates automatically every 60 seconds. Data is sourced from the live clients database and refreshed on demand.
