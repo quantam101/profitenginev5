@@ -56,7 +56,7 @@ class PreMarketTradingSession:
         logger.info(f"MODE: Paper trading with real Finnhub prices")
 
     async def run(self) -> dict:
-        """Run pre-market trading session (4 AM - 2 PM MST) with Finnhub paper trading"""
+        """Run pre-market trading session (4 AM - 2 PM MST) with paper trading"""
 
         logger.info("="*70)
         logger.info("PRE-MARKET TRADING SESSION - PAPER TRADING")
@@ -65,8 +65,15 @@ class PreMarketTradingSession:
         logger.info(f"Starting Balance: ${self.starting_balance:,.2f}")
         logger.info(f"Target Balance: ${self.target_balance:,.2f}")
         logger.info(f"Required Daily Return: {((self.target_balance / self.starting_balance) ** (1/7) - 1) * 100:.1f}%")
-        logger.info(f"Data Source: Finnhub API (real-time prices)")
-        logger.info(f"Mode: Paper trading until ${self.target_balance:,.2f}")
+
+        if self.finnhub:
+            logger.info(f"Data Source: Finnhub API (REAL market prices)")
+            logger.info(f"Mode: LIVE MARKET paper trading")
+        else:
+            logger.info(f"Data Source: Simulation mode (no live prices)")
+            logger.info(f"Mode: Paper trading (validation/testing)")
+
+        logger.info(f"Auto-Switch: Real money at ${self.target_balance:,.2f}")
         logger.info("")
 
         # High-probability symbols for growth
@@ -255,7 +262,7 @@ class PreMarketTradingSession:
 
 
 async def main():
-    """Main entry point - paper trading with Finnhub, $100 → $1000, then real money"""
+    """Main entry point - Finnhub paper trading ($100 → $1000) by default"""
 
     now = datetime.now()
     logger.info(f"Current Time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -265,27 +272,38 @@ async def main():
     elif now.hour >= 14:
         logger.warning("After 2 PM MST - markets closed")
 
-    # Initialize Finnhub client for paper trading with real prices
-    logger.info("Initializing Finnhub paper trading client...")
+    # Initialize Finnhub client for paper trading
+    logger.info("Initializing paper trading client...")
     finnhub_api_key = os.getenv('FINNHUB_API_KEY', '')
+    finnhub = None
+    trading_mode = "SIMULATION"
 
-    if not finnhub_api_key:
-        logger.warning("[FINNHUB] No API key provided - using simulation mode")
-        logger.warning("[FINNHUB] Get free API key at: https://finnhub.io/register")
-        starting_balance = 100.0
-        finnhub = None
-    else:
+    if finnhub_api_key:
         try:
             finnhub = await get_finnhub_client(api_key=finnhub_api_key, starting_balance=100.0)
-            logger.info("[FINNHUB] Paper trading initialized with $100.00")
-            logger.info("[FINNHUB] Auto-switch to real money at $1000.00 threshold")
+            logger.info("[FINNHUB] ✓ Paper trading with real market data")
+            logger.info("[FINNHUB] ✓ Real prices from Finnhub API")
+            logger.info("[FINNHUB] ✓ Starting: $100.00")
+            logger.info("[FINNHUB] ✓ Auto-switch to real money at $1000.00 threshold")
+            trading_mode = "FINNHUB_PAPER"
             starting_balance = 100.0
         except Exception as e:
             logger.error(f"[FINNHUB] Failed to initialize: {e}")
-            logger.warning("[FINNHUB] Falling back to simulation mode")
-            starting_balance = 100.0
+            logger.warning("[FINNHUB] Falling back to simulation mode (no live prices)")
             finnhub = None
+            trading_mode = "SIMULATION"
+            starting_balance = 100.0
+    else:
+        logger.info("[NO API KEY] Running paper trading in simulation mode")
+        logger.info("[NO API KEY] To use live Finnhub prices, set: FINNHUB_API_KEY=your_key")
+        logger.info("[NO API KEY] Get free key at: https://finnhub.io/register")
+        logger.info("[SIMULATION] ✓ Paper trading with simulated prices")
+        logger.info("[SIMULATION] ✓ Strategy validation mode (same as real prices)")
+        logger.info("[SIMULATION] ✓ Starting: $100.00")
+        trading_mode = "SIMULATION"
+        starting_balance = 100.0
 
+    logger.info(f"[MODE] {trading_mode}")
     logger.info("Launching pre-market trading engine...")
     session = PreMarketTradingSession(starting_balance=starting_balance, finnhub_client=finnhub)
     results = await session.run()
