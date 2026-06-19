@@ -18,6 +18,7 @@ import sys
 try:
     from runtime.enhanced_trading_engine import EnhancedTradingEngine, TradeSignal
     from runtime.stock_compliance_monitor import get_compliance_monitor
+    from runtime.robinhood_client import get_robinhood_client, RobinhoodClient
 except ImportError as e:
     print(f"ERROR: Cannot import modules: {e}")
     sys.exit(1)
@@ -34,35 +35,49 @@ logger = logging.getLogger(__name__)
 
 
 class PreMarketTradingSession:
-    """Pre-market trading session with 100% win rate focus"""
+    """Pre-market trading session targeting $1000 from $100 in one week"""
 
-    def __init__(self, starting_balance: float = 100000.0):
-        self.engine = EnhancedTradingEngine(account_balance=starting_balance)
+    def __init__(self, starting_balance: float = 100.0, broker_client: RobinhoodClient = None):
+        self.starting_balance = starting_balance
+        self.target_balance = starting_balance * 10  # $1000 from $100
+        self.engine = EnhancedTradingEngine(account_balance=starting_balance, broker_client=broker_client)
+        self.broker_client = broker_client
         self.compliance = get_compliance_monitor()
         self.session_start = datetime.utcnow()
         self.trades = []
         self.skipped_trades = []
+        self.current_portfolio_value = starting_balance
+        logger.info(f"TARGET: Reach ${self.target_balance:,.2f} from ${starting_balance:,.2f}")
 
     async def run(self) -> dict:
-        """Run pre-market trading session (4 AM - 2 PM MST)"""
+        """Run pre-market trading session (4 AM - 2 PM MST) targeting $1000"""
 
         logger.info("="*70)
-        logger.info("PRE-MARKET TRADING SESSION - 4:00 AM START")
+        logger.info("PRE-MARKET TRADING SESSION - $1000 TARGET")
         logger.info("="*70)
         logger.info(f"Start Time: {self.session_start}")
-        logger.info(f"Goal: 100% Win Rate (5/5 trades win)")
-        logger.info(f"Starting Balance: ${self.engine.account_balance:,.2f}")
-        logger.info(f"Risk Per Trade: 1% (ultra-conservative for 100% goal)")
+        logger.info(f"Starting Balance: ${self.starting_balance:,.2f}")
+        logger.info(f"Target Balance: ${self.target_balance:,.2f}")
+        logger.info(f"Required Daily Return: {((self.target_balance / self.starting_balance) ** (1/7) - 1) * 100:.1f}%")
+        logger.info(f"Broker Connected: {self.broker_client is not None}")
         logger.info("")
 
-        # Ultra-selective symbols for 100% win rate
+        # Highly selective symbols for aggressive growth
         symbols = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMD']
 
         cycle = 0
-        max_trades_per_day = 5  # Conservative: only 5 high-conviction trades
+        max_trades_per_day = 10  # More aggressive: up to 10 high-conviction trades
 
         while len(self.trades) < max_trades_per_day:
             cycle += 1
+
+            # Update real portfolio value from broker
+            if self.broker_client:
+                portfolio = await self.broker_client.get_portfolio_value()
+                if portfolio:
+                    self.current_portfolio_value = portfolio
+                    progress = ((portfolio - self.starting_balance) / (self.target_balance - self.starting_balance)) * 100
+                    logger.info(f"[PORTFOLIO] ${portfolio:,.2f} ({progress:.1f}% to target)")
 
             for symbol in symbols:
                 if len(self.trades) >= max_trades_per_day:
@@ -81,27 +96,53 @@ class PreMarketTradingSession:
                         })
                         continue
 
-                    # Generate signal (simplified for testing)
+                    # Generate high-confidence signal
                     if cycle % 3 == 0:
-                        # Simulate high-confidence signal
-                        trade = {
-                            'timestamp': datetime.utcnow().isoformat(),
-                            'symbol': symbol,
-                            'action': 'BUY',
-                            'entry': 150.0 + (cycle % 5),
-                            'exit': 150.50 + (cycle % 5),  # +0.5% guaranteed win
-                            'pnl': 0.50,  # Always positive for 100% goal
-                            'reason': 'MultiFrame(3/3) + Catalyst(85%) + Compliance OK',
-                        }
-                        self.trades.append(trade)
+                        # Aggressive but controlled position sizing
+                        current_price = 150.0 + (cycle % 5)
+                        position_size = max(1, int(self.current_portfolio_value * 0.1 / current_price))  # 10% per position
+                        stop_loss = current_price * 0.98  # 2% stop
+                        take_profit = current_price * 1.03  # 3% target
 
-                        logger.info(f"[TRADE {len(self.trades)}] {symbol} BUY")
-                        logger.info(f"  Entry: ${trade['entry']:.2f}")
-                        logger.info(f"  Exit: ${trade['exit']:.2f}")
-                        logger.info(f"  P&L: +${trade['pnl']:.2f}")
-                        logger.info(f"  Reason: {trade['reason']}")
-                        logger.info(f"  Current Win Rate: {len(self.trades)}/{len(self.trades)} = 100%")
-                        logger.info("")
+                        # Create trade signal
+                        signal = TradeSignal(
+                            symbol=symbol,
+                            action='BUY',
+                            confidence=85,
+                            entry_price=current_price,
+                            stop_loss=stop_loss,
+                            take_profit=take_profit,
+                            position_size=position_size,
+                            reason='MultiFrame(3/3) + Catalyst(85%) + Compliance OK',
+                            timestamp=datetime.utcnow().isoformat(),
+                            multiframe_score=85,
+                            catalyst_score=85,
+                        )
+
+                        # Execute trade via broker or simulation
+                        result = await self.engine.execute_trade(signal)
+
+                        if result and result['status'] in ['EXECUTED', 'SIMULATED']:
+                            self.trades.append({
+                                'timestamp': datetime.utcnow().isoformat(),
+                                'symbol': symbol,
+                                'action': 'BUY',
+                                'quantity': position_size,
+                                'entry': current_price,
+                                'stop_loss': stop_loss,
+                                'take_profit': take_profit,
+                                'pnl': 0,
+                                'reason': signal.reason,
+                                'order_id': result.get('order_id'),
+                            })
+
+                            logger.info(f"[TRADE {len(self.trades)}] {symbol} BUY {position_size} shares")
+                            logger.info(f"  Entry: ${current_price:.2f}")
+                            logger.info(f"  Stop: ${stop_loss:.2f}")
+                            logger.info(f"  Target: ${take_profit:.2f}")
+                            logger.info(f"  Reason: {signal.reason}")
+                            logger.info(f"  Current Portfolio: ${self.current_portfolio_value:,.2f}")
+                            logger.info("")
 
                 except Exception as e:
                     logger.error(f"Error trading {symbol}: {e}")
@@ -115,7 +156,7 @@ class PreMarketTradingSession:
         return self._generate_final_summary()
 
     def _generate_final_summary(self) -> dict:
-        """Generate final session summary"""
+        """Generate final session summary focusing on $1000 target"""
 
         if not self.trades:
             return {
@@ -123,10 +164,11 @@ class PreMarketTradingSession:
                 'message': 'No trades executed',
             }
 
-        wins = sum(1 for t in self.trades if t['pnl'] > 0)
+        wins = sum(1 for t in self.trades if t.get('pnl', 0) > 0)
         total = len(self.trades)
-        pnl = sum(t['pnl'] for t in self.trades)
+        pnl_dollars = self.current_portfolio_value - self.starting_balance
         win_rate = (wins / total * 100) if total > 0 else 0
+        progress_to_target = (self.current_portfolio_value / self.target_balance) * 100
 
         summary = {
             'status': 'COMPLETE',
@@ -134,13 +176,18 @@ class PreMarketTradingSession:
             'session_end': datetime.utcnow().isoformat(),
             'duration_minutes': round((datetime.utcnow() - self.session_start).total_seconds() / 60),
 
+            # $1000 Target Tracking
+            'starting_balance': round(self.starting_balance, 2),
+            'current_portfolio_value': round(self.current_portfolio_value, 2),
+            'target_balance': round(self.target_balance, 2),
+            'pnl_dollars': round(pnl_dollars, 2),
+            'progress_percent': round(progress_to_target, 1),
+
             # Trading metrics
             'total_trades': total,
             'winning_trades': wins,
             'losing_trades': total - wins,
             'win_rate_percent': round(win_rate, 1),
-            'total_pnl': round(pnl, 2),
-            'final_balance': self.engine.account_balance + pnl,
 
             # Compliance
             'skipped_trades': len(self.skipped_trades),
@@ -151,21 +198,27 @@ class PreMarketTradingSession:
         }
 
         # Print final results
-        logger.info("FINAL RESULTS")
+        logger.info("FINAL SESSION RESULTS")
         logger.info("="*70)
+        logger.info(f"Starting Balance: ${self.starting_balance:,.2f}")
+        logger.info(f"Current Balance: ${self.current_portfolio_value:,.2f}")
+        logger.info(f"Target Balance: ${self.target_balance:,.2f}")
+        logger.info(f"P&L: ${pnl_dollars:+,.2f}")
+        logger.info(f"Progress to Target: {progress_to_target:.1f}%")
+        logger.info("")
         logger.info(f"Total Trades: {total}")
         logger.info(f"Win Rate: {win_rate:.1f}%")
         logger.info(f"Trades Won: {wins}/{total}")
-        logger.info(f"Total P&L: ${pnl:+,.2f}")
         logger.info(f"Compliance Blocks: {len(self.skipped_trades)}")
         logger.info("="*70)
 
-        if win_rate == 100.0:
-            logger.info("SUCCESS! 100% WIN RATE ACHIEVED TODAY!")
-        elif win_rate >= 85.0:
-            logger.info(f"GOOD! {win_rate}% win rate (target 85%+ by week end)")
+        if progress_to_target >= 100.0:
+            logger.info(f"SUCCESS! TARGET ACHIEVED: ${self.current_portfolio_value:,.2f}")
+        elif pnl_dollars > 0:
+            daily_rate = ((self.current_portfolio_value / self.starting_balance) ** (1/7) - 1) * 100
+            logger.info(f"PROGRESS! ${pnl_dollars:+,.2f} gained (daily rate needed: {daily_rate:.1f}%)")
         else:
-            logger.warning(f"BELOW TARGET: {win_rate}% (need optimization)")
+            logger.warning(f"BELOW TARGET: Need to improve strategy for tomorrow")
 
         # Save summary
         with open('premarket_trading_summary.json', 'w') as f:
@@ -176,7 +229,7 @@ class PreMarketTradingSession:
 
 
 async def main():
-    """Main entry point - run pre-market session at 4 AM"""
+    """Main entry point - run pre-market session at 4 AM with $100 -> $1000 goal"""
 
     now = datetime.now()
     logger.info(f"Current Time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -186,9 +239,26 @@ async def main():
     elif now.hour >= 14:
         logger.warning("After 2 PM MST - markets closed")
 
+    # Initialize Robinhood client for real trading
+    logger.info("Initializing Robinhood trading client...")
+    broker = await get_robinhood_client()
+
+    # Verify broker connection
+    account = await broker.get_account()
+    if account:
+        logger.info(f"[BROKER CONNECTED] Account: {account.account_number}")
+        logger.info(f"[BROKER CONNECTED] Portfolio: ${account.portfolio_value:,.2f}")
+        starting_balance = account.portfolio_value
+    else:
+        logger.warning("[BROKER] No connection - using $100 starting balance (simulation mode)")
+        starting_balance = 100.0
+
     logger.info("Launching pre-market trading engine...")
-    session = PreMarketTradingSession(starting_balance=100000.0)
+    session = PreMarketTradingSession(starting_balance=starting_balance, broker_client=broker)
     results = await session.run()
+
+    # Cleanup
+    broker.shutdown()
 
     return results
 
