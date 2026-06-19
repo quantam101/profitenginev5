@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ClientsDB } from '@/lib/clients-db';
+import { MongoClient } from 'mongodb';
 import { verifyAuthToken } from '@/lib/auth-utils';
-import { sendKYCVerificationEmail } from '@/lib/email-service';
+
+export const runtime = 'nodejs';
 
 interface KYCData {
   firstName: string;
@@ -13,9 +14,123 @@ interface KYCData {
   agreeToTerms: boolean;
 }
 
+type UserDocument = {
+  userId: number;
+  email: string;
+  tradingTier?: string;
+  updatedAt?: Date;
+  lastActiveAt?: Date;
+};
+
+type KYCSubmissionDocument = KYCData & {
+  userId: number;
+  email: string;
+  status: 'pending_review';
+  submittedAt: Date;
+  updatedAt: Date;
+};
+
+type MongoGlobal = typeof globalThis & {
+  __profitEngineMongoClientPromise?: Promise<MongoClient>;
+};
+
+function getMongoUri(): string {
+  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+  if (!uri || !uri.startsWith('mongodb')) {
+    throw new Error('KYC storage is not configured. Set MONGODB_URI to a MongoDB connection string.');
+  }
+
+  return uri;
+}
+
+function getDatabaseName(): string {
+  return process.env.MONGODB_DB || process.env.PROFITENGINE_DB || 'profitenginev5';
+}
+
+async function getMongoClient(): Promise<MongoClient> {
+  const mongoGlobal = globalThis as MongoGlobal;
+
+  if (!mongoGlobal.__profitEngineMongoClientPromise) {
+    mongoGlobal.__profitEngineMongoClientPromise = new MongoClient(getMongoUri()).connect();
+  }
+
+  return mongoGlobal.__profitEngineMongoClientPromise;
+}
+
+async function sendKYCVerificationEmailIfConfigured(email: string, verificationLink: string): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+
+  if (!apiKey) {
+    return;
+  }
+
+  const fromEmail = process.env.EMAIL_FROM || 'noreply@profitengine.alreadyherellc.com';
+  const replyTo = process.env.EMAIL_REPLY_TO || 'support@alreadyherellc.com';
+
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [
+        {
+          to: [{ email }],
+          subject: 'Complete Your Identity Verification - ProfitEngine',
+        },
+      ],
+      from: { email: fromEmail, name: 'ProfitEngine' },
+      reply_to: { email: replyTo },
+      content: [
+        {
+          type: 'text/html',
+          value: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #5aa2ff;">KYC Verification Submitted</h1>
+              <p>Your identity verification has been received and is pending review.</p>
+              <p style="margin: 30px 0;">
+                <a href="${verificationLink}" style="background-color: #5aa2ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                  View KYC Status
+                </a>
+              </p>
+              <p style="color: #666; font-size: 12px;">ProfitEngine Trading System</p>
+            </div>
+          `,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`SendGrid email failed: ${response.status} ${body}`);
+  }
+}
+
+function validateKYC(body: KYCData): string | null {
+  if (!body.firstName || !body.lastName) {
+    return 'First and last name are required';
+  }
+
+  if (body.age < 18) {
+    return 'Must be at least 18 years old';
+  }
+
+  if (!body.investmentGoals || body.investmentGoals.trim().length === 0) {
+    return 'Investment goals are required';
+  }
+
+  if (!body.agreeToTerms) {
+    return 'Must agree to terms';
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -35,83 +150,70 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json() as KYCData;
+    const validationError = validateKYC(body);
 
-    // Validation
-    if (!body.firstName || !body.lastName) {
+    if (validationError) {
       return NextResponse.json(
-        { error: 'First and last name are required' },
+        { error: validationError },
         { status: 400 }
       );
     }
 
-    if (body.age < 18) {
-      return NextResponse.json(
-        { error: 'Must be at least 18 years old' },
-        { status: 400 }
-      );
-    }
+    const client = await getMongoClient();
+    const db = client.db(getDatabaseName());
+    const users = db.collection<UserDocument>('users');
+    const kycSubmissions = db.collection<KYCSubmissionDocument>('kyc_submissions');
 
-    if (!body.investmentGoals || body.investmentGoals.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Investment goals are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.agreeToTerms) {
-      return NextResponse.json(
-        { error: 'Must agree to terms' },
-        { status: 400 }
-      );
-    }
-
-    const db = new ClientsDB();
-
-    // Get user
-    const user = db.getUser(decoded.userId);
+    const user = await users.findOne({ userId: decoded.userId });
     if (!user) {
-      db.close();
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // In a real system, you would:
-    // 1. Store KYC data in a secure database
-    // 2. Run automated verification (ID verification service)
-    // 3. Send to compliance team for review
-    // 4. Update user tier based on verification status
+    const now = new Date();
 
-    // For now, we'll update a metadata field (you'd need to add this to the schema)
-    // db.updateUserMetadata(user.id, {
-    //   kyc_status: 'pending',
-    //   kyc_first_name: body.firstName,
-    //   kyc_last_name: body.lastName,
-    //   kyc_age: body.age,
-    //   kyc_trading_experience: body.tradingExperience,
-    //   kyc_risk_tolerance: body.riskTolerance,
-    //   kyc_investment_goals: body.investmentGoals,
-    //   kyc_submitted_at: new Date().toISOString(),
-    // });
+    await kycSubmissions.updateOne(
+      { userId: decoded.userId },
+      {
+        $set: {
+          ...body,
+          userId: decoded.userId,
+          email: user.email,
+          status: 'pending_review',
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          submittedAt: now,
+        },
+      },
+      { upsert: true }
+    );
 
-    // Send verification email
+    await users.updateOne(
+      { userId: decoded.userId },
+      {
+        $set: {
+          updatedAt: now,
+          lastActiveAt: now,
+        },
+      }
+    );
+
     try {
       const verificationLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.profitengine.alreadyherellc.com'}/kyc-status`;
-      await sendKYCVerificationEmail(user.email, verificationLink);
+      await sendKYCVerificationEmailIfConfigured(user.email, verificationLink);
     } catch (emailError) {
       console.error('Failed to send KYC verification email:', emailError);
-      // Don't fail the request if email fails
     }
-
-    db.close();
 
     return NextResponse.json(
       {
         success: true,
         message: 'KYC verification submitted successfully',
         user: {
-          id: user.id,
+          id: user.userId,
           email: user.email,
           kycStatus: 'pending_review',
         },
@@ -120,9 +222,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('KYC submission error:', error);
+
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const isConfigError = message.includes('KYC storage is not configured');
+
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: isConfigError ? message : 'Internal server error' },
+      { status: isConfigError ? 503 : 500 }
     );
   }
 }
