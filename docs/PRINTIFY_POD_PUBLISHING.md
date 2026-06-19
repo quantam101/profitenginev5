@@ -1,6 +1,6 @@
 # Printify POD Product Publisher
 
-Automated print-on-demand (POD) product creation from blog content. Generates t-shirts, mugs, hoodies, hats, and books with optimized pricing for maximum profit margins.
+Automated print-on-demand (POD) product creation from blog content. Generates t-shirts, mugs, hoodies, hats, and books with competitive 25% profit margins.
 
 ## Quick Start
 

@@ -37,12 +37,12 @@ Complete automated print-on-demand (POD) product publishing system for ProfitEng
   - Timestamp metadata
 
 #### Features
-- **5 Product Types** with pre-optimized pricing:
-  - T-Shirt: $29.99 (73.3% margin)
-  - Mug: $14.99 (76.7% margin)
-  - Hoodie: $49.99 (70.0% margin)
-  - Cap: $19.99 (77.5% margin)
-  - Book: $24.99 (80.0% margin)
+- **5 Product Types** with competitive pricing:
+  - T-Shirt: $19.99 (25.0% margin)
+  - Mug: $9.99 (25.0% margin)
+  - Hoodie: $34.99 (25.0% margin)
+  - Cap: $12.99 (25.0% margin)
+  - Book: $16.99 (25.0% margin)
 
 - **Smart Recommendations** based on article keywords:
   - 7 topic patterns (AI, Business, Passive Income, etc.)
@@ -227,11 +227,10 @@ Examples:
 - Fallback defaults for unknown topics
 - Configurable limits
 
-### 2. High Profit Margins
-All products optimized for 70%+ margins:
-- Lowest: 70.0% (Hoodie)
-- Highest: 80.0% (Book)
-- Average: 74.3%
+### 2. Competitive Profit Margins
+All products optimized for 25% margins:
+- All products: 25.0% (consistent across all types)
+- Average profit per product: $4.75
 
 ### 3. Flexible Workflow
 - Draft mode for review
@@ -345,8 +344,8 @@ JSONL format for persistence and analysis:
 ## Metrics & Performance
 
 ### Product Performance
-- **Average Profit Per Product**: $20.79
-- **Profit Margin Range**: 70.0% - 80.0%
+- **Average Profit Per Product**: $4.75
+- **Profit Margin**: 25.0% (consistent)
 - **Recommended Products Per Article**: 3-4
 
 ### Processing Performance

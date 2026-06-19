@@ -508,9 +508,9 @@ class TestPriceCalculations:
             margin_pct = (
                 (template["price"] - template["cost"]) / template["price"]
             ) * 100
-            # Minimum 50% margin for POD
-            assert margin_pct >= 50, (
-                f"Product {product_type} margin below 50%: {margin_pct}%"
+            # Minimum 25% margin for competitive pricing
+            assert margin_pct >= 25, (
+                f"Product {product_type} margin below 25%: {margin_pct}%"
             )
 
 

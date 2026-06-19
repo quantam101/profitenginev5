@@ -84,17 +84,17 @@ print(f"Best Seller: {report['best_performing'][0]['title']}")
 
 ## Product Pricing
 
-All products have 70%+ profit margins:
+All products have 25% profit margins for competitive pricing:
 
-| Product | Retail | Cost | Profit |
-|---------|--------|------|--------|
-| T-Shirt | $29.99 | $8 | $21.99 |
-| Mug | $14.99 | $3.50 | $11.49 |
-| Hoodie | $49.99 | $15 | $34.99 |
-| Cap | $19.99 | $4.50 | $15.49 |
-| Book | $24.99 | $5 | $19.99 |
+| Product | Retail | Cost | Profit | Margin |
+|---------|--------|------|--------|--------|
+| T-Shirt | $19.99 | $14.99 | $5.00 | 25.0% |
+| Mug | $9.99 | $7.49 | $2.50 | 25.0% |
+| Hoodie | $34.99 | $26.24 | $8.75 | 25.0% |
+| Cap | $12.99 | $9.74 | $3.25 | 25.0% |
+| Book | $16.99 | $12.74 | $4.25 | 25.0% |
 
-**Average profit per product: $20.79**
+**Average profit per product: $4.75 (25.0% consistent margin)**
 
 ## Smart Recommendations by Topic
 
