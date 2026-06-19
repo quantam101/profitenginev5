@@ -57,10 +57,10 @@ jobs:
         id: secrets
         run: |
           MISSING=()
-          OPTIONAL=()
           VALID=true
 
-          # REQUIRED: Content generation and publishing
+          # REQUIRED: Content generation and publishing only
+          # These secrets MUST be present for the workflow to proceed
           REQUIRED_SECRETS=(
             "GROQ_API_KEY"
             "GEMINI_API_KEY"
@@ -68,7 +68,8 @@ jobs:
             "CONTENT_REPO_TOKEN"
           )
 
-          # REQUIRED: Social media and e-commerce (19 total platform secrets)
+          # OPTIONAL: Social media and e-commerce (19 total platform secrets)
+          # Missing optional secrets do NOT block the workflow
           # Twitter/X (4 secrets)
           TWITTER_SECRETS=(
             "TWITTER_API_KEY"
@@ -132,202 +133,205 @@ jobs:
             "PRINTIFY_SHOP_ID"
           )
 
-          echo "## Critical Content Generation Secrets" >> $GITHUB_STEP_SUMMARY
+          echo "## Critical Content Generation Secrets (REQUIRED)" >> $GITHUB_STEP_SUMMARY
           for secret in "${REQUIRED_SECRETS[@]}"; do
             if [ -z "${!secret}" ]; then
               MISSING+=("$secret")
-              echo "❌ $secret (REQUIRED)" >> $GITHUB_STEP_SUMMARY
+              echo "❌ $secret" >> $GITHUB_STEP_SUMMARY
             else
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             fi
           done
 
+          # If required secrets are missing, fail the job
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**BLOCKING**: Missing critical secrets: ${MISSING[*]}" >> $GITHUB_STEP_SUMMARY
+            echo "**BLOCKING**: Missing required secrets: ${MISSING[*]}" >> $GITHUB_STEP_SUMMARY
             echo "valid=false" >> $GITHUB_OUTPUT
             exit 1
           fi
 
+          # Optional secrets don't block; report their status for visibility
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Social Media Platforms (19 secrets)" >> $GITHUB_STEP_SUMMARY
+          echo "## Optional Social Media & E-Commerce Platforms (19 secrets)" >> $GITHUB_STEP_SUMMARY
+          echo "*Missing optional secrets will disable those platforms but workflow will proceed*" >> $GITHUB_STEP_SUMMARY
 
           # Check Twitter/X
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Twitter/X (4 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Twitter/X (4 secrets)" >> $GITHUB_STEP_SUMMARY
           TWITTER_COUNT=0
           for secret in "${TWITTER_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               TWITTER_COUNT=$((TWITTER_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$TWITTER_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($TWITTER_COUNT/4 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$TWITTER_COUNT" -eq 4 ]; then
+            echo "Status: **ENABLED** (4/4 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($TWITTER_COUNT/4 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Reddit
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Reddit (4 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Reddit (4 secrets)" >> $GITHUB_STEP_SUMMARY
           REDDIT_COUNT=0
           for secret in "${REDDIT_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               REDDIT_COUNT=$((REDDIT_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$REDDIT_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($REDDIT_COUNT/4 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$REDDIT_COUNT" -eq 4 ]; then
+            echo "Status: **ENABLED** (4/4 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($REDDIT_COUNT/4 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check LinkedIn
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### LinkedIn (2 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### LinkedIn (2 secrets)" >> $GITHUB_STEP_SUMMARY
           LINKEDIN_COUNT=0
           for secret in "${LINKEDIN_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               LINKEDIN_COUNT=$((LINKEDIN_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$LINKEDIN_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($LINKEDIN_COUNT/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$LINKEDIN_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($LINKEDIN_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Facebook
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Facebook (2 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Facebook (2 secrets)" >> $GITHUB_STEP_SUMMARY
           FB_COUNT=0
           for secret in "${FB_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               FB_COUNT=$((FB_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$FB_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($FB_COUNT/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$FB_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($FB_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Instagram
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Instagram (1 secret, reuses FB token - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Instagram (1 secret, reuses FB token)" >> $GITHUB_STEP_SUMMARY
           IG_COUNT=0
           for secret in "${IG_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               IG_COUNT=$((IG_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$IG_COUNT" -gt 0 ] && [ "$FB_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** (with FB credentials)" >> $GITHUB_STEP_SUMMARY
+          if [ "$IG_COUNT" -eq 1 ] && [ "$FB_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (IG_USER_ID + FB credentials)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (needs IG_USER_ID + FB_PAGE_ACCESS_TOKEN)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** (needs IG_USER_ID + FB_PAGE_ACCESS_TOKEN - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check TikTok
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### TikTok (1 secret - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### TikTok (1 secret)" >> $GITHUB_STEP_SUMMARY
           if [ -n "$TIKTOK_ACCESS_TOKEN" ]; then
             echo "✅ TIKTOK_ACCESS_TOKEN" >> $GITHUB_STEP_SUMMARY
-            echo "Status: **ENABLED**" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **ENABLED** (1/1 secret)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ TIKTOK_ACCESS_TOKEN" >> $GITHUB_STEP_SUMMARY
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ TIKTOK_ACCESS_TOKEN (missing)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** (0/1 secret - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check YouTube
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### YouTube (3 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### YouTube (3 secrets)" >> $GITHUB_STEP_SUMMARY
           YOUTUBE_COUNT=0
           for secret in "${YOUTUBE_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               YOUTUBE_COUNT=$((YOUTUBE_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$YOUTUBE_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($YOUTUBE_COUNT/3 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$YOUTUBE_COUNT" -eq 3 ]; then
+            echo "Status: **ENABLED** (3/3 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($YOUTUBE_COUNT/3 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Etsy
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Etsy (2 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Etsy (2 secrets)" >> $GITHUB_STEP_SUMMARY
           ETSY_COUNT=0
           for secret in "${ETSY_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               ETSY_COUNT=$((ETSY_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$ETSY_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($ETSY_COUNT/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$ETSY_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($ETSY_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Gumroad
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Gumroad (2 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Gumroad (2 secrets)" >> $GITHUB_STEP_SUMMARY
           GUMROAD_COUNT=0
           for secret in "${GUMROAD_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               GUMROAD_COUNT=$((GUMROAD_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$GUMROAD_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($GUMROAD_COUNT/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$GUMROAD_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($GUMROAD_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check Printify
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Printify (2 secrets - OPTIONAL)" >> $GITHUB_STEP_SUMMARY
+          echo "### Printify (2 secrets)" >> $GITHUB_STEP_SUMMARY
           PRINTIFY_COUNT=0
           for secret in "${PRINTIFY_SECRETS[@]}"; do
             if [ -n "${!secret}" ]; then
               PRINTIFY_COUNT=$((PRINTIFY_COUNT + 1))
               echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ $secret" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          if [ "$PRINTIFY_COUNT" -gt 0 ]; then
-            echo "Status: **ENABLED** ($PRINTIFY_COUNT/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          if [ "$PRINTIFY_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Status: **DISABLED** (skipped on publish)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** ($PRINTIFY_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "valid=true" >> $GITHUB_OUTPUT
-          echo "✅ Content generation secrets valid; optional platforms configured gracefully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Required secrets validated; optional platforms will be configured gracefully" >> $GITHUB_STEP_SUMMARY
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

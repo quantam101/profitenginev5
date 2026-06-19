@@ -30,6 +30,10 @@ Optional:
     CONTENT_VERIFY_ONLY    — true to verify credentials without publishing
     GMAOS_GROQ_MODEL       — default: llama-3.3-70b-versatile
     PAID_ADAPTERS_ENABLED  — set to true to enable Hashnode (requires paid Pro plan)
+    OPENAI_API_KEY         — from platform.openai.com/api-keys
+    OPENROUTER_API_KEY     — from openrouter.ai/keys
+    DEEPSEEK_API_KEY       — from platform.deepseek.com/api/keys
+    ANTHROPIC_API_KEY      — from console.anthropic.com/api/keys
 """
 from __future__ import annotations
 
@@ -144,10 +148,22 @@ The article should be 800-1200 words, include:
 - No unresolved tokens or filler text; publish real, useful content"""
 
 
-# ── Groq generation ────────────────────────────────────────────────────────────
+# ── LLM Providers (cascading fallback: Groq → HF → Gemini → OpenAI → OpenRouter → DeepSeek → Anthropic)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
 GEMINI_MODEL = os.getenv("GMAOS_GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+OPENAI_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
 # Groq models in priority order — fall through if one hits a rate limit.
 # llama-3.1-8b-instant is tried first: higher daily token allowance on free tier.
@@ -250,9 +266,104 @@ def _call_hf_inference(prompt: str, model: str | None = None) -> str:
     return _retry_post(_do, max_retries=2, base_delay=20)
 
 
+def _call_openai(prompt: str) -> str:
+    """Call OpenAI API. Raises on failure."""
+    if not OPENAI_KEY:
+        raise ValueError("OPENAI_API_KEY not set")
+    def _do() -> str:
+        resp = httpx.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": OPENAI_MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 3000,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
+
+
+def _call_openrouter(prompt: str) -> str:
+    """Call OpenRouter API. Raises on failure."""
+    if not OPENROUTER_KEY:
+        raise ValueError("OPENROUTER_API_KEY not set")
+    def _do() -> str:
+        resp = httpx.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENROUTER_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 3000,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
+
+
+def _call_deepseek(prompt: str) -> str:
+    """Call DeepSeek API. Raises on failure."""
+    if not DEEPSEEK_KEY:
+        raise ValueError("DEEPSEEK_API_KEY not set")
+    def _do() -> str:
+        resp = httpx.post(
+            "https://api.deepseek.com/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": DEEPSEEK_MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 3000,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
+
+
+def _call_anthropic(prompt: str) -> str:
+    """Call Anthropic (Claude) API. Raises on failure."""
+    if not ANTHROPIC_KEY:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+    def _do() -> str:
+        resp = httpx.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"Authorization": f"Bearer {ANTHROPIC_KEY}", "x-api-key": ANTHROPIC_KEY, "Content-Type": "application/json", "anthropic-version": "2023-06-01"},
+            json={
+                "model": ANTHROPIC_MODEL,
+                "max_tokens": 3000,
+                "system": SYSTEM_PROMPT,
+                "messages": [
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["content"][0]["text"].strip()
+    return _retry_post(_do, max_retries=2, base_delay=30)
+
+
 def generate_article(topic: str) -> Dict[str, Any]:
-    if not GROQ_KEY and not GEMINI_KEY and not HF_TOKEN:
-        sys.exit("[ERROR] No LLM provider configured - set GROQ_API_KEY, GEMINI_API_KEY, or HF_TOKEN")
+    if not any([GROQ_KEY, HF_TOKEN, GEMINI_KEY, OPENAI_KEY, OPENROUTER_KEY, DEEPSEEK_KEY, ANTHROPIC_KEY]):
+        sys.exit("[ERROR] No LLM provider configured - set at least one of: GROQ_API_KEY, HF_TOKEN, GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
     affiliate_keywords = list(_affiliate_map().keys())
@@ -263,8 +374,10 @@ def generate_article(topic: str) -> Dict[str, Any]:
             "and do not turn the article into an advertisement): "
             + ", ".join(affiliate_keywords)
         )
-    # Try Groq first (free credits), then HuggingFace, then Gemini
+    # Cascading fallback: Groq → HF → Gemini → OpenAI → OpenRouter → DeepSeek → Anthropic
     raw = ""
+
+    # 1. Try Groq first (free credits), then HuggingFace, then Gemini
     if GROQ_KEY:
         for model in GROQ_MODELS:
             try:
@@ -273,6 +386,7 @@ def generate_article(topic: str) -> Dict[str, Any]:
                 break
             except Exception as e:
                 print(f"[AI] Groq/{model} failed ({e}), trying next...")
+
     if not raw and HF_TOKEN:
         for hf_model in HF_MODELS:
             try:
@@ -281,12 +395,46 @@ def generate_article(topic: str) -> Dict[str, Any]:
                 break
             except Exception as e:
                 print(f"[AI] HF/{hf_model} failed ({e}), trying next...")
+
     if not raw and GEMINI_KEY:
         try:
             raw = _call_gemini(prompt)
             print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
         except Exception as e:
-            print(f"[AI] Gemini failed ({e})")
+            print(f"[AI] Gemini failed ({e}), trying next...")
+
+    # 2. Try OpenAI
+    if not raw and OPENAI_KEY:
+        try:
+            raw = _call_openai(prompt)
+            print(f"[AI] Provider: OpenAI ({OPENAI_MODEL})")
+        except Exception as e:
+            print(f"[AI] OpenAI failed ({e}), trying next...")
+
+    # 3. Try OpenRouter
+    if not raw and OPENROUTER_KEY:
+        try:
+            raw = _call_openrouter(prompt)
+            print(f"[AI] Provider: OpenRouter ({OPENROUTER_MODEL})")
+        except Exception as e:
+            print(f"[AI] OpenRouter failed ({e}), trying next...")
+
+    # 4. Try DeepSeek
+    if not raw and DEEPSEEK_KEY:
+        try:
+            raw = _call_deepseek(prompt)
+            print(f"[AI] Provider: DeepSeek ({DEEPSEEK_MODEL})")
+        except Exception as e:
+            print(f"[AI] DeepSeek failed ({e}), trying next...")
+
+    # 5. Try Anthropic (Claude) — last fallback
+    if not raw and ANTHROPIC_KEY:
+        try:
+            raw = _call_anthropic(prompt)
+            print(f"[AI] Provider: Anthropic ({ANTHROPIC_MODEL})")
+        except Exception as e:
+            print(f"[AI] Anthropic failed ({e})")
+
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
@@ -559,7 +707,12 @@ def _verify_medium() -> bool:
 
 
 def _verify_ai_provider() -> bool:
+    """Verify at least one LLM provider is configured and reachable."""
+    providers_checked = 0
+    providers_ok = 0
+
     if GROQ_KEY:
+        providers_checked += 1
         try:
             r = httpx.get(
                 "https://api.groq.com/openai/v1/models",
@@ -568,26 +721,110 @@ def _verify_ai_provider() -> bool:
             )
             if r.is_success:
                 print("[VERIFY][OK] Groq: API key accepted")
-                return True
-            print(f"[VERIFY][FAIL] Groq {r.status_code}: {r.text[:240]}")
-            return False
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] Groq {r.status_code}: {r.text[:240]}")
         except Exception as exc:
-            print(f"[VERIFY][FAIL] Groq request failed: {exc}")
-            return False
+            print(f"[VERIFY][WARN] Groq request failed: {exc}")
+
+    if HF_TOKEN:
+        providers_checked += 1
+        try:
+            r = httpx.get(
+                f"{HF_INFERENCE_BASE}/meta-llama/Llama-3.1-8B-Instruct/v1/chat/completions",
+                headers={"Authorization": f"Bearer {HF_TOKEN}"},
+                timeout=20,
+            )
+            if r.status_code in (200, 400):  # 400 = missing input (expected for HEAD check), 200 = OK
+                print("[VERIFY][OK] HuggingFace: API key accepted")
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] HuggingFace {r.status_code}: {r.text[:240]}")
+        except Exception as exc:
+            print(f"[VERIFY][WARN] HuggingFace request failed: {exc}")
+
     if GEMINI_KEY:
+        providers_checked += 1
         try:
             model_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}"
             r = httpx.get(f"{model_url}?key={GEMINI_KEY}", timeout=20)
             if r.is_success:
                 print(f"[VERIFY][OK] Gemini: model reachable ({GEMINI_MODEL})")
-                return True
-            print(f"[VERIFY][FAIL] Gemini {r.status_code}: {r.text[:240]}")
-            return False
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] Gemini {r.status_code}: {r.text[:240]}")
         except Exception as exc:
-            print(f"[VERIFY][FAIL] Gemini request failed: {exc}")
-            return False
-    print("[VERIFY][FAIL] AI provider: neither GROQ_API_KEY nor GEMINI_API_KEY is configured")
-    return False
+            print(f"[VERIFY][WARN] Gemini request failed: {exc}")
+
+    if OPENAI_KEY:
+        providers_checked += 1
+        try:
+            r = httpx.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {OPENAI_KEY}"},
+                timeout=20,
+            )
+            if r.is_success:
+                print(f"[VERIFY][OK] OpenAI: API key accepted ({OPENAI_MODEL})")
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] OpenAI {r.status_code}: {r.text[:240]}")
+        except Exception as exc:
+            print(f"[VERIFY][WARN] OpenAI request failed: {exc}")
+
+    if OPENROUTER_KEY:
+        providers_checked += 1
+        try:
+            r = httpx.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {OPENROUTER_KEY}"},
+                timeout=20,
+            )
+            if r.is_success:
+                print(f"[VERIFY][OK] OpenRouter: API key accepted ({OPENROUTER_MODEL})")
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] OpenRouter {r.status_code}: {r.text[:240]}")
+        except Exception as exc:
+            print(f"[VERIFY][WARN] OpenRouter request failed: {exc}")
+
+    if DEEPSEEK_KEY:
+        providers_checked += 1
+        try:
+            r = httpx.get(
+                "https://api.deepseek.com/user/balance",
+                headers={"Authorization": f"Bearer {DEEPSEEK_KEY}"},
+                timeout=20,
+            )
+            if r.is_success:
+                print(f"[VERIFY][OK] DeepSeek: API key accepted ({DEEPSEEK_MODEL})")
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] DeepSeek {r.status_code}: {r.text[:240]}")
+        except Exception as exc:
+            print(f"[VERIFY][WARN] DeepSeek request failed: {exc}")
+
+    if ANTHROPIC_KEY:
+        providers_checked += 1
+        try:
+            r = httpx.get(
+                "https://api.anthropic.com/v1/models",
+                headers={"x-api-key": ANTHROPIC_KEY},
+                timeout=20,
+            )
+            if r.is_success:
+                print(f"[VERIFY][OK] Anthropic: API key accepted ({ANTHROPIC_MODEL})")
+                providers_ok += 1
+            else:
+                print(f"[VERIFY][WARN] Anthropic {r.status_code}: {r.text[:240]}")
+        except Exception as exc:
+            print(f"[VERIFY][WARN] Anthropic request failed: {exc}")
+
+    if providers_ok == 0:
+        print("[VERIFY][FAIL] AI providers: no LLM provider is configured or reachable")
+        return False
+    print(f"[VERIFY][OK] AI providers: {providers_ok}/{providers_checked} providers reachable")
+    return True
 
 
 def verify_publish_configuration() -> None:

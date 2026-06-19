@@ -1,0 +1,223 @@
+name: Daily News Update
+
+on:
+  schedule:
+    # Run at 9 AM UTC daily (4 AM EST, 1 AM PST)
+    - cron: '0 9 * * *'
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: false
+        default: 'daily'
+        type: choice
+        options:
+          - daily
+          - preview
+          - schedule
+
+jobs:
+  daily-news:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests feedparser
+
+          # Try to install optional dependencies
+          pip install python-dateutil pytz || true
+
+      - name: Create output directory
+        run: mkdir -p scripts/output
+
+      - name: Run daily news update
+        id: news_update
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          NEWSLETTER_API_KEY: ${{ secrets.NEWSLETTER_API_KEY }}
+          PROFITENGINE_URL: https://profitengine-tau.vercel.app
+          ACTION: ${{ inputs.action || 'daily' }}
+        run: |
+          python scripts/news_updater.py --action $ACTION --output --verbose 2>&1 | tee news_update.log
+
+          # Extract summary for output
+          echo "status=completed" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+
+      - name: Upload output artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily-news-output
+          path: |
+            scripts/output/
+            news_update.log
+          retention-days: 7
+
+      - name: Check if articles were generated
+        if: success()
+        run: |
+          if ls scripts/output/daily_news_*.json 1> /dev/null 2>&1; then
+            echo "✅ News articles generated successfully"
+            ls -lh scripts/output/daily_news_*.json
+          else
+            echo "⚠️ No articles generated (may be expected if no news items found)"
+          fi
+
+      - name: Commit generated content (optional)
+        if: success() && github.event_name == 'schedule'
+        continue-on-error: true
+        run: |
+          git config user.name "News Bot"
+          git config user.email "noreply+newsbot@github.com"
+
+          # Add any generated files
+          git add scripts/output/ || true
+
+          # Commit if changes exist
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: daily news digest $(date -u +'%Y-%m-%d')"
+            git push
+          fi
+
+      - name: Send Slack notification (optional)
+        if: always()
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "Slack webhook not configured"
+            exit 0
+          fi
+
+          STATUS="✅ Success"
+          if [ "${{ job.status }}" == "failure" ]; then
+            STATUS="❌ Failed"
+          fi
+
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"Daily News Update: $STATUS\",
+              \"attachments\": [{
+                \"color\": \"$([ \"${{ job.status }}\" == \"success\" ] && echo \"good\" || echo \"danger\")\",
+                \"fields\": [
+                  {\"title\": \"Status\", \"value\": \"${{ job.status }}\", \"short\": true},
+                  {\"title\": \"Run\", \"value\": \"<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\", \"short\": true}
+                ]
+              }]
+            }" || true
+
+      - name: Create issue on failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ Daily News Update Failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `Daily news update workflow failed.
+
+              [View Run →](${context.server_url}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+              Check logs for details.`,
+              labels: ['automation', 'news-updater']
+            })
+
+      - name: Log completion
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Daily News Update Workflow Complete"
+          echo "Status: ${{ job.status }}"
+          echo "Time: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "=========================================="
+
+  # Optional: Post update summary to discussion
+  notify-community:
+    needs: daily-news
+    runs-on: ubuntu-latest
+    if: success() && github.event_name == 'schedule'
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Parse news summary
+        id: summary
+        run: |
+          if ls scripts/output/daily_news_*.json 1> /dev/null 2>&1; then
+            LATEST=$(ls -t scripts/output/daily_news_*.json | head -1)
+            echo "article=$LATEST" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post to discussions (optional)
+        if: steps.summary.outputs.article
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('${{ steps.summary.outputs.article }}', 'utf8'));
+
+            // Post summary to discussions if configured
+            console.log('News update published:', data.article.title);
+
+  # Optional: Update dashboard
+  update-dashboard:
+    needs: daily-news
+    runs-on: ubuntu-latest
+    if: success() && github.event_name == 'schedule'
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update news metrics
+        run: |
+          echo "Updating news metrics dashboard..."
+          # Add custom dashboard update logic here
+          # Example: Update stats file, trigger rebuild, etc.
+          echo "News articles updated on $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> news_metrics.txt
+
+      - name: Commit metrics (optional)
+        continue-on-error: true
+        run: |
+          git config user.name "Metrics Bot"
+          git config user.email "noreply+metrics@github.com"
+          git add news_metrics.txt || true
+          git commit -m "chore: update news metrics" || true
+          git push || true

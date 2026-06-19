@@ -1,0 +1,259 @@
+================================================================================
+GUMROAD PUBLISHER - QUICK START GUIDE
+================================================================================
+
+1. SETUP
+────────────────────────────────────────────────────────────────────────────────
+Required environment variables (set in .env or server):
+  GUMROAD_API_TOKEN=your_api_token_here
+  GUMROAD_CREATOR_ID=alreadyhere
+
+Optional:
+  AFFILIATE_LINKS={"Python book": "https://amzn.to/xxx"}
+  AMAZON_PARTNER_TAG=alreadyhere-20
+
+
+2. QUICK USAGE
+────────────────────────────────────────────────────────────────────────────────
+
+# Convert article to PDF ebook
+pdf = gp.article_to_ebook(content, "My Guide", "Author Name")
+
+# Publish to Gumroad
+product = gp.publish_ebook(
+    title="My Guide",
+    description="Full description...",
+    pdf_path=pdf,
+    content_type="ebook",  # or manual, course
+    word_count=12000
+)
+
+
+3. PRICING GUIDE
+────────────────────────────────────────────────────────────────────────────────
+Auto-calculated based on:
+  - Content type (ebook/manual/course/bundle)
+  - Word count
+  - Has templates?
+  - Has worksheets?
+  - Is bestseller?
+
+Examples:
+  5K words ebook           → $4.99
+  15K words + templates    → $12.99
+  20K words manual         → $19.99
+  50K words course         → $99.99
+
+Get recommendation:
+  price = gp.get_recommended_price("ebook", 15000, has_templates=True)
+
+
+4. PUBLISHING TYPES
+────────────────────────────────────────────────────────────────────────────────
+
+EBOOK ($4.99-$9.99)
+  - Quick guides, curated lists
+  - 5K-15K words
+  - No templates needed
+  - Fast to produce
+
+MANUAL ($7.99-$14.99)
+  - How-to guides, step-by-step
+  - 10K-35K words
+  - Includes templates/checklists
+  - Reusable content
+
+COURSE ($19.99-$49.99+)
+  - Multi-module training
+  - 20K-80K+ words
+  - Video + worksheets
+  - Highest perceived value
+
+BUNDLE ($24.99-$99.99+)
+  - Multiple guides + courses
+  - 30K-150K+ words
+  - Complete system
+
+
+5. COMMON WORKFLOWS
+────────────────────────────────────────────────────────────────────────────────
+
+A. Simple Ebook (5 minutes)
+   1. gp.article_to_ebook(article_markdown, "My Guide", "Author")
+   2. gp.publish_ebook(..., content_type="ebook", word_count=8000)
+   3. Done — product URL in response
+
+B. Manual with Templates (10 minutes)
+   1. Create main guide content
+   2. Add templates/checklists
+   3. gp.publish_manual(..., includes_templates=True)
+
+C. Course with Video (30 minutes)
+   1. Create 5 modules of content
+   2. Bundle with videos + worksheets
+   3. gp.publish_course(..., modules_count=5, includes_video=True)
+
+D. Track Sales Daily
+   products = gp.get_all_products()
+   for p in products:
+       sales = gp.fetch_product_sales(p["id"])
+       print(f"{p['name']}: {sales['sales_count']} sales")
+
+E. Generate Report
+   report = gp.generate_sales_report()
+   print(report)
+
+
+6. CONTENT CONVERSION
+────────────────────────────────────────────────────────────────────────────────
+
+Supported input formats:
+  - Markdown (.md) — recommended
+  - HTML (.html)
+  - Plain text (.txt)
+
+Output formats:
+  - PDF (.pdf) — if reportlab installed
+  - HTML (.html) — always available
+
+To convert HTML to PDF manually:
+  wkhtmltopdf input.html output.pdf
+  or
+  weasyprint input.html output.pdf
+
+
+7. AFFILIATE LINK INJECTION
+────────────────────────────────────────────────────────────────────────────────
+
+Automatic:
+  AFFILIATE_LINKS='{"Python": "https://amzn.to/xxx"}'
+  → Links auto-injected into product descriptions
+
+Manual:
+  gp.update_product_with_affiliate_links(
+      product_id,
+      "ebook",
+      {"Python": "https://amzn.to/xxx"}
+  )
+
+
+8. DEBUGGING
+────────────────────────────────────────────────────────────────────────────────
+
+Check API token:
+  echo $GUMROAD_API_TOKEN
+  curl -H "Authorization: Bearer YOUR_TOKEN" \
+    https://api.gumroad.com/v2/products
+
+Check all products:
+  products = gp.get_all_products()
+  for p in products:
+      print(f"{p['name']} - {p['url']}")
+
+Test publishing (dry run):
+  product = gp.publish_ebook(...)
+  if product:
+      print(f"Success: {product.product_url}")
+
+
+9. ERROR HANDLING
+────────────────────────────────────────────────────────────────────────────────
+
+"GUMROAD_API_TOKEN not set"
+  → Set in .env or server environment
+
+"PDF file not found"
+  → Use absolute path: /full/path/to/file.pdf
+
+"Failed to create product: 401"
+  → Check API token is valid and not expired
+
+"No PDF library available"
+  → Install: pip install reportlab
+  → Or use HTML output and convert with wkhtmltopdf
+
+
+10. ENVIRONMENT CHECKLIST
+────────────────────────────────────────────────────────────────────────────────
+
+Before deploying to production:
+
+[ ] GUMROAD_API_TOKEN set in server .env
+[ ] GUMROAD_CREATOR_ID set in server .env
+[ ] Test publish_ebook() with real API token
+[ ] Test fetch_product_sales() returns data
+[ ] Verify affiliate links inject correctly
+[ ] Check all products visible at gumroad.com/l/alreadyhere
+[ ] Set up daily sales report script
+[ ] Test PDF generation (reportlab or wkhtmltopdf)
+[ ] Document any custom pricing strategy
+[ ] Set up webhook handler for sale notifications
+
+
+11. PRODUCTION DEPLOYMENT
+────────────────────────────────────────────────────────────────────────────────
+
+1. GitHub Secrets (for CI/CD):
+   GUMROAD_API_TOKEN = real_token_here
+
+2. Vercel Environment:
+   GUMROAD_API_TOKEN = real_token_here
+   GUMROAD_CREATOR_ID = alreadyhere
+
+3. OCI Server (.env):
+   GUMROAD_API_TOKEN = real_token_here
+   GUMROAD_CREATOR_ID = alreadyhere
+
+4. Test in staging:
+   python scripts/gumroad_publisher.py
+
+5. Deploy script to production:
+   git push → CI/CD runs automatically
+
+
+12. NEXT STEPS
+────────────────────────────────────────────────────────────────────────────────
+
+[ ] Read full documentation: docs/GUMROAD_PUBLISHER.md
+[ ] Run examples: python scripts/gumroad_publisher_examples.py
+[ ] Publish first product manually
+[ ] Set up automated daily sales report
+[ ] Configure webhook for sale notifications
+[ ] Implement license key generation
+[ ] Set up email confirmations for buyers
+[ ] Track affiliate link clicks
+[ ] Monitor sales metrics in dashboard
+
+
+13. USEFUL GUMROAD LINKS
+────────────────────────────────────────────────────────────────────────────────
+
+Dashboard:      https://gumroad.com
+Store:          https://alreadyhere.gumroad.com
+API Docs:       https://gumroad.com/api
+API Settings:   https://gumroad.com/api
+Account:        https://gumroad.com/me/settings
+Products:       https://gumroad.com/manage
+
+
+14. SALES TRACKING
+────────────────────────────────────────────────────────────────────────────────
+
+Daily report:
+  python -c "import gumroad_publisher as gp; print(gp.generate_sales_report())"
+
+Webhook endpoint (for real-time sales):
+  POST /api/webhooks/gumroad/sale
+  Content: {product_id, buyer_email, license_key, ...}
+
+Archive sales log:
+  append to sales_log.jsonl daily
+
+Analyze trends:
+  jq '.products | group_by(.content_type) | map({type: .[0].content_type, total: map(.sales) | add})' sales_log.jsonl
+
+
+================================================================================
+For detailed reference, see: docs/GUMROAD_PUBLISHER.md
+For examples, run: python scripts/gumroad_publisher_examples.py
+================================================================================

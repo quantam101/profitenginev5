@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-06-19T16:48:09.742872+00:00",
+  "canonical_url": "https://quantam101.github.io/content/posts/2026-06-19-land-first-freelance-client-upwork-2026/",
+  "social_media": {
+    "twitter": null,
+    "reddit": null,
+    "linkedin": null,
+    "facebook": null,
+    "instagram": null,
+    "tiktok": null,
+    "youtube": null
+  },
+  "ecommerce": {
+    "shopify": {
+      "status": "skipped",
+      "reason": "no_credentials"
+    },
+    "etsy": {
+      "status": "skipped",
+      "reason": "no_credentials"
+    },
+    "amazon": {
+      "status": "skipped",
+      "reason": "no_credentials"
+    },
+    "ebay": {
+      "status": "skipped",
+      "reason": "no_credentials"
+    },
+    "woocommerce": {
+      "status": "skipped",
+      "reason": "no_credentials"
+    }
+  },
+  "summary": {
+    "total_platforms": 12,
+    "successful": 0,
+    "failed": 0,
+    "skipped": 5
+  }
+}

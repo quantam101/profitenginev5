@@ -1,0 +1,52 @@
+{
+  "test_timestamp": "2026-06-19T14:50:23.029614+00:00",
+  "system_summary": {
+    "timestamp": "2026-06-19T14:50:23.029450+00:00",
+    "ai_providers": {
+      "groq": true,
+      "gemini": true,
+      "huggingface": true
+    },
+    "content_platforms": {
+      "github_pages": true,
+      "devto": true,
+      "hashnode": true,
+      "medium": false
+    },
+    "social_platforms": {
+      "twitter": false,
+      "reddit": false,
+      "facebook": false,
+      "linkedin": false,
+      "instagram": false,
+      "tiktok": false,
+      "telegram": true,
+      "mastodon": false,
+      "bluesky": false
+    },
+    "ecommerce_platforms": {
+      "shopify": false,
+      "etsy": false,
+      "amazon": false,
+      "ebay": false,
+      "woocommerce": false
+    },
+    "affiliate_config": {
+      "total_programs": 12,
+      "amazon_tag": "alreadyhere-20"
+    },
+    "missing_keys": []
+  },
+  "sample_article": {
+    "title": "AI Automation Systems for Small Business Revenue",
+    "slug": "ai-automation-systems-for-small-business-revenue",
+    "body_length": 5279,
+    "tags": [
+      "ai",
+      "automation",
+      "revenue",
+      "smallbusiness"
+    ],
+    "has_revenue_brief": true
+  }
+}

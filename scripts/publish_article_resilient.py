@@ -25,6 +25,14 @@ import httpx
 
 import publish_article as publisher
 
+# Import content quality gate for pre-publish validation
+try:
+    from content_quality_gate import validate_before_publish, get_quality_gate_json
+except (ImportError, AttributeError) as e:
+    print(f"[WARN] content_quality_gate import failed: {e}")
+    validate_before_publish = None  # type: ignore[assignment]
+    get_quality_gate_json = None  # type: ignore[assignment]
+
 # Gracefully import distribution modules with fallback handling
 try:
     from social_media_publishers import publish_to_all_platforms
@@ -57,6 +65,10 @@ AFFILIATE_DISCLOSURE = os.getenv(
     "Some links below are affiliate or referral links. Already Here LLC may earn a commission or referral credit at no extra cost to you.",
 ).strip()
 ACTION_BRIEF_ENABLED = os.getenv("CONTENT_ACTION_BRIEF_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
+
+# Content Quality Gate Configuration
+QUALITY_GATE_ENABLED = os.getenv("QUALITY_GATE_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
+QUALITY_GATE_VERBOSE = os.getenv("QUALITY_GATE_VERBOSE", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 # Gumroad & Printify configuration
 GUMROAD_API_KEY = os.getenv("GUMROAD_API_KEY", "").strip()
@@ -1170,6 +1182,42 @@ def main() -> None:
 
     if publish_state["canonical_url"]:
         print(f"[PUBLISH][OK] Strict publish verified: {publish_state['canonical_url']}")
+
+    # Pre-publish quality gate validation
+    article = publish_state.get("article", {})
+    if QUALITY_GATE_ENABLED and article and validate_before_publish is not None:
+        print("\n[QUALITY_GATE] Running pre-publish content quality validation...")
+        try:
+            should_publish, validation = validate_before_publish(article, verbose=QUALITY_GATE_VERBOSE)
+
+            if not should_publish:
+                print(f"[QUALITY_GATE][BLOCKED] Article blocked from publication")
+                print(f"[QUALITY_GATE] Quality score: {validation.quality_scores.average:.1f}/10 (threshold: 8.0/10)")
+                print(f"[QUALITY_GATE] Issues: {len(validation.required_changes)}")
+                for change in validation.required_changes[:5]:
+                    print(f"  - {change}")
+                sys.exit(f"[PUBLISH][FAIL] Article failed quality gate. Required {len(validation.required_changes)} changes. See report above.")
+
+            print(f"[QUALITY_GATE][PASS] Article passed quality gate")
+            print(f"[QUALITY_GATE] Quality score: {validation.quality_scores.average:.1f}/10")
+
+            # Save quality gate report
+            gate_report = {
+                "article_title": validation.article_title,
+                "publish_status": validation.publish_status,
+                "quality_score": validation.quality_scores.average if validation.quality_scores else 0,
+                "timestamp": validation.timestamp,
+            }
+            publish_state["quality_gate_report"] = gate_report
+
+        except Exception as exc:
+            exc_msg = str(exc).encode('ascii', 'replace').decode('ascii')
+            print(f"[QUALITY_GATE][WARN] Quality gate validation failed: {exc_msg}")
+            print(f"[QUALITY_GATE][WARN] Proceeding with publication (quality gate not blocking)")
+    elif QUALITY_GATE_ENABLED and not article:
+        print("[QUALITY_GATE][SKIP] No article available for quality gate validation")
+    elif not QUALITY_GATE_ENABLED:
+        print("[QUALITY_GATE][SKIP] Quality gate disabled (QUALITY_GATE_ENABLED=false)")
 
     # Distribute to social media and e-commerce platforms after GitHub publish succeeds
     if publish_state["canonical_url"] and not getattr(publisher, "VERIFY_ONLY", False):

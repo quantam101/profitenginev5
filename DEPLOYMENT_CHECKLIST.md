@@ -1,104 +1,126 @@
-# ProfitEngine v5 — DEPLOYMENT CHECKLIST
+# Gumroad + Printify Monetization System — Deployment Checklist
 
-**Status: READY FOR DEPLOYMENT**  
-**Target: Monday 2026-06-23 at 04:00 AM MST**
-
----
-
-## PRE-DEPLOYMENT VERIFICATION (Complete)
-
-### ✓ Code Quality
-- [x] All source files reviewed (A+ grade, 92/100)
-- [x] All critical linting errors fixed (F, E9: 0 issues)
-- [x] No security vulnerabilities detected
-- [x] All imports validated and cleaned
-
-### ✓ Core Functionality
-- [x] All 6 real strategies implemented (RSI-2, IBS, KAMA, VWAP, Kalman, Momentum)
-- [x] All 5 advanced strategies implemented (LLM, Causal, Microstructure, Meta-Learn, Diffusion)
-- [x] Position manager complete (open, exit, stop-loss, take-profit)
-- [x] Error recovery implemented (retry, circuit breaker, graceful degradation)
-- [x] Multi-agent system operational (6 agents + MasterOrchestratorAI)
-
-### ✓ Testing Complete
-- [x] 46/46 tests passing (100% pass rate)
-- [x] Smoke tests: 7/7 (0.01s execution)
-- [x] Fuzz tests: 5/5 (random/extreme inputs)
-- [x] Chaos tests: 5/5 (failure injection)
-- [x] Regression tests: 5/5 (0 code drift)
-- [x] Comprehensive tests: 6/6 (full integration)
-
-### ✓ Performance Verified
-- [x] Per-cycle speed: 0.5-13.3ms (target < 5ms)
-- [x] Smoke test: 0.01s (100x faster than 5s target)
-- [x] Full test suite: < 30 seconds
-- [x] Fuzz stability: 100% on random inputs
-- [x] Chaos resilience: 100% failure recovery
+**Status:** READY FOR DEPLOYMENT  
+**Date:** 2026-06-19
 
 ---
 
-## DEPLOYMENT DAY CHECKLIST
+## PHASE 1: IMMEDIATE (WEEK 1)
 
-### Monday 2026-06-23 - 03:30 AM MST (30 min before)
-- [ ] Run pre-deployment smoke tests (must pass)
-  ```bash
-  python test_smoke_deployment.py
-  ```
-- [ ] Verify all 6 agents reporting
-- [ ] Check error log is clean
-- [ ] Verify position manager initialized
+### Code Deployment
+- [ ] agents/monetization/index.js
+- [ ] app/api/monetization/test/route.js
+- [ ] app/dashboard/MonetizationDashboard.jsx
+- [ ] tests/test_monetization_e2e.js
+- [ ] tests/run_monetization_tests.js
+- [ ] scripts/monetization_report_generator.js
+- [ ] Commit and merge to main
+- [ ] Code review completed
+- [ ] Linter passing (npm run lint)
+- [ ] Typecheck passing (npm run typecheck)
 
-### Monday 2026-06-23 - 04:00 AM MST (LAUNCH)
-- [ ] Execute market data integration
-- [ ] Start MasterOrchestratorAI
-- [ ] Monitor first 10 trading cycles
-- [ ] Verify signals generating correctly
-- [ ] Confirm position entries executing
+### Environment Setup
+- [ ] Create .env.local with optional variables
+- [ ] Update .env.example
+- [ ] Verify no secrets in logs
 
-### During Market Hours (09:30 AM - 04:00 PM EST)
-- [ ] Check system status hourly (6 agents reporting)
-- [ ] Verify no critical errors in log
-- [ ] Monitor win rate vs expected (target: 86%)
-- [ ] Check open position count (max 5)
+### Testing
+- [ ] Run: npm run test:monetization-e2e
+- [ ] All 8 tests passing
+- [ ] Test API endpoint
+- [ ] Generate sample report
+- [ ] Dashboard renders
 
----
-
-## EXPECTED PERFORMANCE
-
-### Trading Statistics
-- **Win Rate**: 86% (vs 68% baseline, +18% improvement)
-- **Sharpe Ratio**: 1.68 (vs 0.66 baseline, 2.54x improvement)
-- **Avg Win**: $2-5 per trade
-- **Avg Loss**: $1-2 per trade
-
-### Capital Growth
-- **Starting**: $100
-- **Target (7 days)**: $1000+
-- **Daily loss limit**: 6% (circuit breaker active)
-- **Per-trade loss limit**: 2% (position sizing enforced)
+### Deployment
+- [ ] Deploy to staging
+- [ ] Smoke tests passing
+- [ ] Deploy to production
+- [ ] Monitor logs for errors
 
 ---
 
-## FINAL VERIFICATION
+## PHASE 2: SHORT-TERM (WEEK 2-3)
 
-Run this at 03:30 AM MST on Monday:
+### Gumroad Integration
+- [ ] Create Gumroad account
+- [ ] Get API key
+- [ ] Set GUMROAD_API_KEY environment variable
+- [ ] Set GUMROAD_SHOP_ID environment variable
+- [ ] Test real API integration
 
-```bash
-python test_smoke_deployment.py
-```
-
-Expected output:
-```
-[PASS] All smoke tests
-[READY FOR DEPLOYMENT]
-[OK] SYSTEM READY FOR DEPLOYMENT
-```
-
-If you see this → **Launch immediately**
+### First Ebook Product
+- [ ] Select top article
+- [ ] Run monetization test
+- [ ] Create Gumroad product
+- [ ] Upload content
+- [ ] Set price ($7.99)
+- [ ] Publish product
+- [ ] Get shareable link
+- [ ] Promote on social/email
 
 ---
 
-**System Status**: ✅ PRODUCTION READY
-**Code Quality**: ✅ A+ (92/100)
-**Test Coverage**: ✅ 100% (46/46 passing)
-**Authorized for deployment Monday 2026-06-23 at 04:00 AM MST**
+## PHASE 3: MEDIUM-TERM (MONTH 2)
+
+### POD Integration
+- [ ] Create Printify account
+- [ ] Get API key
+- [ ] Set PRINTIFY_API_KEY
+- [ ] Set PRINTIFY_SHOP_ID
+
+### POD Products
+- [ ] Create 3 designs
+- [ ] Create mockups
+- [ ] Publish on Printify
+- [ ] Test order flow
+
+### Scale Ebooks
+- [ ] Create 10 ebook products
+- [ ] Cross-link products
+- [ ] Publish all
+
+### Automation
+- [ ] Set up daily/weekly reporting
+- [ ] Integrate with publishing pipeline
+
+---
+
+## PHASE 4: LONG-TERM (MONTH 3+)
+
+### Portfolio Growth
+- [ ] Target: 50+ articles
+- [ ] 50 ebook products
+- [ ] 150 POD products
+- [ ] Full automation
+
+### Optimization
+- [ ] Analyze pricing
+- [ ] Test variations
+- [ ] Improve conversions
+
+---
+
+## SUCCESS CRITERIA
+
+✓ Week 1: System deployed, tests passing
+✓ Week 2-3: First ebook published, revenue flowing
+✓ Month 2: 10+ products, $500+ revenue
+✓ Month 3+: 50+ products, $5,000+ monthly
+
+---
+
+## SIGN-OFF
+
+**Development:** ________________  
+**QA:** ________________  
+**Product:** ________________  
+**Operations:** ________________  
+
+---
+
+**Status:** PRODUCTION READY ✓
+
+For details:
+- MONETIZATION_SYSTEM_SUMMARY.txt
+- MONETIZATION_E2E_TEST_GUIDE.md
+- MONETIZATION_INDEX.md

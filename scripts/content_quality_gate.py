@@ -9,109 +9,139 @@ Multi-agent validation pipeline that blocks publishing until articles meet:
 - Already Here LLC offer alignment
 - Proof-of-work standards
 - Security requirements
-- Reader value
+- Content structure standards
 
 Each validation task runs as an independent agent.
 All agents must pass before publish_status = PUBLISH.
+
+Scoring Requirements:
+- Each validator must score >= 7/10 (minimum category threshold)
+- Overall average must be >= 8/10 (minimum publication threshold)
+- Publish status is PUBLISH (pass) or HOLD_FOR_REVIEW (fail)
+
+Distribution Channels (post-quality gate):
+1. Dev.to (500K+ developers)
+2. Hashnode (2M+ tech audience)
+3. Medium (10M+ tech readers)
+4. Beehiiv (newsletter + weekly digests)
+5. Resend (email to segmented subscribers)
+6. YouTube (video + AdSense)
+7. Telegram (notification alerts)
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
 
 # ── Quality Gate Data Structures ────────────────────────────────────────────
 
 @dataclass
 class QualityScore:
-    """Article quality scoring"""
-    technical_accuracy: int  # 0-10
-    source_verification: int  # 0-10
-    offer_alignment: int  # 0-10
-    affiliate_relevance: int  # 0-10
-    zero_cost_compliance: int  # 0-10
-    proof_of_work_status: int  # 0-10
-    security_quality: int  # 0-10
-    reader_value: int  # 0-10
-    already_here_fit: int  # 0-10
-    publish_risk: int  # 0-10 (lower is better)
+    """Article quality scoring with 7 independent validators"""
+    technical_accuracy: int  # 0-10 — free claims, setup steps accuracy
+    affiliate_relevance: int  # 0-10 — link relevance, no stuffing
+    zero_cost_compliance: int  # 0-10 — free/unlimited claims qualified
+    offer_alignment: int  # 0-10 — Already Here LLC alignment
+    proof_of_work_status: int  # 0-10 — proof language, no "guaranteed"
+    security_quality: int  # 0-10 — security for API/cloud content
+    content_structure: int  # 0-10 — required sections present
 
     @property
     def average(self) -> float:
-        """Calculate average score"""
+        """Calculate average score across 7 categories"""
         total = (
-            self.technical_accuracy + self.source_verification +
-            self.offer_alignment + self.affiliate_relevance +
-            self.zero_cost_compliance + self.proof_of_work_status +
-            self.security_quality + self.reader_value +
-            self.already_here_fit
+            self.technical_accuracy + self.affiliate_relevance +
+            self.zero_cost_compliance + self.offer_alignment +
+            self.proof_of_work_status + self.security_quality +
+            self.content_structure
         )
-        return total / 9
+        return total / 7
+
+    @property
+    def all_categories_pass(self) -> bool:
+        """Check if all categories meet minimum threshold (7/10)"""
+        return all([
+            self.technical_accuracy >= 7,
+            self.affiliate_relevance >= 7,
+            self.zero_cost_compliance >= 7,
+            self.offer_alignment >= 7,
+            self.proof_of_work_status >= 7,
+            self.security_quality >= 7,
+            self.content_structure >= 7,
+        ])
 
     @property
     def passes_threshold(self) -> bool:
-        """Check if article passes publishing threshold"""
+        """Check if article passes publishing threshold
+
+        Requirements:
+        - Overall average >= 8/10
+        - All categories >= 7/10
+        """
         return (
-            self.average >= 8 and
-            all([
-                self.technical_accuracy >= 7,
-                self.source_verification >= 7,
-                self.offer_alignment >= 7,
-                self.affiliate_relevance >= 7,
-                self.zero_cost_compliance >= 7,
-                self.proof_of_work_status >= 7,
-                self.security_quality >= 7,
-                self.reader_value >= 7,
-                self.already_here_fit >= 7,
-                self.publish_risk <= 3,
-            ])
+            self.average >= 8.0 and
+            self.all_categories_pass
         )
 
 
 @dataclass
 class ValidationResult:
-    """Individual validator result"""
+    """Result from a single independent validator agent"""
     validator_name: str
     passed: bool
     score: int  # 0-10
-    findings: List[str]
-    required_changes: List[str]
+    findings: List[str]  # Issues discovered
+    required_changes: List[str]  # Specific changes needed
     notes: str
-    timestamp: str
+    timestamp: str = ""
+
+    def __post_init__(self):
+        if not self.timestamp:
+            self.timestamp = datetime.now().isoformat()
 
 
 @dataclass
 class PublishValidation:
-    """Complete article validation"""
+    """Complete article validation report with all agent results"""
     article_title: str
     target_buyer: str
     primary_offer: str
 
+    # Affiliate validation
     affiliate_links_present: bool
     affiliate_links_approved: bool
     unrelated_tools_removed: List[str]
 
+    # Zero-cost validation
     zero_cost_claims_present: bool
     zero_cost_claims_verified: bool
 
+    # Technical validation
     technical_claims_verified: bool
     official_sources_checked: List[str]
 
+    # Security validation
     security_risks_found: List[str]
+
+    # Proof-of-work validation
     proof_of_work_status: str  # idea | draft | internal_proof | client_proof | ready_to_promote | ready_to_sell
 
-    publish_status: str  # publish | hold_for_review | reject
+    # Final decision
+    publish_status: str  # "publish" or "hold_for_review"
     required_changes: List[str]
     final_notes: str
 
+    # Detailed results
     quality_scores: Optional[QualityScore] = None
     validator_results: Optional[List[ValidationResult]] = None
-    timestamp: str = None
+    timestamp: str = ""
 
     def __post_init__(self):
-        if self.timestamp is None:
+        if not self.timestamp:
             self.timestamp = datetime.now().isoformat()
 
 
@@ -494,38 +524,78 @@ class ContentStructureAgent:
 
 
 class ScoringAgent:
-    """Calculates final quality score"""
+    """Aggregates all validator results and calculates final publication decision
+
+    This agent does NOT validate content directly.
+    Instead, it aggregates the scores from the 7 independent validator agents
+    and determines if the article meets the publication threshold.
+    """
 
     @staticmethod
-    def validate(article: Dict[str, Any], validator_results: List[ValidationResult]) -> tuple[QualityScore, ValidationResult]:
-        """Calculate final quality scores"""
+    def calculate_scores(validator_results: List[ValidationResult]) -> QualityScore:
+        """Map validator results to quality scores
 
-        # Map validator results to quality scores
+        Maps agent names to score categories:
+        - TechnicalAccuracyAgent → technical_accuracy
+        - AffiliateRelevanceAgent → affiliate_relevance
+        - ZeroCostComplianceAgent → zero_cost_compliance
+        - OfferAlignmentAgent → offer_alignment
+        - ProofOfWorkAgent → proof_of_work_status
+        - SecurityAgent → security_quality
+        - ContentStructureAgent → content_structure
+        """
         score_map = {v.validator_name: v.score for v in validator_results}
 
         quality = QualityScore(
             technical_accuracy=score_map.get("TechnicalAccuracyAgent", 0),
-            source_verification=score_map.get("TechnicalAccuracyAgent", 0),
-            offer_alignment=score_map.get("OfferAlignmentAgent", 0),
             affiliate_relevance=score_map.get("AffiliateRelevanceAgent", 0),
             zero_cost_compliance=score_map.get("ZeroCostComplianceAgent", 0),
+            offer_alignment=score_map.get("OfferAlignmentAgent", 0),
             proof_of_work_status=score_map.get("ProofOfWorkAgent", 0),
             security_quality=score_map.get("SecurityAgent", 0),
-            reader_value=score_map.get("ContentStructureAgent", 0),
-            already_here_fit=score_map.get("OfferAlignmentAgent", 0),
-            publish_risk=10 if not quality.passes_threshold else 3
+            content_structure=score_map.get("ContentStructureAgent", 0),
         )
+        return quality
+
+    @staticmethod
+    def generate_scoring_result(quality: QualityScore) -> ValidationResult:
+        """Generate final scoring report"""
+        findings = [
+            f"Average score: {quality.average:.1f}/10",
+            f"Categories at/above 7/10: {sum(1 for s in [quality.technical_accuracy, quality.affiliate_relevance, quality.zero_cost_compliance, quality.offer_alignment, quality.proof_of_work_status, quality.security_quality, quality.content_structure] if s >= 7)}/7",
+        ]
+
+        if quality.technical_accuracy < 7:
+            findings.append(f"Technical accuracy below threshold: {quality.technical_accuracy}/10")
+        if quality.affiliate_relevance < 7:
+            findings.append(f"Affiliate relevance below threshold: {quality.affiliate_relevance}/10")
+        if quality.zero_cost_compliance < 7:
+            findings.append(f"Zero-cost compliance below threshold: {quality.zero_cost_compliance}/10")
+        if quality.offer_alignment < 7:
+            findings.append(f"Offer alignment below threshold: {quality.offer_alignment}/10")
+        if quality.proof_of_work_status < 7:
+            findings.append(f"Proof-of-work status below threshold: {quality.proof_of_work_status}/10")
+        if quality.security_quality < 7:
+            findings.append(f"Security quality below threshold: {quality.security_quality}/10")
+        if quality.content_structure < 7:
+            findings.append(f"Content structure below threshold: {quality.content_structure}/10")
+
+        required_changes = []
+        if quality.average < 8.0:
+            required_changes.append(f"Improve overall average from {quality.average:.1f}/10 to 8.0/10 or higher")
+        if not quality.all_categories_pass:
+            required_changes.append("Raise all categories to 7/10 minimum before publishing")
 
         result = ValidationResult(
             validator_name="ScoringAgent",
             passed=quality.passes_threshold,
             score=int(quality.average),
-            findings=[f"Average score: {quality.average:.1f}/10"],
-            required_changes=[] if quality.passes_threshold else ["Article must be rewritten to meet publishing threshold"],
-            notes=f"Final score: {quality.average:.1f}/10 - {'PASS' if quality.passes_threshold else 'HOLD FOR REVIEW'}"
+            findings=findings,
+            required_changes=required_changes,
+            notes=f"Final score: {quality.average:.1f}/10 - {'PASS: Ready for publication' if quality.passes_threshold else 'HOLD FOR REVIEW: Below publishing threshold'}",
         )
 
-        return quality, result
+        return result
 
 
 # ── Quality Gate Orchestrator ────────────────────────────────────────────────
@@ -545,41 +615,71 @@ class ContentQualityGate:
         ]
 
     def validate_article(self, article: Dict[str, Any]) -> PublishValidation:
-        """Run complete quality validation pipeline"""
+        """Run complete quality validation pipeline with 7 independent agents
 
-        # Run all agents
+        Process:
+        1. Run TechnicalAccuracyAgent on free claims and setup steps
+        2. Run AffiliateRelevanceAgent on link quality and density
+        3. Run ZeroCostComplianceAgent on unqualified free claims
+        4. Run OfferAlignmentAgent on Already Here LLC tie-in
+        5. Run ProofOfWorkAgent on language safety
+        6. Run SecurityAgent on API/cloud content safety
+        7. Run ContentStructureAgent on required sections
+        8. Aggregate scores and determine publication status
+
+        Returns:
+            PublishValidation with all validator results and final decision
+        """
+
+        # Step 1-7: Run all independent validators
         validator_results = []
         for agent_class in self.agents:
             result = agent_class.validate(article)
             validator_results.append(result)
+            print(f"[VALIDATE] {result.validator_name}: {result.score}/10 - {'PASS' if result.passed else 'FAIL'}")
 
-        # Calculate final score
-        quality_score, scoring_result = ScoringAgent.validate(article, validator_results)
+        # Step 8: Calculate final score and decision
+        quality_score = ScoringAgent.calculate_scores(validator_results)
+        scoring_result = ScoringAgent.generate_scoring_result(quality_score)
         validator_results.append(scoring_result)
 
-        # Build validation output
+        # Extract validator data by category
+        technical_result = next((r for r in validator_results if r.validator_name == "TechnicalAccuracyAgent"), None)
+        affiliate_result = next((r for r in validator_results if r.validator_name == "AffiliateRelevanceAgent"), None)
+        zero_cost_result = next((r for r in validator_results if r.validator_name == "ZeroCostComplianceAgent"), None)
+        security_result = next((r for r in validator_results if r.validator_name == "SecurityAgent"), None)
+
+        # Build comprehensive validation report
         validation = PublishValidation(
             article_title=article.get("title", ""),
             target_buyer=article.get("target_buyer", "Unknown"),
             primary_offer=article.get("primary_offer", "Unspecified"),
 
+            # Affiliate validation summary
             affiliate_links_present="http" in article.get("body", ""),
-            affiliate_links_approved=validator_results[1].passed,  # AffiliateRelevanceAgent
-            unrelated_tools_removed=[],
+            affiliate_links_approved=affiliate_result.passed if affiliate_result else False,
+            unrelated_tools_removed=affiliate_result.findings if affiliate_result else [],
 
-            zero_cost_claims_present="free" in article.get("body", "").lower(),
-            zero_cost_claims_verified=validator_results[2].passed,  # ZeroCostComplianceAgent
+            # Zero-cost validation summary
+            zero_cost_claims_present="free" in article.get("body", "").lower() or "zero" in article.get("body", "").lower(),
+            zero_cost_claims_verified=zero_cost_result.passed if zero_cost_result else False,
 
-            technical_claims_verified=validator_results[0].passed,  # TechnicalAccuracyAgent
-            official_sources_checked=[],
+            # Technical validation summary
+            technical_claims_verified=technical_result.passed if technical_result else False,
+            official_sources_checked=technical_result.findings if technical_result else [],
 
-            security_risks_found=validator_results[5].findings,  # SecurityAgent
+            # Security validation summary
+            security_risks_found=security_result.findings if security_result else [],
+
+            # Publication decision
             proof_of_work_status="ready_to_publish" if quality_score.passes_threshold else "needs_review",
-
             publish_status="publish" if quality_score.passes_threshold else "hold_for_review",
-            required_changes=[change for result in validator_results for change in result.required_changes],
+
+            # Required actions
+            required_changes=[change for result in validator_results if result.required_changes for change in result.required_changes],
             final_notes=f"Quality score: {quality_score.average:.1f}/10 - {scoring_result.notes}",
 
+            # Full results
             quality_scores=quality_score,
             validator_results=validator_results
         )
@@ -587,60 +687,104 @@ class ContentQualityGate:
         return validation
 
     def publish_validation_report(self, validation: PublishValidation) -> str:
-        """Generate readable validation report"""
+        """Generate detailed validation report with all agent results"""
+        status_symbol = "[PASS]" if validation.publish_status == "publish" else "[FAIL]"
+        status_hint = "PUBLISH" if validation.publish_status == "publish" else "BLOCKED"
+
         report = f"""
-╔════════════════════════════════════════════════════════════════╗
-║  PROFITENGINE CONTENT QUALITY GATE VALIDATION REPORT           ║
-╚════════════════════════════════════════════════════════════════╝
+==============================================================================
+   PROFITENGINE CONTENT QUALITY GATE REPORT
+   Status: {status_symbol} {status_hint}
+==============================================================================
 
-ARTICLE: {validation.article_title}
-TARGET BUYER: {validation.target_buyer}
-PRIMARY OFFER: {validation.primary_offer}
-TIMESTAMP: {validation.timestamp}
+ARTICLE METADATA:
+  Title:            {validation.article_title}
+  Target Buyer:     {validation.target_buyer}
+  Primary Offer:    {validation.primary_offer}
+  Timestamp:        {validation.timestamp}
 
-PUBLISH STATUS: {validation.publish_status.upper()}
+STATUS: {validation.publish_status.upper()}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------------------------
 
-QUALITY SCORES:
+QUALITY SCORES (7 Independent Validators):
 """
         if validation.quality_scores:
             scores = validation.quality_scores
-            report += f"""
-  Technical Accuracy:        {scores.technical_accuracy}/10
-  Source Verification:       {scores.source_verification}/10
-  Offer Alignment:           {scores.offer_alignment}/10
-  Affiliate Relevance:       {scores.affiliate_relevance}/10
-  Zero-Cost Compliance:      {scores.zero_cost_compliance}/10
-  Proof-of-Work Status:      {scores.proof_of_work_status}/10
-  Security Quality:          {scores.security_quality}/10
-  Reader Value:              {scores.reader_value}/10
-  Already Here Fit:          {scores.already_here_fit}/10
-  Publish Risk:              {scores.publish_risk}/10 (lower is better)
+            check_1 = "[PASS]" if scores.technical_accuracy >= 7 else "[FAIL]"
+            check_2 = "[PASS]" if scores.affiliate_relevance >= 7 else "[FAIL]"
+            check_3 = "[PASS]" if scores.zero_cost_compliance >= 7 else "[FAIL]"
+            check_4 = "[PASS]" if scores.offer_alignment >= 7 else "[FAIL]"
+            check_5 = "[PASS]" if scores.proof_of_work_status >= 7 else "[FAIL]"
+            check_6 = "[PASS]" if scores.security_quality >= 7 else "[FAIL]"
+            check_7 = "[PASS]" if scores.content_structure >= 7 else "[FAIL]"
 
-  AVERAGE SCORE: {scores.average:.1f}/10
-  PASSES THRESHOLD: {scores.passes_threshold}
+            report += f"""
+  1. Technical Accuracy:         {scores.technical_accuracy}/10   {check_1}
+  2. Affiliate Relevance:        {scores.affiliate_relevance}/10   {check_2}
+  3. Zero-Cost Compliance:       {scores.zero_cost_compliance}/10   {check_3}
+  4. Offer Alignment:            {scores.offer_alignment}/10   {check_4}
+  5. Proof-of-Work Status:       {scores.proof_of_work_status}/10   {check_5}
+  6. Security Quality:           {scores.security_quality}/10   {check_6}
+  7. Content Structure:          {scores.content_structure}/10   {check_7}
+
+  -----------------------------------------------
+  AVERAGE SCORE:                 {scores.average:.1f}/10
+  Threshold (minimum):           8.0/10
+  Status:                        {"PASS" if scores.passes_threshold else "FAIL"}
+  All Categories >= 7:           {"YES" if scores.all_categories_pass else "NO"}
+
 """
 
         report += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------------------------
 
-VALIDATOR RESULTS:
+VALIDATION DETAILS:
 """
 
         if validation.validator_results:
             for result in validation.validator_results:
-                status = "✓ PASS" if result.passed else "✗ FAIL"
-                report += f"""
-{status} - {result.validator_name} ({result.score}/10)
+                if result.validator_name != "ScoringAgent":
+                    status = "[PASS]" if result.passed else "[FAIL]"
+                    report += f"""
+{status} {result.validator_name} ({result.score}/10)
 """
-                if result.findings:
-                    for finding in result.findings:
-                        report += f"    - {finding}\n"
+                    if result.findings:
+                        for finding in result.findings:
+                            report += f"    - {finding}\n"
+                    if result.required_changes:
+                        for change in result.required_changes:
+                            report += f"    * {change}\n"
+
+        report += f"""
+------------------------------------------------------------------------------
+
+COMPLIANCE CHECKS:
+"""
+
+        if validation.technical_claims_verified:
+            report += "  [OK] Technical claims verified\n"
+        else:
+            report += "  [!!] Technical claims need review\n"
+
+        if validation.affiliate_links_approved:
+            report += "  [OK] Affiliate links approved and relevant\n"
+        else:
+            report += "  [!!] Affiliate links need review\n"
+
+        if validation.zero_cost_claims_verified:
+            report += "  [OK] Zero-cost claims properly qualified\n"
+        else:
+            report += "  [!!] Zero-cost claims need qualification\n"
+
+        if validation.security_risks_found:
+            report += f"  [!!] Security risks identified: {len(validation.security_risks_found)}\n"
+        else:
+            report += "  [OK] No security risks identified\n"
 
         if validation.required_changes:
             report += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------------------------
 
 REQUIRED CHANGES ({len(validation.required_changes)}):
 """
@@ -648,16 +792,84 @@ REQUIRED CHANGES ({len(validation.required_changes)}):
                 report += f"  {i}. {change}\n"
 
         report += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------------------------
 
-FINAL NOTES:
+SUMMARY:
 {validation.final_notes}
 
-{"✓ ARTICLE APPROVED FOR PUBLISHING" if validation.publish_status == "publish" else "✗ ARTICLE HELD FOR REVIEW - DO NOT PUBLISH"}
+{("APPROVED FOR PUBLISHING - Ready to distribute to all platforms" if validation.publish_status == "publish" else "HELD FOR REVIEW - Do not publish until changes are made")}
 
-╚════════════════════════════════════════════════════════════════╝
+Next Step: {("Send to distribution channels (Dev.to, Hashnode, Medium, etc.)" if validation.publish_status == "publish" else "Review findings above, make required changes, and re-validate")}
+
+==============================================================================
 """
         return report
+
+
+# ── Integration Functions ───────────────────────────────────────────────────
+
+def validate_before_publish(article: Dict[str, Any], verbose: bool = True) -> Tuple[bool, PublishValidation]:
+    """Pre-publish quality gate validation
+
+    This function should be called by publish_article_resilient.py before
+    distributing the article to any platforms.
+
+    Args:
+        article: Article dict with title, body, tags, target_buyer, primary_offer
+        verbose: Print full validation report (default: True)
+
+    Returns:
+        Tuple of (should_publish: bool, validation_result: PublishValidation)
+        - should_publish is True if publish_status == "publish"
+        - validation_result contains all validator findings and recommendations
+    """
+    gate = ContentQualityGate()
+    validation = gate.validate_article(article)
+
+    if verbose:
+        print(gate.publish_validation_report(validation))
+
+    should_publish = validation.publish_status == "publish"
+    return should_publish, validation
+
+
+def get_quality_gate_json(article: Dict[str, Any]) -> Dict[str, Any]:
+    """Get quality gate results as JSON for integration with other systems
+
+    Returns JSON-serializable dict with:
+    - publish_status: "publish" or "hold_for_review"
+    - quality_score: float 0-10
+    - category_scores: dict with each validator's score
+    - issues: list of findings requiring fixes
+    - required_changes: list of specific changes needed
+    """
+    gate = ContentQualityGate()
+    validation = gate.validate_article(article)
+
+    # Extract category scores
+    category_scores = {}
+    if validation.validator_results:
+        for result in validation.validator_results:
+            if result.validator_name != "ScoringAgent":
+                category_scores[result.validator_name] = {
+                    "score": result.score,
+                    "passed": result.passed,
+                    "findings": result.findings,
+                }
+
+    return {
+        "article_title": validation.article_title,
+        "publish_status": validation.publish_status,
+        "quality_score": validation.quality_scores.average if validation.quality_scores else 0,
+        "average_threshold": 8.0,
+        "category_threshold": 7.0,
+        "passes_all_categories": validation.quality_scores.all_categories_pass if validation.quality_scores else False,
+        "category_scores": category_scores,
+        "issues": [item for result in validation.validator_results or [] for item in result.findings],
+        "required_changes": validation.required_changes,
+        "final_notes": validation.final_notes,
+        "timestamp": validation.timestamp,
+    }
 
 
 # ── Main Entry Point ────────────────────────────────────────────────────────
@@ -667,43 +879,52 @@ if __name__ == "__main__":
     test_article = {
         "title": "Cloudflare Workers for Small Service Businesses",
         "body": """
-Reader Problem:
-Small service businesses lose leads because requests are not routed or tracked.
+## Reader Problem
 
-Technical Explanation:
-Cloudflare Workers is an edge computing layer that can handle lightweight APIs and request routing.
+Small service businesses lose leads because requests are not routed or tracked. Without a system to capture and qualify inquiries, response times suffer and opportunities are missed.
 
-Already Here Angle:
-Already Here offers Edge Intake Worker setup service.
+## Technical Explanation
 
-Zero-Cost Path:
-Can be tested on the free tier within current platform limits.
+Cloudflare Workers is an edge computing layer that can handle lightweight APIs and request routing. It runs globally, responds in milliseconds, and scales without configuration.
 
-Next Step:
-Get the Edge Intake Worker checklist before publishing your next QR code.
+## Already Here Angle
 
-Affiliate Disclosure:
-This article may contain affiliate links.
+Already Here offers Edge Intake Worker setup service as part of the Field Tech Toolkit. We build the intake form, validate requests, and route to the right team member automatically.
 
-Security:
-Use environment variables for API keys. Validate incoming requests.
+## Zero-Cost Path
+
+Can be tested on the free tier within current platform limits. The free tier includes 100,000 requests per day, which is enough to validate the concept for most small businesses.
+
+## Proof of Work
+
+We are currently building a proof-of-work version with two client validations. The intake worker is in development and being tested with service field teams.
+
+## Security
+
+When building intake workers, always use environment variables for API keys. Validate incoming requests with checksums or signed tokens. Never log or store raw customer data longer than needed for processing.
+
+## Next Step
+
+Get the Edge Intake Worker checklist before publishing your next QR code. Book a setup call to discuss your specific lead routing process.
+
+## Affiliate Disclosure
+
+This article may contain affiliate links to Cloudflare and related tools.
 """,
         "target_buyer": "Small service business owner",
         "primary_offer": "Edge Intake Worker"
     }
 
-    gate = ContentQualityGate()
-    validation = gate.validate_article(test_article)
-
-    print(gate.publish_validation_report(validation))
+    # Run validation
+    should_publish, validation = validate_before_publish(test_article, verbose=True)
 
     # Output JSON for integration
     print("\n\nJSON OUTPUT FOR PIPELINE:\n")
-    output = {
-        "article_title": validation.article_title,
-        "publish_status": validation.publish_status,
-        "quality_score": validation.quality_scores.average if validation.quality_scores else 0,
-        "required_changes": validation.required_changes,
-        "validator_results": [asdict(v) for v in validation.validator_results] if validation.validator_results else []
-    }
-    print(json.dumps(output, indent=2, default=str))
+    json_output = get_quality_gate_json(test_article)
+    print(json.dumps(json_output, indent=2, default=str))
+
+    # Summary
+    print(f"\n\n[RESULT] Should publish: {should_publish}")
+    print(f"[RESULT] Status: {validation.publish_status}")
+    print(f"[RESULT] Quality score: {validation.quality_scores.average:.1f}/10" if validation.quality_scores else "[RESULT] Quality score: 0/10")
+    print(f"[RESULT] Required changes: {len(validation.required_changes)}")

@@ -28,6 +28,9 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def temp_db():
     """Create temporary SQLite database for testing"""
+    import os
+    import gc
+
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
 
@@ -35,10 +38,16 @@ def temp_db():
     with patch("runtime.client_api.DB_PATH", db_path):
         db = ClientDB(db_path)
         yield db
-        # Cleanup
-        import os
+        # Cleanup: close all connections first
+        db.close() if hasattr(db, 'close') else None
+        gc.collect()  # Force garbage collection to release file handles
+
+        # Try to remove, but don't fail if we can't (Windows file locking)
         if os.path.exists(db_path):
-            os.remove(db_path)
+            try:
+                os.remove(db_path)
+            except (PermissionError, OSError):
+                pass  # File will be cleaned up by temp file cleanup
 
 
 @pytest.fixture
@@ -145,16 +154,19 @@ def sample_data(temp_db):
 @pytest.fixture
 def client_api(sample_data):
     """Create FastAPI test client"""
-    with patch("runtime.client_api.client_db", sample_data):
-        return TestClient(app)
+    patcher = patch("runtime.client_api.client_db", sample_data)
+    patcher.start()
+    try:
+        yield TestClient(app)
+    finally:
+        patcher.stop()
 
 
 @pytest.fixture
 def valid_auth_header():
     """Generate valid authorization header for testing"""
-    # Default dev key used in tests
-    import hashlib
-    api_key = "dev-key-change-in-production"
+    # Must match the key in runtime.client_api.API_KEY_HASH
+    api_key = "default-dev-key"
     return f"Bearer {api_key}"
 
 

@@ -1,0 +1,383 @@
+================================================================================
+SHORT VIDEO GENERATOR - QUICK START GUIDE
+================================================================================
+
+ProfitEngine v5 includes a complete short-form video generation pipeline for
+TikTok, YouTube Shorts, Instagram Reels, and other social platforms.
+
+================================================================================
+INSTALLATION (2 MINUTES)
+================================================================================
+
+1. Install System Dependencies
+
+   Ubuntu/Debian:
+   $ sudo apt-get install ffmpeg ffprobe espeak
+
+   macOS:
+   $ brew install ffmpeg espeak
+
+   Windows:
+   - Download FFmpeg from https://ffmpeg.org/download.html
+   - Add to PATH or install via Chocolatey: choco install ffmpeg espeak
+
+2. Install Python Package (Optional - for better voice quality)
+
+   $ pip install gtts
+
+   (The script falls back to espeak if gtts not available)
+
+3. Verify Installation
+
+   $ ffmpeg -version
+   $ espeak --version
+
+================================================================================
+BASIC USAGE (GENERATE FIRST VIDEO IN 1 MINUTE)
+================================================================================
+
+CREATE AN ARTICLE FILE
+
+Save this as articles/test.md:
+
+    # 5 Investment Tips
+
+    ## Tip 1: Start Small
+    You don't need much money to begin investing.
+
+    ## Tip 2: Be Consistent
+    Regular small investments compound over time.
+
+    ## Tip 3: Diversify
+    Spread investments across different assets.
+
+    ## Tip 4: Keep Costs Low
+    Choose low-fee funds when possible.
+
+    ## Tip 5: Think Long-Term
+    Don't panic during market downturns.
+
+GENERATE VIDEOS
+
+Run this command:
+
+    python scripts/short_video_generator.py generate \
+      --article articles/test.md \
+      --title "5 Investment Tips" \
+      --output videos/output
+
+FIND YOUR VIDEOS
+
+Output videos are in:
+  - videos/output/reels/5-investment-tips.mp4 (Instagram/TikTok)
+  - videos/output/shorts/5-investment-tips.mp4 (YouTube Shorts)
+
+Videos are ready to download and watch!
+
+================================================================================
+COMMON COMMANDS
+================================================================================
+
+GENERATE TIPS VIDEO (30 SECONDS)
+
+    python scripts/short_video_generator.py generate \
+      --article articles/my-post.md \
+      --title "My Article Title" \
+      --output videos/output \
+      --style tips \
+      --duration 30
+
+GENERATE TUTORIAL (45 SECONDS, ALL FORMATS)
+
+    python scripts/short_video_generator.py generate \
+      --article articles/my-guide.md \
+      --title "How to Do Something" \
+      --output videos/output \
+      --style tutorial \
+      --duration 45 \
+      --formats reels shorts youtube instagram_square
+
+GENERATE WITH FEMALE VOICE
+
+    python scripts/short_video_generator.py generate \
+      --article articles/my-post.md \
+      --title "My Title" \
+      --output videos/output \
+      --voice-gender female
+
+GENERATE WITHOUT MUSIC
+
+    python scripts/short_video_generator.py generate \
+      --article articles/my-post.md \
+      --title "My Title" \
+      --output videos/output \
+      --no-music
+
+================================================================================
+REVIEW QUEUE (FOR CONTENT TEAMS)
+================================================================================
+
+ADD TO QUEUE DURING GENERATION
+
+    python scripts/short_video_generator.py generate \
+      --article articles/my-post.md \
+      --title "My Article" \
+      --output videos/output \
+      --queue-dir videos/queue
+
+LIST PENDING VIDEOS
+
+    python scripts/short_video_generator.py queue \
+      --list \
+      --queue-dir videos/queue
+
+APPROVE A VIDEO
+
+    python scripts/short_video_generator.py queue \
+      --status "video_id_here,approved" \
+      --queue-dir videos/queue
+
+REJECT A VIDEO WITH NOTES
+
+    python scripts/short_video_generator.py queue \
+      --status "video_id_here,rejected,Audio quality too low" \
+      --queue-dir videos/queue
+
+MARK AS PUBLISHED
+
+    python scripts/short_video_generator.py queue \
+      --status "video_id_here,published" \
+      --queue-dir videos/queue
+
+================================================================================
+VIDEO STYLES EXPLAINED
+================================================================================
+
+STYLE: tips (15-30 seconds)
+Best for: Quick actionable tips, hacks, best practices
+Example: "5 Ways to Save Money", "Investment Tips"
+Voice: Energetic, direct
+Duration: --duration 15 to --duration 30
+
+STYLE: tutorial (30-60 seconds)
+Best for: How-to guides, step-by-step instructions, walkthroughs
+Example: "How to Open a Brokerage Account", "Setting Up Auto-Invest"
+Voice: Clear, instructional
+Duration: --duration 30 to --duration 60
+
+STYLE: quote (15-20 seconds)
+Best for: Inspirational quotes, wisdom, key takeaways
+Example: "Warren Buffett on Investing", "Financial Wisdom"
+Voice: Thoughtful, measured
+Duration: --duration 15 to --duration 20
+
+STYLE: news (30-45 seconds)
+Best for: Market updates, announcements, trending topics
+Example: "What Fed Rate Cuts Mean", "New Investment Platform Launch"
+Voice: Professional, informative
+Duration: --duration 30 to --duration 45
+
+================================================================================
+OUTPUT FORMATS
+================================================================================
+
+--formats reels          Instagram Reels (1080x1920)
+--formats shorts         YouTube Shorts (1080x1920)
+--formats tiktok         TikTok (1080x1920)
+--formats youtube        YouTube Standard (1920x1080)
+--formats instagram_square Instagram Feed (1080x1080)
+
+RECOMMENDED COMBINATIONS:
+
+Social Media Strategy (3 videos per article):
+  --formats reels shorts instagram_square
+
+YouTube Strategy (2 videos per article):
+  --formats shorts youtube
+
+Comprehensive (all platforms):
+  --formats reels shorts tiktok youtube instagram_square
+
+================================================================================
+EXAMPLES
+================================================================================
+
+Run the examples script to see real demonstrations:
+
+    python scripts/short_video_generator_examples.py 1    # Tips video
+    python scripts/short_video_generator_examples.py 2    # Tutorial video
+    python scripts/short_video_generator_examples.py 3    # Quote video
+    python scripts/short_video_generator_examples.py 4    # News video
+    python scripts/short_video_generator_examples.py 5    # Queue workflow
+    python scripts/short_video_generator_examples.py 6    # Key point extraction
+    python scripts/short_video_generator_examples.py 7    # Batch processing
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "ffmpeg: command not found"
+→ Install FFmpeg: sudo apt-get install ffmpeg (Ubuntu/Debian)
+→ Or: brew install ffmpeg (macOS)
+
+ERROR: "espeak: command not found"
+→ Install espeak: sudo apt-get install espeak (Ubuntu/Debian)
+→ Or: brew install espeak (macOS)
+
+ERROR: "Voice-over generation failed"
+→ Install gTTS for better quality: pip install gtts
+→ Or ensure espeak is installed as fallback
+
+ERROR: "FFmpeg timeout"
+→ This is normal for first run (encoding takes time)
+→ Videos are still being created, check output directory
+
+ERROR: "No video output"
+→ Check that article file exists and is readable
+→ Ensure output directory is writable
+→ Check logs for specific error messages
+
+PERFORMANCE IS SLOW
+→ This is normal! Typical times:
+  - Key point extraction: < 1 second
+  - Voice-over generation: 5-15 seconds
+  - Slide creation: 20-40 seconds
+  - Video composition: 30-60 seconds
+  - Total: 1-2 minutes per format
+
+TO SPEED UP:
+→ Use --no-music flag (saves ~10 seconds)
+→ Reduce --duration (faster composition)
+→ Use fewer formats
+
+================================================================================
+PYTHON API (FOR DEVELOPERS)
+================================================================================
+
+Use in your own Python code:
+
+    from pathlib import Path
+    from scripts.short_video_generator import (
+        generate_short_video,
+        VideoConfig,
+        add_to_queue,
+    )
+
+    # Load article
+    article = Path("articles/my-post.md").read_text()
+
+    # Configure
+    config = VideoConfig(
+        style="tips",
+        duration_sec=30,
+        background_music=True,
+        voice_gender="neutral"
+    )
+
+    # Generate
+    videos = generate_short_video(
+        article=article,
+        article_title="My Title",
+        output_dir=Path("videos/output"),
+        config=config,
+        formats=["reels", "shorts"]
+    )
+
+    # Queue
+    queue_ids = add_to_queue(
+        videos,
+        "articles/my-post.md",
+        Path("videos/queue")
+    )
+
+See SHORT_VIDEO_GENERATOR_README.md for full API documentation.
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Try the quick test:
+   $ python scripts/short_video_generator.py generate \
+     --article articles/test.md \
+     --title "Test Video" \
+     --output videos/output
+
+2. Check output:
+   $ ls -la videos/output/reels/
+
+3. Watch your video:
+   $ ffplay videos/output/reels/*.mp4
+
+4. Integrate with your workflow (see integration examples below)
+
+5. Read the full README for advanced features:
+   $ cat scripts/SHORT_VIDEO_GENERATOR_README.md
+
+================================================================================
+INTEGRATION WITH PROFITENGINE WORKFLOW
+================================================================================
+
+After content is published, automatically generate videos:
+
+    #!/bin/bash
+    # scripts/publish_with_videos.sh
+
+    ARTICLE="$1"
+    TITLE="$2"
+
+    # Publish article (your existing workflow)
+    publish_article "$ARTICLE"
+
+    # Generate videos
+    python scripts/short_video_generator.py generate \
+      --article "$ARTICLE" \
+      --title "$TITLE" \
+      --output videos/output \
+      --style tips \
+      --queue-dir videos/queue
+
+    # Notify team
+    echo "✓ Article published"
+    echo "✓ Videos generated and queued for review"
+
+Usage:
+    bash scripts/publish_with_videos.sh articles/my-post.md "My Title"
+
+================================================================================
+DOCUMENTATION
+================================================================================
+
+Full README:
+  scripts/SHORT_VIDEO_GENERATOR_README.md
+
+Example code:
+  scripts/short_video_generator_examples.py
+
+Source code:
+  scripts/short_video_generator.py (fully documented, ~600 lines)
+
+Key functions:
+  - article_to_keypoints()  → Extract key points
+  - generate_voiceover()    → Text-to-speech
+  - create_slides()         → Visual slides
+  - compose_video()         → Final video
+  - add_to_queue()          → Queue for review
+
+================================================================================
+FOR MORE HELP
+================================================================================
+
+View inline code comments:
+  $ grep -n "^def " scripts/short_video_generator.py
+
+See all available options:
+  $ python scripts/short_video_generator.py generate --help
+  $ python scripts/short_video_generator.py queue --help
+
+Read the full documentation:
+  $ cat scripts/SHORT_VIDEO_GENERATOR_README.md
+
+Run examples:
+  $ python scripts/short_video_generator_examples.py <number>
+
+================================================================================

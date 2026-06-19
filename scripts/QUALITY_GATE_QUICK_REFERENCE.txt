@@ -1,0 +1,255 @@
+================================================================================
+CONTENT QUALITY GATE — QUICK REFERENCE
+================================================================================
+
+RUN VALIDATION
+==============
+
+Standalone:
+  python content_quality_gate.py
+
+With Publisher:
+  QUALITY_GATE_ENABLED=true python publish_article_resilient.py
+
+Test Suite:
+  python test_quality_gate.py
+
+
+VALIDATOR AGENTS (7 INDEPENDENT)
+=================================
+
+1. TechnicalAccuracyAgent
+   - Free claims qualified? ("free tier", not "free forever")
+   - Setup instructions specific? (no generic filler)
+   - Baseline: 10/10, -2 per violation
+
+2. AffiliateRelevanceAgent
+   - Links relevant to topic? (no VPN in tech article)
+   - Not too many links? (max 8)
+   - Not marked required? (say "optional" or "recommended")
+   - Baseline: 10/10, -3 for density, -2 per pattern
+
+3. ZeroCostComplianceAgent
+   - No "free forever", "unlimited free"
+   - Free claims qualified?
+   - No "guaranteed", "passive income", "proven system"
+   - Baseline: 10/10, -1 per blocked phrase, -2 if unqualified
+
+4. OfferAlignmentAgent
+   - Mentions "Already Here" or specific offer?
+   - Ties to one of 8 valid offers?
+   - Clear monetization angle?
+   - Baseline: 10/10, -3 no mention, -2 unclear, -1 weak
+
+5. ProofOfWorkAgent
+   - Language matches development status?
+   - No "proven system", "100% effective", "guaranteed"
+   - Uses "testing", "being built", "client validation" where appropriate
+   - Baseline: 10/10, -2 per blocked phrase
+
+6. SecurityAgent
+   - Security-sensitive topic? (API, cloud, automation)
+   - Security section present? (API keys, env vars, validation)
+   - No hardcoded credentials?
+   - Baseline: 10/10, -3 missing section
+
+7. ContentStructureAgent
+   - All 7 required sections present?
+     1. Reader problem
+     2. Technical explanation
+     3. Use case
+     4. Already Here angle
+     5. Zero-cost path
+     6. Next step
+     7. Affiliate disclosure
+   - No filler at opening?
+   - Baseline: 10/10, -1 per missing section
+
+
+SCORING THRESHOLDS
+==================
+
+Per Category:    Minimum 7/10 (all must pass)
+Overall:         Minimum 8/10 average
+Decision:        PUBLISH if passes, HOLD_FOR_REVIEW if fails
+
+
+API USAGE
+=========
+
+Python - Get Decision:
+  from content_quality_gate import validate_before_publish
+  should_publish, validation = validate_before_publish(article)
+
+Python - Get JSON:
+  from content_quality_gate import get_quality_gate_json
+  result = get_quality_gate_json(article)
+
+Article Format:
+  {
+    "title": "Article Title",
+    "body": "Article content...",
+    "target_buyer": "Who benefits",
+    "primary_offer": "What you're selling"
+  }
+
+
+ENVIRONMENT VARIABLES
+=====================
+
+QUALITY_GATE_ENABLED=true     Enable/disable validation
+QUALITY_GATE_VERBOSE=true     Show full reports
+
+
+INTEGRATION
+===========
+
+Called by: publish_article_resilient.py
+When: After article generation, before distribution
+Action: Blocks low-quality articles from publishing
+Output: Quality score, required changes, detailed report
+
+
+BLOCKED PHRASES (Examples)
+===========================
+
+Free Claims:
+  - "free forever"
+  - "unlimited free"
+  - "no cost"
+  - "zero cost"
+
+Pre-Proof Language:
+  - "proven system"
+  - "guaranteed to"
+  - "will increase"
+  - "fully automated"
+  - "100% effective"
+  - "passive income system"
+
+Generic Filler:
+  - "in today's digital world"
+  - "businesses need scalable solutions"
+  - "this powerful platform allows"
+  - "the importance of"
+
+
+REQUIRED QUALIFICATIONS
+=======================
+
+For Free Claims, Use:
+  - "free tier"
+  - "within limits"
+  - "no new spend"
+  - "testing"
+  - "being built"
+  - "current platform limits"
+
+For Development Status, Use:
+  - "idea"
+  - "draft"
+  - "internal proof"
+  - "client proof"
+  - "proof-of-work version"
+  - "testing with [N] clients"
+
+
+VALID OFFERS
+============
+
+  1. Prime/Sub Protection Pack
+  2. Field Intake & Proof Pack
+  3. Google Forms-to-Sheets Intake Setup
+  4. Cloudflare Workers Edge Intake Worker
+  5. Contractor Proof-to-Invoice Workflow
+  6. AI Workflow Setup Service
+  7. Field Tech Toolkit Guide
+  8. CRM Follow-Up Workflow
+
+
+EXAMPLE PASSING ARTICLE (10/10)
+================================
+
+Title: "Building an AI Receptionist for Field Service Dispatch"
+
+Sections: ALL 7 REQUIRED PRESENT
+1. Reader Problem (specific: missed calls during jobs)
+2. Technical Explanation (AI APIs, edge APIs, details)
+3. Use Case (plumbing company, 10 calls/day)
+4. Already Here Angle (AI Workflow Setup Service)
+5. Zero-Cost Path (free tiers: Twilio, cloud APIs)
+6. Proof of Work (in development with 2 clients)
+7. Affiliate Disclosure (mention affiliate links)
+
+Blocked Phrases: NONE
+Free Claims: Qualified with "free tier", "no new spend"
+Offer: Explicitly mentions "AI Workflow Setup Service"
+Language: Uses "being built", "testing with clients"
+
+
+EXAMPLE FAILING ARTICLE (3.6/10)
+=================================
+
+Title: "Make Money Fast Forever"
+
+Issues: ALL MAJOR
+- Free forever claim (unqualified)
+- "Guaranteed" language (blocked)
+- "Proven system" (pre-proof)
+- "100% effective" (blocked)
+- "Passive income" (blocked)
+- "Zero effort" (blocked)
+- "Unlimited free" (blocked)
+- No offer mentioned
+- No Already Here angle
+- No sections present
+- Generic filler only
+
+
+QUICK CHECKLIST
+===============
+
+Before Publishing, Check:
+  ☐ No "free forever" without qualification
+  ☐ No "guaranteed", "proven", or "passive income"
+  ☐ All 7 sections present
+  ☐ Mentions Already Here or specific offer
+  ☐ Affiliate links <= 8 and relevant
+  ☐ Security section present (if API/cloud topic)
+  ☐ No generic marketing fluff at start
+  ☐ Free claims use "free tier" or "within limits"
+  ☐ Development status clear (testing, building, idea)
+
+Result Should Be:
+  Quality Score >= 8.0/10
+  All Categories >= 7.0/10
+  Status = PUBLISH
+
+
+TROUBLESHOOTING
+===============
+
+Article fails but seems good?
+  → Check for unqualified "free" claims
+  → Verify all 7 sections present
+  → Look for blocked phrases in validator output
+
+Getting "HOLD_FOR_REVIEW"?
+  → Review required_changes list
+  → Fix specific issues listed
+  → Re-run validation
+
+Integration not working?
+  → QUALITY_GATE_ENABLED=true in env?
+  → All imports available?
+  → Python version 3.7+?
+
+Need to disable?
+  → Set QUALITY_GATE_ENABLED=false
+  → Articles will publish without validation
+
+================================================================================
+Full documentation: CONTENT_QUALITY_GATE_USAGE.md
+Test suite: test_quality_gate.py
+Implementation details: CONTENT_QUALITY_GATE_IMPLEMENTATION.md
+================================================================================

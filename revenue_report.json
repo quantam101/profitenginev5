@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-06-19T17:50:01.071817+00:00",
+  "daily_total": 1214.5,
+  "weekly_total": 1214.5,
+  "monthly_total": 1214.5,
+  "monthly_progress_pct": 48.58,
+  "ltv_per_subscriber": 0.60725,
+  "burndown_forecast": 116.86363636363636,
+  "by_channel": {
+    "affiliate": {
+      "channel": "affiliate",
+      "daily_revenue": 89.5,
+      "weekly_revenue": 89.5,
+      "monthly_revenue": 89.5,
+      "transaction_count": 1,
+      "average_transaction_value": 89.5,
+      "target": 0,
+      "progress_pct": 0.0,
+      "last_transaction": "2026-06-19T17:48:37.434767+00:00"
+    },
+    "newsletter": {
+      "channel": "newsletter",
+      "daily_revenue": 300.0,
+      "weekly_revenue": 300.0,
+      "monthly_revenue": 300.0,
+      "transaction_count": 2,
+      "average_transaction_value": 150.0,
+      "target": 400,
+      "progress_pct": 75.0,
+      "last_transaction": "2026-06-19T17:48:31.346985+00:00"
+    },
+    "gumroad": {
+      "channel": "gumroad",
+      "daily_revenue": 245.0,
+      "weekly_revenue": 245.0,
+      "monthly_revenue": 245.0,
+      "transaction_count": 1,
+      "average_transaction_value": 245.0,
+      "target": 400,
+      "progress_pct": 61.25000000000001,
+      "last_transaction": "2026-06-19T17:48:35.815817+00:00"
+    },
+    "printify": {
+      "channel": "printify",
+      "daily_revenue": 580.0,
+      "weekly_revenue": 580.0,
+      "monthly_revenue": 580.0,
+      "transaction_count": 1,
+      "average_transaction_value": 580.0,
+      "target": 1000,
+      "progress_pct": 57.99999999999999,
+      "last_transaction": "2026-06-19T17:48:36.611001+00:00"
+    }
+  },
+  "top_content": [],
+  "goal_status": {
+    "newsletter": {
+      "target": 400,
+      "actual": 300.0,
+      "progress_pct": 75.0,
+      "status": "on_track"
+    },
+    "gumroad": {
+      "target": 400,
+      "actual": 245.0,
+      "progress_pct": 61.25000000000001,
+      "status": "on_track"
+    },
+    "printify": {
+      "target": 1000,
+      "actual": 580.0,
+      "progress_pct": 57.99999999999999,
+      "status": "on_track"
+    },
+    "youtube_affiliate": {
+      "target": 400,
+      "actual": 0,
+      "progress_pct": 0.0,
+      "status": "behind"
+    },
+    "sponsorships": {
+      "target": 300,
+      "actual": 0,
+      "progress_pct": 0.0,
+      "status": "behind"
+    }
+  }
+}

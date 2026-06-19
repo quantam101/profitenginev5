@@ -607,84 +607,7 @@ async def get_upsell_candidates(
 
 
 # ============================================================================
-# INDIVIDUAL TRADER PERFORMANCE
-# ============================================================================
-
-@app.get("/api/clients/{user_id}", response_model=TraderPerformance)
-async def get_trader_performance(
-    user_id: str,
-    authorization: Optional[str] = Header(None),
-    days: int = Query(30, ge=1, le=365),
-) -> TraderPerformance:
-    """
-    Get individual trader's performance metrics.
-    Returns: total/winning/losing trades, win rate, P&L, streaks, etc.
-    """
-    await verify_auth(authorization)
-
-    if not client_db.client_exists(user_id):
-        raise HTTPException(status_code=404, detail=f"Trader {user_id} not found")
-
-    with client_db.get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM clients WHERE user_id = ?", (user_id,))
-        client = cursor.fetchone()
-
-    if not client:
-        raise HTTPException(status_code=404, detail=f"Trader {user_id} not found")
-
-    trades = client_db.get_client_trades(user_id, days=days)
-    stats = client_db.calculate_stats(user_id, trades)
-
-    # Calculate streaks
-    consecutive_wins = 0
-    consecutive_losses = 0
-    current_streak = "neutral"
-
-    if trades:
-        trades_sorted = sorted(trades, key=lambda x: x["entry_time"])
-        for trade in reversed(trades_sorted):
-            if trade["pnl"] > 0:
-                consecutive_wins += 1
-                consecutive_losses = 0
-                current_streak = "winning"
-                if consecutive_wins == 1:
-                    break
-            elif trade["pnl"] < 0:
-                consecutive_losses += 1
-                consecutive_wins = 0
-                current_streak = "losing"
-                if consecutive_losses == 1:
-                    break
-
-    account_created = datetime.fromisoformat(client["account_created"])
-    days_active = (datetime.now(timezone.utc) - account_created).days
-    last_trade = trades[0]["exit_time"] if trades else None
-
-    return TraderPerformance(
-        user_id=user_id,
-        username=client.get("username"),
-        total_trades=stats["total_trades"],
-        winning_trades=stats["winning_trades"],
-        losing_trades=stats["losing_trades"],
-        win_rate=round(stats["win_rate"], 2),
-        total_pnl=round(stats["total_pnl"], 2),
-        avg_win=round(stats["avg_win"], 2),
-        avg_loss=round(stats["avg_loss"], 2),
-        largest_win=round(stats["largest_win"], 2),
-        largest_loss=round(stats["largest_loss"], 2),
-        consecutive_wins=consecutive_wins,
-        consecutive_losses=consecutive_losses,
-        days_active=days_active,
-        account_created=client["account_created"],
-        last_trade=last_trade,
-        current_streak=current_streak,
-        account_status=client["account_status"],
-    )
-
-
-# ============================================================================
-# DAILY SUMMARY
+# DAILY SUMMARY (before {user_id} route for proper routing precedence)
 # ============================================================================
 
 @app.get("/api/clients/daily-summary", response_model=DailySummary)
@@ -763,6 +686,86 @@ async def get_daily_summary(
         active_users=len(trades_by_user),
         recent_trades=recent_trades_list,
         timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+# ============================================================================
+# INDIVIDUAL TRADER PERFORMANCE
+# ============================================================================
+
+@app.get("/api/clients/{user_id}", response_model=TraderPerformance)
+async def get_trader_performance(
+    user_id: str,
+    authorization: Optional[str] = Header(None),
+    days: int = Query(30, ge=1, le=365),
+) -> TraderPerformance:
+    """
+    Get individual trader's performance metrics.
+    Returns: total/winning/losing trades, win rate, P&L, streaks, etc.
+    """
+    await verify_auth(authorization)
+
+    if not client_db.client_exists(user_id):
+        raise HTTPException(status_code=404, detail=f"Trader {user_id} not found")
+
+    with client_db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM clients WHERE user_id = ?", (user_id,))
+        client = cursor.fetchone()
+
+    if not client:
+        raise HTTPException(status_code=404, detail=f"Trader {user_id} not found")
+
+    # Convert sqlite3.Row to dict for easier access
+    client = dict(client)
+
+    trades = client_db.get_client_trades(user_id, days=days)
+    stats = client_db.calculate_stats(user_id, trades)
+
+    # Calculate streaks
+    consecutive_wins = 0
+    consecutive_losses = 0
+    current_streak = "neutral"
+
+    if trades:
+        trades_sorted = sorted(trades, key=lambda x: x["entry_time"])
+        for trade in reversed(trades_sorted):
+            if trade["pnl"] > 0:
+                consecutive_wins += 1
+                consecutive_losses = 0
+                current_streak = "winning"
+                if consecutive_wins == 1:
+                    break
+            elif trade["pnl"] < 0:
+                consecutive_losses += 1
+                consecutive_wins = 0
+                current_streak = "losing"
+                if consecutive_losses == 1:
+                    break
+
+    account_created = datetime.fromisoformat(client["account_created"])
+    days_active = (datetime.now(timezone.utc) - account_created).days
+    last_trade = trades[0]["exit_time"] if trades else None
+
+    return TraderPerformance(
+        user_id=user_id,
+        username=client.get("username"),
+        total_trades=stats["total_trades"],
+        winning_trades=stats["winning_trades"],
+        losing_trades=stats["losing_trades"],
+        win_rate=round(stats["win_rate"], 2),
+        total_pnl=round(stats["total_pnl"], 2),
+        avg_win=round(stats["avg_win"], 2),
+        avg_loss=round(stats["avg_loss"], 2),
+        largest_win=round(stats["largest_win"], 2),
+        largest_loss=round(stats["largest_loss"], 2),
+        consecutive_wins=consecutive_wins,
+        consecutive_losses=consecutive_losses,
+        days_active=days_active,
+        account_created=client["account_created"],
+        last_trade=last_trade,
+        current_streak=current_streak,
+        account_status=client["account_status"],
     )
 
 
