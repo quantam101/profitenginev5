@@ -20,8 +20,7 @@ from datetime import datetime
 import sys
 
 try:
-    from runtime.enhanced_trading_engine import EnhancedTradingEngine, TradeSignal
-    from runtime.stock_compliance_monitor import get_compliance_monitor
+    from runtime.hybrid_trading_engine import HybridTradingEngine, CombinedSignal, MarketRegime
     from runtime.finnhub_client import get_finnhub_client, FinnhubClient
 except ImportError as e:
     print(f"ERROR: Cannot import modules: {e}")
@@ -44,16 +43,15 @@ class PreMarketTradingSession:
     def __init__(self, starting_balance: float = 100.0, finnhub_client: FinnhubClient = None):
         self.starting_balance = starting_balance
         self.target_balance = starting_balance * 10  # $1000 from $100
-        self.engine = EnhancedTradingEngine(account_balance=starting_balance, broker_client=finnhub_client)
+        self.engine = HybridTradingEngine(account_balance=starting_balance, finnhub_client=finnhub_client)
         self.finnhub = finnhub_client
-        self.compliance = get_compliance_monitor()
         self.session_start = datetime.utcnow()
         self.trades = []
         self.skipped_trades = []
         self.current_portfolio_value = starting_balance
         self.is_real_money = False
         logger.info(f"TARGET: Reach ${self.target_balance:,.2f} from ${starting_balance:,.2f}")
-        logger.info(f"MODE: Paper trading with real Finnhub prices")
+        logger.info(f"MODE: Paper trading with real Finnhub prices (11-strategy hybrid engine)")
 
     async def run(self) -> dict:
         """Run pre-market trading session (4 AM - 2 PM MST) with paper trading"""
@@ -102,18 +100,6 @@ class PreMarketTradingSession:
                     break
 
                 try:
-                    # Check compliance first
-                    compliance = await self.compliance.check_compliance(symbol, 'BUY')
-
-                    if not compliance.is_compliant():
-                        logger.warning(f"{symbol} SKIPPED - {compliance.reason}")
-                        self.skipped_trades.append({
-                            'symbol': symbol,
-                            'reason': compliance.reason,
-                            'timestamp': datetime.utcnow().isoformat(),
-                        })
-                        continue
-
                     # Get REAL market price from Finnhub
                     if self.finnhub:
                         market = await self.finnhub.get_price(symbol)
@@ -124,24 +110,49 @@ class PreMarketTradingSession:
                     else:
                         current_price = 150.0 + (cycle % 5)
 
-                    # Generate high-confidence signal with real prices
-                    if cycle % 3 == 0:
-                        position_size = max(1, int(self.current_portfolio_value * 0.1 / current_price))
-                        stop_loss = current_price * 0.98  # 2% stop
-                        take_profit = current_price * 1.03  # 3% target
+                    # Generate high-conviction signal via 11-strategy hybrid engine
+                    class MockMarketData:
+                        def __init__(self, price, volume):
+                            self.price = price
+                            self.volume = volume
 
-                        signal = TradeSignal(
+                    market_data = MockMarketData(current_price, 1.5e6)
+                    regime, _ = self.engine.signal_combiner.regime_detector.detect([current_price] * 20)
+                    strategy_signals = self.engine._generate_strategy_signals(symbol, market_data, regime)
+                    conviction, firing = self.engine.signal_combiner.combine_signals(strategy_signals, regime)
+
+                    if abs(conviction) >= 0.5:  # High conviction threshold
+                        # Check compliance gate before trading
+                        compliant, compliance_reason = await self.engine.compliance.check_compliance(
+                            symbol, 'BUY' if conviction > 0 else 'SELL', len(self.engine.open_positions)
+                        )
+
+                        if not compliant:
+                            logger.warning(f"{symbol} SKIPPED - {compliance_reason}")
+                            self.skipped_trades.append({
+                                'symbol': symbol,
+                                'reason': compliance_reason,
+                                'timestamp': datetime.utcnow().isoformat(),
+                            })
+                            continue
+
+                        position_size, stop_loss, take_profit = self.engine.risk.calculate_position_size(
+                            symbol, current_price, abs(conviction)
+                        )
+
+                        action = 'BUY' if conviction > 0 else 'SELL'
+                        signal = CombinedSignal(
                             symbol=symbol,
-                            action='BUY',
-                            confidence=85,
+                            action=action,
+                            conviction=abs(conviction),
                             entry_price=current_price,
                             stop_loss=stop_loss,
                             take_profit=take_profit,
                             position_size=position_size,
-                            reason='MultiFrame(3/3) + Catalyst(85%) + Compliance OK',
+                            reason=f"11-strategy consensus: {', '.join(firing[:3])}",
+                            strategies_firing=firing,
+                            regime=regime,
                             timestamp=datetime.utcnow().isoformat(),
-                            multiframe_score=85,
-                            catalyst_score=85,
                         )
 
                         # Execute paper trade via Finnhub (real prices)
@@ -149,7 +160,7 @@ class PreMarketTradingSession:
                             order = await self.finnhub.place_order(
                                 symbol=symbol,
                                 quantity=position_size,
-                                side='buy',
+                                side=signal.action.lower(),
                                 price=current_price,
                             )
                             result = {'status': 'FILLED', 'order_id': order.order_id if order else None}
@@ -160,7 +171,7 @@ class PreMarketTradingSession:
                             self.trades.append({
                                 'timestamp': datetime.utcnow().isoformat(),
                                 'symbol': symbol,
-                                'action': 'BUY',
+                                'action': signal.action,
                                 'quantity': position_size,
                                 'entry': current_price,
                                 'stop_loss': stop_loss,
@@ -169,9 +180,13 @@ class PreMarketTradingSession:
                                 'reason': signal.reason,
                                 'order_id': result.get('order_id'),
                                 'is_real_money': self.is_real_money,
+                                'conviction': signal.conviction,
+                                'regime': signal.regime.value,
+                                'strategies_firing': signal.strategies_firing,
                             })
 
-                            logger.info(f"[TRADE {len(self.trades)}] {symbol} BUY {position_size} shares @ REAL PRICE ${current_price:.2f}")
+                            logger.info(f"[TRADE {len(self.trades)}] {symbol} {signal.action} {position_size} shares @ REAL PRICE ${current_price:.2f}")
+                            logger.info(f"  Conviction: {signal.conviction:.2f} (Regime: {signal.regime.value})")
                             logger.info(f"  Stop: ${stop_loss:.2f} (2%)")
                             logger.info(f"  Target: ${take_profit:.2f} (3%)")
                             logger.info(f"  Current Portfolio: ${self.current_portfolio_value:,.2f}")
@@ -303,10 +318,10 @@ async def main():
     logger.info("Initializing Finnhub live market paper trading...")
     try:
         finnhub = await get_finnhub_client(api_key=finnhub_api_key, starting_balance=100.0)
-        logger.info("[FINNHUB] ✓ Connected to Finnhub API")
-        logger.info("[FINNHUB] ✓ Live market prices enabled")
-        logger.info("[FINNHUB] ✓ Paper trading mode: $100.00 starting")
-        logger.info("[FINNHUB] ✓ Auto-switch to real money at $1000.00")
+        logger.info("[FINNHUB] [OK] Connected to Finnhub API")
+        logger.info("[FINNHUB] [OK] Live market prices enabled")
+        logger.info("[FINNHUB] [OK] Paper trading mode: $100.00 starting")
+        logger.info("[FINNHUB] [OK] Auto-switch to real money at $1000.00")
         logger.info("")
         starting_balance = 100.0
     except Exception as e:
