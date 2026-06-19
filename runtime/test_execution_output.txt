@@ -1,4 +1,4 @@
-﻿============================= test session starts =============================
+============================= test session starts =============================
 platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0 -- C:\Python314\python.exe
 cachedir: .pytest_cache
 rootdir: C:\Users\alrea\Downloads\profitengine-v5-final (1)

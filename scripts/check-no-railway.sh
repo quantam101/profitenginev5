@@ -50,15 +50,27 @@ check_files() {
 
 check_patterns() {
   local found=0
-  local search_cmd="git grep"
-  if [[ $STAGED == '--staged' ]]; then
-    search_cmd="git diff --cached"
-  fi
 
   for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-    if $search_cmd -i "$pattern" 2>/dev/null | grep -v "^Binary" | grep -q .; then
-      echo "❌ BLOCKED: Found forbidden pattern: $pattern"
-      found=1
+    if [[ $STAGED == '--staged' ]]; then
+      # Check staged changes, excluding metadata files
+      if git diff --cached -i -- \
+        ':!scripts/check-no-railway.sh' \
+        ':!scripts/verify-no-railway.sh' \
+        ':!CLAUDE.md' 2>/dev/null | grep -v "^Binary" | grep -qi "$pattern"; then
+        echo "❌ BLOCKED: Found forbidden pattern: $pattern"
+        found=1
+      fi
+    else
+      # Check working tree with git grep, excluding metadata files
+      if git grep -i "$pattern" \
+        -- \
+        ':!scripts/check-no-railway.sh' \
+        ':!scripts/verify-no-railway.sh' \
+        ':!CLAUDE.md' 2>/dev/null | grep -q .; then
+        echo "❌ BLOCKED: Found forbidden pattern: $pattern"
+        found=1
+      fi
     fi
   done
   return $found

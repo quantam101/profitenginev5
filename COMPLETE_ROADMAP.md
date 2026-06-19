@@ -1,4 +1,4 @@
-﻿# COMPLETE ROADMAP: Paper Trading → Real Money (100 to 1000)
+# COMPLETE ROADMAP: Paper Trading → Real Money (100 to 1000)
 
 **Goal:** $1000 from  in 7 days  
 **Phase 1:** Finnhub paper trading (Days 1-3, risk-free)  

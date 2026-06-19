@@ -167,7 +167,7 @@ class TestAuthentication:
 
     def test_verify_api_key_valid(self):
         """Test valid API key verification"""
-        api_key = "dev-key-change-in-production"
+        api_key = "default-dev-key"
         assert verify_api_key(api_key) is True
 
     def test_verify_api_key_invalid(self):
