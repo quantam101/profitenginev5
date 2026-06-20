@@ -8,3 +8,4 @@
 {"channel": "gumroad", "amount_usd": 320.0, "timestamp": "2026-06-19T17:50:57.606988+00:00", "source_id": "manual_1781891457.607017", "description": "Ebook bundle: Trading + Investing", "content_id": null, "metadata": {}}
 {"channel": "printify", "amount_usd": 650.0, "timestamp": "2026-06-19T17:50:58.474408+00:00", "source_id": "manual_1781891458.474437", "description": "T-shirt & hoodie sales", "content_id": null, "metadata": {}}
 {"channel": "affiliate", "amount_usd": 145.75, "timestamp": "2026-06-19T17:50:59.576556+00:00", "source_id": "manual_1781891459.576594", "description": "Amazon Associates commissions", "content_id": null, "metadata": {}}
+{"channel": "youtube", "amount_usd": 75.5, "date": "2026-06-19", "source_id": "manual_1781911694.467274", "description": "YouTube AdSense June 2026", "content_id": null, "metadata": {}, "created_at": "2026-06-19T23:28:14.467492+00:00"}
