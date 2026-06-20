@@ -4,8 +4,15 @@ import Providers from './providers';
 import './style.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://profitengine-tau.vercel.app'),
   title: 'ProfitEngine Command Center',
-  description: 'Production-gated ProfitEngine command center with zero-spend controls, disabled stale source, and explicit deployment readiness state.'
+  description: 'Production-gated ProfitEngine command center with zero-spend controls, disabled stale source, and explicit deployment readiness state.',
+  openGraph: {
+    url: 'https://profitengine-tau.vercel.app',
+    type: 'website',
+    title: 'ProfitEngine Command Center',
+    description: 'Production-gated ProfitEngine command center with zero-spend controls, disabled stale source, and explicit deployment readiness state.'
+  }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
