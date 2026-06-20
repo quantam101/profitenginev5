@@ -158,7 +158,6 @@ jobs:
           sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys
           echo "✅ authorized_keys enforced (added $added, total $(wc -l < ~/.ssh/authorized_keys))"
 ENFORCE_KEYS
-
             echo "::notice::CMDOS authorized_keys enforced successfully"
           else
             echo "::error::Cannot authenticate with any key. SSH access to CMDOS is blocked."
@@ -166,7 +165,7 @@ ENFORCE_KEYS
             exit 1
           fi
 
-          rm -f /tmp/cmdos_ssh_key /tmp/oci_ssh_key /tmp/server_ssh_key
+          rm -f /tmp/cmdos_ssh_key /tmp/oci_ssh_key /tmp/server_ssh_key 2>/dev/null || true
 
       - name: Enforce authorized_keys on Runtime
         if: steps.runtime_check.outputs.reachable == 'true'
