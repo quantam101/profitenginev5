@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-const ORACLE = process.env.ORACLE_API_URL;
-if (!ORACLE) throw new Error('ORACLE_API_URL environment variable is required');
+const ORACLE = process.env.ORACLE_API_URL || 'http://localhost:8080';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-const ORACLE = process.env.ORACLE_API_URL;
-if (!ORACLE) throw new Error('ORACLE_API_URL environment variable is required');
+const ORACLE = process.env.ORACLE_API_URL || 'http://localhost:8080';
 const MAP: Record<string, string> = { 'Run Cycle': '/api/run-cycle', 'Self-Improve': '/api/self-improve', 'Pause All': '/api/pause', 'Resume All': '/api/resume' };
 export async function POST(req: NextRequest) {
   const { command } = await req.json();
