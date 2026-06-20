@@ -343,9 +343,9 @@ class ParallelBacktestEngine:
             "",
             "RECOMMENDATION",
             "-" * 80,
-            "✓ System ready for deployment" if total_profit > 500 else "✗ System needs tuning",
-            "✓ All 11 strategies performing" if len(self.backtest_results) == 11 else "⚠ Some strategies underperforming",
-            "✓ Live validation successful" if self.live_validation_results else "⚠ Validation pending",
+            "[OK] System ready for deployment" if total_profit > 500 else "[WARN] System needs tuning",
+            "[OK] All 11 strategies performing" if len(self.backtest_results) == 11 else "[WARN] Some strategies underperforming",
+            "[OK] Live validation successful" if self.live_validation_results else "[WARN] Validation pending",
             "",
             "=" * 80,
         ])
@@ -355,7 +355,7 @@ class ParallelBacktestEngine:
         # Save report
         report_path = Path('.runtime/backtest_report.txt')
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(report)
+        report_path.write_text(report, encoding='utf-8')
 
         logger.info(f"Report saved to {report_path}")
         return report
