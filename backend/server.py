@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv(ROOT / ".env")
 
 from code_merger.python_merger import merge_python_files  # noqa: E402
 from code_merger.js_merger import merge_js_files  # noqa: E402
