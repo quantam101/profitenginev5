@@ -174,8 +174,8 @@ def create_product(catalog_entry: Dict[str, Any]) -> Dict[str, Any]:
         "name":            name,
         "price":           catalog_entry["price"],
         "description":     catalog_entry["description"],
-        "published":       "true",
-        "require_shipping": "false",
+        "published":       True,
+        "require_shipping": False,
         "type":            "digital",
         "url":             catalog_entry.get("url_suffix", ""),
         "tags[]":          catalog_entry.get("tags", []),
@@ -206,6 +206,17 @@ def bootstrap_catalog() -> List[Dict[str, Any]]:
     skipped = sum(1 for r in results if r.get("skipped"))
     logger.info(f"[Gumroad] Catalog bootstrap: {created} created, {skipped} already existed")
     return results
+
+
+def publish_product(product_id: str) -> Dict[str, Any]:
+    """Publish an unpublished product by ID."""
+    resp = _request("PUT", f"products/{product_id}", {"published": True})
+    if resp.get("success"):
+        logger.info(f"[Gumroad] Published product: {product_id}")
+        return {"ok": True, "id": product_id}
+    else:
+        logger.error(f"[Gumroad] Publish failed for {product_id}: {resp.get('message')}")
+        return {"ok": False, "id": product_id, "error": resp.get("message")}
 
 
 def get_sales(product_id: Optional[str] = None, after: Optional[str] = None) -> Dict[str, Any]:

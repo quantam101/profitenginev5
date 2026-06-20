@@ -1,6 +1,13 @@
 name: Gumroad Store Status
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'runtime/gumroad_client.py'
+      - 'products/**'
+  schedule:
+    - cron: '0 * * * *'  # Every hour
   workflow_dispatch:
     inputs:
       bootstrap:
@@ -37,7 +44,7 @@ jobs:
           import os
           import sys
 
-          from runtime.gumroad_client import PRODUCT_CATALOG, bootstrap_catalog, list_products, revenue_summary
+          from runtime.gumroad_client import PRODUCT_CATALOG, bootstrap_catalog, list_products, publish_product, revenue_summary
 
           if not os.environ.get("GUMROAD_ACCESS_TOKEN", "").strip():
               sys.exit("[Gumroad] GUMROAD_ACCESS_TOKEN missing")
@@ -56,11 +63,21 @@ jobs:
           missing = sorted(catalog_names - visible_names)
 
           print(f"[Gumroad] Products visible: {len(products)}")
+          unpublished = []
           for product in products:
               name = product.get("name", "")
               product_id = product.get("id", "")
+              is_published = product.get("published", False)
               url = product.get("short_url") or product.get("preview_url") or ""
-              print(f"[Gumroad] Product: {name} | id={product_id} | url={url}")
+              print(f"[Gumroad] Product: {name} | id={product_id} | published={is_published} | url={url}")
+              if not is_published:
+                  unpublished.append(product_id)
+
+          if unpublished:
+              print(f"[Gumroad] Publishing {len(unpublished)} unpublished product(s)...")
+              for pid in unpublished:
+                  result = publish_product(pid)
+                  print(f"[Gumroad] Publish result: {result}")
 
           summary = revenue_summary()
           print("[Gumroad] Revenue summary:")
@@ -69,5 +86,5 @@ jobs:
           if missing:
               sys.exit("[Gumroad] Missing catalog products: " + ", ".join(missing))
 
-          print("[Gumroad] Store catalog verified")
+          print("[Gumroad] Store catalog verified and products published")
           PY
