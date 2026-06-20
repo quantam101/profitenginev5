@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appendFileSync } from 'fs';
+import { appendFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 
@@ -16,9 +17,53 @@ interface BeehiivSponsorPayload {
   };
 }
 
+// Verify Beehiiv webhook signature
+function verifyBeehiivSignature(
+  payload: string,
+  signature: string,
+  apiKey: string
+): boolean {
+  try {
+    const hash = crypto
+      .createHmac('sha256', apiKey)
+      .update(payload)
+      .digest('hex');
+    return hash === signature;
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json() as BeehiivSponsorPayload;
+    // Get raw body for signature verification
+    const bodyBuffer = await request.arrayBuffer();
+    const bodyString = Buffer.from(bodyBuffer).toString('utf8');
+
+    // Extract signature from headers
+    const signature = request.headers.get('x-beehiiv-signature');
+    const beehiivKey = process.env.BEEHIIV_API_KEY;
+
+    if (!signature || !beehiivKey) {
+      console.warn('Missing signature or API key for Beehiiv webhook');
+      return NextResponse.json(
+        { error: 'Webhook authentication failed' },
+        { status: 401 }
+      );
+    }
+
+    // Verify signature
+    const isValid = verifyBeehiivSignature(bodyString, signature, beehiivKey);
+    if (!isValid) {
+      console.warn('Invalid Beehiiv webhook signature');
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
+    }
+
+    const payload = JSON.parse(bodyString) as BeehiivSponsorPayload;
 
     // Handle sponsorship events
     if (!payload.event?.includes('sponsor') && !payload.data?.sponsorship_amount) {
@@ -45,8 +90,15 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Log to JSONL file
+    // Ensure runtime directory exists
     const runtimeDir = join(process.cwd(), '.runtime', 'revenue');
+    try {
+      mkdirSync(runtimeDir, { recursive: true });
+    } catch (error) {
+      console.warn('Failed to create runtime directory:', error);
+    }
+
+    // Log to JSONL file
     const transactionPath = join(runtimeDir, 'transactions.jsonl');
 
     try {
@@ -67,27 +119,6 @@ export async function POST(request: NextRequest) {
     console.error('Newsletter webhook error:', error);
     return NextResponse.json(
       { error: 'Webhook processing failed', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 400 }
-    );
-  }
-}
-
-// Sponsor payment via Stripe checkout (POST to this endpoint to initiate)
-export async function PUT(request: NextRequest) {
-  try {
-    const { sponsor_name, amount_usd } = await request.json() as { sponsor_name: string; amount_usd: number };
-
-    // This would integrate with Stripe to create checkout session
-    // For now, return placeholder response
-    return NextResponse.json({
-      ok: true,
-      message: 'Stripe checkout would be created here',
-      sponsor: sponsor_name,
-      amount: amount_usd,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to process payment request' },
       { status: 400 }
     );
   }

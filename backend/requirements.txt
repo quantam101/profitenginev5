@@ -17,6 +17,14 @@ openai>=1.0.0
 stripe>=10.0.0
 resend>=2.0.0
 
+# ── scheduling ───────────────────────────────────────────────────────────────
+apscheduler>=3.10.4
+
+# ── Google API (YouTube Analytics, AdSense) ────────────────────────────────────
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.2.0
+
 # ── tests ────────────────────────────────────────────────────────────────────
 pytest==8.3.4
 pytest-asyncio==0.24.0
