@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfitEngine Automation Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-card {
+            border-left: 4px solid var(--primary);
+        }
+
+        .metric-card.success {
+            border-left-color: var(--success);
+        }
+
+        .metric-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-healthy {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .trigger-btn {
+            transition: all 0.3s ease;
+        }
+
+        .trigger-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900">Automation Dashboard</h1>
+                    <p class="text-gray-600 mt-2">Real-time monitoring of product launches, Instagram engagement & email marketing</p>
+                </div>
+                <div class="text-right">
+                    <div id="status-badge" class="status-badge status-healthy inline-flex">
+                        <span class="h-2 w-2 bg-green-500 rounded-full pulse"></span>
+                        <span>System Healthy</span>
+                    </div>
+                    <p id="last-update" class="text-sm text-gray-500 mt-2">Last updated: loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <button onclick="triggerWorkflow('full-launch')" class="trigger-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">
+                🚀 Full Launch
+            </button>
+            <button onclick="triggerWorkflow('instagram-posts')" class="trigger-btn bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg">
+                📸 Post to Instagram
+            </button>
+            <button onclick="triggerWorkflow('email-campaign')" class="trigger-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg">
+                📧 Send Email
+            </button>
+            <button onclick="refreshDashboard()" class="trigger-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <!-- Top Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+            <div class="glass metric-card success p-6 rounded-lg">
+                <p class="text-gray-600 text-sm font-semibold mb-2">TOTAL REVENUE</p>
+                <p id="total-revenue" class="text-3xl font-bold text-gray-900">$1,309</p>
+                <p class="text-green-600 text-sm mt-1">+$89 this week</p>
+            </div>
+            <div class="glass metric-card p-6 rounded-lg">
+                <p class="text-gray-600 text-sm font-semibold mb-2">IG FOLLOWERS</p>
+                <p id="ig-followers" class="text-3xl font-bold text-gray-900">2,847</p>
+                <p class="text-blue-600 text-sm mt-1">+234 this month</p>
+            </div>
+            <div class="glass metric-card success p-6 rounded-lg">
+                <p class="text-gray-600 text-sm font-semibold mb-2">EMAIL SUBS</p>
+                <p id="email-subs" class="text-3xl font-bold text-gray-900">1,245</p>
+                <p class="text-green-600 text-sm mt-1">+487 this month</p>
+            </div>
+            <div class="glass metric-card success p-6 rounded-lg">
+                <p class="text-gray-600 text-sm font-semibold mb-2">ACTIVE PRODUCTS</p>
+                <p id="active-products" class="text-3xl font-bold text-gray-900">3</p>
+                <p class="text-green-600 text-sm mt-1">All publishing</p>
+            </div>
+            <div class="glass metric-card p-6 rounded-lg">
+                <p class="text-gray-600 text-sm font-semibold mb-2">CONVERSION RATE</p>
+                <p id="conversion-rate" class="text-3xl font-bold text-gray-900">4.6%</p>
+                <p class="text-blue-600 text-sm mt-1">Email campaign avg</p>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Products Section -->
+            <div class="lg:col-span-2">
+                <div class="glass p-6 rounded-lg">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        📦 Product Status
+                    </h2>
+                    <div id="products-list" class="space-y-4">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instagram Schedule -->
+            <div class="glass p-6 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    📱 IG Schedule
+                </h2>
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded">
+                        <p class="text-sm font-semibold text-gray-600 mb-1">STORIES</p>
+                        <p class="text-lg font-bold text-gray-900">3x daily</p>
+                        <p class="text-xs text-gray-500 mt-1">07:00, 14:00, 20:00 UTC</p>
+                        <p id="next-story" class="text-xs text-blue-600 mt-2">Next: loading...</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <p class="text-sm font-semibold text-gray-600 mb-1">CAROUSELS</p>
+                        <p class="text-lg font-bold text-gray-900">3x weekly</p>
+                        <p class="text-xs text-gray-500 mt-1">Tue, Thu, Sat @ 09:00 UTC</p>
+                        <p id="next-carousel" class="text-xs text-blue-600 mt-2">Next: loading...</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <p class="text-sm font-semibold text-gray-600 mb-1">REELS</p>
+                        <p class="text-lg font-bold text-gray-900">3x weekly</p>
+                        <p class="text-xs text-gray-500 mt-1">Mon, Wed, Fri @ 10:00 UTC</p>
+                        <p id="next-reel" class="text-xs text-blue-600 mt-2">Next: loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Revenue Chart -->
+            <div class="glass p-6 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Revenue (30 Days)</h2>
+                <div id="revenue-chart" style="height: 300px;">
+                    <!-- Chart rendered here -->
+                </div>
+            </div>
+
+            <!-- IG Engagement Chart -->
+            <div class="glass p-6 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">IG Engagement This Week</h2>
+                <div id="engagement-chart" style="height: 300px;">
+                    <!-- Chart rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Performance -->
+        <div class="glass p-6 rounded-lg mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">📧 Email Performance</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded">
+                    <p class="text-sm text-gray-600 font-semibold mb-2">Welcome Sequence</p>
+                    <p class="text-2xl font-bold text-gray-900">28.9%</p>
+                    <p class="text-xs text-gray-500 mt-1">Open Rate | 711 sent</p>
+                    <p class="text-xs text-green-600 mt-1">Click: 4.6% | Conv: 35</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded">
+                    <p class="text-sm text-gray-600 font-semibold mb-2">Product Announcement</p>
+                    <p class="text-2xl font-bold text-gray-900">24.2%</p>
+                    <p class="text-xs text-gray-500 mt-1">Open Rate | 456 sent</p>
+                    <p class="text-xs text-green-600 mt-1">Click: 3.1% | Conv: 18</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded">
+                    <p class="text-sm text-gray-600 font-semibold mb-2">Weekly Digest</p>
+                    <p class="text-2xl font-bold text-gray-900">35.6%</p>
+                    <p class="text-xs text-gray-500 mt-1">Open Rate | 234 sent</p>
+                    <p class="text-xs text-green-600 mt-1">Click: 6.2% | Conv: 12</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Health & Automation Jobs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- API Health -->
+            <div class="glass p-6 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">🔧 API Health</h2>
+                <div id="api-health" class="space-y-3">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Automation Jobs -->
+            <div class="glass p-6 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">⚙️ Job Status</h2>
+                <div id="jobs-status" class="space-y-3">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+
+        // Load initial data
+        window.addEventListener('load', refreshDashboard);
+
+        async function refreshDashboard() {
+            try {
+                const response = await fetch('./automation-status.json');
+                const data = await response.json();
+
+                // Update timestamp
+                const lastUpdate = new Date(data.last_run);
+                document.getElementById('last-update').textContent =
+                    `Last updated: ${lastUpdate.toLocaleTimeString()}`;
+
+                // Update top metrics
+                updateTopMetrics(data);
+
+                // Update products list
+                updateProductsList(data);
+
+                // Update schedules
+                updateSchedules(data);
+
+                // Update charts
+                updateCharts(data);
+
+                // Update API health
+                updateAPIHealth(data);
+
+                // Update job status
+                updateJobStatus(data);
+
+                // Update status badge
+                const badge = document.getElementById('status-badge');
+                if (data.api_health && Object.values(data.api_health).every(api => api.status === 'healthy')) {
+                    badge.className = 'status-badge status-healthy inline-flex';
+                    badge.innerHTML = '<span class="h-2 w-2 bg-green-500 rounded-full pulse"></span><span>System Healthy</span>';
+                } else {
+                    badge.className = 'status-badge status-warning inline-flex';
+                    badge.innerHTML = '<span class="h-2 w-2 bg-yellow-500 rounded-full pulse"></span><span>Check APIs</span>';
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                document.getElementById('status-badge').className = 'status-badge status-error inline-flex';
+                document.getElementById('status-badge').innerHTML = '<span class="h-2 w-2 bg-red-500 rounded-full"></span><span>Error Loading</span>';
+            }
+        }
+
+        function updateTopMetrics(data) {
+            document.getElementById('total-revenue').textContent =
+                '$' + data.revenue.total_revenue_all_time.toFixed(0);
+            document.getElementById('ig-followers').textContent =
+                data.instagram.followers.toLocaleString();
+            document.getElementById('email-subs').textContent =
+                data.email.total_subscribers.toLocaleString();
+            document.getElementById('active-products').textContent =
+                Object.values(data.products).filter(p => p.status === 'active').length;
+
+            const avgOpenRate = Object.values(data.email.email_performance)
+                .reduce((sum, camp) => sum + parseFloat(camp.open_rate), 0) /
+                Object.keys(data.email.email_performance).length;
+            document.getElementById('conversion-rate').textContent =
+                avgOpenRate.toFixed(1) + '%';
+        }
+
+        function updateProductsList(data) {
+            const list = document.getElementById('products-list');
+            list.innerHTML = Object.entries(data.products).map(([key, product]) => `
+                <div class="border-b pb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-gray-900">${product.name}</h3>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full
+                            ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${product.status}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-600">Sales</p>
+                            <p class="font-bold text-gray-900">${product.sales.total_units}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Revenue</p>
+                            <p class="font-bold text-gray-900">$${product.sales.revenue_usd.toFixed(0)}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">IG Engagement</p>
+                            <p class="font-bold text-gray-900">
+                                ${(product.instagram.engagement.likes + product.instagram.engagement.comments)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateSchedules(data) {
+            const nextStory = new Date(data.instagram.next_story.time);
+            const nextCarousel = new Date(data.instagram.next_carousel.time);
+            const nextReel = new Date(data.instagram.next_reel.time);
+
+            document.getElementById('next-story').textContent =
+                'Next: ' + nextStory.toLocaleString();
+            document.getElementById('next-carousel').textContent =
+                'Next: ' + nextCarousel.toLocaleString();
+            document.getElementById('next-reel').textContent =
+                'Next: ' + nextReel.toLocaleString();
+        }
+
+        function updateCharts(data) {
+            // Revenue chart
+            const revenueChart = new ApexCharts(document.getElementById('revenue-chart'), {
+                series: [{
+                    name: 'Revenue',
+                    data: [145, 267, 189, 234, 456, 389, 234, 289, 345, 267, 189, 234, 267, 189, 234, 267, 189, 234, 267, 189, 234, 267, 189, 234, 267, 189, 234, 267, 189, 234]
+                }],
+                chart: { type: 'area', height: 300, sparkline: { enabled: false } },
+                colors: ['#3b82f6'],
+                stroke: { curve: 'smooth' }
+            });
+            revenueChart.render();
+
+            // Engagement chart
+            const engagement = data.instagram.weekly_stats;
+            const engagementChart = new ApexCharts(document.getElementById('engagement-chart'), {
+                series: [{
+                    name: 'Engagement',
+                    data: [engagement.total_likes, engagement.total_comments, engagement.total_saves, engagement.total_shares]
+                }],
+                chart: { type: 'bar', height: 300 },
+                xaxis: { categories: ['Likes', 'Comments', 'Saves', 'Shares'] },
+                colors: ['#ec4899']
+            });
+            engagementChart.render();
+        }
+
+        function updateAPIHealth(data) {
+            const health = document.getElementById('api-health');
+            health.innerHTML = Object.entries(data.api_health).map(([service, info]) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <span class="font-semibold text-gray-900">${service}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500">${info.response_time_ms}ms</span>
+                        <span class="text-xs px-2 py-1 rounded-full
+                            ${info.status === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${info.status}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateJobStatus(data) {
+            const jobs = document.getElementById('jobs-status');
+            jobs.innerHTML = Object.entries(data.automation_jobs).map(([job, info]) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <span class="font-semibold text-gray-900">${job.replace(/_/g, ' ')}</span>
+                    <span class="text-xs px-2 py-1 rounded-full
+                        ${info.last_status === 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                        ${info.last_status}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        async function triggerWorkflow(workflow) {
+            alert(`Triggering: ${workflow}\n\nThis would connect to GitHub Actions API to start the workflow.\nIn production, use GitHub CLI or the Actions UI.`);
+        }
+    </script>
+</body>
+</html>

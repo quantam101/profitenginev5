@@ -1,0 +1,272 @@
+name: Full Automation Launch
+
+on:
+  # Manual trigger via GitHub UI
+  workflow_dispatch:
+    inputs:
+      parallel_execution:
+        description: 'Run tasks in parallel (faster)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      skip_tasks:
+        description: 'Comma-separated tasks to skip (gumroad,carousel,reel,stories,email)'
+        required: false
+        default: ''
+
+  # Schedule daily launches (9 AM UTC = 4 AM ET)
+  schedule:
+    - cron: '0 9 * * *' # Daily at 9 AM UTC
+
+  # Allow triggering from another workflow
+  workflow_call:
+    inputs:
+      parallel_execution:
+        description: 'Run tasks in parallel'
+        required: false
+        type: string
+        default: 'true'
+
+jobs:
+  automation-launch:
+    name: Launch All Products & Content
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # ─────────────────────────────────────────────────────────────
+      # CORE AUTOMATION SETTINGS
+      # ─────────────────────────────────────────────────────────────
+      AUTOMATION_PARALLEL: ${{ inputs.parallel_execution || 'true' }}
+      AUTOMATION_RETRY_MAX_ATTEMPTS: '3'
+      AUTOMATION_RETRY_BACKOFF_MS: '5000'
+      RUNTIME_DATA_DIR: '.runtime/automation'
+
+      # ─────────────────────────────────────────────────────────────
+      # GUMROAD AUTOMATION
+      # ─────────────────────────────────────────────────────────────
+      GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+      GUMROAD_CREATOR_ID: alreadyhere
+      IMAGE_GENERATION_API: 'dalle'
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # ─────────────────────────────────────────────────────────────
+      # INSTAGRAM CAROUSEL AUTOMATION
+      # ─────────────────────────────────────────────────────────────
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+
+      # ─────────────────────────────────────────────────────────────
+      # INSTAGRAM VIDEO GENERATION (Reel & Stories)
+      # ─────────────────────────────────────────────────────────────
+      VIDEO_GENERATION_API: 'replicate'
+      REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+
+      # ─────────────────────────────────────────────────────────────
+      # EMAIL AUTOMATION
+      # ─────────────────────────────────────────────────────────────
+      EMAIL_SERVICE: 'beehiiv'
+      BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+      BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
+
+      # ─────────────────────────────────────────────────────────────
+      # RUNTIME SERVICES
+      # ─────────────────────────────────────────────────────────────
+      RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL || 'http://129.146.236.177:8000' }}
+
+      # ─────────────────────────────────────────────────────────────
+      # NODE CONFIGURATION
+      # ─────────────────────────────────────────────────────────────
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=2048
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Validate configuration
+        run: |
+          echo "=== AUTOMATION CONFIGURATION ==="
+          echo "Parallel Execution: ${{ env.AUTOMATION_PARALLEL }}"
+          echo "Retry Max Attempts: ${{ env.AUTOMATION_RETRY_MAX_ATTEMPTS }}"
+          echo "Environment: ${{ env.NODE_ENV }}"
+          echo ""
+          echo "=== SERVICE AVAILABILITY ==="
+          [ -n "$GUMROAD_API_TOKEN" ] && echo "✓ Gumroad API configured" || echo "✗ Gumroad API missing"
+          [ -n "$FB_PAGE_ACCESS_TOKEN" ] && echo "✓ Instagram Graph API configured" || echo "✗ Instagram Graph API missing"
+          [ -n "$OPENAI_API_KEY" ] && echo "✓ OpenAI API configured" || echo "✗ OpenAI API missing"
+          [ -n "$REPLICATE_API_TOKEN" ] && echo "✓ Replicate API configured" || echo "✗ Replicate API missing"
+          [ -n "$BEEHIIV_API_KEY" ] && echo "✓ Beehiiv API configured" || echo "✗ Beehiiv API missing"
+
+      - name: Create automation log directory
+        run: mkdir -p ${{ env.RUNTIME_DATA_DIR }}
+
+      - name: Execute automation orchestration
+        run: |
+          node -e "
+          const { orchestrateFullLaunch } = require('./app/lib/automation/orchestrate.ts');
+          orchestrateFullLaunch({
+            parallel: process.env.AUTOMATION_PARALLEL === 'true'
+          }).then(result => {
+            process.exit(result.tasksFailed === 0 ? 0 : 1);
+          }).catch(error => {
+            console.error('Orchestration error:', error);
+            process.exit(1);
+          });
+          "
+
+      - name: Generate automation report
+        if: always()
+        run: |
+          echo "## Automation Launch Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f "${{ env.RUNTIME_DATA_DIR }}/launch-status.jsonl" ]; then
+            echo "### Latest Run Status" >> $GITHUB_STEP_SUMMARY
+            tail -1 "${{ env.RUNTIME_DATA_DIR }}/launch-status.jsonl" | python3 -c "
+            import json, sys
+            data = json.load(sys.stdin)
+            print(f\"- Run ID: \`{data['runId']}\`\")
+            print(f\"- Success Rate: {data['successRate']*100:.1f}%\")
+            print(f\"- Tasks Passed: {data['tasksRun'] - data['tasksFailed']}/{data['tasksRun']}\")
+            print(f\"- Duration: {data['duration']/1000:.1f}s\")
+            " >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload automation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-logs
+          path: ${{ env.RUNTIME_DATA_DIR }}/
+          retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Automation launch failed. Check logs in Actions tab.'
+            });
+
+      - name: Commit results to repo
+        if: always() && github.event_name == 'schedule'
+        run: |
+          git config user.email "automation@alreadyherellc.com"
+          git config user.name "Automation Bot"
+          git add ${{ env.RUNTIME_DATA_DIR }}/launch-status.jsonl
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "docs: automation run $(date +'%Y-%m-%d %H:%M:%S')" &&
+            git push
+          )
+        continue-on-error: true
+
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Automation Launch: ${{ job.status }}
+            Run: ${{ github.run_id }}
+            Workflow: ${{ github.workflow }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author
+        continue-on-error: true
+
+  monitoring:
+    name: Monitor Automation Health
+    runs-on: ubuntu-latest
+    needs: automation-launch
+    if: always()
+
+    steps:
+      - name: Download logs
+        uses: actions/download-artifact@v4
+        with:
+          name: automation-logs
+
+      - name: Analyze automation metrics
+        if: hashFiles('launch-status.jsonl') != ''
+        run: |
+          echo "### Automation Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python3 << 'EOF'
+          import json
+          import sys
+          from datetime import datetime
+
+          # Read last 10 runs
+          runs = []
+          try:
+              with open('launch-status.jsonl', 'r') as f:
+                  for line in f:
+                      runs.append(json.loads(line.strip()))
+          except FileNotFoundError:
+              sys.exit(0)
+
+          if not runs:
+              sys.exit(0)
+
+          # Calculate statistics
+          last_10 = runs[-10:]
+          success_count = sum(1 for r in last_10 if r['success'])
+          avg_duration = sum(r['duration'] for r in last_10) / len(last_10) / 1000
+          avg_success_rate = sum(r['successRate'] for r in last_10) / len(last_10)
+
+          print(f"- Success Rate (last 10): {success_count}/10")
+          print(f"- Avg Duration: {avg_duration:.1f}s")
+          print(f"- Avg Success Rate: {avg_success_rate*100:.1f}%")
+
+          # Alert on failures
+          recent_failures = sum(1 for r in last_10 if not r['success'])
+          if recent_failures >= 3:
+              print("\n⚠️ **Warning:** 3+ consecutive failures detected!")
+          EOF
+
+      - name: Archive metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-metrics
+          path: launch-status.jsonl
+          retention-days: 90
+
+# ─────────────────────────────────────────────────────────────────
+# WORKFLOW SECRETS REQUIRED IN GITHUB
+# ─────────────────────────────────────────────────────────────────
+# GUMROAD_API_TOKEN          — From Gumroad account settings
+# OPENAI_API_KEY             — From OpenAI API dashboard
+# IG_USER_ID                 — Instagram Business Account ID
+# FB_PAGE_ACCESS_TOKEN       — Meta Business Suite access token
+# REPLICATE_API_TOKEN        — From Replicate account
+# ELEVENLABS_API_KEY         — From ElevenLabs account
+# BEEHIIV_API_KEY            — From Beehiiv account settings
+# BEEHIIV_PUBLICATION_ID     — Your Beehiiv publication ID
+# RUNTIME_API_URL            — Backend service URL (e.g., http://129.146.236.177:8000)
+# SLACK_WEBHOOK_URL          — (Optional) Slack notification webhook
+#
+# Setup via GitHub:
+# 1. Go to repo Settings → Secrets and variables → Actions
+# 2. Click "New repository secret"
+# 3. Add each secret with its value
+# 4. Save and deploy
+# ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,477 @@
+name: Automation Launch System
+
+# Fully automated product launches across Gumroad, Instagram, Email, and metrics tracking
+#
+# TRIGGERS:
+# 1. Manual trigger (GitHub UI) — run full launch or specific component
+# 2. Scheduled (cron) — daily stories, weekly carousels/reels/email, hourly metrics
+# 3. On event — webhook from Gumroad (new sale), email signup, engagement spike
+
+on:
+  # Manual trigger via GitHub UI
+  workflow_dispatch:
+    inputs:
+      trigger_type:
+        description: 'What to automate'
+        required: true
+        default: 'full-launch'
+        type: choice
+        options:
+          - 'full-launch'
+          - 'instagram-stories'
+          - 'instagram-carousel'
+          - 'instagram-reel'
+          - 'email-campaign'
+          - 'gumroad-products'
+          - 'metrics-sync'
+          - 'verify-only'
+      dry_run:
+        description: 'Dry run (test without publishing)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      notify_slack:
+        description: 'Send Slack notifications'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+  # Scheduled: Instagram stories (3x daily)
+  schedule:
+    # Morning story (07:00 UTC)
+    - cron: '0 7 * * *'
+    # Midday story (14:00 UTC)
+    - cron: '0 14 * * *'
+    # Evening story (20:00 UTC)
+    - cron: '0 20 * * *'
+    # Carousels (Tue/Thu/Sat @ 09:00 UTC)
+    - cron: '0 9 * * 2,4,6'
+    # Reels (Mon/Wed/Fri @ 10:00 UTC)
+    - cron: '0 10 * * 1,3,5'
+    # Email campaign (Monday @ 08:00 UTC)
+    - cron: '0 8 * * 1'
+    # Metrics sync (hourly)
+    - cron: '0 * * * *'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: automation-${{ github.event.inputs.trigger_type || github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: '1'
+  PYTHONUTF8: '1'
+  NODE_ENV: production
+
+jobs:
+  # Step 1: Determine what to run based on trigger
+  determine-trigger:
+    name: Determine automation trigger
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      trigger_type: ${{ steps.trigger.outputs.type }}
+      dry_run: ${{ steps.trigger.outputs.dry_run }}
+      notify_slack: ${{ steps.trigger.outputs.notify_slack }}
+    steps:
+      - id: trigger
+        run: |
+          # Manual trigger takes precedence
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "type=${{ github.event.inputs.trigger_type }}" >> $GITHUB_OUTPUT
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> $GITHUB_OUTPUT
+            echo "notify_slack=${{ github.event.inputs.notify_slack }}" >> $GITHUB_OUTPUT
+          else
+            # Scheduled triggers — infer from cron time
+            HOUR=$(date -u +%H)
+            DOW=$(date -u +%w)  # 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+            if [[ "$HOUR" == "07" || "$HOUR" == "14" || "$HOUR" == "20" ]]; then
+              echo "type=instagram-stories" >> $GITHUB_OUTPUT
+            elif [[ "$HOUR" == "09" && ("$DOW" == "2" || "$DOW" == "4" || "$DOW" == "6") ]]; then
+              echo "type=instagram-carousel" >> $GITHUB_OUTPUT
+            elif [[ "$HOUR" == "10" && ("$DOW" == "1" || "$DOW" == "3" || "$DOW" == "5") ]]; then
+              echo "type=instagram-reel" >> $GITHUB_OUTPUT
+            elif [[ "$HOUR" == "08" && "$DOW" == "1" ]]; then
+              echo "type=email-campaign" >> $GITHUB_OUTPUT
+            else
+              echo "type=metrics-sync" >> $GITHUB_OUTPUT
+            fi
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+            echo "notify_slack=true" >> $GITHUB_OUTPUT
+          fi
+
+  # Step 2: Validate all required secrets
+  validate-secrets:
+    name: Validate API credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: determine-trigger
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          MISSING=()
+          TRIGGER="${{ needs.determine-trigger.outputs.trigger_type }}"
+
+          # Always required
+          if [[ -z "${{ secrets.GITHUB_ACTIONS_TOKEN }}" ]]; then
+            MISSING+=("GITHUB_ACTIONS_TOKEN")
+          fi
+
+          # Product-specific requirements
+          if [[ "$TRIGGER" == "full-launch" || "$TRIGGER" == "gumroad-products" ]]; then
+            if [[ -z "${{ secrets.GUMROAD_API_KEY }}" ]]; then
+              MISSING+=("GUMROAD_API_KEY")
+            fi
+          fi
+
+          if [[ "$TRIGGER" == "full-launch" || "$TRIGGER" == "instagram-"* ]]; then
+            if [[ -z "${{ secrets.INSTAGRAM_ACCESS_TOKEN }}" ]]; then
+              MISSING+=("INSTAGRAM_ACCESS_TOKEN")
+            fi
+            if [[ -z "${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}" ]]; then
+              MISSING+=("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+            fi
+            if [[ -z "${{ secrets.REPLICATE_API_TOKEN }}" && -z "${{ secrets.DALLE_API_KEY }}" ]]; then
+              MISSING+=("REPLICATE_API_TOKEN or DALLE_API_KEY")
+            fi
+          fi
+
+          if [[ "$TRIGGER" == "full-launch" || "$TRIGGER" == "email-campaign" ]]; then
+            if [[ -z "${{ secrets.KLAVIYO_API_KEY }}" ]]; then
+              MISSING+=("KLAVIYO_API_KEY")
+            fi
+          fi
+
+          if [[ ${#MISSING[@]} -gt 0 ]]; then
+            echo "❌ Missing required secrets:"
+            printf '  - %s\n' "${MISSING[@]}"
+            exit 1
+          fi
+
+          echo "✅ All required secrets present"
+
+  # Step 3: Gumroad product publishing
+  gumroad-publish:
+    name: Publish to Gumroad
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [determine-trigger, validate-secrets]
+    if: contains(needs.determine-trigger.outputs.trigger_type, 'full-launch') || contains(needs.determine-trigger.outputs.trigger_type, 'gumroad')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Publish products to Gumroad
+        env:
+          GUMROAD_API_KEY: ${{ secrets.GUMROAD_API_KEY }}
+          AUTOMATION_DRY_RUN: ${{ needs.determine-trigger.outputs.dry_run }}
+        run: |
+          node scripts/automation/gumroad-publish.mjs
+
+      - name: Upload Gumroad status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gumroad-status-${{ github.run_id }}
+          path: .runtime/automation/gumroad-*.json
+          retention-days: 30
+
+  # Step 4: Instagram content generation & posting
+  instagram-posts:
+    name: Post to Instagram
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [determine-trigger, validate-secrets]
+    if: contains(needs.determine-trigger.outputs.trigger_type, 'full-launch') || contains(needs.determine-trigger.outputs.trigger_type, 'instagram-')
+    strategy:
+      matrix:
+        post_type: [stories, carousel, reel]
+      max-parallel: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          npm ci --omit=dev
+          pip install pillow requests aiohttp
+
+      - name: Generate images (${{ matrix.post_type }})
+        env:
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          DALLE_API_KEY: ${{ secrets.DALLE_API_KEY }}
+          IMAGE_GENERATION_PROVIDER: replicate
+        run: |
+          python scripts/automation/generate-images.py \
+            --type ${{ matrix.post_type }} \
+            --output .runtime/automation/images \
+            --dry-run ${{ needs.determine-trigger.outputs.dry_run }}
+
+      - name: Post to Instagram (${{ matrix.post_type }})
+        if: needs.determine-trigger.outputs.dry_run == 'false'
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
+        run: |
+          node scripts/automation/instagram-post.mjs \
+            --type ${{ matrix.post_type }} \
+            --images .runtime/automation/images
+
+      - name: Update automation status
+        if: always()
+        run: |
+          node scripts/automation/update-status.mjs \
+            --component instagram \
+            --type ${{ matrix.post_type }}
+
+      - name: Upload Instagram status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instagram-status-${{ github.run_id }}
+          path: .runtime/automation/instagram-*.json
+          retention-days: 30
+
+  # Step 5: Email campaign
+  email-campaign:
+    name: Send email campaign
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [determine-trigger, validate-secrets]
+    if: contains(needs.determine-trigger.outputs.trigger_type, 'full-launch') || contains(needs.determine-trigger.outputs.trigger_type, 'email-campaign')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Send email campaign
+        env:
+          KLAVIYO_API_KEY: ${{ secrets.KLAVIYO_API_KEY }}
+          SUBSTACK_API_KEY: ${{ secrets.SUBSTACK_API_KEY }}
+          CONVERTKIT_API_KEY: ${{ secrets.CONVERTKIT_API_KEY }}
+          AUTOMATION_DRY_RUN: ${{ needs.determine-trigger.outputs.dry_run }}
+        run: |
+          node scripts/automation/email-campaign.mjs
+
+      - name: Upload email status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-status-${{ github.run_id }}
+          path: .runtime/automation/email-*.json
+          retention-days: 30
+
+  # Step 6: Metrics sync
+  metrics-sync:
+    name: Sync metrics from all platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [determine-trigger, validate-secrets]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          npm ci --omit=dev
+          pip install requests aiohttp
+
+      - name: Fetch Gumroad metrics
+        env:
+          GUMROAD_API_KEY: ${{ secrets.GUMROAD_API_KEY }}
+        run: |
+          node scripts/automation/sync-gumroad-metrics.mjs
+
+      - name: Fetch Instagram metrics
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
+        run: |
+          python scripts/automation/sync-instagram-metrics.py
+
+      - name: Fetch email metrics
+        env:
+          KLAVIYO_API_KEY: ${{ secrets.KLAVIYO_API_KEY }}
+        run: |
+          node scripts/automation/sync-email-metrics.mjs
+
+      - name: Update automation-status.json
+        run: |
+          node scripts/automation/merge-status.mjs
+
+      - name: Commit updated status
+        if: needs.determine-trigger.outputs.dry_run == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add automation-status.json
+          git commit -m "chore: sync automation metrics" || echo "No changes to commit"
+          git push
+
+  # Step 7: Slack notifications
+  notify-slack:
+    name: Send Slack notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [determine-trigger, gumroad-publish, instagram-posts, email-campaign, metrics-sync]
+    if: |
+      always() &&
+      needs.determine-trigger.outputs.notify_slack == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Slack message
+        id: slack-message
+        run: |
+          TRIGGER="${{ needs.determine-trigger.outputs.trigger_type }}"
+          DRY_RUN="${{ needs.determine-trigger.outputs.dry_run }}"
+
+          STATUS="🟢"
+          if [[ "${{ needs.gumroad-publish.result }}" == "failure" || \
+                "${{ needs.instagram-posts.result }}" == "failure" || \
+                "${{ needs.email-campaign.result }}" == "failure" ]]; then
+            STATUS="🔴"
+          fi
+
+          MESSAGE="$STATUS Automation: $TRIGGER"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            MESSAGE="$MESSAGE (DRY RUN)"
+          fi
+
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Send to Slack
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "${{ steps.slack-message.outputs.message }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*ProfitEngine Automation*\n${{ steps.slack-message.outputs.message }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Trigger:*\n${{ needs.determine-trigger.outputs.trigger_type }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Dry Run:*\n${{ needs.determine-trigger.outputs.dry_run }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Gumroad:*\n${{ needs.gumroad-publish.result }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Instagram:*\n${{ needs.instagram-posts.result }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Email:*\n${{ needs.email-campaign.result }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Metrics:*\n${{ needs.metrics-sync.result }}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+  # Final: Generate report
+  generate-report:
+    name: Generate automation report
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs: [determine-trigger, gumroad-publish, instagram-posts, email-campaign, metrics-sync, notify-slack]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .runtime/automation/artifacts
+
+      - name: Generate report
+        run: |
+          node scripts/automation/generate-report.mjs \
+            --artifacts .runtime/automation/artifacts \
+            --output .runtime/automation/report-${{ github.run_id }}.json
+
+      - name: Upload final report
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-report-${{ github.run_id }}
+          path: .runtime/automation/report-*.json
+          retention-days: 90
+
+      - name: Comment on workflow
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'automation-launch.yml',
+              ref: 'main'
+            });
+            console.log('✅ Automation complete. Check automation-status.json for results.');

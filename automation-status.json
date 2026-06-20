@@ -1,0 +1,337 @@
+{
+  "version": "1.0",
+  "last_run": "2026-06-20T12:00:00Z",
+  "last_run_status": "healthy",
+  "automation_enabled": true,
+  "next_scheduled_run": "2026-06-21T07:00:00Z",
+  "metadata": {
+    "created_at": "2026-06-20T00:00:00Z",
+    "updated_at": "2026-06-20T12:00:00Z",
+    "automation_version": "v5.1.0"
+  },
+  "products": {
+    "trading-course": {
+      "name": "Complete Trading Course",
+      "gumroad_id": "abc123",
+      "gumroad_url": "https://gumroad.com/alreadyhere/trading-course",
+      "published": true,
+      "first_published": "2026-05-15T10:30:00Z",
+      "last_updated": "2026-06-20T12:00:00Z",
+      "status": "active",
+      "sales": {
+        "total_units": 12,
+        "revenue_usd": 299.88,
+        "currency": "USD",
+        "average_price": 24.99,
+        "sales_this_week": 2,
+        "last_sale": "2026-06-20T10:15:00Z"
+      },
+      "instagram": {
+        "carousel_posted": true,
+        "last_carousel": "2026-06-18T09:00:00Z",
+        "reel_posted": true,
+        "last_reel": "2026-06-19T10:00:00Z",
+        "engagement": {
+          "likes": 156,
+          "comments": 12,
+          "saves": 34,
+          "shares": 8
+        }
+      },
+      "email": {
+        "welcome_sequence_sent": true,
+        "emails_sent": 156,
+        "open_rate": "28.5%",
+        "click_rate": "4.2%",
+        "conversions_from_email": 8
+      }
+    },
+    "alert-system": {
+      "name": "Trading Alert System",
+      "gumroad_id": "def456",
+      "gumroad_url": "https://gumroad.com/alreadyhere/alert-system",
+      "published": true,
+      "first_published": "2026-06-01T14:20:00Z",
+      "last_updated": "2026-06-20T12:00:00Z",
+      "status": "active",
+      "sales": {
+        "total_units": 45,
+        "revenue_usd": 449.55,
+        "currency": "USD",
+        "average_price": 9.99,
+        "sales_this_week": 8,
+        "last_sale": "2026-06-20T11:45:00Z"
+      },
+      "instagram": {
+        "carousel_posted": true,
+        "last_carousel": "2026-06-19T09:00:00Z",
+        "reel_posted": true,
+        "last_reel": "2026-06-20T10:00:00Z",
+        "engagement": {
+          "likes": 287,
+          "comments": 23,
+          "saves": 61,
+          "shares": 15
+        }
+      },
+      "email": {
+        "welcome_sequence_sent": true,
+        "emails_sent": 234,
+        "open_rate": "31.2%",
+        "click_rate": "5.1%",
+        "conversions_from_email": 12
+      }
+    },
+    "profit-blueprint": {
+      "name": "Profit Blueprint Guide",
+      "gumroad_id": "ghi789",
+      "gumroad_url": "https://gumroad.com/alreadyhere/profit-blueprint",
+      "published": true,
+      "first_published": "2026-06-10T08:45:00Z",
+      "last_updated": "2026-06-20T12:00:00Z",
+      "status": "active",
+      "sales": {
+        "total_units": 28,
+        "revenue_usd": 559.72,
+        "currency": "USD",
+        "average_price": 19.99,
+        "sales_this_week": 5,
+        "last_sale": "2026-06-20T09:30:00Z"
+      },
+      "instagram": {
+        "carousel_posted": true,
+        "last_carousel": "2026-06-17T09:00:00Z",
+        "reel_posted": true,
+        "last_reel": "2026-06-18T10:00:00Z",
+        "engagement": {
+          "likes": 423,
+          "comments": 34,
+          "saves": 89,
+          "shares": 22
+        }
+      },
+      "email": {
+        "welcome_sequence_sent": true,
+        "emails_sent": 321,
+        "open_rate": "26.8%",
+        "click_rate": "3.9%",
+        "conversions_from_email": 15
+      }
+    }
+  },
+  "instagram": {
+    "account_id": "17841400963180",
+    "account_username": "alreadyhere_trading",
+    "account_type": "BUSINESS",
+    "followers": 2847,
+    "engagement_rate": "2.3%",
+    "weekly_stats": {
+      "stories_posted": 21,
+      "carousels_posted": 3,
+      "reels_posted": 3,
+      "total_likes": 867,
+      "total_comments": 69,
+      "total_saves": 184,
+      "total_shares": 45
+    },
+    "monthly_stats": {
+      "stories_posted": 84,
+      "carousels_posted": 12,
+      "reels_posted": 12,
+      "followers_gained": 234,
+      "engagement_total": 3456
+    },
+    "next_story": {
+      "scheduled": true,
+      "time": "2026-06-20T14:00:00Z",
+      "product": "trading-course"
+    },
+    "next_carousel": {
+      "scheduled": true,
+      "time": "2026-06-24T09:00:00Z",
+      "day": "Tuesday",
+      "product": "alert-system"
+    },
+    "next_reel": {
+      "scheduled": true,
+      "time": "2026-06-23T10:00:00Z",
+      "day": "Monday",
+      "product": "profit-blueprint"
+    }
+  },
+  "email": {
+    "platform": "klaviyo",
+    "total_subscribers": 1245,
+    "new_signups_today": 34,
+    "new_signups_this_week": 156,
+    "new_signups_this_month": 487,
+    "list_id": "Ub5jF3",
+    "segments": {
+      "all_subscribers": 1245,
+      "active_last_30_days": 956,
+      "converted_customers": 345,
+      "cart_abandoners": 89
+    },
+    "email_performance": {
+      "welcome_sequence": {
+        "emails_sent": 711,
+        "open_rate": "28.9%",
+        "click_rate": "4.6%",
+        "conversions": 35
+      },
+      "product_announcement": {
+        "emails_sent": 456,
+        "open_rate": "24.2%",
+        "click_rate": "3.1%",
+        "conversions": 18
+      },
+      "weekly_digest": {
+        "emails_sent": 234,
+        "open_rate": "35.6%",
+        "click_rate": "6.2%",
+        "conversions": 12
+      }
+    },
+    "next_email": {
+      "scheduled": true,
+      "type": "product_announcement",
+      "product": "trading-course",
+      "send_time": "2026-06-22T09:00:00Z"
+    }
+  },
+  "revenue": {
+    "currency": "USD",
+    "total_revenue_all_time": 1309.15,
+    "revenue_this_month": 487.50,
+    "revenue_this_week": 89.32,
+    "revenue_today": 23.45,
+    "breakdown_by_source": {
+      "gumroad_sales": {
+        "total": 1028.15,
+        "percentage": 78.5
+      },
+      "affiliate_commissions": {
+        "total": 145.00,
+        "percentage": 11.1
+      },
+      "email_conversions": {
+        "total": 98.00,
+        "percentage": 7.5
+      },
+      "stripe_subscriptions": {
+        "total": 38.00,
+        "percentage": 2.9
+      }
+    },
+    "breakdown_by_product": {
+      "trading-course": 299.88,
+      "alert-system": 449.55,
+      "profit-blueprint": 559.72
+    },
+    "projected_monthly_revenue": 1850.00,
+    "projected_annual_revenue": 22200.00
+  },
+  "affiliate_tracking": {
+    "amazon_associate_tag": "alreadyhere-20",
+    "total_clicks_tracked": 234,
+    "total_conversions": 18,
+    "total_commission": 145.00,
+    "affiliate_networks": {
+      "amazon": {
+        "clicks": 156,
+        "conversions": 12,
+        "commission": 98.00
+      },
+      "stripe_referral": {
+        "clicks": 45,
+        "conversions": 4,
+        "commission": 32.00
+      },
+      "bluehost": {
+        "clicks": 33,
+        "conversions": 2,
+        "commission": 15.00
+      }
+    }
+  },
+  "automation_jobs": {
+    "daily_stories": {
+      "enabled": true,
+      "frequency": "3x daily",
+      "times": ["07:00 UTC", "14:00 UTC", "20:00 UTC"],
+      "last_run": "2026-06-20T14:00:00Z",
+      "last_status": "success",
+      "next_run": "2026-06-20T20:00:00Z"
+    },
+    "weekly_carousels": {
+      "enabled": true,
+      "frequency": "3x weekly",
+      "days": ["Tuesday", "Thursday", "Saturday"],
+      "time": "09:00 UTC",
+      "last_run": "2026-06-19T09:00:00Z",
+      "last_status": "success",
+      "next_run": "2026-06-21T09:00:00Z"
+    },
+    "weekly_reels": {
+      "enabled": true,
+      "frequency": "3x weekly",
+      "days": ["Monday", "Wednesday", "Friday"],
+      "time": "10:00 UTC",
+      "last_run": "2026-06-20T10:00:00Z",
+      "last_status": "success",
+      "next_run": "2026-06-23T10:00:00Z"
+    },
+    "weekly_product_launch": {
+      "enabled": true,
+      "frequency": "1x weekly",
+      "day": "Monday",
+      "time": "08:00 UTC",
+      "last_run": "2026-06-16T08:00:00Z",
+      "last_status": "success",
+      "next_run": "2026-06-23T08:00:00Z"
+    },
+    "email_automation": {
+      "enabled": true,
+      "frequency": "on signup",
+      "last_run": "2026-06-20T11:30:00Z",
+      "last_status": "success",
+      "signups_processed_today": 34
+    },
+    "metrics_sync": {
+      "enabled": true,
+      "frequency": "hourly",
+      "last_run": "2026-06-20T12:00:00Z",
+      "last_status": "success",
+      "next_run": "2026-06-20T13:00:00Z"
+    }
+  },
+  "api_health": {
+    "gumroad": {
+      "status": "healthy",
+      "last_check": "2026-06-20T12:00:00Z",
+      "response_time_ms": 145
+    },
+    "instagram": {
+      "status": "healthy",
+      "last_check": "2026-06-20T12:00:00Z",
+      "response_time_ms": 234
+    },
+    "email_platform": {
+      "status": "healthy",
+      "last_check": "2026-06-20T12:00:00Z",
+      "response_time_ms": 89
+    },
+    "image_generation": {
+      "status": "healthy",
+      "last_check": "2026-06-20T12:00:00Z",
+      "response_time_ms": 2341
+    },
+    "github": {
+      "status": "healthy",
+      "last_check": "2026-06-20T12:00:00Z",
+      "response_time_ms": 156
+    }
+  },
+  "alerts": [],
+  "warnings": []
+}
