@@ -55,8 +55,11 @@ def publish_twitter(article: Dict[str, Any], canonical_url: str) -> Optional[str
     access_token = _get_env("TWITTER_ACCESS_TOKEN")
     access_secret = _get_env("TWITTER_ACCESS_SECRET")
 
-    if not api_key or not api_secret:
-        logger.info("[SKIP] Twitter: API credentials not configured")
+    has_oauth2 = bearer_token
+    has_oauth1 = api_key and api_secret
+
+    if not (has_oauth2 or has_oauth1):
+        logger.info("[SKIP] Twitter: Credentials not configured")
         return None
 
     try:
@@ -76,7 +79,7 @@ def publish_twitter(article: Dict[str, Any], canonical_url: str) -> Optional[str
         # Use OAuth 2.0 v2 Client if bearer token available (preferred)
         if bearer_token:
             client = tweepy.Client(bearer_token=bearer_token)
-        else:
+        elif has_oauth1:
             # Fall back to OAuth 1.0a user context (API key + secret + tokens)
             client = tweepy.Client(
                 consumer_key=api_key,
@@ -84,6 +87,8 @@ def publish_twitter(article: Dict[str, Any], canonical_url: str) -> Optional[str
                 access_token=access_token,
                 access_token_secret=access_secret
             )
+        else:
+            return None
 
         # Post the tweet
         response = client.create_tweet(text=tweet_text)

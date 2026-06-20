@@ -18,19 +18,6 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Dict, Any
 
-# Check for optional dependencies
-TWEEPY_AVAILABLE = True
-PRAW_AVAILABLE = True
-try:
-    import tweepy
-except ImportError:
-    TWEEPY_AVAILABLE = False
-
-try:
-    import praw
-except ImportError:
-    PRAW_AVAILABLE = False
-
 # Import the publishers module
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
@@ -65,7 +52,6 @@ VIDEO_PATH = "/tmp/trading-strategies.mp4"
 
 # ── Twitter/X Tests ────────────────────────────────────────────────────────────
 
-@pytest.mark.skipif(not TWEEPY_AVAILABLE, reason="tweepy library not installed")
 class TestTwitterPublisher:
     """Test Twitter/X publishing with OAuth 2.0"""
 
@@ -106,7 +92,6 @@ class TestTwitterPublisher:
 
 # ── Reddit Tests ───────────────────────────────────────────────────────────────
 
-@pytest.mark.skipif(not PRAW_AVAILABLE, reason="praw library not installed")
 class TestRedditPublisher:
     """Test Reddit OAuth 2.0 publishing"""
 
