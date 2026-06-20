@@ -19,11 +19,12 @@ COPY pytest.ini /srv/pytest.ini
 COPY pyproject.toml /srv/pyproject.toml
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/srv
+    PYTHONPATH=/srv \
+    PORT=8001
 
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fs http://localhost:8001/api/health || exit 1
+    CMD curl -fs http://localhost:${PORT}/api/health || exit 1
 
-CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["sh", "-c", "uvicorn backend.server:app --host 0.0.0.0 --port ${PORT}"]
