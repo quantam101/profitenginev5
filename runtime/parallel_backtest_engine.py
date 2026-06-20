@@ -132,14 +132,14 @@ class ParallelBacktestEngine:
         win_rate = winning / len(trades) if trades else 0
 
         # Simplified Sharpe ratio
-        returns = np.diff(prices) / prices[:-1] if len(prices) > 1 else []
-        sharpe = np.mean(returns) / (np.std(returns) + 0.0001) * np.sqrt(252) if returns else 0
+        returns = np.diff(prices) / prices[:-1] if len(prices) > 1 else np.array([])
+        sharpe = np.mean(returns) / (np.std(returns) + 0.0001) * np.sqrt(252) if len(returns) > 0 else 0
 
         # Simplified max drawdown
-        cumulative = np.cumprod(1 + np.array(returns)) if returns else np.array([1])
+        cumulative = np.cumprod(1 + np.array(returns)) if len(returns) > 0 else np.array([1.0])
         running_max = np.maximum.accumulate(cumulative)
-        drawdown = (cumulative - running_max) / running_max
-        max_dd = np.min(drawdown) if len(drawdown) > 0 else 0
+        drawdown = (cumulative - running_max) / (running_max + 0.0001)
+        max_dd = float(np.min(drawdown)) if len(drawdown) > 0 else 0.0
 
         return BacktestResult(
             strategy_id=strategy_id,
