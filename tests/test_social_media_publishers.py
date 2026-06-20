@@ -65,6 +65,7 @@ VIDEO_PATH = "/tmp/trading-strategies.mp4"
 
 # ── Twitter/X Tests ────────────────────────────────────────────────────────────
 
+@pytest.mark.skipif(not TWEEPY_AVAILABLE, reason="tweepy library not installed")
 class TestTwitterPublisher:
     """Test Twitter/X publishing with OAuth 2.0"""
 
@@ -105,6 +106,7 @@ class TestTwitterPublisher:
 
 # ── Reddit Tests ───────────────────────────────────────────────────────────────
 
+@pytest.mark.skipif(not PRAW_AVAILABLE, reason="praw library not installed")
 class TestRedditPublisher:
     """Test Reddit OAuth 2.0 publishing"""
 
