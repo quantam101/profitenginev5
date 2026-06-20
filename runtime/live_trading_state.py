@@ -314,7 +314,7 @@ def clear_live_trading_data(db_path: str = "clients.db", confirm: bool = False):
             if table not in allowed_tables:
                 logger.error(f"Invalid table name: {table}")
                 continue
-            cur.execute(f"DELETE FROM {table}")  # noqa: S608 - validated against hardcoded list above
+            cur.execute(f"DELETE FROM [{table}]")
             logger.info(f"Cleared {table}")
 
         conn.commit()

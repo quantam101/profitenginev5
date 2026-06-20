@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = process.env.RUNTIME_API_URL;
+if (!RUNTIME) throw new Error('RUNTIME_API_URL environment variable is required');
 
 async function runtimeFetch(path: string, timeoutMs = 5000) {
   const res = await fetch(`${RUNTIME}${path}`, {

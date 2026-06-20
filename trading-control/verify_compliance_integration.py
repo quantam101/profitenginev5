@@ -478,7 +478,7 @@ class ComplianceVerifier:
                 print("\nCompliance Database Tables:")
                 for table in expected_tables:
                     if table in tables:
-                        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                        cursor.execute(f"SELECT COUNT(*) FROM [{table}]")
                         count = cursor.fetchone()[0]
                         print(f"  [OK] {table:30s} - {count:3d} records")
                     else:
@@ -503,7 +503,7 @@ class ComplianceVerifier:
                 print("\nAudit Database Tables:")
                 for table in expected_tables:
                     if table in tables:
-                        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                        cursor.execute(f"SELECT COUNT(*) FROM [{table}]")
                         count = cursor.fetchone()[0]
                         print(f"  [OK] {table:30s} - {count:3d} records")
                     else:
