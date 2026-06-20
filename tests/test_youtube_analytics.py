@@ -15,7 +15,12 @@ from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
 
-from backend.services.youtube_analytics import YouTubeRevenueAnalytics
+from backend.services.youtube_analytics import YouTubeRevenueAnalytics, GOOGLE_API_AVAILABLE
+
+pytestmark = pytest.mark.skipif(
+    not GOOGLE_API_AVAILABLE,
+    reason="Google API libraries not installed"
+)
 
 
 class TestYouTubeRevenueAnalytics:

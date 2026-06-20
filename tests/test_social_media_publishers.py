@@ -18,6 +18,19 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Dict, Any
 
+# Check for optional dependencies
+TWEEPY_AVAILABLE = True
+PRAW_AVAILABLE = True
+try:
+    import tweepy
+except ImportError:
+    TWEEPY_AVAILABLE = False
+
+try:
+    import praw
+except ImportError:
+    PRAW_AVAILABLE = False
+
 # Import the publishers module
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))

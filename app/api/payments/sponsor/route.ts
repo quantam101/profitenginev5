@@ -105,7 +105,6 @@ export async function POST(request: NextRequest) {
         channel: 'newsletter',
         sponsor_email: email || 'unknown',
       },
-      receipt_email: email,
       submit_type: 'pay',
     });
 

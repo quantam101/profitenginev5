@@ -1,4 +1,4 @@
-﻿# ProfitEngine v5 — Webhook Configuration & Setup Guide
+# ProfitEngine v5 — Webhook Configuration & Setup Guide
 
 **Last Updated:** 2026-06-20  
 **Status:** Production-Ready  

@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 
 try:
     from google.auth.transport.requests import Request
-    from google.oauth2.service_account import Credentials as ServiceAccountCredentials
-    from google.auth.oauthlib.flow import InstalledAppFlow
     from google.oauth2.credentials import Credentials as OAuthCredentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
@@ -114,7 +112,7 @@ class YouTubeRevenueAnalytics:
             )
 
             response = request.execute()
-            logger.info(f"✅ YouTube Analytics API response received")
+            logger.info("✅ YouTube Analytics API response received")
             return response
 
         except HttpError as e:
