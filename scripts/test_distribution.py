@@ -31,31 +31,46 @@ try:
     from social_media_publishers import (
         SOCIAL_PUBLISHERS,
         publish_to_all_platforms,
-        # Credential vars
-        TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET,
-        REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD,
-        LINKEDIN_ACCESS_TOKEN, LINKEDIN_PERSON_URN,
-        FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN,
-        IG_USER_ID,
-        TIKTOK_ACCESS_TOKEN,
-        YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN,
     )
 except ImportError as e:
     print(f"ERROR: Could not import social_media_publishers: {e}")
     sys.exit(1)
 
+# Read credentials from environment (not module-level vars)
+TWITTER_API_KEY = os.getenv("TWITTER_API_KEY", "").strip()
+TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET", "").strip()
+TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN", "").strip()
+TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET", "").strip()
+REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "").strip()
+REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "").strip()
+REDDIT_USERNAME = os.getenv("REDDIT_USERNAME", "").strip()
+REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD", "").strip()
+LINKEDIN_ACCESS_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN", "").strip()
+LINKEDIN_PERSON_URN = os.getenv("LINKEDIN_PERSON_URN", "").strip()
+FB_PAGE_ID = os.getenv("FB_PAGE_ID", "").strip()
+FB_PAGE_ACCESS_TOKEN = os.getenv("FB_PAGE_ACCESS_TOKEN", "").strip()
+IG_USER_ID = os.getenv("IG_USER_ID", "").strip()
+TIKTOK_ACCESS_TOKEN = os.getenv("TIKTOK_ACCESS_TOKEN", "").strip()
+YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
+YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
+YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+
 try:
     from ecommerce_publishers import (
         ECOMMERCE_PUBLISHERS,
         publish_to_all_ecommerce,
-        # Credential vars
-        ETSY_SHOP_ID, ETSY_API_KEY,
-        GUMROAD_API_TOKEN, GUMROAD_CREATOR_ID,
-        PRINTIFY_API_KEY, PRINTIFY_SHOP_ID,
     )
 except ImportError as e:
     print(f"ERROR: Could not import ecommerce_publishers: {e}")
     sys.exit(1)
+
+# Read ecommerce credentials from environment
+ETSY_SHOP_ID = os.getenv("ETSY_SHOP_ID", "").strip()
+ETSY_API_KEY = os.getenv("ETSY_API_KEY", "").strip()
+GUMROAD_API_TOKEN = os.getenv("GUMROAD_API_TOKEN", "").strip()
+GUMROAD_CREATOR_ID = os.getenv("GUMROAD_CREATOR_ID", "").strip()
+PRINTIFY_API_KEY = os.getenv("PRINTIFY_API_KEY", "").strip()
+PRINTIFY_SHOP_ID = os.getenv("PRINTIFY_SHOP_ID", "").strip()
 
 
 # ── Test Article (Mock) ────────────────────────────────────────────────────────
