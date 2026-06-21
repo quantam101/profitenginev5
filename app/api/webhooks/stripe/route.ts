@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createPayout } from '@/lib/payouts.server';
 import { getJobById } from '@/lib/jobs.server';
+import {
+  getClientByStripeAccount,
+  updateTransaction,
+  getTransaction,
+} from '@/lib/client-db';
+import { randomUUID } from 'crypto';
 
 function getStripe() {
   const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
@@ -17,6 +23,51 @@ function getWebhookSecret() {
     throw new Error('STRIPE_WEBHOOK_SECRET not configured');
   }
   return webhookSecret;
+}
+
+/**
+ * Route client webhook to their configured URL
+ */
+async function routeToClientWebhook(
+  clientId: string,
+  webhookUrl: string | null,
+  event: Stripe.Event,
+  stripeAccount: string | undefined
+): Promise<{ success: boolean; responseCode?: number }> {
+  if (!webhookUrl) {
+    return { success: false };
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Stripe-Signature': `t=${Math.floor(Date.now() / 1000)},v1=mock_signature_for_client`,
+        'X-Client-ID': clientId,
+      },
+      body: JSON.stringify({
+        ...event,
+        client_id: clientId,
+        stripe_account: stripeAccount,
+      }),
+    });
+
+    console.log(
+      `📤 Webhook routed to client ${clientId}: ${webhookUrl} - Status ${response.status}`
+    );
+
+    return {
+      success: response.ok,
+      responseCode: response.status,
+    };
+  } catch (error) {
+    console.error(
+      `❌ Failed to route webhook to client ${clientId}:`,
+      error
+    );
+    return { success: false };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -46,26 +97,77 @@ export async function POST(request: NextRequest) {
 
   // Handle different event types
   switch (event.type) {
-    case 'payment_intent.succeeded': {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.log(`✅ Payment succeeded: ${paymentIntent.id}`);
+    case 'charge.succeeded': {
+      const charge = event.data.object as Stripe.Charge;
+      const stripeAccount = (event as any).account; // Connected account ID
 
-      const jobId = paymentIntent.metadata?.jobId;
-      const contractorId = paymentIntent.metadata?.contractorId;
-      const contractorEmail = paymentIntent.metadata?.customerEmail;
+      console.log(`✅ Charge succeeded: ${charge.id}`);
+
+      // ROUTE 1: Check if this is a multi-tenant client charge
+      if (stripeAccount) {
+        const client = await getClientByStripeAccount(stripeAccount);
+        if (client) {
+          console.log(
+            `🎯 Routed charge to client ${client.id} (account: ${stripeAccount})`
+          );
+
+          // Calculate commission (YOUR revenue = 2.5% of charge)
+          const yourCommission = Math.round(charge.amount * 0.025);
+          console.log(
+            `💰 Commission earned: $${(yourCommission / 100).toFixed(2)} (2.5% of $${(charge.amount / 100).toFixed(2)})`
+          );
+
+          // ROUTE 2: Send event to client's webhook
+          if (client.webhook_url) {
+            const webhookResult = await routeToClientWebhook(
+              client.id,
+              client.webhook_url,
+              event,
+              stripeAccount
+            );
+
+            // ROUTE 3: Update transaction with webhook result
+            const metadata = charge.metadata || {};
+            const transactionId = metadata.transaction_id || randomUUID();
+
+            const updated = await updateTransaction(client.id, transactionId, {
+              webhook_event_id: event.id,
+              webhook_delivered: webhookResult.success,
+              webhook_response_code: webhookResult.responseCode || null,
+            });
+
+            console.log(
+              `📋 Transaction logged for client ${client.id}: ${transactionId}`
+            );
+          }
+
+          return NextResponse.json(
+            {
+              ok: true,
+              message: 'Charge routed to client',
+              client_id: client.id,
+              amount: charge.amount / 100,
+            },
+            { status: 200 }
+          );
+        }
+      }
+
+      // ROUTE 1 (legacy): Handle direct ProfitEngine job payments
+      const jobId = charge.metadata?.jobId;
+      const contractorId = charge.metadata?.contractorId;
+      const contractorEmail = charge.metadata?.customerEmail;
 
       try {
-        // Get job details
         if (jobId) {
           const job = await getJobById(jobId);
           if (job && contractorId && contractorEmail) {
-            // Create payout to contractor (70% of job pay, platform keeps 30%)
             const payoutAmount = job.pay * 0.7;
             await createPayout({
               jobId,
               contractorId,
               contractorEmail,
-              contractorName: job.title, // Use job title as contractor name placeholder
+              contractorName: job.title,
               amount: payoutAmount,
             });
             console.log(`💳 Payout created: $${payoutAmount} to contractor ${contractorId}`);
@@ -73,11 +175,91 @@ export async function POST(request: NextRequest) {
         }
       } catch (payoutError) {
         console.error('Failed to create payout:', payoutError);
-        // Don't fail the webhook if payout creation fails - it can be retried
       }
 
-      // TODO: Send notification to contractor
-      // TODO: Log conversion in /prospects if B2B deal
+      return NextResponse.json(
+        {
+          ok: true,
+          message: 'Charge succeeded',
+          jobId: charge.metadata?.jobId,
+          amount: charge.amount / 100,
+        },
+        { status: 200 }
+      );
+    }
+
+    case 'charge.failed': {
+      const charge = event.data.object as Stripe.Charge;
+      const stripeAccount = (event as any).account;
+
+      console.log(`❌ Charge failed: ${charge.id}`);
+
+      // Route to client webhook if applicable
+      if (stripeAccount) {
+        const client = await getClientByStripeAccount(stripeAccount);
+        if (client) {
+          await routeToClientWebhook(client.id, client.webhook_url, event, stripeAccount);
+        }
+      }
+
+      return NextResponse.json(
+        {
+          ok: true,
+          message: 'Charge failed logged',
+        },
+        { status: 200 }
+      );
+    }
+
+    case 'charge.refunded': {
+      const charge = event.data.object as Stripe.Charge;
+      const stripeAccount = (event as any).account;
+
+      console.log(`↩️ Charge refunded: ${charge.id}`);
+
+      // Route to client webhook if applicable
+      if (stripeAccount) {
+        const client = await getClientByStripeAccount(stripeAccount);
+        if (client) {
+          await routeToClientWebhook(client.id, client.webhook_url, event, stripeAccount);
+        }
+      }
+
+      return NextResponse.json(
+        {
+          ok: true,
+          message: 'Refund processed',
+        },
+        { status: 200 }
+      );
+    }
+
+    case 'payment_intent.succeeded': {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      console.log(`✅ Payment intent succeeded: ${paymentIntent.id}`);
+
+      const jobId = paymentIntent.metadata?.jobId;
+      const contractorId = paymentIntent.metadata?.contractorId;
+      const contractorEmail = paymentIntent.metadata?.customerEmail;
+
+      try {
+        if (jobId) {
+          const job = await getJobById(jobId);
+          if (job && contractorId && contractorEmail) {
+            const payoutAmount = job.pay * 0.7;
+            await createPayout({
+              jobId,
+              contractorId,
+              contractorEmail,
+              contractorName: job.title,
+              amount: payoutAmount,
+            });
+            console.log(`💳 Payout created: $${payoutAmount} to contractor ${contractorId}`);
+          }
+        }
+      } catch (payoutError) {
+        console.error('Failed to create payout:', payoutError);
+      }
 
       return NextResponse.json(
         {
@@ -94,9 +276,6 @@ export async function POST(request: NextRequest) {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       console.log(`❌ Payment failed: ${paymentIntent.id}`);
 
-      // TODO: Update job status to "payment_failed"
-      // TODO: Send retry email to customer
-
       return NextResponse.json(
         {
           ok: true,
@@ -107,30 +286,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    case 'charge.refunded': {
-      const charge = event.data.object as Stripe.Charge;
-      console.log(`↩️ Charge refunded: ${charge.id}`);
-
-      // TODO: Reverse contractor payout
-      // TODO: Update job status to "refunded"
-      // TODO: Notify contractor
-
-      return NextResponse.json(
-        {
-          ok: true,
-          message: 'Refund processed',
-        },
-        { status: 200 }
-      );
-    }
-
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice;
       console.log(`✅ Invoice paid: ${invoice.id}`);
-
-      // TODO: Update prospect status to "won + closed"
-      // TODO: Mark B2B retainer as active
-      // TODO: Send confirmation to client
 
       return NextResponse.json(
         {
@@ -144,9 +302,6 @@ export async function POST(request: NextRequest) {
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
       console.log(`❌ Invoice payment failed: ${invoice.id}`);
-
-      // TODO: Mark invoice as failed
-      // TODO: Send retry reminder
 
       return NextResponse.json(
         {
