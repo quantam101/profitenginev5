@@ -17,7 +17,7 @@ class AffiliateTracker:
 
     def __init__(self, db):
         self.db = db
-        self.collection = db.affiliate_clicks
+        self.collection = db.affiliate_clicks if db else None
 
     async def track_click(
         self,

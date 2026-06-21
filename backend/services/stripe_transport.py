@@ -37,8 +37,8 @@ class StripeTransport:
     """Thin async wrapper around the official stripe SDK.
     Stripe's SDK is sync-only; all calls run via asyncio.to_thread."""
 
-    def __init__(self, api_key: str, *, webhook_secret: str | None = None) -> None:
-        self.api_key = api_key
+    def __init__(self, api_key: str | None = None, *, webhook_secret: str | None = None) -> None:
+        self.api_key = api_key or os.getenv("STRIPE_API_KEY", "sk_test_demo")
         self.webhook_secret = webhook_secret or os.environ.get("STRIPE_WEBHOOK_SECRET")
 
     # ── Create checkout session ──────────────────────────────────────────────

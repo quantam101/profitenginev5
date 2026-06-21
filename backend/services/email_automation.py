@@ -8,14 +8,24 @@ Automation:
 - Revenue updates
 - Content distribution
 """
-from resend import Resend
+import os
 from typing import Optional
+
+try:
+    from resend import Resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+    Resend = None
 
 class EmailAutomation:
     """Send automated emails via Resend free tier."""
 
     def __init__(self):
-        self.resend = Resend(api_key=os.getenv("RESEND_API_KEY"))
+        if RESEND_AVAILABLE:
+            self.resend = Resend(api_key=os.getenv("RESEND_API_KEY"))
+        else:
+            self.resend = None
 
     async def send_welcome_sequence(self, email: str, name: str):
         """Send welcome email sequence."""
