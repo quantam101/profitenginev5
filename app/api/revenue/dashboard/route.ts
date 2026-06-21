@@ -59,7 +59,7 @@ const CHANNEL_TARGETS = {
 const MONTHLY_GOAL = 2500;
 
 function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  const uri = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || process.env.DATABASE_URL;
   if (!uri || !uri.startsWith('mongodb')) {
     throw new Error('Revenue storage is not configured. Set MONGODB_URI to a MongoDB connection string.');
   }
