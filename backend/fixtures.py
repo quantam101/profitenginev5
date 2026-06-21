@@ -164,11 +164,27 @@ CONTENT = [
 ]
 
 REVENUE_STREAMS = [
-    {"id": "rs_1", "name": "Amazon Affiliates", "kind": "affiliate", "active": True, "mrr": 2340.00, "ctr": 0.041, "health": 0.92},
-    {"id": "rs_2", "name": "Digital Product \u2014 Operator Playbook", "kind": "product", "active": True, "mrr": 6120.00, "ctr": 0.087, "health": 0.98},
-    {"id": "rs_3", "name": "Display Ads (Mediavine)", "kind": "ads", "active": True, "mrr": 1890.00, "ctr": 0.014, "health": 0.81},
-    {"id": "rs_4", "name": "Sponsored Slots", "kind": "sponsorship", "active": True, "mrr": 3800.00, "ctr": 0.0, "health": 0.95},
-    {"id": "rs_5", "name": "Affiliate \u2014 Skool Cohort", "kind": "affiliate", "active": False, "mrr": 0.0, "ctr": 0.0, "health": 0.0},
+    # \u2500\u2500 Tier 1: Core Streams (Active, High Volume) \u2500\u2500
+    {"id": "rs_1", "name": "Amazon Affiliates", "kind": "affiliate", "active": True, "mrr": 2340.00, "ctr": 0.041, "health": 0.92, "agent": "affiliate-link"},
+    {"id": "rs_2", "name": "Digital Product \u2014 Operator Playbook (Gumroad)", "kind": "product", "active": True, "mrr": 6120.00, "ctr": 0.087, "health": 0.98, "agent": "sales-execution"},
+    {"id": "rs_3", "name": "Display Ads (Mediavine)", "kind": "ads", "active": True, "mrr": 1890.00, "ctr": 0.014, "health": 0.81, "agent": "content-generation"},
+    {"id": "rs_4", "name": "Sponsored Slots", "kind": "sponsorship", "active": True, "mrr": 3800.00, "ctr": 0.0, "health": 0.95, "agent": "offer-engineering"},
+    {"id": "rs_6", "name": "Print-on-Demand (Etsy/Printify)", "kind": "pod", "active": True, "mrr": 4500.00, "ctr": 0.062, "health": 0.89, "agent": "pod-designer"},
+    {"id": "rs_7", "name": "Faceless Video Ad Revenue (YouTube)", "kind": "ads", "active": True, "mrr": 2100.00, "ctr": 0.025, "health": 0.87, "agent": "faceless-video"},
+
+    # \u2500\u2500 Tier 2: High-Value Services \u2500\u2500
+    {"id": "rs_8", "name": "Federal Proposals (SAM.gov/Grants.gov)", "kind": "service", "active": True, "mrr": 8500.00, "ctr": 0.002, "health": 0.94, "agent": "procurement-scout"},
+    {"id": "rs_9", "name": "SEO/Content Monetization (Blog)", "kind": "ads", "active": True, "mrr": 3200.00, "ctr": 0.045, "health": 0.91, "agent": "seo-scout"},
+
+    # \u2500\u2500 Tier 3: Emerging/Secondary Streams \u2500\u2500
+    {"id": "rs_10", "name": "Consulting Services (Setup Packages)", "kind": "service", "active": True, "mrr": 5000.00, "ctr": 0.008, "health": 0.88, "agent": "sales-execution"},
+    {"id": "rs_11", "name": "Ebook Sales (Lemon Squeezy/Gumroad)", "kind": "product", "active": True, "mrr": 2800.00, "ctr": 0.035, "health": 0.85, "agent": "content-generation"},
+    {"id": "rs_12", "name": "Affiliate \u2014 Skool Community", "kind": "affiliate", "active": True, "mrr": 1200.00, "ctr": 0.018, "health": 0.79, "agent": "affiliate-link"},
+    {"id": "rs_13", "name": "Offer Engineering (Premium Tiers)", "kind": "product", "active": True, "mrr": 3400.00, "ctr": 0.052, "health": 0.90, "agent": "offer-engineering"},
+
+    # \u2500\u2500 Tier 4: Optimization & Intelligence \u2500\u2500
+    {"id": "rs_14", "name": "Revenue Intelligence Optimization", "kind": "service", "active": True, "mrr": 2600.00, "ctr": 0.0, "health": 0.92, "agent": "revenue-intelligence"},
+    {"id": "rs_15", "name": "Proposal Engine (A/B Testing & Optimization)", "kind": "service", "active": True, "mrr": 1900.00, "ctr": 0.0, "health": 0.89, "agent": "proposal-engine"},
 ]
 
 DEPLOYMENTS = [
