@@ -1,23 +1,23 @@
 ================================================================================
 PARALLEL BACKTEST + LIVE VALIDATION REPORT
 ================================================================================
-Generated: 2026-06-20T13:01:45.815130
+Generated: 2026-06-21T13:50:59.296466
 
 BACKTEST RESULTS (6-Month Historical)
 --------------------------------------------------------------------------------
-Strategy  1: Profit=$-39,308.41 | Trades=   7 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  2: Profit=$ 39,308.41 | Trades=   7 | Win Rate=100.0% | Sharpe=  7.78
-Strategy  3: Profit=$-28,226.78 | Trades=   5 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  4: Profit=$-16,100.69 | Trades=   3 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  5: Profit=$-33,915.29 | Trades=   6 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  6: Profit=$-23,381.81 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  7: Profit=$-27,822.68 | Trades=   5 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  8: Profit=$ -5,869.54 | Trades=   1 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy  9: Profit=$-22,465.60 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy 10: Profit=$-28,226.78 | Trades=   5 | Win Rate=  0.0% | Sharpe=  7.78
-Strategy 11: Profit=$-22,531.33 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.78
+Strategy  1: Profit=$-39,158.58 | Trades=   7 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  2: Profit=$ 39,158.58 | Trades=   7 | Win Rate=100.0% | Sharpe=  7.87
+Strategy  3: Profit=$-22,747.61 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  4: Profit=$-21,624.89 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  5: Profit=$-16,350.87 | Trades=   3 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  6: Profit=$-16,992.63 | Trades=   3 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  7: Profit=$-10,877.46 | Trades=   2 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  8: Profit=$-17,110.54 | Trades=   3 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy  9: Profit=$-22,042.89 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy 10: Profit=$-22,593.90 | Trades=   4 | Win Rate=  0.0% | Sharpe=  7.87
+Strategy 11: Profit=$-27,797.86 | Trades=   5 | Win Rate=  0.0% | Sharpe=  7.87
 
-TOTAL: $-208,540.49 | 51 trades
+TOTAL: $-178,138.65 | 46 trades
 
 LIVE VALIDATION RESULTS
 --------------------------------------------------------------------------------
