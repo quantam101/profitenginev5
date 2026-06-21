@@ -60,7 +60,7 @@ on:
     - cron: '0 * * * *'
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -124,9 +124,11 @@ jobs:
           MISSING=()
           TRIGGER="${{ needs.determine-trigger.outputs.trigger_type }}"
 
-          # Always required
-          if [[ -z "${{ secrets.GITHUB_ACTIONS_TOKEN }}" ]]; then
-            MISSING+=("GITHUB_ACTIONS_TOKEN")
+          # GITHUB_ACTIONS_TOKEN only required for triggers that use elevated GitHub API access
+          if [[ "$TRIGGER" == "full-launch" || "$TRIGGER" == "gumroad-products" || "$TRIGGER" == "instagram-"* || "$TRIGGER" == "email-campaign" ]]; then
+            if [[ -z "${{ secrets.GITHUB_ACTIONS_TOKEN }}" ]]; then
+              MISSING+=("GITHUB_ACTIONS_TOKEN")
+            fi
           fi
 
           # Product-specific requirements
