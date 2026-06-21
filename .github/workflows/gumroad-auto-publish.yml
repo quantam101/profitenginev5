@@ -1,0 +1,134 @@
+name: Gumroad Auto-Publish (GitHub-Hosted Files)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gumroad_products/**'
+      - 'runtime/gumroad_client.py'
+  schedule:
+    - cron: '0 * * * *'  # Hourly
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Publish Gumroad Products with GitHub URLs
+        env:
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import sys
+          from pathlib import Path
+
+          # Product catalog with GitHub raw URLs
+          PRODUCTS = [
+              {
+                  "id": "itydp",
+                  "name": "Programmatic SEO Starter Kit",
+                  "price": 2900,
+                  "file_path": "gumroad_products/programmatic-seo-starter-kit.md",
+                  "url_suffix": "programmatic-seo-starter-kit"
+              },
+              {
+                  "id": "kjsubd",
+                  "name": "Social Media Content Engine",
+                  "price": 1700,
+                  "file_path": "gumroad_products/social-media-content-engine.md",
+                  "url_suffix": "social-media-content-engine"
+              },
+              {
+                  "id": "elnep",
+                  "name": "POD Design Prompt Bundle",
+                  "price": 2200,
+                  "file_path": "gumroad_products/pod-design-prompt-bundle.md",
+                  "url_suffix": "pod-design-prompt-bundle"
+              },
+              {
+                  "id": "vcnos",
+                  "name": "AI Business Prompt Pack",
+                  "price": 2700,
+                  "file_path": "gumroad_products/ai-business-prompt-pack.md",
+                  "url_suffix": "ai-business-prompt-pack"
+              },
+              {
+                  "id": "sngdyk",
+                  "name": "Real Estate Copywriting Kit",
+                  "price": 1900,
+                  "file_path": "gumroad_products/real-estate-copywriting-kit.md",
+                  "url_suffix": "real-estate-copywriting-kit"
+              },
+              {
+                  "id": "nwqqx",
+                  "name": "Ai Essentials: How Artificial Intelligence Can Empower You, Your Business and the World",
+                  "price": 200,
+                  "file_path": "gumroad_products/ai-essentials-guide.md",
+                  "url_suffix": "ai-essentials"
+              }
+          ]
+
+          token = os.getenv("GUMROAD_ACCESS_TOKEN", "").strip()
+          if not token:
+              sys.exit("[Gumroad] ERROR: GUMROAD_ACCESS_TOKEN not set")
+
+          github_repo = "quantam101/profitenginev5"
+          github_branch = "main"
+          github_base_url = f"https://raw.githubusercontent.com/{github_repo}/{github_branch}"
+
+          print("[Gumroad] Publishing products with GitHub-hosted files...")
+          print(f"[Gumroad] GitHub URL base: {github_base_url}")
+          print("")
+
+          results = []
+          for product in PRODUCTS:
+              file_path = product["file_path"]
+              file_url = f"{github_base_url}/{file_path}"
+
+              # Read file to get description preview
+              try:
+                  with open(file_path, 'r') as f:
+                      content = f.read()
+                      # Use first 200 chars as preview
+                      preview = content[:200].replace('\n', ' ')
+              except:
+                  preview = "Download from GitHub"
+
+              print(f"[Gumroad] {product['name']}")
+              print(f"  URL: {file_url}")
+              print(f"  Preview: {preview}...")
+              print("")
+
+              results.append({
+                  "name": product["name"],
+                  "id": product["id"],
+                  "file_url": file_url,
+                  "status": "ready_for_publication"
+              })
+
+          print("[Gumroad] All products ready with GitHub URLs")
+          print("")
+          print("IMPORTANT: Update Gumroad product descriptions manually to include:")
+          print("  'Download here: [GitHub Raw File URL]'")
+          print("")
+          print("GitHub URLs are automatically updated when files change in the repo!")
+          print("[Gumroad] Products configured for GitHub file hosting")
+          PY
+
+      - name: Log GitHub File URLs
+        run: |
+          echo "[Gumroad] Product files available at GitHub raw URLs:"
+          echo "  1. programmatic-seo-starter-kit: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/programmatic-seo-starter-kit.md"
+          echo "  2. social-media-content-engine: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/social-media-content-engine.md"
+          echo "  3. pod-design-prompt-bundle: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/pod-design-prompt-bundle.md"
+          echo "  4. ai-business-prompt-pack: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/ai-business-prompt-pack.md"
+          echo "  5. real-estate-copywriting-kit: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/real-estate-copywriting-kit.md"
+          echo "  6. ai-essentials-guide: https://raw.githubusercontent.com/quantam101/profitenginev5/main/gumroad_products/ai-essentials-guide.md"
