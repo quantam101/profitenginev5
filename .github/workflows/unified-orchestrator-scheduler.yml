@@ -39,6 +39,13 @@ jobs:
     name: Channel Health Check
 
     steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::error::PROFITENGINE_URL secret is not set. Configure it in GitHub repo Settings > Secrets."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -52,9 +59,9 @@ jobs:
 
       - name: Run health check
         run: |
-          curl -X GET \
+          curl --fail-with-body -X GET \
             -H "Content-Type: application/json" \
-            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            "${PROFITENGINE_URL}/api/automation/unified-metrics" \
             -o health-check-${{ github.run_id }}.json
 
       - name: Upload health check results
@@ -93,11 +100,18 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::error::PROFITENGINE_URL secret is not set. Configure it in GitHub repo Settings > Secrets."
+            exit 1
+          fi
+
       - name: Collect metrics
         run: |
-          curl -X GET \
+          curl --fail-with-body -X GET \
             -H "Content-Type: application/json" \
-            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            "${PROFITENGINE_URL}/api/automation/unified-metrics" \
             -o metrics-${{ github.run_id }}.json
 
       - name: Process metrics
@@ -130,11 +144,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::error::PROFITENGINE_URL secret is not set. Configure it in GitHub repo Settings > Secrets."
+            exit 1
+          fi
+
       - name: Fetch daily metrics
         run: |
-          curl -X GET \
+          curl --fail-with-body -X GET \
             -H "Content-Type: application/json" \
-            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            "${PROFITENGINE_URL}/api/automation/unified-metrics" \
             -o daily-summary-${{ github.run_id }}.json
 
       - name: Generate report
@@ -186,12 +207,19 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::error::PROFITENGINE_URL secret is not set. Configure it in GitHub repo Settings > Secrets."
+            exit 1
+          fi
+
       - name: Collect week metrics
         run: |
           echo "Fetching performance metrics..."
-          curl -X GET \
+          curl --fail-with-body -X GET \
             -H "Content-Type: application/json" \
-            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            "${PROFITENGINE_URL}/api/automation/unified-metrics" \
             -o weekly-analysis-${{ github.run_id }}.json
 
       - name: Generate analysis
@@ -222,10 +250,17 @@ jobs:
     name: Alert Aggregation
 
     steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::error::PROFITENGINE_URL secret is not set. Configure it in GitHub repo Settings > Secrets."
+            exit 1
+          fi
+
       - name: Fetch alerts
         run: |
-          curl -X GET \
-            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+          curl --fail-with-body -X GET \
+            "${PROFITENGINE_URL}/api/automation/unified-metrics" \
             -o alerts.json
 
       - name: Process critical alerts
