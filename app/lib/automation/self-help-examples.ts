@@ -117,15 +117,15 @@ export async function createTrainingCourse() {
     const difficulty = ['beginner', 'intermediate', 'intermediate', 'advanced'][i];
 
     try {
-      const module = await generateCourseModule(topic, difficulty);
+      const courseModule = await generateCourseModule(topic, difficulty);
 
-      console.log(`✓ Module ${i + 1}: ${module.title}`);
-      console.log(`  Lessons: ${module.lessons.length}`);
-      console.log(`  Quizzes: ${module.quizzes.length}`);
-      console.log(`  Resources: ${module.resources.length}`);
-      console.log(`  Duration: ${module.duration} min`);
+      console.log(`✓ Module ${i + 1}: ${courseModule.title}`);
+      console.log(`  Lessons: ${courseModule.lessons.length}`);
+      console.log(`  Quizzes: ${courseModule.quizzes.length}`);
+      console.log(`  Resources: ${courseModule.resources.length}`);
+      console.log(`  Duration: ${courseModule.duration} min`);
 
-      course.modules.push(module);
+      course.modules.push(courseModule);
     } catch (error) {
       console.error(`✗ Failed to generate module: ${topic}`);
     }
@@ -394,9 +394,9 @@ export async function buildNicheAuthority() {
 
   for (const topic of courseTopics) {
     try {
-      const module = await generateCourseModule(topic, 'intermediate');
-      strategy.courseModules.push(module);
-      console.log(`  ✓ ${module.title} (${module.lessons.length} lessons)`);
+      const courseModule = await generateCourseModule(topic, 'intermediate');
+      strategy.courseModules.push(courseModule);
+      console.log(`  ✓ ${courseModule.title} (${courseModule.lessons.length} lessons)`);
     } catch (error) {
       console.error(`  ✗ Failed: ${topic}`);
     }

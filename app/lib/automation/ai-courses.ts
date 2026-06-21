@@ -315,7 +315,7 @@ Make it practical and immediately actionable. Include 3-4 lessons per module.
       const moduleData = JSON.parse(jsonMatch[0]);
 
       // Transform to CourseModule structure
-      const module: CourseModule = {
+      const courseModule: CourseModule = {
         id: `module-${i}`,
         title: moduleData.title,
         description: moduleData.description,
@@ -329,7 +329,7 @@ Make it practical and immediately actionable. Include 3-4 lessons per module.
         })),
       };
 
-      modules.push(module);
+      modules.push(courseModule);
     } catch (error) {
       console.error(`Error generating module ${i}: ${error}`);
     }

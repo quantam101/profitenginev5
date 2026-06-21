@@ -500,7 +500,7 @@ Include code examples, diagrams descriptions, and real-world applications.`;
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   const courseData = jsonMatch ? JSON.parse(jsonMatch[0]) : parseCourseLikeStructure(responseText);
 
-  const module: CourseModule = {
+  const courseModule: CourseModule = {
     id: `course-${Date.now()}`,
     title: courseData.title || topic,
     description: courseData.description || '',
@@ -544,7 +544,7 @@ Include code examples, diagrams descriptions, and real-world applications.`;
     learningOutcomes: courseData.learningOutcomes || [],
   };
 
-  return module;
+  return courseModule;
 }
 
 /**
