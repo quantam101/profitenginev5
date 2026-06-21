@@ -129,6 +129,41 @@ class RevenueScheduler:
         logger.info(f"📅 Scheduled Gumroad sync: daily at {hour:02d}:{minute:02d} UTC")
         return job
 
+    def add_pod_sync(self, hour: int = 11, minute: int = 0, db=None) -> Job:
+        """Add POD (Print-on-Demand) daily sync job for Etsy/Printify.
+
+        Args:
+            hour: Hour to run sync (0-23, UTC)
+            minute: Minute to run sync (0-59)
+            db: MongoDB database instance
+
+        Returns:
+            APScheduler Job object.
+        """
+        def sync_pod():
+            """Sync POD products and sales from Etsy/Printify."""
+            logger.info("🎨 Starting POD Designer sync...")
+            try:
+                import asyncio
+                from backend.services.pod_designer import sync_pod_designs_job
+
+                stats = asyncio.run(sync_pod_designs_job(db=db))
+                logger.info(f"✅ POD sync completed: ${stats.get('total_revenue_usd', 0):.2f} revenue")
+            except Exception as e:
+                logger.error(f"❌ POD sync failed: {e}", exc_info=True)
+
+        job = self.scheduler.add_job(
+            sync_pod,
+            trigger=CronTrigger(hour=hour, minute=minute),
+            id="pod_sync",
+            name="POD Designer Daily Sync",
+            replace_existing=True,
+        )
+
+        self._jobs["pod"] = job
+        logger.info(f"📅 Scheduled POD sync: daily at {hour:02d}:{minute:02d} UTC")
+        return job
+
     def add_custom_job(self, job_id: str, func, cron_trigger: CronTrigger, name: str) -> Job:
         """Add a custom scheduled job.
 
@@ -262,10 +297,13 @@ def get_scheduler() -> RevenueScheduler:
     return _scheduler_instance
 
 
-def init_revenue_scheduler() -> RevenueScheduler:
+def init_revenue_scheduler(db=None) -> RevenueScheduler:
     """Initialize and start the revenue scheduler.
 
     Adds default sync jobs and starts the scheduler.
+
+    Args:
+        db: Optional MongoDB database instance
 
     Returns:
         Initialized RevenueScheduler instance.
@@ -276,6 +314,7 @@ def init_revenue_scheduler() -> RevenueScheduler:
     scheduler.add_youtube_sync(hour=8, minute=0)    # 08:00 UTC
     scheduler.add_stripe_sync(hour=9, minute=0)     # 09:00 UTC
     scheduler.add_gumroad_sync(hour=10, minute=0)   # 10:00 UTC
+    scheduler.add_pod_sync(hour=11, minute=0, db=db)  # 11:00 UTC (POD Designer)
 
     scheduler.start()
 

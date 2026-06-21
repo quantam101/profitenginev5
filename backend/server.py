@@ -357,6 +357,33 @@ async def ledger_progress() -> dict:
             "pct": min(1.0, earned / 25000), "milestone": "commercialization unlock"}
 
 
+# ── POD Designer (Etsy + Printify) ───────────────────────────
+@app.get("/api/pod/stats")
+async def pod_stats() -> dict:
+    """Get POD (Print-on-Demand) product statistics."""
+    from backend.services.pod_designer import PODDesigner
+
+    designer = PODDesigner(db=db)
+    stats = await designer.get_product_stats()
+    return stats
+
+
+@app.get("/api/pod/products")
+async def pod_products() -> list[dict]:
+    """Get all POD products."""
+    products = await db.pod_products.find({}).to_list(None)
+    return [{"id": str(p.get("_id")), **p} for p in products]
+
+
+@app.post("/api/pod/sync")
+async def pod_sync_now() -> dict:
+    """Manually trigger POD sync."""
+    from backend.services.pod_designer import sync_pod_designs_job
+
+    stats = await sync_pod_designs_job(db=db)
+    return {"status": "success", **stats}
+
+
 # ── Cycle + Sovereign ─────────────────────────────────────────
 @app.get("/api/cycle/status")
 async def cycle_status() -> dict[str, Any]:
