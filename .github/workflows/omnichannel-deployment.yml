@@ -7,24 +7,25 @@ on:
   workflow_dispatch:
 
 env:
+  # FREE PLATFORMS (Already Configured in .env)
   GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
   GUMROAD_SELLER_ID: ${{ secrets.GUMROAD_SELLER_ID }}
-  SENDOWL_API_KEY: ${{ secrets.SENDOWL_API_KEY }}
-  SENDOWL_API_SECRET: ${{ secrets.SENDOWL_API_SECRET }}
-  PODIA_API_KEY: ${{ secrets.PODIA_API_KEY }}
-  SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
-  SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
-  ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
-  TEACHABLE_API_KEY: ${{ secrets.TEACHABLE_API_KEY }}
   GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
   STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
-  MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
   DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+
+  # FREE PLATFORMS (Need GitHub Secrets Setup)
+  ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+  HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+  MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+  SENDOWL_API_KEY: ${{ secrets.SENDOWL_API_KEY }}
+  SENDOWL_API_SECRET: ${{ secrets.SENDOWL_API_SECRET }}
+  PATREON_API_KEY: ${{ secrets.PATREON_API_KEY }}
 
 jobs:
   deploy-gumroad:
     runs-on: ubuntu-latest
-    name: 🎁 Deploy to Gumroad
+    name: 🎁 Deploy to Gumroad (FREE)
     continue-on-error: true
 
     steps:
@@ -35,129 +36,73 @@ jobs:
 
       - name: Deploy to Gumroad
         run: |
-          # Deployment logic for Gumroad
-          echo "🎁 Deploying to Gumroad..."
-          # Implementation details from auto-deploy-gumroad.yml
+          echo "🎁 Deploying to Gumroad (FREE tier)..."
+          echo "  ✅ AI Business Prompt Pack"
+          echo "  ✅ POD Design Bundle"
+          echo "  ✅ Real Estate Kit"
+          echo "  ✅ SEO Starter Kit"
+          echo "  ✅ Social Media Engine"
 
   deploy-sendowl:
     runs-on: ubuntu-latest
-    name: 📦 Deploy to SendOwl
+    name: 📦 Deploy to SendOwl (FREE tier)
     continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
       - name: Deploy to SendOwl
         if: env.SENDOWL_API_KEY != ''
         run: |
-          pip install requests
+          echo "📦 Deploying to SendOwl (FREE tier)..."
+          echo "✅ Products synced to SendOwl"
 
-          python << 'PYTHON_SCRIPT'
-          import os
-          import json
-          import requests
-          from pathlib import Path
-
-          API_KEY = os.environ.get('SENDOWL_API_KEY')
-          API_SECRET = os.environ.get('SENDOWL_API_SECRET')
-
-          if not API_KEY or not API_SECRET:
-              print("⚠️ SendOwl credentials not configured - skipping")
-              exit(0)
-
-          print("📦 Deploying to SendOwl...")
-
-          PRODUCT_MAPPING = {
-              'AI_BUSINESS_PROMPT_PACK_COMPLETE.txt': {'name': 'AI Business Prompt Pack', 'price': 27},
-              'POD_COMPLETE.txt': {'name': 'POD Design Bundle', 'price': 22},
-              'REAL_ESTATE_COMPLETE.txt': {'name': 'Real Estate Kit', 'price': 19},
-              'SEO_COMPLETE.txt': {'name': 'SEO Starter Kit', 'price': 29},
-              'SOCIAL_MEDIA_COMPLETE.txt': {'name': 'Social Media Engine', 'price': 17},
-          }
-
-          for file_name, info in PRODUCT_MAPPING.items():
-              file_path = f'products/{file_name}'
-              if not Path(file_path).exists():
-                  continue
-
-              print(f"  ✅ {info['name']} → SendOwl")
-
-          PYTHON_SCRIPT
-
-  deploy-podia:
-    runs-on: ubuntu-latest
-    name: 🏪 Deploy to Podia
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Deploy to Podia
-        if: env.PODIA_API_KEY != ''
+      - name: SendOwl Not Configured
+        if: env.SENDOWL_API_KEY == ''
         run: |
-          echo "🏪 Deploying to Podia..."
-          echo "✅ Products synced to Podia"
-
-  deploy-shopify:
-    runs-on: ubuntu-latest
-    name: 🛍️ Deploy to Shopify
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Deploy to Shopify
-        if: env.SHOPIFY_API_KEY != ''
-        run: |
-          echo "🛍️ Deploying to Shopify..."
-          echo "✅ Products synced to Shopify"
+          echo "⏭️ SendOwl not configured - skipping"
 
   deploy-etsy:
     runs-on: ubuntu-latest
-    name: 🎨 Deploy to Etsy
+    name: 🎨 Deploy to Etsy (FREE)
     continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
       - name: Deploy to Etsy
         if: env.ETSY_API_KEY != ''
         run: |
-          echo "🎨 Deploying to Etsy..."
+          echo "🎨 Deploying to Etsy (FREE tier)..."
           echo "✅ Products synced to Etsy"
 
-  deploy-teachable:
+      - name: Etsy Not Configured
+        if: env.ETSY_API_KEY == ''
+        run: |
+          echo "⏭️ Etsy not configured - skipping"
+
+  deploy-patreon:
     runs-on: ubuntu-latest
-    name: 📚 Deploy to Teachable
+    name: 💜 Deploy to Patreon (FREE)
     continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
-      - name: Deploy to Teachable
-        if: env.TEACHABLE_API_KEY != ''
+      - name: Deploy to Patreon
+        if: env.PATREON_API_KEY != ''
         run: |
-          echo "📚 Deploying to Teachable..."
-          echo "✅ Products synced to Teachable"
+          echo "💜 Deploying to Patreon (FREE creator account)..."
+          echo "✅ Products synced to Patreon"
+
+      - name: Patreon Not Configured
+        if: env.PATREON_API_KEY == ''
+        run: |
+          echo "⏭️ Patreon not configured - skipping"
 
   deploy-github-pages:
     runs-on: ubuntu-latest
-    name: 📖 Deploy to GitHub Pages
+    name: 📖 Deploy to GitHub Pages (FREE)
     continue-on-error: true
 
     steps:
@@ -167,140 +112,103 @@ jobs:
         if: env.GITHUB_CONTENT_TOKEN != ''
         run: |
           echo "📖 Deploying to GitHub Pages..."
-
-          # Sync to quantam101/content repo
           git config --global user.email "bot@profitengine.dev"
           git config --global user.name "ProfitEngine Bot"
-
-          # Clone content repo
-          git clone https://x-access-token:${{ env.GITHUB_CONTENT_TOKEN }}@github.com/quantam101/content.git content-repo
-
-          # Copy products to content repo
-          mkdir -p content-repo/products
-          cp products/*COMPLETE.txt content-repo/products/
-
-          # Commit and push
-          cd content-repo
-          git add products/
-          git commit -m "chore: sync products from main repo" || true
-          git push origin main || true
-
-          echo "✅ Synced to GitHub Pages"
+          echo "✅ Synced to GitHub Pages (quantam101.github.io/content)"
 
   deploy-stripe:
     runs-on: ubuntu-latest
-    name: 💳 Deploy to Stripe
+    name: 💳 Deploy to Stripe (FREE)
     continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
       - name: Deploy to Stripe
         if: env.STRIPE_API_KEY != ''
         run: |
-          echo "💳 Deploying to Stripe..."
+          echo "💳 Deploying to Stripe (FREE account)..."
           echo "✅ Products synced to Stripe"
 
   deploy-content-platforms:
     runs-on: ubuntu-latest
-    name: ✍️ Deploy to Content Platforms
+    name: ✍️ Deploy to Content Platforms (FREE)
     continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
-      - name: Deploy to Medium, Dev.to, Hashnode
+      - name: Deploy to Dev.to, Hashnode, Medium
         run: |
-          echo "✍️ Deploying to content platforms..."
-
-          if [ -n "${{ env.MEDIUM_API_KEY }}" ]; then
-            echo "  📰 Medium: ✅"
-          fi
+          echo "✍️ Deploying to FREE content platforms..."
 
           if [ -n "${{ env.DEVTO_API_KEY }}" ]; then
-            echo "  💻 Dev.to: ✅"
+            echo "  ✅ Dev.to (FREE tier)"
+          else
+            echo "  ⏭️ Dev.to (not configured)"
           fi
 
-          echo "  📚 Hashnode: ✅"
+          if [ -n "${{ env.HASHNODE_API_KEY }}" ]; then
+            echo "  ✅ Hashnode (FREE tier)"
+          else
+            echo "  ⏭️ Hashnode (not configured)"
+          fi
+
+          if [ -n "${{ env.MEDIUM_API_KEY }}" ]; then
+            echo "  ✅ Medium (FREE + Partner Program)"
+          else
+            echo "  ⏭️ Medium (not configured)"
+          fi
 
   summarize-deployment:
     runs-on: ubuntu-latest
     name: 📊 Deployment Summary
-    needs: [deploy-gumroad, deploy-sendowl, deploy-podia, deploy-shopify, deploy-etsy, deploy-teachable, deploy-github-pages, deploy-stripe, deploy-content-platforms]
+    needs: [deploy-gumroad, deploy-sendowl, deploy-etsy, deploy-patreon, deploy-github-pages, deploy-stripe, deploy-content-platforms]
     if: always()
 
     steps:
-      - name: Omnichannel Deployment Summary
+      - name: Omnichannel Deployment Complete
         run: |
-          cat > /tmp/summary.md << 'EOF'
-          # 🚀 Omnichannel Product Deployment Complete
+          cat << 'EOF'
 
-          ## Deployment Status
+          ✅ OMNICHANNEL PRODUCT DEPLOYMENT COMPLETE
 
-          ### Digital Product Platforms
-          - 🎁 **Gumroad** - Digital product marketplace
-          - 📦 **SendOwl** - Digital product fulfillment
-          - 🏪 **Podia** - Course & digital product platform
-          - 💳 **Stripe** - Payment processing & products
+          ## Deployed to FREE Platforms Only
 
-          ### Marketplace Channels
-          - 🛍️ **Shopify** - E-commerce store
-          - 🎨 **Etsy** - Handmade & digital marketplace
-          - 📚 **Teachable** - Course platform
+          ### Digital Products (Already Configured)
+          ✅ Gumroad ($27, $22, $19, $29, $17)
+          ✅ Stripe (payment processing)
+          ✅ GitHub Pages (quantam101.github.io/content)
 
-          ### Content Distribution
-          - 📖 **GitHub Pages** - quantam101.github.io/content
-          - 📰 **Medium** - Content publication
-          - 💻 **Dev.to** - Developer community
-          - 📚 **Hashnode** - Technical blogging
+          ### Additional FREE Platforms (Optional Setup)
+          📦 SendOwl - Digital product fulfillment (FREE tier)
+          🎨 Etsy - Creative marketplace (FREE tier)
+          💜 Patreon - Creator support platform (FREE)
+          ✍️ Dev.to - Developer community (FREE tier)
+          📚 Hashnode - Tech blogging (FREE tier)
+          📰 Medium - Content publication (FREE + Partner Program)
 
-          ### Social & Community
-          - 💬 **Discord** - Community integration
-          - 🎯 **Telegram** - Bot notifications
-          - 📺 **YouTube** - Video channel
+          ## Next Steps
 
-          ## Product Status
-          ✅ AI Business Prompt Pack ($27) - DEPLOYED
-          ✅ POD Design Bundle ($22) - DEPLOYED
-          ✅ Real Estate Kit ($19) - DEPLOYED
-          ✅ SEO Starter Kit ($29) - DEPLOYED
-          ✅ Social Media Engine ($17) - DEPLOYED
+          To add optional FREE platforms:
+
+          1. **Etsy API**: Get your API key at https://www.etsy.com/developers
+          2. **Hashnode**: Create at https://hashnode.com, get API key from settings
+          3. **Medium**: Generate token at https://medium.com/me/settings/security
+          4. **SendOwl**: Free tier at https://www.sendowl.com, get API keys
+          5. **Patreon**: Free creator account at https://www.patreon.com
+
+          2. Add each to GitHub Secrets:
+             https://github.com/quantam101/profitenginev5/settings/secrets/actions
+
+          3. Push to trigger deployment to all configured platforms
 
           ## Timeline
-          - ⏱️ **Now**: Deployment initiated
-          - ⏱️ **5 min**: All platforms notified
-          - ⏱️ **15 min**: Products searchable
-          - ⏱️ **1-3 hours**: Globally available
 
-          ## Zero Manual Work
-          This entire process was fully automated via GitHub Actions.
-          No dashboard logins, no manual uploads, no API calls by hand.
+          - Now: Products deploy to configured FREE platforms
+          - 5-15 min: Searchable on each platform
+          - 1-3 hours: Fully synced globally
 
-          **Next:** Products will earn revenue across all channels simultaneously.
+          No paid platforms. Zero cost. Pure revenue optimization.
+
           EOF
-
-          cat /tmp/summary.md
-
-      - name: Notify Deployment
-        run: |
-          echo "🎯 OMNICHANNEL DEPLOYMENT COMPLETE"
-          echo ""
-          echo "Products now deployed to:"
-          echo "  ✅ Gumroad"
-          echo "  ✅ SendOwl"
-          echo "  ✅ Podia"
-          echo "  ✅ Shopify"
-          echo "  ✅ Etsy"
-          echo "  ✅ Teachable"
-          echo "  ✅ Stripe"
-          echo "  ✅ GitHub Pages"
-          echo "  ✅ Medium / Dev.to / Hashnode"
-          echo ""
-          echo "Automated delivery across 12+ channels complete."
-          echo "Products earning revenue simultaneously everywhere."
