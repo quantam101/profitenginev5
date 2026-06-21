@@ -586,7 +586,7 @@ export async function example_cliCreateLinks() {
   });
 }
 
-export default {
+const affiliateExamples = {
   example_createTradingProductLinks,
   example_trackBlogPostClick,
   example_trackConversionAndCommission,
@@ -603,3 +603,5 @@ export default {
   example_generateWeeklyReport,
   example_cliCreateLinks,
 };
+
+export default affiliateExamples;

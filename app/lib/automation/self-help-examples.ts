@@ -629,7 +629,7 @@ export async function runAllExamples() {
   console.log('\n✓ All examples completed!');
 }
 
-export default {
+const selfHelpExamples = {
   weeklyBlogSeries,
   createTrainingCourse,
   youtubeToMultiFormat,
@@ -640,3 +640,5 @@ export default {
   emailSequenceFromBlog,
   runAllExamples,
 };
+
+export default selfHelpExamples;

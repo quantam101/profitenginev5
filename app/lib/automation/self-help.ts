@@ -1285,7 +1285,7 @@ async function generateDOCX(content: GeneratedContent): Promise<string> {
   return `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${Buffer.from(content.markdown).toString('base64')}`;
 }
 
-export default {
+const selfHelp = {
   generateContent,
   generateCourseModule,
   processYouTubeTranscript,
@@ -1293,3 +1293,5 @@ export default {
   distributeContent,
   exportContent,
 };
+
+export default selfHelp;
