@@ -21,6 +21,8 @@ from typing import Literal
 
 Provider = Literal["lmstudio", "gemini", "deepseek", "openrouter", "anthropic", "openai", "groq"]
 
+LM_STUDIO_DUMMY_KEY = "lm-studio"
+
 
 def _lmstudio_enabled() -> bool:
     """True when LM Studio is configured or explicitly enabled."""
@@ -51,7 +53,7 @@ async def _call_lmstudio(*, model: str, system: str, prompt: str, max_tokens: in
         or "local-model"
     )
     from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key="lm-studio", base_url=base_url)
+    client = AsyncOpenAI(api_key=LM_STUDIO_DUMMY_KEY, base_url=base_url)
     msg = await client.chat.completions.create(
         model=resolved_model,
         max_tokens=max_tokens,
