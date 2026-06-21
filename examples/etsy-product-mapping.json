@@ -1,0 +1,80 @@
+{
+  "description": "Product mapping between Printify and Etsy. Use this to sync inventory and update prices.",
+  "lastUpdated": "2024-06-20T10:00:00Z",
+  "products": [
+    {
+      "name": "Trading Mastery T-Shirt",
+      "printifyId": "REPLACE_WITH_PRINTIFY_ID",
+      "etsyId": "REPLACE_WITH_ETSY_ID",
+      "basePrice": 24.99,
+      "markupPercent": 0.4,
+      "notes": "Black and white variants, multiple sizes",
+      "variantMapping": {
+        "trading-mastery-black": {
+          "printifyId": "REPLACE_WITH_VARIANT_ID_BLACK",
+          "etsyPropertyId": 200,
+          "colors": ["black"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+        },
+        "trading-mastery-white": {
+          "printifyId": "REPLACE_WITH_VARIANT_ID_WHITE",
+          "etsyPropertyId": 200,
+          "colors": ["white"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+        }
+      }
+    },
+    {
+      "name": "Profit Engine Premium Hoodie",
+      "printifyId": "REPLACE_WITH_PRINTIFY_ID",
+      "etsyId": "REPLACE_WITH_ETSY_ID",
+      "basePrice": 49.99,
+      "markupPercent": 0.4,
+      "notes": "Premium hoodie, black only",
+      "variantMapping": {
+        "profit-engine-hoodie-black": {
+          "printifyId": "REPLACE_WITH_VARIANT_ID",
+          "etsyPropertyId": 200,
+          "colors": ["black"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+        }
+      }
+    },
+    {
+      "name": "Market Analysis Coffee Mug",
+      "printifyId": "REPLACE_WITH_PRINTIFY_ID",
+      "etsyId": "REPLACE_WITH_ETSY_ID",
+      "basePrice": 12.99,
+      "markupPercent": 0.45,
+      "notes": "11oz ceramic mug, perfect for traders",
+      "variantMapping": {
+        "mug-chart-11oz": {
+          "printifyId": "REPLACE_WITH_VARIANT_ID",
+          "etsyPropertyId": 201,
+          "colors": ["white"],
+          "sizes": ["11oz"]
+        }
+      }
+    }
+  ],
+  "instructions": {
+    "setup": [
+      "1. Create products using /api/automation/etsy with action='create'",
+      "2. After creation, copy Printify ID and Etsy ID from response",
+      "3. Replace REPLACE_WITH_* placeholders with actual IDs",
+      "4. Get variant IDs from Printify API or dashboard",
+      "5. Get Etsy property IDs from your listings"
+    ],
+    "usage": [
+      "Pass productMappings to /api/automation/etsy with action='sync-inventory'",
+      "Use variantMapping to link Printify variants to Etsy properties",
+      "Update markupPercent per product for dynamic pricing"
+    ],
+    "findIds": {
+      "printifyId": "https://app.printify.com/products/{id}",
+      "etsyId": "https://www.etsy.com/listing/{id}",
+      "variantId": "Printify Dashboard → Products → Select product → Variants",
+      "etsyPropertyId": "Etsy API → Get listing properties (usually 200 for color, 208 for size)"
+    }
+  }
+}

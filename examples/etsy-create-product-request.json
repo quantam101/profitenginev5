@@ -1,0 +1,38 @@
+{
+  "action": "create",
+  "templates": [
+    {
+      "name": "Trading Mastery T-Shirt",
+      "description": "Premium 100% organic cotton t-shirt designed for serious traders. Features bold trading graphics and comfortable fit. Perfect for day trading, swing trading, or just showing your passion for the markets.",
+      "category": "apparel",
+      "printifyProductId": "16",
+      "basePrice": 24.99,
+      "designs": [
+        {
+          "id": "design-black-logo",
+          "name": "Black Shirt - Trading Logo",
+          "colors": ["black"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500",
+          "imagePrompt": "Trading strategy chart design, technical analysis, stock market uptrend, minimalist modern aesthetic",
+          "sku": "trading-mastery-black"
+        },
+        {
+          "id": "design-white-logo",
+          "name": "White Shirt - Trading Logo",
+          "colors": ["white"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500",
+          "imagePrompt": "Trading strategy chart design, technical analysis, stock market uptrend, minimalist modern aesthetic",
+          "sku": "trading-mastery-white"
+        }
+      ],
+      "tags": ["t-shirt", "trading", "apparel", "investing", "stocks"],
+      "materials": ["100% organic cotton", "Pre-shrunk", "Comfortable fit"],
+      "shippingProfile": "standard"
+    }
+  ],
+  "designUrls": {
+    "Trading Mastery T-Shirt": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500"
+  }
+}

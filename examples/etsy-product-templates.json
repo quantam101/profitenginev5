@@ -1,0 +1,142 @@
+{
+  "products": [
+    {
+      "name": "Trading Strategy Blueprint T-Shirt",
+      "description": "Premium quality t-shirt featuring the Trading Strategy Blueprint design. Perfect for traders and investors who want to show their market mastery. 100% organic cotton, pre-shrunk, comfortable for all-day wear.",
+      "category": "apparel",
+      "printifyProductId": "16",
+      "basePrice": 24.99,
+      "designs": [
+        {
+          "id": "blueprint-black",
+          "name": "Blueprint Design - Black Shirt",
+          "colors": ["black"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://cdn.example.com/designs/blueprint-black.png",
+          "imagePrompt": "Trading strategy blueprint design, technical chart lines, profit graph, professional minimalist",
+          "sku": "trad-blueprint-black"
+        },
+        {
+          "id": "blueprint-white",
+          "name": "Blueprint Design - White Shirt",
+          "colors": ["white"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://cdn.example.com/designs/blueprint-white.png",
+          "imagePrompt": "Trading strategy blueprint design, technical chart lines, profit graph, professional minimalist",
+          "sku": "trad-blueprint-white"
+        }
+      ],
+      "tags": ["trading", "strategy", "apparel", "t-shirt", "investing"],
+      "materials": ["100% organic cotton", "Pre-shrunk", "Comfortable fit"]
+    },
+    {
+      "name": "Profit Engine Premium Hoodie",
+      "description": "Cozy premium hoodie with Profit Engine branding. Built for comfort and style. Perfect for traders working long hours analyzing markets. Soft fleece, durable construction.",
+      "category": "apparel",
+      "printifyProductId": "22",
+      "basePrice": 49.99,
+      "designs": [
+        {
+          "id": "engine-black",
+          "name": "Profit Engine Logo - Black",
+          "colors": ["black"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://cdn.example.com/designs/engine-black.png",
+          "imagePrompt": "Profit Engine logo design, mechanical elements, financial charts, professional tech aesthetic",
+          "sku": "profit-engine-hoodie-black"
+        }
+      ],
+      "tags": ["hoodie", "trading", "profit", "engine"],
+      "materials": ["50% cotton, 50% polyester fleece", "Soft brushed interior", "Double-stitched seams"]
+    },
+    {
+      "name": "Trading Essentials Mug",
+      "description": "11oz ceramic mug perfect for your morning coffee while analyzing markets. Dishwasher safe, microwave safe. Great gift for traders and investors.",
+      "category": "home",
+      "printifyProductId": "20",
+      "basePrice": 12.99,
+      "designs": [
+        {
+          "id": "mug-chart",
+          "name": "Technical Analysis Chart",
+          "colors": ["white"],
+          "sizes": ["11oz"],
+          "imageUrl": "https://cdn.example.com/designs/mug-chart.png",
+          "imagePrompt": "Stock chart candlestick pattern, uptrend, coffee cup design, minimalist",
+          "sku": "mug-chart-11oz"
+        }
+      ],
+      "tags": ["mug", "trading", "coffee", "home"],
+      "materials": ["Ceramic", "Dishwasher safe", "Microwave safe"]
+    },
+    {
+      "name": "Trader's Mind Notebook",
+      "description": "Premium 200-page notebook with hardcover. Perfect for journaling trades, market notes, and trading ideas. Lay-flat binding for comfortable writing.",
+      "category": "office",
+      "printifyProductId": "26",
+      "basePrice": 18.99,
+      "designs": [
+        {
+          "id": "notebook-journal",
+          "name": "Trading Journal Cover",
+          "colors": ["gray"],
+          "sizes": ["A5"],
+          "imageUrl": "https://cdn.example.com/designs/notebook-cover.png",
+          "imagePrompt": "Trading journal cover, notebook design, market analysis theme, professional aesthetic",
+          "sku": "notebook-journal-a5"
+        }
+      ],
+      "tags": ["notebook", "journal", "trading", "office"],
+      "materials": ["Hardcover", "200 pages", "Lay-flat binding"]
+    },
+    {
+      "name": "Market Movement Phone Case",
+      "description": "Durable phone case with bold trading graphics. Protects your phone while showing your trading passion. Works with iPhone 12, 13, 14, 15 and Android.",
+      "category": "tech",
+      "printifyProductId": "21",
+      "basePrice": 19.99,
+      "designs": [
+        {
+          "id": "phone-bullish",
+          "name": "Bullish Trend Design",
+          "colors": ["black"],
+          "sizes": ["iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15"],
+          "imageUrl": "https://cdn.example.com/designs/phone-bullish.png",
+          "imagePrompt": "Bullish trend arrow, stock market chart, upward momentum, phone case design",
+          "sku": "phone-bullish"
+        }
+      ],
+      "tags": ["phone case", "tech", "trading", "mobile"],
+      "materials": ["Durable plastic", "Shock resistant", "Anti-slip grip"]
+    },
+    {
+      "name": "Profit Engine Sweatshirt",
+      "description": "Comfortable crew neck sweatshirt for year-round wear. Perfect casual apparel for the serious trader. Preshrunk, durable 7.75 oz. material.",
+      "category": "apparel",
+      "printifyProductId": "25",
+      "basePrice": 34.99,
+      "designs": [
+        {
+          "id": "sweat-navy",
+          "name": "Profit Engine Navy",
+          "colors": ["navy"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://cdn.example.com/designs/sweatshirt-navy.png",
+          "imagePrompt": "Profit Engine text logo, modern minimalist design, sweatshirt graphic",
+          "sku": "sweatshirt-navy"
+        },
+        {
+          "id": "sweat-gray",
+          "name": "Profit Engine Gray",
+          "colors": ["gray"],
+          "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL"],
+          "imageUrl": "https://cdn.example.com/designs/sweatshirt-gray.png",
+          "imagePrompt": "Profit Engine text logo, modern minimalist design, sweatshirt graphic",
+          "sku": "sweatshirt-gray"
+        }
+      ],
+      "tags": ["sweatshirt", "apparel", "profit", "casual"],
+      "materials": ["Heavy blend (50/50)", "Preshrunk", "Durable construction"]
+    }
+  ]
+}

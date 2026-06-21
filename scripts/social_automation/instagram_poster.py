@@ -25,7 +25,7 @@ def upload_image_post(image_url: str, caption: str, hashtags: str = ""):
         'access_token': INSTAGRAM_TOKEN
     }
 
-    response = requests.post(endpoint, json=payload)
+    response = requests.post(endpoint, json=payload, timeout=10)
 
     if response.status_code == 200:
         print(f"✓ Image post created: {response.json()['id']}")
@@ -88,7 +88,7 @@ def get_insights():
         'access_token': INSTAGRAM_TOKEN
     }
 
-    response = requests.get(endpoint, params=params)
+    response = requests.get(endpoint, params=params, timeout=10)
 
     if response.status_code == 200:
         insights = response.json()['data']

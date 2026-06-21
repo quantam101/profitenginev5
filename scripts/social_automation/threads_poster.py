@@ -26,7 +26,7 @@ def post_thread(text: str, image_url: str = None):
     if image_url:
         payload['image_url'] = image_url
 
-    response = requests.post(endpoint, json=payload)
+    response = requests.post(endpoint, json=payload, timeout=10)
 
     if response.status_code == 200:
         thread_id = response.json()['id']
@@ -34,7 +34,7 @@ def post_thread(text: str, image_url: str = None):
 
         # Publish the thread
         publish_endpoint = f"https://graph.threads.net/{THREADS_API_VERSION}/{thread_id}/publish"
-        publish_response = requests.post(publish_endpoint, json={'access_token': THREADS_TOKEN})
+        publish_response = requests.post(publish_endpoint, json={'access_token': THREADS_TOKEN}, timeout=10)
 
         if publish_response.status_code == 200:
             print(f"✓ Thread published!")
@@ -53,7 +53,7 @@ def reply_to_thread(thread_id: str, text: str):
         'access_token': THREADS_TOKEN
     }
 
-    response = requests.post(endpoint, json=payload)
+    response = requests.post(endpoint, json=payload, timeout=10)
 
     if response.status_code == 200:
         print(f"✓ Reply posted")
@@ -72,7 +72,7 @@ def get_thread_insights(thread_id: str):
         'access_token': THREADS_TOKEN
     }
 
-    response = requests.get(endpoint, params=params)
+    response = requests.get(endpoint, params=params, timeout=10)
 
     if response.status_code == 200:
         insights = response.json()['data']

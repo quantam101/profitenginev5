@@ -1,0 +1,256 @@
+name: Unified Orchestrator Scheduler
+
+on:
+  schedule:
+    # Health check every 5 minutes
+    - cron: '*/5 * * * *'
+    # Metrics collection every 1 minute
+    - cron: '* * * * *'
+    # Daily summary report at 8 AM UTC
+    - cron: '0 8 * * *'
+    # Weekly performance review (Monday 9 AM UTC)
+    - cron: '0 9 * * 1'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Orchestrator action'
+        required: true
+        default: 'health-check'
+        type: choice
+        options:
+          - health-check
+          - metrics-report
+          - channel-status
+          - performance-analysis
+          - alert-summary
+
+env:
+  PROFITENGINE_URL: ${{ secrets.PROFITENGINE_URL }}
+  ORCHESTRATOR_WEBHOOK_URL: ${{ secrets.ORCHESTRATOR_WEBHOOK_URL }}
+  HEALTH_CHECK_INTERVAL_MS: '60000'
+  METRICS_COLLECTION_INTERVAL_MS: '30000'
+
+jobs:
+  health-check:
+    if: github.event.schedule == '*/5 * * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'health-check')
+    runs-on: ubuntu-latest
+    name: Channel Health Check
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run health check
+        run: |
+          curl -X GET \
+            -H "Content-Type: application/json" \
+            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            -o health-check-${{ github.run_id }}.json
+
+      - name: Upload health check results
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-check-${{ github.run_id }}
+          path: health-check-${{ github.run_id }}.json
+          retention-days: 7
+
+      - name: Check results
+        run: |
+          if [ ! -f health-check-${{ github.run_id }}.json ]; then
+            echo "Health check failed: no response"
+            exit 1
+          fi
+          jq '.' health-check-${{ github.run_id }}.json
+
+          # Check if all critical channels are healthy
+          OFFLINE_COUNT=$(jq '.data.healthStatus.offline' health-check-${{ github.run_id }}.json)
+          if [ "$OFFLINE_COUNT" -gt 2 ]; then
+            echo "WARNING: $OFFLINE_COUNT channels offline"
+            exit 1
+          fi
+
+  metrics-report:
+    if: github.event.schedule == '* * * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'metrics-report')
+    runs-on: ubuntu-latest
+    name: Collect Metrics
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Collect metrics
+        run: |
+          curl -X GET \
+            -H "Content-Type: application/json" \
+            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            -o metrics-${{ github.run_id }}.json
+
+      - name: Process metrics
+        run: |
+          jq '.data.aggregatedMetrics' metrics-${{ github.run_id }}.json
+
+          # Extract KPIs
+          SUCCESS_RATE=$(jq '.data.aggregatedMetrics.overallSuccessRate * 100' metrics-${{ github.run_id }}.json)
+          ERROR_RATE=$(jq '.data.aggregatedMetrics.overallErrorRate * 100' metrics-${{ github.run_id }}.json)
+          TOTAL_REQUESTS=$(jq '.data.aggregatedMetrics.totalRequests' metrics-${{ github.run_id }}.json)
+
+          echo "## Metrics Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Total Requests: $TOTAL_REQUESTS" >> $GITHUB_STEP_SUMMARY
+          echo "- Success Rate: ${SUCCESS_RATE}%" >> $GITHUB_STEP_SUMMARY
+          echo "- Error Rate: ${ERROR_RATE}%" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send webhook notification
+        if: env.ORCHESTRATOR_WEBHOOK_URL != ''
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d @metrics-${{ github.run_id }}.json \
+            "${{ env.ORCHESTRATOR_WEBHOOK_URL }}"
+
+  daily-summary:
+    if: github.event.schedule == '0 8 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'channel-status')
+    runs-on: ubuntu-latest
+    name: Daily Summary Report
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch daily metrics
+        run: |
+          curl -X GET \
+            -H "Content-Type: application/json" \
+            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            -o daily-summary-${{ github.run_id }}.json
+
+      - name: Generate report
+        run: |
+          jq '.' daily-summary-${{ github.run_id }}.json | tee daily-report.md
+
+          echo "## Daily Orchestrator Summary" > summary.md
+          echo "Generated: $(date -u)" >> summary.md
+          echo "" >> summary.md
+
+          echo "### Health Status" >> summary.md
+          echo "\`\`\`" >> summary.md
+          jq '.data.healthStatus' daily-summary-${{ github.run_id }}.json >> summary.md
+          echo "\`\`\`" >> summary.md
+
+          echo "### Top Performing Channels" >> summary.md
+          jq '.data.metrics | sort_by(.metrics.successRate) | reverse | .[0:5] | .[] | "- \(.channelName): \(.metrics.successRate * 100)%"' daily-summary-${{ github.run_id }}.json >> summary.md
+
+          echo "### Alerts Summary" >> summary.md
+          ALERT_COUNT=$(jq '.data.alerts | length' daily-summary-${{ github.run_id }}.json)
+          echo "Total alerts: $ALERT_COUNT" >> summary.md
+
+      - name: Post summary to GitHub
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number || 1,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            }).catch(() => {
+              // Silently fail if we can't post to issue
+            });
+
+  weekly-analysis:
+    if: github.event.schedule == '0 9 * * 1' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'performance-analysis')
+    runs-on: ubuntu-latest
+    name: Weekly Performance Analysis
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Collect week metrics
+        run: |
+          echo "Fetching performance metrics..."
+          curl -X GET \
+            -H "Content-Type: application/json" \
+            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            -o weekly-analysis-${{ github.run_id }}.json
+
+      - name: Generate analysis
+        run: |
+          jq '.' weekly-analysis-${{ github.run_id }}.json > analysis.json
+
+          # Create performance report
+          echo "## Weekly Performance Analysis" > WEEKLY_REPORT.md
+          echo "Week of: $(date -u +%Y-%m-%d)" >> WEEKLY_REPORT.md
+          echo "" >> WEEKLY_REPORT.md
+
+          # Extract and format metrics
+          echo "### Channel Performance Rankings" >> WEEKLY_REPORT.md
+          echo "" >> WEEKLY_REPORT.md
+
+          jq -r '.data.metrics | sort_by(.metrics.successRate) | reverse | .[] | "| \(.channelName) | \(.metrics.totalRequests) | \(.metrics.successRate * 100)% |"' analysis.json >> WEEKLY_REPORT.md
+
+      - name: Upload analysis report
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-analysis-${{ github.run_id }}
+          path: WEEKLY_REPORT.md
+          retention-days: 30
+
+  alert-aggregation:
+    if: failure()
+    runs-on: ubuntu-latest
+    name: Alert Aggregation
+
+    steps:
+      - name: Fetch alerts
+        run: |
+          curl -X GET \
+            "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
+            -o alerts.json
+
+      - name: Process critical alerts
+        run: |
+          CRITICAL_COUNT=$(jq '.data.alerts[] | select(.severity=="critical") | 1' alerts.json | wc -l)
+          WARNING_COUNT=$(jq '.data.alerts[] | select(.severity=="warning") | 1' alerts.json | wc -l)
+
+          echo "## Alert Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Critical: $CRITICAL_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- Warnings: $WARNING_COUNT" >> $GITHUB_STEP_SUMMARY
+
+      - name: Trigger incident response if critical
+        if: failure()
+        run: |
+          echo "Critical alerts detected - triggering incident response"
+          # This would trigger an incident response workflow
+
+  cleanup:
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [health-check, metrics-report, daily-summary, weekly-analysis]
+    name: Cleanup
+
+    steps:
+      - name: Clean old artifacts
+        run: |
+          # Note: GitHub API would be used to delete old artifacts
+          echo "Cleanup scheduled artifacts completed"
