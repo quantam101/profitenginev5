@@ -23,6 +23,8 @@ except ImportError:
     GOOGLE_API_AVAILABLE = False
     logger.warning("Google API client libraries not installed. YouTube Analytics will be unavailable.")
 
+GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
+
 
 class YouTubeRevenueAnalytics:
     """Fetch AdSense revenue from YouTube Analytics API.
@@ -68,7 +70,7 @@ class YouTubeRevenueAnalytics:
             creds = OAuthCredentials(
                 token=None,
                 refresh_token=self.refresh_token,
-                token_uri="https://oauth2.googleapis.com/token",
+                token_uri=GOOGLE_OAUTH_TOKEN_URI,
                 client_id=self.client_id,
                 client_secret=self.client_secret,
             )
