@@ -1,0 +1,171 @@
+================================================================================
+LIVE PAPER TRADING COMPETITION - WEEKDAY ONLY STATUS
+================================================================================
+
+Start Time:         2026-06-21 13:37:16
+Status:             PAUSED (WEEKEND)
+Competition Mode:   LIVE PAPER TRADING (Weekday Only)
+
+Today:              Saturday (Weekend)
+Trading Status:     PAUSED ✓
+Resumes:            Monday 00:00
+
+================================================================================
+HOW IT WORKS
+================================================================================
+
+MONDAY-FRIDAY:
+  ✓ Active live paper trading
+  ✓ Real Finnhub stock prices
+  ✓ Real-time execution (every 1 minute)
+  ✓ Real P&L calculations
+  ✓ Weekday round count increments
+  ✓ Leaderboard updates
+
+SATURDAY-SUNDAY:
+  ✓ Paused (no trading)
+  ✓ No leaderboard updates
+  ✓ No P&L changes
+  ✓ System waiting for Monday
+  ✓ Weekday round count stays same
+
+================================================================================
+CURRENT STANDINGS
+================================================================================
+
+System 1 (Conservative):  $100.00
+System 2 (Aggressive):    $100.00
+
+Status:     PAUSED (WEEKEND)
+Weekday Rounds: 0 (waiting for Monday)
+Next Trading: Monday 2026-06-23
+
+================================================================================
+COMPETITION RULES
+================================================================================
+
+System 1 (Conservative - High Win Rate):
+  - Strategies: 1, 2, 4, 10
+  - Risk: 0.8x (cautious)
+  - Target: $100 → $1,000
+
+System 2 (Aggressive - High Profit):
+  - Strategies: 2, 3, 9, 10
+  - Risk: 1.2x (aggressive)
+  - Target: $100 → $1,000
+
+Only Trading-Week Rounds Count:
+  - Mon-Fri execution: YES (counts)
+  - Sat-Sun execution: PAUSED (doesn't count)
+  - Goal: First to $1,000 on a trading day wins
+
+================================================================================
+DEPLOYMENT WORKFLOW
+================================================================================
+
+PHASE 1: LIVE PAPER TRADING (WEEKDAY ONLY)
+  - Runs Mon-Fri with LIVE Finnhub data
+  - Paused Sat-Sun (no trading)
+  - Real trades every 1 minute
+  - Real P&L from actual markets
+  - Only trading-week rounds count
+
+PHASE 2: WINNER ANNOUNCED
+  - First to $1,000 during trading week wins
+  - Performance metrics captured
+  - Strategy configuration saved
+
+PHASE 3: REAL MONEY DEPLOYMENT
+  - Deploy winner immediately
+  - Use same strategies/allocations
+  - Real capital trading begins
+
+================================================================================
+SCHEDULE EXAMPLE
+================================================================================
+
+Friday 5pm:         System 1: $850 | System 2: $920
+Friday evening:     Trading continues
+
+Saturday 00:00:     >>> WEEKEND PAUSE <<<
+Saturday:           No trading (paused)
+Sunday:             No trading (paused)
+
+Monday 00:00:       Trading resumes
+Monday 9:30am:      Markets open
+Monday rounds:      Weekday round #1, #2, #3...
+
+Tuesday-Friday:     Continue competing
+                    Only weekday rounds count
+
+================================================================================
+MONITORING
+================================================================================
+
+Watch Live Updates (Monday-Friday):
+  tail -f .runtime/live_paper_trading_weekday.log
+
+Check JSON Results:
+  cat .runtime/live_paper_trading_weekday.json
+
+Weekend Status:
+  System paused
+  Awaiting Monday
+  No trading activity
+
+================================================================================
+KEY FEATURES
+================================================================================
+
+✓ 24/7 System Operation
+  System runs continuously
+
+✓ Weekday-Only Trading
+  Only Mon-Fri execution counts
+
+✓ Automatic Pause/Resume
+  Pauses automatically Sat-Sun
+  Resumes automatically Mon
+
+✓ Real Market Data
+  Live Finnhub prices only
+
+✓ Real-Time Execution
+  1-minute update intervals
+  Real P&L from actual prices
+
+✓ Weekend Awareness
+  Knows weekends = no trading
+  Waits for Monday resume
+
+================================================================================
+NEXT EVENT
+================================================================================
+
+Next Trading:       Monday 2026-06-23 00:00
+Next Leaderboard:   Monday 2026-06-23 00:00 (Weekday Round #1)
+Time Until:         ~24 hours
+
+Current Pause:      WEEKEND
+Status:             ✓ Correct behavior
+Action:             Automatically resume Monday
+
+================================================================================
+STATUS: LIVE PAPER TRADING WEEKDAY-ONLY - PAUSED FOR WEEKEND
+================================================================================
+
+System is running 24/7 but only executes trades Monday-Friday.
+
+Saturday: System is paused (as expected)
+Sunday:   System is paused (as expected)
+Monday:   Trading resumes (automatic)
+
+When Monday arrives, the system will:
+  1. Detect it's a trading day
+  2. Resume live paper trading
+  3. Execute with real Finnhub data
+  4. Update leaderboard
+  5. Count weekday rounds
+
+All ready for Monday 00:00 automatic resume.
+
