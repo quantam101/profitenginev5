@@ -31,6 +31,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 logger = logging.getLogger("GumroadClient")
 
@@ -245,3 +246,64 @@ def revenue_summary() -> Dict[str, Any]:
         "month_revenue_usd": month_sales.get("total_revenue_usd", 0),
         "catalog":         [{"name": p.get("name"), "id": p.get("id")} for p in products],
     }
+
+
+def upload_product_file(product_id: str, file_path: str) -> Dict[str, Any]:
+    """
+    Upload a file to a Gumroad product.
+    Uses multipart/form-data for file uploads.
+    """
+    token = _token()
+    if not token:
+        return {"success": False, "message": "GUMROAD_ACCESS_TOKEN not set"}
+
+    if not os.path.exists(file_path):
+        return {"success": False, "message": f"File not found: {file_path}"}
+
+    url = f"{_BASE}/products/{product_id}/files"
+
+    with open(file_path, "rb") as f:
+        file_data = f.read()
+        file_name = os.path.basename(file_path)
+
+        # Build multipart form data manually
+        boundary = "----GumroadUploadBoundary"
+        body_parts = []
+
+        # Add access_token field
+        body_parts.append(f"--{boundary}".encode())
+        body_parts.append(b'Content-Disposition: form-data; name="access_token"')
+        body_parts.append(b"")
+        body_parts.append(token.encode())
+
+        # Add file field
+        body_parts.append(f"--{boundary}".encode())
+        body_parts.append(f'Content-Disposition: form-data; name="file"; filename="{file_name}"'.encode())
+        body_parts.append(b"Content-Type: application/octet-stream")
+        body_parts.append(b"")
+        body_parts.append(file_data)
+        body_parts.append(f"--{boundary}--".encode())
+
+        body = b"\r\n".join(body_parts)
+
+        req = urllib.request.Request(
+            url,
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                result = json.loads(r.read())
+                logger.info(f"[Gumroad] Uploaded {file_name} to product {product_id}")
+                return result
+        except urllib.error.HTTPError as exc:
+            body_err = exc.read().decode(errors="replace")[:300]
+            logger.error(f"[Gumroad] Upload {file_name} to {product_id} → HTTP {exc.code}: {body_err}")
+            return {"success": False, "message": f"HTTP {exc.code}: {body_err}"}
+        except Exception as exc:
+            logger.error(f"[Gumroad] Upload error: {exc}")
+            return {"success": False, "message": str(exc)}
