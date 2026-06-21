@@ -52,6 +52,11 @@ jobs:
 
       - name: Run health check
         run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::warning::PROFITENGINE_URL secret is not set — skipping health check"
+            echo '{}' > health-check-${{ github.run_id }}.json
+            exit 0
+          fi
           curl -X GET \
             -H "Content-Type: application/json" \
             "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
@@ -95,6 +100,11 @@ jobs:
 
       - name: Collect metrics
         run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::warning::PROFITENGINE_URL secret is not set — skipping metrics collection"
+            echo '{"data":{"aggregatedMetrics":{"overallSuccessRate":0,"overallErrorRate":0,"totalRequests":0}}}' > metrics-${{ github.run_id }}.json
+            exit 0
+          fi
           curl -X GET \
             -H "Content-Type: application/json" \
             "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
@@ -132,6 +142,11 @@ jobs:
 
       - name: Fetch daily metrics
         run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::warning::PROFITENGINE_URL secret is not set — skipping daily summary"
+            echo '{"data":{"healthStatus":{},"metrics":[],"alerts":[]}}' > daily-summary-${{ github.run_id }}.json
+            exit 0
+          fi
           curl -X GET \
             -H "Content-Type: application/json" \
             "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
@@ -188,6 +203,11 @@ jobs:
 
       - name: Collect week metrics
         run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::warning::PROFITENGINE_URL secret is not set — skipping weekly analysis"
+            echo '{"data":{"metrics":[]}}' > weekly-analysis-${{ github.run_id }}.json
+            exit 0
+          fi
           echo "Fetching performance metrics..."
           curl -X GET \
             -H "Content-Type: application/json" \
@@ -224,6 +244,11 @@ jobs:
     steps:
       - name: Fetch alerts
         run: |
+          if [ -z "$PROFITENGINE_URL" ]; then
+            echo "::warning::PROFITENGINE_URL secret is not set — skipping alert fetch"
+            echo '{"data":{"alerts":[]}}' > alerts.json
+            exit 0
+          fi
           curl -X GET \
             "${{ env.PROFITENGINE_URL }}/api/automation/unified-metrics" \
             -o alerts.json
