@@ -449,7 +449,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
           GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
           GITHUB_CONTENT_BRANCH: main
@@ -630,7 +630,7 @@ jobs:
           ENABLE_HF_IMAGE_SCENES: "true"
           MAX_HF_IMAGE_SCENES: "2"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
           GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
           GITHUB_CONTENT_BRANCH: main
