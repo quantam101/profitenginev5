@@ -1,0 +1,41 @@
+name: Growth Engine — Weekly Lead Gen & Content
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Monday 09:00 UTC — start of the week
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: false
+        default: 'full'
+        type: choice
+        options: [full, content-only, leads-only]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  growth:
+    name: Weekly growth tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Run growth engine
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RUN_MODE: ${{ github.event.inputs.mode || 'full' }}
+        run: python scripts/growth_engine.py
+

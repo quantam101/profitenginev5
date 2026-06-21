@@ -1,0 +1,168 @@
+name: Daily Revenue Report
+
+on:
+  schedule:
+    # Run at 8 AM UTC every day (can adjust time zone)
+    - cron: '0 8 * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  revenue-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dotenv httpx
+
+      - name: Fetch revenue from all channels
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+          GUMROAD_CREATOR_ID: ${{ secrets.GUMROAD_CREATOR_ID }}
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          MAILCHIMP_API_KEY: ${{ secrets.MAILCHIMP_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/revenue_tracker.py --action fetch --days 30
+
+      - name: Generate dashboard
+        run: |
+          python scripts/revenue_tracker.py --action dashboard > revenue_dashboard.txt
+          cat revenue_dashboard.txt
+
+      - name: Export JSON report
+        run: |
+          python scripts/revenue_tracker.py --action export --output .runtime/revenue_report.json
+
+      - name: Send Telegram alert
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+          GUMROAD_CREATOR_ID: ${{ secrets.GUMROAD_CREATOR_ID }}
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+        run: |
+          python scripts/revenue_tracker.py --action telegram
+        continue-on-error: true  # Don't fail job if Telegram unavailable
+
+      - name: Archive reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: revenue-reports
+          path: |
+            revenue_dashboard.txt
+            .runtime/revenue_report.json
+          retention-days: 90
+
+      - name: Commit and push report
+        if: success()
+        run: |
+          git config user.name "Revenue Bot"
+          git config user.email "bot@alreadyherellc.com"
+
+          # Add report to tracking (but don't commit sensitive data)
+          git add .runtime/revenue_report.json || true
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: daily revenue report - $(date +%Y-%m-%d)"
+            git push
+          fi
+        continue-on-error: true  # Don't fail if commit fails
+
+  weekly-summary:
+    needs: revenue-report
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 * * 1'  # Only on Mondays
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dotenv httpx
+
+      - name: Generate weekly summary
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+          GUMROAD_CREATOR_ID: ${{ secrets.GUMROAD_CREATOR_ID }}
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/revenue_tracker.py --action fetch --days 7
+          python scripts/revenue_tracker.py --action dashboard
+          python scripts/revenue_tracker.py --action telegram
+
+      - name: Create weekly GitHub issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('.runtime/revenue_report.json', 'utf-8'));
+
+            const issue_title = `Weekly Revenue Report - Week of ${new Date().toISOString().split('T')[0]}`;
+
+            const issue_body = `
+## Weekly Revenue Summary
+
+**Period:** Last 7 days
+
+### Totals
+- Daily Average: $${(data.weekly_total / 7).toFixed(2)}
+- Weekly Total: $${data.weekly_total.toFixed(2)}
+- Monthly (extrapolated): $${(data.weekly_total * 4.29).toFixed(2)}
+- Monthly Target: $2,500
+
+### By Channel
+${Object.entries(data.by_channel).map(([channel, m]) => `
+- **${channel.toUpperCase()}**: $${m.weekly_revenue.toFixed(2)} (${m.transaction_count} transactions)
+`).join('')}
+
+### Top Performing Content
+${data.top_content.slice(0, 5).map((c, i) => `
+${i + 1}. **${c.title}** — $${c.revenue_generated.toFixed(2)}
+`).join('')}
+
+### Action Items
+- [ ] Review top-performing content
+- [ ] Check channel targets
+- [ ] Plan content for next week
+
+---
+*Generated by Revenue Tracker*
+            `;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issue_title,
+              body: issue_body,
+              labels: ['revenue', 'report']
+            });
+        continue-on-error: true

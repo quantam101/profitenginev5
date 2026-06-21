@@ -1,0 +1,43 @@
+name: Test - Token Environment Variable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if CONTENT_REPO_TOKEN is set
+        env:
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          if [ -z "$CONTENT_REPO_TOKEN" ]; then
+            echo "[FAIL] CONTENT_REPO_TOKEN is EMPTY"
+            echo "This means the secret is not configured in GitHub Secrets"
+            echo ""
+            echo "To fix:"
+            echo "1. Go to: https://github.com/quantam101/profitenginev5/settings/secrets/actions"
+            echo "2. Look for CONTENT_REPO_TOKEN"
+            echo "3. If missing: Click 'New repository secret'"
+            echo "4. Name: CONTENT_REPO_TOKEN"
+            echo "5. Value: [your GitHub PAT token]"
+            exit 1
+          else
+            echo "[PASS] CONTENT_REPO_TOKEN is set (length: ${#CONTENT_REPO_TOKEN})"
+            echo "[PASS] Token first 10 chars: ${CONTENT_REPO_TOKEN:0:10}"
+          fi
+
+      - name: Test in Python
+        env:
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import os
+          token = os.getenv("CONTENT_REPO_TOKEN", "").strip()
+          if not token:
+              print("[PYTHON FAIL] Token not found in Python environment")
+              exit(1)
+          else:
+              print(f"[PYTHON PASS] Token found: {len(token)} chars")
+              print(f"[PYTHON PASS] Token type: {type(token).__name__}")
+          EOF

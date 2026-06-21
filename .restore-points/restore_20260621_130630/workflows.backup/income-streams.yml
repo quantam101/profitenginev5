@@ -1,0 +1,190 @@
+name: Daily Income Streams Automation
+
+on:
+  schedule:
+    # Newsletter: 08:30 UTC daily (after content pipeline at 07:05)
+    - cron: '30 8 * * *'
+    # City SEO pages: 10:00 UTC daily (25 pages/day = 750/month)
+    - cron: '0 10 * * *'
+    # Gumroad catalog bootstrap: 09:00 UTC daily (idempotent)
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      stream:
+        description: 'Which stream to run (newsletter|city-seo|products|all)'
+        required: false
+        default: 'all'
+      dry_run:
+        description: 'Dry run (no commits, no publish)'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: income-streams
+  cancel-in-progress: false
+
+jobs:
+  newsletter:
+    name: Publish Daily Newsletter (Beehiiv)
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.stream == 'newsletter' ||
+      github.event.inputs.stream == 'all'
+    env:
+      RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+    steps:
+      - name: Trigger newsletter publish
+        run: |
+          if [ -z "$RUNTIME_API_URL" ]; then
+            echo "::warning::RUNTIME_API_URL not set — skipping newsletter"
+            exit 0
+          fi
+
+          # Pull today's top content from the content pipeline output
+          HEADLINE="AI Income Digest — $(date +'%B %d, %Y')"
+
+          HTTP_CODE=$(curl -s --max-time 45 -X POST "$RUNTIME_API_URL/newsletter/publish" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"headline\": \"$HEADLINE\",
+              \"sections\": [
+                {
+                  \"heading\": \"Today's AI Automation Insight\",
+                  \"body\": \"The businesses winning in 2026 aren't the ones with the most employees — they're the ones with the best AI workflows. Already Here LLC helps local businesses automate their customer service, lead capture, and social media in days, not months.\"
+                },
+                {
+                  \"heading\": \"Quick Tip: Set-It-and-Forget Revenue\",
+                  \"body\": \"Print-on-demand requires zero inventory. With Printify + Etsy, you list AI-generated designs once and earn royalties on every sale. Our POD pipeline auto-generates and publishes new collections weekly.\"
+                },
+                {
+                  \"heading\": \"This Week's Resource\",
+                  \"body\": \"Download our free AI Business Prompt Pack — 500+ production prompts for sales, copywriting, and social media. No fluff, just prompts that actually convert.\"
+                }
+              ],
+              \"tags\": [\"ai\", \"automation\", \"passive-income\", \"already-here\"],
+              \"cta_url\": \"https://alreadyherellc.com\"
+            }" \
+            -o /tmp/newsletter_result.json -w '%{http_code}') || HTTP_CODE="000"
+
+          # Guarantee a parseable body even when curl times out / writes nothing
+          if [ ! -s /tmp/newsletter_result.json ]; then
+            echo '{"ok":false}' > /tmp/newsletter_result.json
+          fi
+
+          echo "newsletter HTTP status: ${HTTP_CODE:-unknown}"
+          echo "newsletter raw response:"
+          cat /tmp/newsletter_result.json
+
+          OK=$(python3 -c "import json; print('true' if json.load(open('/tmp/newsletter_result.json')).get('ok') else 'false')" 2>/dev/null || echo "false")
+          if [ "$OK" = "false" ]; then
+            ERR=$(python3 -c "import json; print(json.load(open('/tmp/newsletter_result.json')).get('error') or '(no error field — endpoint timed out or unreachable)')" 2>/dev/null || echo "(empty or non-JSON response)")
+            if [ "${HTTP_CODE}" = "000" ]; then
+              echo "::warning::Newsletter publish FAILED — /newsletter/publish did not respond within 45s (HTTP 000). Runtime endpoint hang, not a Beehiiv credential issue."
+            else
+              echo "::warning::Newsletter publish FAILED — HTTP ${HTTP_CODE} — ${ERR}"
+            fi
+          fi
+
+  city-seo:
+    name: Generate City SEO Pages
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.stream == 'city-seo' ||
+      github.event.inputs.stream == 'all'
+    env:
+      RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+    steps:
+      - name: Generate and commit city pages
+        run: |
+          if [ -z "$RUNTIME_API_URL" ]; then
+            echo "::warning::RUNTIME_API_URL not set — skipping city SEO"
+            exit 0
+          fi
+
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+
+          curl -sf -X POST "$RUNTIME_API_URL/city-seo/generate" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"niches\": [\"it-support\", \"ai-chatbots\", \"automation-agency\", \"roofers\", \"plumbers\"],
+              \"tiers\": [\"A\", \"B\"],
+              \"limit\": 25,
+              \"dry_run\": $DRY_RUN
+            }" \
+            -o /tmp/city_seo_result.json || echo '{"ok":false}' > /tmp/city_seo_result.json
+
+          cat /tmp/city_seo_result.json
+          echo "City SEO run complete"
+
+  products:
+    name: Bootstrap Gumroad Product Catalog
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.stream == 'products' ||
+      github.event.inputs.stream == 'all'
+    env:
+      RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+    steps:
+      - name: Ensure all 5 products exist on Gumroad
+        run: |
+          if [ -z "$RUNTIME_API_URL" ]; then
+            echo "::warning::RUNTIME_API_URL not set — skipping Gumroad bootstrap"
+            exit 0
+          fi
+
+          curl -sf -X POST "$RUNTIME_API_URL/products/bootstrap" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            -o /tmp/products_result.json || echo '{"ok":false}' > /tmp/products_result.json
+
+          cat /tmp/products_result.json
+          echo "Gumroad catalog bootstrap complete"
+
+  income-report:
+    name: Daily Income Summary Report
+    runs-on: ubuntu-latest
+    needs: [newsletter, city-seo, products]
+    if: always()
+    env:
+      RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Pull income summary and send Telegram digest
+        run: |
+          if [ -z "$RUNTIME_API_URL" ]; then
+            echo "No RUNTIME_API_URL — skipping income report"
+            exit 0
+          fi
+
+          # Bounded so a hung /income/summary can't stall the digest for minutes
+          curl -sf --max-time 30 "$RUNTIME_API_URL/income/summary" \
+            -o /tmp/income.json || echo '{"ok":false}' > /tmp/income.json
+          if [ ! -s /tmp/income.json ]; then echo '{"ok":false}' > /tmp/income.json; fi
+
+          # Parse key metrics
+          GUMROAD_REV=$(python3 -c "
+          import json,sys
+          try:
+              d = json.load(open('/tmp/income.json'))
+              s = d.get('streams', {})
+              gum = s.get('digital_products', {}).get('month_revenue_usd', 0)
+              chat = s.get('chatbot_retainers', {}).get('chatbot_mrr_usd', 0)
+              subs = s.get('newsletter', {}).get('paid', 0)
+              print(f'Gumroad: \${gum:.0f}/mo | Chatbots: \${chat:.0f} MRR | Newsletter paid: {subs}')
+          except Exception as e:
+              print(f'Parse error: {e}')
+          " 2>/dev/null || echo "Metrics unavailable")
+
+          MSG="📊 *Daily Income Report — $(date +'%b %d %Y')*%0A%0A${GUMROAD_REV}%0A%0AAll streams running ✅"
+
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sf "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}&text=${MSG}&parse_mode=Markdown" > /dev/null || true
+          fi
+
+          echo "Income report complete"

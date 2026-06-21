@@ -1,0 +1,49 @@
+name: EAOS - Cluster Task Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent_type:
+        description: 'Target agent lane'
+        required: true
+        type: choice
+        options: [VIDEO, SOCIAL, POD, ALL]
+      directive:
+        description: 'Action directive, e.g. PRODUCE_VIDEO, POST_ARTICLE, RENDER_CATALOG'
+        required: true
+        default: 'POST_ARTICLE'
+      payload_json:
+        description: 'JSON payload for the task'
+        required: false
+        default: '{}'
+
+jobs:
+  dispatch:
+    name: Dispatch EAOS cluster task
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Enqueue task
+        env:
+          EAOS_CLUSTER_DB: ./datacenter/eaos_cluster.db
+          AGENT_TYPE: ${{ github.event.inputs.agent_type }}
+          DIRECTIVE: ${{ github.event.inputs.directive }}
+          PAYLOAD_JSON: ${{ github.event.inputs.payload_json }}
+          PYTHONUTF8: "1"
+        run: python3 scripts/enqueue_eaos_cluster_task.py
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### EAOS Cluster Dispatch" >> "$GITHUB_STEP_SUMMARY"
+          echo "Agent: ${{ github.event.inputs.agent_type }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Directive: ${{ github.event.inputs.directive }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dispatched at: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo "OCI Server: 129.146.167.73" >> "$GITHUB_STEP_SUMMARY"

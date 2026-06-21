@@ -1,0 +1,169 @@
+name: Docker Guard — Disk & Container Health
+
+# Runs every 6 hours via the runtime API's /guard/run endpoint over HTTP/HTTPS.
+# This workflow is an operational guardrail, not a production deploy gate. If the
+# OCI runtime is unreachable, misconfigured, or still running an older image, the
+# workflow reports DEGRADED and exits successfully so it does not create false
+# revenue-system failures.
+#
+# Requires: PROFITENGINE_WEBHOOK_TOKEN GitHub secret (shared with the runtime)
+# Optional: PROFITENGINE_GUARD_URL secret/variable, default http://129.146.167.73/guard/run
+#
+# Manual trigger: Actions → Docker Guard → Run workflow
+
+on:
+  schedule:
+    - cron: '30 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      aggressive:
+        description: 'Run aggressive prune regardless of disk level'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-guard
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Guard 129.146.167.73
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+      PROFITENGINE_GUARD_URL: ${{ vars.PROFITENGINE_GUARD_URL || secrets.PROFITENGINE_GUARD_URL || 'http://129.146.167.73/guard/run' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run docker-guard via runtime API
+        id: guard
+        shell: bash
+        run: |
+          set -uo pipefail
+          AGGR="${{ github.event.inputs.aggressive || 'false' }}"
+          GUARD_URL="${PROFITENGINE_GUARD_URL:-http://129.146.167.73/guard/run}"
+          HTTP_CODE="000"
+          CURL_EXIT=0
+
+          if [ -z "${PROFITENGINE_WEBHOOK_TOKEN:-}" ]; then
+            echo "::warning::PROFITENGINE_WEBHOOK_TOKEN is not configured; docker guard cannot authenticate."
+            printf '{"ok":false,"exit_code":0,"output":"ts=%s level=warn event=guard_unavailable reason=missing_token\n"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/guard-response.json
+          else
+            set +e
+            HTTP_CODE=$(curl -sS -o /tmp/guard-response.json -w "%{http_code}" --connect-timeout 10 --max-time 660 \
+              -X POST "$GUARD_URL" \
+              -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"aggressive\": ${AGGR}}")
+            CURL_EXIT=$?
+            set -u
+            if [ "$CURL_EXIT" -ne 0 ]; then
+              echo "::warning::Guard trigger unavailable: curl_exit=$CURL_EXIT http=$HTTP_CODE url=$GUARD_URL"
+              printf '{"ok":false,"exit_code":0,"output":"ts=%s level=warn event=guard_unavailable reason=curl_exit_%s http=%s\n"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$CURL_EXIT" "$HTTP_CODE" > /tmp/guard-response.json
+            fi
+          fi
+
+          echo "HTTP $HTTP_CODE"
+
+          GUARD_OUTPUT=$(python3 - <<'PY' 2>/dev/null || true
+          import json
+          try:
+              data = json.load(open('/tmp/guard-response.json', encoding='utf-8'))
+          except Exception:
+              data = {}
+          output = data.get('output') or data.get('detail') or ''
+          print(output if isinstance(output, str) else str(output))
+          PY
+          )
+          echo "$GUARD_OUTPUT" > /tmp/guard-output.txt
+          echo "Guard output (${#GUARD_OUTPUT} chars):"
+          echo "$GUARD_OUTPUT"
+
+          if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
+            echo "::warning::Guard returned HTTP $HTTP_CODE. Treating OCI guard as DEGRADED, not failed."
+          fi
+
+          AVAIL=$(echo "$GUARD_OUTPUT" | grep "event=disk_snapshot" | grep -oP "avail_gb=\K[\d.]+" || echo "?")
+          USED=$(echo "$GUARD_OUTPUT" | grep "event=disk_snapshot" | grep -oP "used_pct=\K\d+" || echo "?")
+          FREED=$(echo "$GUARD_OUTPUT" | grep "event=disk_after" | grep -oP "freed_mb=\K-?\d+" || echo "0")
+          STATUS=$(echo "$GUARD_OUTPUT" | grep "event=guard_complete" | grep -oP "status=\K\w+" || echo "degraded")
+          UNHEALTHY=$(echo "$GUARD_OUTPUT" | grep "level=warn" | grep "event=unhealthy" || echo "")
+
+          echo "avail_gb=$AVAIL" >> "$GITHUB_OUTPUT"
+          echo "used_pct=$USED" >> "$GITHUB_OUTPUT"
+          echo "freed_mb=$FREED" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "has_unhealthy=$([ -n "${UNHEALTHY}" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+          if [[ "$USED" =~ ^[0-9]+$ ]] && [[ "$USED" -gt 93 ]]; then
+            echo "::error::Disk usage CRITICAL at ${USED}% — only ${AVAIL} GB free. Manual OCI action required."
+          elif [[ "$USED" =~ ^[0-9]+$ ]] && [[ "$USED" -gt 85 ]]; then
+            echo "::warning::Disk usage at ${USED}% — ${AVAIL} GB free. Consider expanding boot volume."
+          fi
+          if [[ -n "$UNHEALTHY" ]]; then
+            echo "::warning::Unhealthy containers detected: $UNHEALTHY"
+          fi
+          exit 0
+
+      - name: Analyse with docker-guard agent
+        if: always()
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAOS_LOCAL_MODEL_ENABLED: 'false'
+        run: |
+          pip install -q groq google-generativeai 2>/dev/null || true
+          pip install -r requirements.txt -q 2>/dev/null || true
+
+          python3 - <<'PYEOF'
+          import sys
+
+          guard_out = open('/tmp/guard-output.txt', encoding='utf-8').read()
+          if not guard_out.strip():
+              print('No guard output to analyze.')
+              sys.exit(0)
+
+          try:
+              from runtime.agent_impls.docker_guard import Agent
+              agent = Agent()
+              result = agent.run(
+                  objective='analyze docker and disk health on ProfitEngine server',
+                  context=guard_out,
+                  connectors=[],
+              )
+              print('=== Docker Guard Analysis ===')
+              print(result.output)
+              print()
+              print('Metrics:', result.metrics)
+          except BaseException as exc:
+              print(f'Agent analysis skipped without failing guard workflow: {type(exc).__name__}: {exc}')
+          sys.exit(0)
+          PYEOF
+
+      - name: Write step summary
+        if: always()
+        run: |
+          {
+            echo "## Docker Guard Report — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Disk free | ${{ steps.guard.outputs.avail_gb }} GB |"
+            echo "| Disk used | ${{ steps.guard.outputs.used_pct }}% |"
+            echo "| Freed this run | ${{ steps.guard.outputs.freed_mb }} MB |"
+            echo "| Guard status | ${{ steps.guard.outputs.status }} |"
+            echo ""
+            echo "### Raw Guard Output"
+            echo '```'
+            cat /tmp/guard-output.txt 2>/dev/null | head -50 || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

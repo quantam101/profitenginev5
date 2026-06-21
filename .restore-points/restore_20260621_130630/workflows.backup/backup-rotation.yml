@@ -1,0 +1,96 @@
+name: Backup Rotation & Integrity Verification
+
+on:
+  schedule:
+    # Every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+env:
+  BACKUP_DIR: ./backups
+  RETENTION_DAYS: 28
+  BACKUP_MANIFEST: BACKUP_MANIFEST.json
+
+jobs:
+  backup-and-rotate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Create backup directory
+        run: mkdir -p ${{ env.BACKUP_DIR }}
+
+      - name: Run backup and rotation script
+        run: python scripts/backup_and_rotate.py --backup-dir=${{ env.BACKUP_DIR }} --retention-days=${{ env.RETENTION_DAYS }}
+
+      - name: Verify backup integrity
+        run: python verify_backup_integrity.py --backup-path="${{ env.BACKUP_DIR }}/$(ls -t ${{ env.BACKUP_DIR }}/BACKUP_*.zip 2>/dev/null | head -1 | xargs basename)"
+
+      - name: Generate backup manifest
+        run: |
+          python3 << 'MANIFEST'
+          import json
+          import os
+          from datetime import datetime
+
+          backup_dir = './backups'
+          backups = []
+
+          if os.path.exists(backup_dir):
+              for filename in sorted(os.listdir(backup_dir)):
+                  if filename.startswith('BACKUP_') and filename.endswith('.zip'):
+                      filepath = os.path.join(backup_dir, filename)
+                      backups.append({
+                          'filename': filename,
+                          'size_mb': round(os.path.getsize(filepath) / (1024*1024), 2),
+                          'created': os.path.getctime(filepath),
+                          'checksum': open(f'{filepath}.sha256', 'r').read().strip() if os.path.exists(f'{filepath}.sha256') else None
+                      })
+
+          manifest = {
+              'timestamp': datetime.utcnow().isoformat(),
+              'backup_count': len(backups),
+              'backups': backups,
+              'retention_days': 28
+          }
+
+          with open('BACKUP_MANIFEST.json', 'w') as f:
+              json.dump(manifest, f, indent=2)
+
+          print(f"✅ Backup manifest: {len(backups)} backups recorded")
+          MANIFEST
+
+      - name: Commit backup manifest
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add BACKUP_MANIFEST.json || true
+          git add ./backups/ || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: backup rotation - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" || true
+            git push origin main || echo "Push skipped"
+          fi
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-backups
+          path: ./backups/
+          retention-days: 60
+        if: always()
+
+      - name: Backup rotation complete
+        run: echo "✅ All backups verified, rotated, and archived"

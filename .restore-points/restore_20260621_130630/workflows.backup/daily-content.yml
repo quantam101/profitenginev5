@@ -1,0 +1,712 @@
+name: Daily Content Publisher
+
+# Publishes SEO articles to GitHub Pages (quantam101/content) through the
+# strict resilient publisher. Provider order: Groq -> Gemini -> HuggingFace ->
+# deterministic local article fallback. GitHub Pages publication is mandatory
+# when CONTENT_REPO_TOKEN is configured. If that cross-repo PAT is missing,
+# the workflow publishes to this repository with GITHUB_TOKEN so the content
+# pipeline still produces a public artifact instead of failing silent/zero.
+
+on:
+  schedule:
+    # 07:05 UTC daily - morning publish
+    - cron: '5 7 * * *'
+    # 15:05 UTC daily - afternoon publish (second article, more SEO coverage)
+    - cron: '5 15 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Article topic (leave blank for today''s rotation)'
+        required: false
+        default: ''
+      verify_only:
+        description: 'Verify publisher credentials without publishing'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-content-${{ github.event_name }}-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  validate:
+    name: Validate secrets and configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      secrets-valid: ${{ steps.secrets.outputs.valid }}
+      platforms-enabled: ${{ steps.platforms.outputs.enabled-count }}
+      total-count: ${{ steps.platforms.outputs.total-count }}
+      mode: ${{ steps.mode.outputs.publish-mode }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate required secrets
+        id: secrets
+        run: |
+          MISSING=()
+          VALID=true
+
+          # REQUIRED: Content generation and publishing only
+          # These secrets MUST be present for the workflow to proceed
+          REQUIRED_SECRETS=(
+            "GROQ_API_KEY"
+            "GEMINI_API_KEY"
+            "HF_TOKEN"
+            "CONTENT_REPO_TOKEN"
+          )
+
+          # OPTIONAL: Social media and e-commerce (19 total platform secrets)
+          # Missing optional secrets do NOT block the workflow
+          # Twitter/X (4 secrets)
+          TWITTER_SECRETS=(
+            "TWITTER_API_KEY"
+            "TWITTER_API_SECRET"
+            "TWITTER_ACCESS_TOKEN"
+            "TWITTER_ACCESS_SECRET"
+          )
+
+          # Reddit (4 secrets)
+          REDDIT_SECRETS=(
+            "REDDIT_CLIENT_ID"
+            "REDDIT_CLIENT_SECRET"
+            "REDDIT_USERNAME"
+            "REDDIT_PASSWORD"
+          )
+
+          # LinkedIn (2 secrets)
+          LINKEDIN_SECRETS=(
+            "LINKEDIN_ACCESS_TOKEN"
+            "LINKEDIN_PERSON_URN"
+          )
+
+          # Facebook (2 secrets)
+          FB_SECRETS=(
+            "FB_PAGE_ID"
+            "FB_PAGE_ACCESS_TOKEN"
+          )
+
+          # Instagram (1 secret, reuses FB token)
+          IG_SECRETS=(
+            "IG_USER_ID"
+          )
+
+          # TikTok (1 secret)
+          TIKTOK_SECRETS=(
+            "TIKTOK_ACCESS_TOKEN"
+          )
+
+          # YouTube (3 secrets)
+          YOUTUBE_SECRETS=(
+            "YOUTUBE_CLIENT_ID"
+            "YOUTUBE_CLIENT_SECRET"
+            "YOUTUBE_REFRESH_TOKEN"
+          )
+
+          # Etsy (2 secrets)
+          ETSY_SECRETS=(
+            "ETSY_SHOP_ID"
+            "ETSY_API_KEY"
+          )
+
+          # Gumroad (2 secrets)
+          GUMROAD_SECRETS=(
+            "GUMROAD_ACCESS_TOKEN"
+            "GUMROAD_PRODUCT_ID"
+          )
+
+          # Printify (2 secrets)
+          PRINTIFY_SECRETS=(
+            "PRINTIFY_API_KEY"
+            "PRINTIFY_SHOP_ID"
+          )
+
+          echo "## Critical Content Generation Secrets (REQUIRED)" >> $GITHUB_STEP_SUMMARY
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!secret}" ]; then
+              MISSING+=("$secret")
+              echo "❌ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          # If required secrets are missing, fail the job
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**BLOCKING**: Missing required secrets: ${MISSING[*]}" >> $GITHUB_STEP_SUMMARY
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Optional secrets don't block; report their status for visibility
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Optional Social Media & E-Commerce Platforms (19 secrets)" >> $GITHUB_STEP_SUMMARY
+          echo "*Missing optional secrets will disable those platforms but workflow will proceed*" >> $GITHUB_STEP_SUMMARY
+
+          # Check Twitter/X
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Twitter/X (4 secrets)" >> $GITHUB_STEP_SUMMARY
+          TWITTER_COUNT=0
+          for secret in "${TWITTER_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              TWITTER_COUNT=$((TWITTER_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$TWITTER_COUNT" -eq 4 ]; then
+            echo "Status: **ENABLED** (4/4 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($TWITTER_COUNT/4 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Reddit
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Reddit (4 secrets)" >> $GITHUB_STEP_SUMMARY
+          REDDIT_COUNT=0
+          for secret in "${REDDIT_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              REDDIT_COUNT=$((REDDIT_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$REDDIT_COUNT" -eq 4 ]; then
+            echo "Status: **ENABLED** (4/4 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($REDDIT_COUNT/4 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check LinkedIn
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### LinkedIn (2 secrets)" >> $GITHUB_STEP_SUMMARY
+          LINKEDIN_COUNT=0
+          for secret in "${LINKEDIN_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              LINKEDIN_COUNT=$((LINKEDIN_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$LINKEDIN_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($LINKEDIN_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Facebook
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Facebook (2 secrets)" >> $GITHUB_STEP_SUMMARY
+          FB_COUNT=0
+          for secret in "${FB_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              FB_COUNT=$((FB_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$FB_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($FB_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Instagram
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Instagram (1 secret, reuses FB token)" >> $GITHUB_STEP_SUMMARY
+          IG_COUNT=0
+          for secret in "${IG_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              IG_COUNT=$((IG_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$IG_COUNT" -eq 1 ] && [ "$FB_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (IG_USER_ID + FB credentials)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** (needs IG_USER_ID + FB_PAGE_ACCESS_TOKEN - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check TikTok
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### TikTok (1 secret)" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$TIKTOK_ACCESS_TOKEN" ]; then
+            echo "✅ TIKTOK_ACCESS_TOKEN" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **ENABLED** (1/1 secret)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ TIKTOK_ACCESS_TOKEN (missing)" >> $GITHUB_STEP_SUMMARY
+            echo "Status: **DISABLED** (0/1 secret - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check YouTube
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### YouTube (3 secrets)" >> $GITHUB_STEP_SUMMARY
+          YOUTUBE_COUNT=0
+          for secret in "${YOUTUBE_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              YOUTUBE_COUNT=$((YOUTUBE_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$YOUTUBE_COUNT" -eq 3 ]; then
+            echo "Status: **ENABLED** (3/3 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($YOUTUBE_COUNT/3 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Etsy
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Etsy (2 secrets)" >> $GITHUB_STEP_SUMMARY
+          ETSY_COUNT=0
+          for secret in "${ETSY_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              ETSY_COUNT=$((ETSY_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$ETSY_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($ETSY_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Gumroad
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Gumroad (2 secrets)" >> $GITHUB_STEP_SUMMARY
+          GUMROAD_COUNT=0
+          for secret in "${GUMROAD_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              GUMROAD_COUNT=$((GUMROAD_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$GUMROAD_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($GUMROAD_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Printify
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Printify (2 secrets)" >> $GITHUB_STEP_SUMMARY
+          PRINTIFY_COUNT=0
+          for secret in "${PRINTIFY_SECRETS[@]}"; do
+            if [ -n "${!secret}" ]; then
+              PRINTIFY_COUNT=$((PRINTIFY_COUNT + 1))
+              echo "✅ $secret" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $secret (missing)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          if [ "$PRINTIFY_COUNT" -eq 2 ]; then
+            echo "Status: **ENABLED** (2/2 secrets)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Status: **DISABLED** ($PRINTIFY_COUNT/2 secrets - will skip on publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "valid=true" >> $GITHUB_OUTPUT
+          echo "✅ Required secrets validated; optional platforms will be configured gracefully" >> $GITHUB_STEP_SUMMARY
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          GUMROAD_PRODUCT_ID: ${{ secrets.GUMROAD_PRODUCT_ID }}
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+
+      - name: Count enabled platforms
+        id: platforms
+        run: |
+          TOTAL_PLATFORMS=0
+          ENABLED_PLATFORMS=0
+
+          # Define all 19 platform secrets for counting
+          PLATFORMS=(
+            "TWITTER_API_KEY:Twitter/X"
+            "REDDIT_CLIENT_ID:Reddit"
+            "LINKEDIN_ACCESS_TOKEN:LinkedIn"
+            "FB_PAGE_ID:Facebook"
+            "IG_USER_ID:Instagram"
+            "TIKTOK_ACCESS_TOKEN:TikTok"
+            "YOUTUBE_CLIENT_ID:YouTube"
+            "ETSY_SHOP_ID:Etsy"
+            "GUMROAD_ACCESS_TOKEN:Gumroad"
+            "PRINTIFY_API_KEY:Printify"
+          )
+
+          PLATFORM_LIST=""
+          for item in "${PLATFORMS[@]}"; do
+            VAR="${item%%:*}"
+            LABEL="${item##*:}"
+            TOTAL_PLATFORMS=$((TOTAL_PLATFORMS + 1))
+            if [ -n "${!VAR}" ]; then
+              ENABLED_PLATFORMS=$((ENABLED_PLATFORMS + 1))
+              PLATFORM_LIST="$PLATFORM_LIST\n  ✅ $LABEL"
+            else
+              PLATFORM_LIST="$PLATFORM_LIST\n  ⚠️ $LABEL (disabled)"
+            fi
+          done
+
+          echo "enabled-count=$ENABLED_PLATFORMS" >> $GITHUB_OUTPUT
+          echo "total-count=$TOTAL_PLATFORMS" >> $GITHUB_OUTPUT
+          echo -e "## Enabled Platforms ($ENABLED_PLATFORMS/$TOTAL_PLATFORMS):$PLATFORM_LIST" >> $GITHUB_STEP_SUMMARY
+        env:
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+
+      - name: Determine publish mode
+        id: mode
+        run: |
+          if [ "${{ github.event.inputs.verify_only }}" == "true" ]; then
+            echo "publish-mode=verify-only" >> $GITHUB_OUTPUT
+            echo "Mode: VERIFY ONLY (dry-run, no publishing)"
+          else
+            echo "publish-mode=publish" >> $GITHUB_OUTPUT
+            echo "Mode: PUBLISH (all content will be published)"
+          fi >> $GITHUB_STEP_SUMMARY
+
+  publish:
+    name: Generate and publish article
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 12
+    if: needs.validate.outputs.secrets-valid == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install httpx pillow python-dotenv
+
+      - name: Publish article + social blast
+        id: publish
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_CONTENT_DIR: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'posts' || 'generated-content/posts' }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+          CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
+          CONTENT_TIMEOUT_SEC: "600"
+          EAOS_SOCIAL_TIMEOUT_SEC: "180"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          GUMROAD_PRODUCT_ID: ${{ secrets.GUMROAD_PRODUCT_ID }}
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+        run: python scripts/publish_article_resilient.py
+
+      - name: Capture distribution report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: distribution-report
+          path: |
+            publish_results.json
+            distribution_report.json
+            publish_logs.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Parse and display publish results
+        if: always()
+        id: results
+        run: |
+          if [ -f "publish_results.json" ]; then
+            echo "## Distribution Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat publish_results.json >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "distribution_report.json" ]; then
+            echo "## Platform Distribution Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat distribution_report.json >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      - name: Verify article publication
+        if: steps.publish.outcome == 'success'
+        id: verify
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import os
+          import httpx
+          import time
+
+          owner = os.getenv("GITHUB_CONTENT_OWNER", "quantam101")
+          repo = os.getenv("GITHUB_CONTENT_REPO", "content")
+          branch = os.getenv("GITHUB_CONTENT_BRANCH", "main")
+
+          # Give GitHub a moment to sync
+          time.sleep(2)
+
+          # Check GitHub Pages content is reachable
+          api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/posts"
+          try:
+            resp = httpx.get(api_url, timeout=10)
+            if resp.status_code == 200:
+              posts = resp.json()
+              if isinstance(posts, list) and len(posts) > 0:
+                latest = sorted(posts, key=lambda x: x.get("name", ""))[-1]
+                print(f"✅ Latest post: {latest.get('name')}")
+                print(f"   URL: https://quantam101.github.io/content/{latest.get('name')}")
+              else:
+                print("⚠️ Posts directory exists but is empty")
+            else:
+              print(f"⚠️ GitHub API returned {resp.status_code}")
+          except Exception as e:
+            print(f"⚠️ Could not verify publication: {e}")
+          PY
+        env:
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
+          GITHUB_CONTENT_BRANCH: main
+
+      - name: Alert on publish failure
+        if: steps.publish.outcome == 'failure'
+        run: |
+          echo "❌ Article publishing failed"
+          echo "Review: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          exit 1
+
+      - name: Display distribution status in summary
+        if: always()
+        run: |
+          echo "### 📰 Content Pipeline Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Publish Status**: ${{ steps.publish.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Verification**: ${{ steps.verify.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode**: ${{ needs.validate.outputs.mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📤 Platform Distribution (19 Platforms)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Enabled Platforms**: ${{ needs.validate.outputs.platforms-enabled }}/${{ needs.validate.outputs.total-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Social Media & E-Commerce Channels**:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Social Media** (10): Twitter/X, Reddit, LinkedIn, Facebook, Instagram, TikTok, YouTube, Telegram, Dev.to, Hashnode" >> $GITHUB_STEP_SUMMARY
+          echo "- **E-Commerce** (3): Etsy, Gumroad, Printify" >> $GITHUB_STEP_SUMMARY
+          echo "- **Primary** (1): GitHub Pages (quantam101.github.io/content)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Fallback** (1): GitHub Repository" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts**:" >> $GITHUB_STEP_SUMMARY
+          echo "- Distribution Report: [distribution-report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Run**: [View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+  video:
+    name: Generate article video (FFmpeg slideshow)
+    runs-on: ubuntu-latest
+    needs: [validate, publish]
+    timeout-minutes: 18
+    if: ${{ always() && needs.publish.outcome == 'success' && needs.validate.outputs.platforms-enabled > 0 }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install ffmpeg + Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --fix-missing ffmpeg
+          pip install --upgrade pip
+          pip install httpx pillow
+
+      - name: Generate video
+        id: generate
+        timeout-minutes: 15
+        continue-on-error: true
+        env:
+          ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
+          CANONICAL_URL: https://www.alreadyherellc.com/content
+          PUBLIC_CONTENT_BASE: https://www.alreadyherellc.com/content
+          EAOS_GPU_ENABLED: "false"
+          EAOS_VIDEO_ROOT: ./datacenter/video_pipeline
+          VIDEO_STRICT: "true"
+          MIN_VIDEO_BYTES: "250000"
+          ENABLE_HF_IMAGE_SCENES: "true"
+          MAX_HF_IMAGE_SCENES: "2"
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GITHUB_CONTENT_OWNER: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'quantam101' || github.repository_owner }}
+          GITHUB_CONTENT_REPO: ${{ secrets.CONTENT_REPO_TOKEN != '' && 'content' || github.event.repository.name }}
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_VIDEO_DIR: assets/videos
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+        run: python scripts/generate_video.py
+
+      - name: Upload video artifact
+        if: steps.generate.outcome == 'success'
+        uses: actions/upload-artifact@v5
+        with:
+          name: article-video
+          path: |
+            datacenter/video_pipeline/**/*.mp4
+            datacenter/video_pipeline/logs/*.json
+            datacenter/video_pipeline/logs/*.srt
+            datacenter/video_pipeline/logs/*.vtt
+            datacenter/video_pipeline/asset_pack/**
+            datacenter/video_pipeline/ai_scenes/*.png
+          retention-days: 7
+
+      - name: Video generation summary
+        if: always()
+        run: |
+          echo "### 🎬 Video Pipeline Report" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.generate.outcome }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.generate.outcome }}" = "success" ]; then
+            echo "✅ Video generated and archived as artifact" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Video generation skipped or failed (article still published)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  health-check:
+    name: Post-publish health check
+    runs-on: ubuntu-latest
+    needs: [validate, publish, video]
+    timeout-minutes: 3
+    if: always()
+
+    steps:
+      - name: Workflow health status
+        run: |
+          echo "### 🏥 Pipeline Health" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Article Publish | ${{ needs.publish.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Video Generation | ${{ needs.video.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.publish.result }}" != "success" ]; then
+            echo "🚨 **ALERT**: Article publishing failed. Content may not be live." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "[View full logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          if [ "${{ needs.video.result }}" == "failure" ]; then
+            echo "⚠️ **WARNING**: Video generation failed, but article is published." >> $GITHUB_STEP_SUMMARY
+          fi

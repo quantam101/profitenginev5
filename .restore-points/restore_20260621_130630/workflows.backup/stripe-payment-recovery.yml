@@ -1,0 +1,45 @@
+name: Stripe Payment Recovery
+
+on:
+  schedule:
+    # Run at 09:00 UTC daily (checks for failed charges from past 5 days)
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'Check charges from past N days'
+        required: false
+        default: '5'
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  payment-recovery:
+    name: Check failed payments and send recovery emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install httpx
+
+      - name: Run payment recovery check
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python scripts/stripe_payment_recovery.py
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Payment recovery check failed. Check logs above."
+          exit 1

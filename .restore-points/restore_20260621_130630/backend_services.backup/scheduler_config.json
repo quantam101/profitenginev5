@@ -1,0 +1,34 @@
+{
+  "schedules": [
+    {
+      "name": "youtube_sync",
+      "service": "YouTubeRevenueAnalytics",
+      "cron": "0 8 * * *",
+      "description": "YouTube AdSense sync (daily 08:00 UTC)"
+    },
+    {
+      "name": "stripe_sync",
+      "service": "StripeTransport",
+      "cron": "0 9 * * *",
+      "description": "Stripe revenue sync (daily 09:00 UTC)"
+    },
+    {
+      "name": "gumroad_sync",
+      "service": "GumroadService",
+      "cron": "0 10 * * *",
+      "description": "Gumroad sales sync (daily 10:00 UTC)"
+    },
+    {
+      "name": "content_publish",
+      "service": "ProofPublisher",
+      "cron": "0 12 * * *",
+      "description": "Content publishing (daily 12:00 UTC)"
+    },
+    {
+      "name": "distillation_stats",
+      "service": "Distiller",
+      "cron": "0 14 * * *",
+      "description": "LLM cost tracking (daily 14:00 UTC)"
+    }
+  ]
+}

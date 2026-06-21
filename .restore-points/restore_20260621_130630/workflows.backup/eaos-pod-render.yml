@@ -1,0 +1,181 @@
+name: EAOS POD Render and Printify Push
+
+# Renders all 8 Already Here LLC SKUs (4500x5400 300DPI PNG).
+# Printify API blocks GitHub Actions runner IPs (Cloudflare error 1010),
+# so artwork is uploaded to the OCI runtime (/pod/push) which has a real
+# static IP. Products are auto-published to the Etsy-connected shop.
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  repository_dispatch:
+    types:
+      - eaos-pod-render
+  workflow_dispatch:
+    inputs:
+      sku:
+        description: 'Specific SKU to render (e.g. AHL-001) - blank = all 8'
+        required: false
+        default: ''
+      push_to_printify:
+        description: 'Push rendered artwork to Printify?'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+      strict_printify:
+        description: 'Fail workflow if Printify push or verification fails?'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
+
+jobs:
+  render:
+    name: Render POD artwork + Printify push
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Pillow + OCR gate (tesseract validates FLUX typography)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr
+          pip install pillow pytesseract
+
+      - name: Show workflow version
+        run: |
+          echo "Workflow commit: $GITHUB_SHA"
+          git --no-pager log -1 --oneline
+
+      - name: Validate Printify shop (direct API)
+        if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
+        env:
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+          STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
+        run: |
+          set +e
+          HTTP=$(curl -s -o printify_status_before.json -w "%{http_code}" --max-time 30 \
+            -H "Authorization: Bearer ${PRINTIFY_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -H "User-Agent: Mozilla/5.0 (compatible; ProfitEngine/1.0)" \
+            "https://api.printify.com/v1/shops/${PRINTIFY_SHOP_ID}/products.json?limit=1")
+          echo "HTTP $HTTP"; cat printify_status_before.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Products: {len(d.get(\"data\",[]))}')" 2>/dev/null || cat printify_status_before.json
+          if [[ ! "$HTTP" =~ ^2 ]]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify shop validation failed."; exit 1
+            fi
+            echo "::warning::Printify shop validation failed (HTTP $HTTP); continuing."
+          fi
+
+      - name: Render SKUs (FLUX AI art via HuggingFace, Pillow fallback)
+        env:
+          EAOS_POD_ROOT: ./datacenter/pod_factory
+          EAOS_POD_DB: ./datacenter/pod_cache.db
+          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PYTHONUTF8: "1"
+        run: python3 scripts/render_pod_catalog.py
+
+      - name: Push artwork to Printify via OCI runtime /pod/push
+        if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
+        env:
+          RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+          EAOS_POD_ROOT: ./datacenter/pod_factory
+          TARGET_SKU: ${{ inputs.sku || github.event.client_payload.sku || '' }}
+          STRICT_PRINTIFY: ${{ inputs.strict_printify || github.event.client_payload.strict_printify || 'false' }}
+        run: |
+          set +e
+          BASE="${RUNTIME_API_URL:-https://api.profitengine.alreadyherellc.com}"
+          PUSHED=0
+          if [ -n "$PROFITENGINE_WEBHOOK_TOKEN" ]; then
+            # Primary path: upload rendered PNGs to the OCI runtime, which pushes
+            # to Printify from its static IP when runner IPs are blocked.
+            FORM_ARGS=()
+            for f in datacenter/pod_factory/render_cache/*.png; do
+              [ -f "$f" ] && FORM_ARGS+=(-F "artwork=@${f};type=image/png")
+            done
+            if [ ${#FORM_ARGS[@]} -eq 0 ]; then
+              echo "::warning::No rendered artwork found to push."
+            else
+              HTTP=$(curl -s -o /tmp/pod_push.json -w "%{http_code}" --max-time 300 \
+                -X POST "$BASE/pod/push?target_sku=${TARGET_SKU}" \
+                -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+                "${FORM_ARGS[@]}")
+              echo "POST /pod/push HTTP $HTTP"
+              python3 -c "import json; d=json.load(open('/tmp/pod_push.json')); print(d.get('output',''))" 2>/dev/null | tee /tmp/push_log.txt
+              PUSHED=$(grep -Ec "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt 2>/dev/null || true)
+              PUSHED=${PUSHED:-0}
+            fi
+          fi
+          if [ "$PUSHED" -eq 0 ]; then
+            echo "Runtime push unavailable or pushed 0 - falling back to direct push from runner."
+            python3 scripts/push_printify_catalog.py 2>&1 | tee /tmp/push_log.txt
+            PUSHED=$(grep -Ec "\[Printify\] (Product created:|[A-Z0-9-]+ pushed)" /tmp/push_log.txt 2>/dev/null || true)
+            PUSHED=${PUSHED:-0}
+          fi
+          echo "Products pushed: $PUSHED"
+          echo "pushed=$PUSHED" >> "$GITHUB_OUTPUT"
+          if [ "$PUSHED" -eq 0 ]; then
+            if [ "$STRICT_PRINTIFY" = "true" ]; then
+              echo "::error::Printify push failed - 0 products pushed."
+              exit 1
+            fi
+            echo "::warning::Printify push returned 0 products - artwork saved as artifact."
+          fi
+
+      - name: Verify products after push (direct API)
+        if: ${{ (inputs.push_to_printify || github.event.client_payload.push_to_printify || 'true') != 'false' }}
+        env:
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+        run: |
+          set +e
+          curl -s -o printify_status_after.json --max-time 30 \
+            -H "Authorization: Bearer ${PRINTIFY_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -H "User-Agent: Mozilla/5.0 (compatible; ProfitEngine/1.0)" \
+            "https://api.printify.com/v1/shops/${PRINTIFY_SHOP_ID}/products.json?limit=100" || true
+          TOTAL=$(python3 -c "import json; d=json.load(open('printify_status_after.json')); print(len(d.get('data',[])))" 2>/dev/null || echo "?")
+          echo "Products in Printify shop: $TOTAL"
+          echo "::notice::Printify shop has $TOTAL products after push"
+
+      - name: Upload rendered artwork
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: pod-artwork-${{ github.run_id }}
+          path: datacenter/pod_factory/render_cache/*.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### EAOS POD Render & Printify Push" >> $GITHUB_STEP_SUMMARY
+          echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "Target SKU: ${{ inputs.sku || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Printify dashboard:** https://printify.com/app/store/products" >> $GITHUB_STEP_SUMMARY
+          echo "**Etsy shop:** https://www.etsy.com/shop/AlreadyHereLLC" >> $GITHUB_STEP_SUMMARY
+          for f in printify_status_before.json printify_status_after.json; do
+            if [ -f "$f" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "#### $f" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              cat "$f" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          done

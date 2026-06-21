@@ -1,0 +1,97 @@
+name: Emergency Recovery - SSH Direct
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Recovery action'
+        required: true
+        type: choice
+        options:
+          - restart-docker
+          - reboot-system
+          - check-status
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    name: Emergency SSH Recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/opc_key << 'EOF'
+          ${{ secrets.OCI_SSH_KEY }}
+          EOF
+          chmod 600 ~/.ssh/opc_key
+          ssh-keyscan -H 129.146.167.73 >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Restart Docker
+        if: inputs.action == 'restart-docker'
+        run: |
+          ssh -i ~/.ssh/opc_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 opc@129.146.167.73 << 'SHELL'
+          set -e
+          echo "Checking Docker containers..."
+          docker ps -a | head -20
+          echo ""
+          echo "Restarting runtime container..."
+          docker ps -a | grep -i runtime | awk '{print $1}' | xargs -I {} docker restart {} || echo "No runtime container found"
+          echo ""
+          echo "Waiting 15 seconds for startup..."
+          sleep 15
+          docker ps | grep -i runtime || echo "Container not yet running"
+          SHELL
+
+      - name: Reboot System
+        if: inputs.action == 'reboot-system'
+        run: |
+          ssh -i ~/.ssh/opc_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 opc@129.146.167.73 << 'SHELL'
+          echo "Initiating emergency reboot..."
+          sudo shutdown -r 1 "Emergency recovery reboot" || sudo reboot
+          SHELL
+          echo "Reboot initiated. Waiting 120 seconds..."
+          sleep 120
+
+      - name: Check Status
+        if: inputs.action == 'check-status'
+        run: |
+          ssh -i ~/.ssh/opc_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 opc@129.146.167.73 << 'SHELL'
+          echo "=== INSTANCE STATUS ==="
+          echo "Hostname: $(hostname)"
+          echo "Uptime: $(uptime)"
+          echo ""
+          echo "=== DOCKER STATUS ==="
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "Docker not responding"
+          echo ""
+          echo "=== DISK USAGE ==="
+          df -h / | tail -1
+          echo ""
+          echo "=== MEMORY ==="
+          free -h | grep Mem
+          SHELL
+
+      - name: Wait for API Recovery
+        if: inputs.action != 'check-status'
+        run: |
+          echo "Waiting for Runtime API to respond (up to 3 minutes)..."
+          for i in {1..36}; do
+            if curl -s -f -m 10 https://api.profitengine.alreadyherellc.com/health > /dev/null 2>&1; then
+              echo "✅ API is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/36..."
+            sleep 5
+          done
+          echo "⚠️ API recovery timeout - may still be starting"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/opc_key

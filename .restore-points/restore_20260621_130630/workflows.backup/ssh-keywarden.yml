@@ -1,0 +1,99 @@
+name: SSH Key Warden
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  keywarden:
+    name: Verify SSH access and enforce authorized_keys
+    runs-on: ubuntu-latest
+    env:
+      OCI_HOST: 129.146.167.73
+    steps:
+      - name: Check SSH reachability
+        id: check
+        run: |
+          if timeout 10 bash -c "</dev/tcp/${OCI_HOST}/22" 2>/dev/null; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+            echo "SSH port is open"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SSH port 22 is not reachable on ${OCI_HOST}"
+          fi
+
+      - name: Enforce authorized_keys
+        if: steps.check.outputs.reachable == 'true'
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          KEY_FILES=()
+          if [ -n "${SERVER_SSH_KEY:-}" ]; then
+            printf '%s\n' "$SERVER_SSH_KEY" > /tmp/server_ssh_key
+            chmod 600 /tmp/server_ssh_key
+            KEY_FILES+=("/tmp/server_ssh_key")
+          fi
+          if [ -n "${OCI_SSH_KEY:-}" ]; then
+            printf '%s\n' "$OCI_SSH_KEY" > /tmp/oci_ssh_key
+            chmod 600 /tmp/oci_ssh_key
+            KEY_FILES+=("/tmp/oci_ssh_key")
+          fi
+
+          if [ "${#KEY_FILES[@]}" -eq 0 ]; then
+            echo "::warning::No SSH private key secrets are configured."
+            exit 0
+          fi
+
+          STEPHEN_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWOpmhKqA1QoSoCC4fv3Ee2Ie9TpdYXuokmDaUE+I9+ez6CA0I9tFMQr8HPGYoV6nvVL5uobSq8JEaObf7iBVdDu2aZYTVVGfCYenm2s+OWEikdAyVujNJ2GGWzKETbEjziq2ag23MSJ9UC4OETQb0fxiG+n+rGmzQV/pch9PYMMlDiLemZ8c476hL5MUf8DYWbdGUxrEz2eB4gxIj292Z+Rr/YbFXY8V75M24oIzhBZZp3LMwvI/ZzC8ZYxncFivyZZHMRWuvlpRcJZMtOlNtogXFvVBJpOPnTjbyhS4cqmLV0Xtbvsfuq6ZkFEvz6M03yOPp3/r8OUVgKiU4+tY5 oci_cmdos_oci-stephen"
+          DEVIN_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp2I2ngE5QRsB9HyLbZCpxBwylhntz7IaElLbcto2FU devin-deploy-profitenginev5"
+          DEPLOY_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions"
+
+          AUTH_USER=""
+          AUTH_KEY=""
+          for key_file in "${KEY_FILES[@]}"; do
+            for user in opc ubuntu; do
+              echo "Trying SSH auth as ${user} with ${key_file##*/}"
+              if ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 \
+                   -i "$key_file" "${user}@${OCI_HOST}" "echo WARDEN_OK" 2>/dev/null; then
+                AUTH_USER="$user"
+                AUTH_KEY="$key_file"
+                break 2
+              fi
+            done
+          done
+
+          if [ -n "$AUTH_USER" ] && [ -n "$AUTH_KEY" ]; then
+            echo "SSH auth confirmed as ${AUTH_USER}; enforcing authorized_keys..."
+            ssh -o StrictHostKeyChecking=no -o BatchMode=yes \
+                -i "$AUTH_KEY" "${AUTH_USER}@${OCI_HOST}" "
+              mkdir -p ~/.ssh && chmod 700 ~/.ssh
+              touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+              for key in '$STEPHEN_KEY' '$DEVIN_KEY' '$DEPLOY_KEY'; do
+                if ! grep -qF \"\$key\" ~/.ssh/authorized_keys 2>/dev/null; then
+                  echo \"\$key\" >> ~/.ssh/authorized_keys
+                  echo \"Added: \${key##* }\"
+                fi
+              done
+              sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys
+              echo \"authorized_keys total: \$(wc -l < ~/.ssh/authorized_keys)\"
+            "
+            echo "::notice::authorized_keys enforced on ${OCI_HOST}"
+          else
+            echo "::warning::SSH not authorized with SERVER_SSH_KEY or OCI_SSH_KEY for users opc/ubuntu. OCI Console intervention needed."
+            echo "Run scripts/ensure-authorized-keys.sh from OCI serial console to restore access."
+          fi
+
+          rm -f /tmp/server_ssh_key /tmp/oci_ssh_key
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "### SSH Keywarden Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "Host: ${OCI_HOST}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**If SSH fails:** run \`scripts/ensure-authorized-keys.sh\` from OCI serial console." >> "$GITHUB_STEP_SUMMARY"

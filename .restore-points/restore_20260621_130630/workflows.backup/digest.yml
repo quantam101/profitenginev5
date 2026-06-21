@@ -1,0 +1,31 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 07:00 UTC every day
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    name: Send morning digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true   # runtime outages must not block CI status
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+
+    steps:
+      - name: Trigger digest via runtime API
+        run: |
+          code=$(curl -s -o /tmp/digest_response.json -w "%{http_code}" --max-time 60 \
+            -X POST "http://129.146.167.73/digest/run" \
+            -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json")
+          echo "HTTP $code"
+          cat /tmp/digest_response.json || true
+          if [[ "$code" =~ ^2 ]]; then
+            echo "::notice::Digest triggered successfully (HTTP $code)"
+          else
+            echo "::warning::Digest trigger failed (HTTP $code) — runtime unreachable or misconfigured. Check http://129.146.167.73/digest/run"
+          fi

@@ -1,0 +1,215 @@
+name: OCI Runtime Mirror Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      cmdos_host:
+        description: 'Command OS server IP or DNS name to deploy to'
+        required: false
+        default: '129.146.236.177'
+        type: string
+      app_dir:
+        description: 'Checkout path on CMDOS host'
+        required: false
+        default: '/home/opc/profitenginev5'
+        type: string
+      strict_health:
+        description: 'Fail the workflow if post-update health is not OK'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cmdos-deploy
+  cancel-in-progress: true
+
+env:
+  CMDOS_HOST: '129.146.236.177'
+  DEFAULT_APP_DIR: '/home/opc/profitenginev5'
+  HEALTH_URL: 'http://129.146.236.177/health'
+
+jobs:
+  oci_preflight:
+    name: OCI reachability gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      host: ${{ steps.check.outputs.host }}
+      app_dir: ${{ steps.check.outputs.app_dir }}
+      http_ok: ${{ steps.check.outputs.http_ok }}
+      https_ok: ${{ steps.check.outputs.https_ok }}
+      ssh_ok: ${{ steps.check.outputs.ssh_ok }}
+      ready_for_ssh_deploy: ${{ steps.check.outputs.ready_for_ssh_deploy }}
+    steps:
+      - name: Check OCI HTTP, HTTPS, and SSH reachability
+        id: check
+        shell: bash
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          HOST="${{ github.event.inputs.cmdos_host }}"
+          APP_DIR="${{ github.event.inputs.app_dir }}"
+          if [ -z "$HOST" ]; then HOST="$CMDOS_HOST"; fi
+          if [ -z "$APP_DIR" ]; then APP_DIR="$DEFAULT_APP_DIR"; fi
+
+          check_url() {
+            local url="$1"
+            for _ in 1 2 3; do
+              if curl -fsS --connect-timeout 5 --max-time 10 "$url" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          check_tcp() {
+            local host="$1"
+            local port="$2"
+            for _ in 1 2 3; do
+              if timeout 10 bash -c "</dev/tcp/$host/$port" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          HTTP_OK=false
+          HTTPS_OK=false
+          SSH_OK=false
+
+          if check_url "http://$HOST/health" || check_url "http://$HOST/"; then HTTP_OK=true; fi
+          if check_url "https://$HOST/health" || check_url "https://$HOST/"; then HTTPS_OK=true; fi
+          if check_tcp "$HOST" 22; then SSH_OK=true; fi
+
+          READY=false
+          if [ "$SSH_OK" = "true" ] && [ -n "${SERVER_SSH_KEY:-}" ]; then READY=true; fi
+
+          echo "host=$HOST" >> "$GITHUB_OUTPUT"
+          echo "app_dir=$APP_DIR" >> "$GITHUB_OUTPUT"
+          echo "http_ok=$HTTP_OK" >> "$GITHUB_OUTPUT"
+          echo "https_ok=$HTTPS_OK" >> "$GITHUB_OUTPUT"
+          echo "ssh_ok=$SSH_OK" >> "$GITHUB_OUTPUT"
+          echo "ready_for_ssh_deploy=$READY" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## OCI runtime mirror deploy gate"
+            echo ""
+            echo "| Check | Result |"
+            echo "|-------|--------|"
+            echo "| Host | $HOST |"
+            echo "| App dir | $APP_DIR |"
+            echo "| HTTP reachable | $HTTP_OK |"
+            echo "| HTTPS reachable | $HTTPS_OK |"
+            echo "| SSH reachable | $SSH_OK |"
+            echo "| Credentialed SSH deploy ready | $READY |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  print_recovery_path:
+    name: Print OCI console recovery path
+    runs-on: ubuntu-latest
+    needs: oci_preflight
+    if: needs.oci_preflight.outputs.ready_for_ssh_deploy != 'true'
+    steps:
+      - name: Print deterministic host-side install command
+        shell: bash
+        run: |
+          APP_DIR="${{ needs.oci_preflight.outputs.app_dir }}"
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## OCI deploy not run from GitHub Actions
+
+          SSH is not reachable from this runner or SERVER_SSH_KEY is not configured. This is not a Vercel production failure.
+
+          Run this from OCI console, serial console, or an already-authenticated shell:
+
+          \`\`\`bash
+          cd ${APP_DIR}
+          git fetch origin main
+          git reset --hard origin/main
+          sudo APP_DIR=${APP_DIR} bash scripts/install-oci-runtime-updater.sh
+          APP_DIR=${APP_DIR} bash scripts/oci-runtime-update.sh
+          \`\`\`
+          EOF
+
+  install_and_update:
+    name: Install updater and run OCI mirror update
+    runs-on: ubuntu-latest
+    needs: oci_preflight
+    if: needs.oci_preflight.outputs.ready_for_ssh_deploy == 'true'
+    timeout-minutes: 20
+    steps:
+      - name: Prepare SSH key
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          cat > /tmp/ssh_cmd <<'EOF'
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -i /tmp/deploy_key
+          EOF
+          chmod +x /tmp/ssh_cmd
+
+      - name: Install host updater and run one-shot update
+        shell: bash
+        run: |
+          set -uo pipefail
+          HOST="${{ needs.oci_preflight.outputs.host }}"
+          APP_DIR="${{ needs.oci_preflight.outputs.app_dir }}"
+
+          set +e
+          $(cat /tmp/ssh_cmd) opc@"$HOST" "APP_DIR='$APP_DIR' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          cd "$APP_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+          chmod +x scripts/oci-runtime-update.sh scripts/install-oci-runtime-updater.sh
+          sudo APP_DIR="$APP_DIR" bash scripts/install-oci-runtime-updater.sh
+          APP_DIR="$APP_DIR" bash scripts/oci-runtime-update.sh
+          REMOTE
+          SSH_EXIT=$?
+          set -u
+
+          if [ "$SSH_EXIT" -ne 0 ]; then
+            echo "::warning::OCI SSH deploy exited with code $SSH_EXIT. Treating as DEGRADED — Vercel remains primary production."
+            {
+              echo "## OCI runtime mirror deploy — SSH failed"
+              echo ""
+              echo "SSH exit code: $SSH_EXIT"
+              echo "This does not affect the primary Vercel production deployment."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+      - name: External runtime health verification
+        shell: bash
+        run: |
+          set -uo pipefail
+          STRICT="${{ github.event.inputs.strict_health }}"
+          STATUS="unreachable"
+          for _ in $(seq 1 12); do
+            if curl -fsS --connect-timeout 5 --max-time 15 "$HEALTH_URL" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get('ok') is True or d.get('status') == 'ok' else 1)"; then
+              STATUS="ok"
+              break
+            fi
+            sleep 5
+          done
+          echo "Runtime health post-update: $STATUS"
+          if [ "$STATUS" = "ok" ]; then
+            echo "::notice::OCI runtime mirror is healthy after update"
+            exit 0
+          fi
+          if [ "$STRICT" = "true" ]; then
+            echo "::error::OCI runtime mirror health failed and strict_health=true"
+            exit 1
+          fi
+          echo "::warning::OCI runtime mirror health is degraded. Vercel remains primary production."
+          exit 0
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key /tmp/ssh_cmd

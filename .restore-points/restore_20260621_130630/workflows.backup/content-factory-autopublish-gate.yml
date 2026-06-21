@@ -1,0 +1,52 @@
+name: Content Factory Autopublish Gate
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "campaigns/**"
+      - "content-factory/**"
+      - "connectors/huggingface/**"
+      - "ops/autopublish/**"
+      - "scripts/content_factory_run.py"
+      - "scripts/autopublish_gate.py"
+      - "tests/test_content_factory.py"
+      - "tests/test_autopublish_gate.py"
+      - "package.json"
+
+jobs:
+  validate:
+    name: Validate content factory and autopublish gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python test dependency
+        run: python -m pip install pytest
+
+      - name: Generate content factory assets
+        run: npm run content:factory
+
+      - name: Confirm warmup gate is queue-only today
+        run: npm run autopublish:gate
+
+      - name: Run content factory tests
+        run: npm run test:content-factory
+
+      - name: Run autopublish gate tests
+        run: npm run test:autopublish-gate

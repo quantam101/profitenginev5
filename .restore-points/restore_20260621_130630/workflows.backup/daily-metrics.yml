@@ -1,0 +1,82 @@
+name: Daily Metrics Report
+on:
+  schedule:
+    # Run at 6 PM MST (1 AM UTC next day) every day
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  generate-metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install reportlab
+
+      - name: Download latest clients.db
+        env:
+          PROFITENGINE_DB_URL: ${{ secrets.PROFITENGINE_DB_URL }}
+        run: |
+          if [ ! -z "$PROFITENGINE_DB_URL" ]; then
+            mkdir -p ./data
+            curl -L "$PROFITENGINE_DB_URL" -o clients.db
+            ls -lah clients.db
+          fi
+
+      - name: Generate daily metrics report
+        env:
+          METRICS_EMAIL_SENDER: ${{ secrets.METRICS_EMAIL_SENDER }}
+          METRICS_EMAIL_RECIPIENTS: ${{ secrets.METRICS_EMAIL_RECIPIENTS }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          python runtime/daily_metrics_scheduler.py
+
+      - name: Upload reports to artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily-metrics-reports
+          path: runtime/metrics_reports/
+          retention-days: 90
+
+      - name: Commit and push reports
+        if: always()
+        run: |
+          git config --local user.email "metrics@profitengine.ai"
+          git config --local user.name "ProfitEngine Metrics Bot"
+          git add -A runtime/metrics_reports/ runtime/metrics_history/
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "chore: daily metrics report - $(date -u +'%Y-%m-%d')"
+            git push
+          )
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✓ Daily metrics report generated successfully"
+          echo "Report files available in artifacts"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "✗ Daily metrics report generation failed"
+          exit 1

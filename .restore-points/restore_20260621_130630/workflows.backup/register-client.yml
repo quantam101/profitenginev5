@@ -1,0 +1,61 @@
+name: Register First Client
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Client email address'
+        required: true
+        default: 'dispatch@alreadyherellc.com'
+      role:
+        description: 'Client role'
+        required: false
+        default: 'client'
+      use_case:
+        description: 'Use case description'
+        required: false
+        default: 'Already Here LLC - field service dispatch and content publishing, Cohort 1'
+
+jobs:
+  register:
+    name: Register client on waitlist
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      # Switched off SSH/SCP — port 22 to the OCI host is subject to an
+      # automated probe-detection ban that also catches GitHub Actions runner
+      # IP ranges. The backend is reachable directly over HTTPS through Caddy
+      # at api.alreadyherellc.com (default route → backend:8001), so we can
+      # call /api/waitlist straight from the runner with no SSH involved.
+      - name: Register client via backend HTTPS API
+        env:
+          CLIENT_EMAIL: ${{ github.event.inputs.email }}
+          CLIENT_ROLE: ${{ github.event.inputs.role }}
+          CLIENT_USE_CASE: ${{ github.event.inputs.use_case }}
+        run: |
+          PAYLOAD=$(python3 -c "
+          import json, os
+          print(json.dumps({
+            'email':    os.environ['CLIENT_EMAIL'],
+            'role':     os.environ.get('CLIENT_ROLE', 'client'),
+            'use_case': os.environ.get('CLIENT_USE_CASE', ''),
+          }))
+          ")
+          echo "Payload: $PAYLOAD"
+
+          HTTP_CODE=$(curl -s -o /tmp/register-response.json -w "%{http_code}" --max-time 30 \
+            -X POST "https://api.alreadyherellc.com/api/waitlist" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/register-response.json || true
+
+          if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
+            echo "::error::Registration failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          echo "::notice::Client registered successfully (HTTP $HTTP_CODE)"

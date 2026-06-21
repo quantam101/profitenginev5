@@ -1,0 +1,161 @@
+name: Verify Content Distribution System
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/social_media_publishers.py'
+      - 'scripts/ecommerce_publishers.py'
+      - 'scripts/test_distribution.py'
+      - '.github/workflows/verify-distribution.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/social_media_publishers.py'
+      - 'scripts/ecommerce_publishers.py'
+      - 'scripts/test_distribution.py'
+  workflow_dispatch:
+
+jobs:
+  verify-distribution:
+    name: Check Distribution Credentials
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install httpx
+
+      - name: Run distribution verification (check-only)
+        env:
+          # Social Media Platform Secrets
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          REDDIT_SUBREDDIT: ${{ secrets.REDDIT_SUBREDDIT }}
+
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+          # E-Commerce Platform Secrets
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+
+          GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+          GUMROAD_CREATOR_ID: ${{ secrets.GUMROAD_CREATOR_ID }}
+
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+        run: |
+          python scripts/test_distribution.py --check-only
+
+      - name: Run full distribution verification
+        if: success()
+        env:
+          # Social Media Platform Secrets
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          REDDIT_SUBREDDIT: ${{ secrets.REDDIT_SUBREDDIT }}
+
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+          # E-Commerce Platform Secrets
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+
+          GUMROAD_API_TOKEN: ${{ secrets.GUMROAD_API_TOKEN }}
+          GUMROAD_CREATOR_ID: ${{ secrets.GUMROAD_CREATOR_ID }}
+
+          PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+        run: |
+          python scripts/test_distribution.py --json --output distribution_report.json
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-verification-report
+          path: distribution_report.json
+          retention-days: 30
+
+      - name: Comment PR with status
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('distribution_report.json', 'utf8'));
+
+            const ready = report.summary.ready;
+            const total = report.summary.total_platforms;
+            const status = ready > 0 ? 'Ready' : 'Blocked';
+
+            const markdown = `
+            ## Distribution System Status
+
+            **Overall:** ${status}
+            **Platforms Ready:** ${ready}/${total}
+
+            ### Platform Summary
+            | Platform | Status |
+            |----------|--------|
+            ${Object.entries(report.platforms).map(([key, p]) => {
+              const icon = p.status === 'READY' ? '✅' : p.status === 'PARTIAL' ? '⚠️' : '❌';
+              return `| ${p.platform_name} | ${icon} ${p.status} (${p.configured_count}/${p.required_count}) |`;
+            }).join('\n')}
+
+            See full report in artifacts.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: markdown
+            });

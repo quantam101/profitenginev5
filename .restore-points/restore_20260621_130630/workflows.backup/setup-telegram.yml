@@ -1,0 +1,103 @@
+name: Setup Telegram Bot
+on:
+  workflow_dispatch:
+    inputs:
+      bot_token:
+        description: 'Telegram Bot Token from @BotFather (format: 123456:ABC...)'
+        required: true
+        type: string
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate and test bot token
+        id: validate
+        run: |
+          BOT_INFO=$(curl -sf "https://api.telegram.org/bot${{ inputs.bot_token }}/getMe")
+          echo "Bot info: $BOT_INFO"
+          OK=$(echo "$BOT_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('ok','false'))")
+          if [ "$OK" != "True" ]; then
+            echo "::error::Invalid bot token — getMe returned ok=false"
+            exit 1
+          fi
+          BOT_NAME=$(echo "$BOT_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['username'])")
+          echo "Bot @$BOT_NAME is valid"
+          echo "bot_name=$BOT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Get chat ID from recent updates
+        id: chat
+        run: |
+          UPDATES=$(curl -sf "https://api.telegram.org/bot${{ inputs.bot_token }}/getUpdates")
+          CHAT_ID=$(echo "$UPDATES" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          updates = d.get('result', [])
+          if updates:
+              for u in updates:
+                  msg = u.get('message', u.get('channel_post', {}))
+                  chat = msg.get('chat', {})
+                  cid = chat.get('id')
+                  if cid:
+                      print(cid)
+                      break
+          else:
+              print('NO_UPDATES')
+          " 2>/dev/null || echo "NO_UPDATES")
+          echo "chat_id=$CHAT_ID" >> $GITHUB_OUTPUT
+          if [ "$CHAT_ID" = "NO_UPDATES" ]; then
+            echo "::warning::No chat updates found. Send /start to @${{ steps.validate.outputs.bot_name }} then re-run this workflow."
+          else
+            echo "Chat ID: $CHAT_ID"
+          fi
+
+      - name: Set TELEGRAM_BOT_TOKEN secret
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ACTIONS }}
+          script: |
+            const { data: pubKey } = await github.rest.actions.getRepoPublicKey({
+              owner: context.repo.owner, repo: context.repo.repo
+            });
+            const sodium = require('libsodium-wrappers');
+            await sodium.ready;
+            const encVal = sodium.crypto_box_seal(
+              sodium.from_string("${{ inputs.bot_token }}"),
+              sodium.from_base64(pubKey.key, sodium.base64_variants.ORIGINAL)
+            );
+            await github.rest.actions.createOrUpdateRepoSecret({
+              owner: context.repo.owner, repo: context.repo.repo,
+              secret_name: 'TELEGRAM_BOT_TOKEN',
+              encrypted_value: sodium.to_base64(encVal, sodium.base64_variants.ORIGINAL),
+              key_id: pubKey.key_id
+            });
+            console.log('TELEGRAM_BOT_TOKEN secret updated');
+
+      - name: Set TELEGRAM_CHAT_ID secret (if found)
+        if: steps.chat.outputs.chat_id != 'NO_UPDATES'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ACTIONS }}
+          script: |
+            const { data: pubKey } = await github.rest.actions.getRepoPublicKey({
+              owner: context.repo.owner, repo: context.repo.repo
+            });
+            const sodium = require('libsodium-wrappers');
+            await sodium.ready;
+            const encVal = sodium.crypto_box_seal(
+              sodium.from_string("${{ steps.chat.outputs.chat_id }}"),
+              sodium.from_base64(pubKey.key, sodium.base64_variants.ORIGINAL)
+            );
+            await github.rest.actions.createOrUpdateRepoSecret({
+              owner: context.repo.owner, repo: context.repo.repo,
+              secret_name: 'TELEGRAM_CHAT_ID',
+              encrypted_value: sodium.to_base64(encVal, sodium.base64_variants.ORIGINAL),
+              key_id: pubKey.key_id
+            });
+            console.log('TELEGRAM_CHAT_ID secret set to: ${{ steps.chat.outputs.chat_id }}');
+
+      - name: Summary
+        run: |
+          echo "## Telegram Setup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Bot: @${{ steps.validate.outputs.bot_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat ID: ${{ steps.chat.outputs.chat_id }}" >> $GITHUB_STEP_SUMMARY

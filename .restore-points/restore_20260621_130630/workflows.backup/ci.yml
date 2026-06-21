@@ -1,0 +1,314 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  pre_merge:
+    name: "Stage 1 — pre-merge (lint, unit, types)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Railway Disabled Policy Check
+        run: bash scripts/check-no-railway.sh
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install Python deps
+        run: |
+          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
+          pip install ruff pytest
+      - name: Install Node deps
+        run: npm ci
+      - name: Ruff lint
+        run: ruff check backend code_merger
+      - name: Frontend lint
+        run: npx --no-install eslint app/ lib/ --max-warnings=0
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Validate YAML
+        run: npm run validate:yaml
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Health contract test
+        run: npm run test:integration
+        env:
+          CI: "true"
+      - name: AI gateway test
+        run: npm run test:ai-gateway
+        env:
+          CI: "true"
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Skill gateway test
+        run: npm run test:skill-gateway
+        env:
+          CI: "true"
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Python regression suite (all tests/)
+        run: npm run test:regression
+        env:
+          CI: "true"
+      - name: Gateway evals
+        run: |
+          npm run eval:ai-gateway
+          npm run eval:skill-gateway
+        env:
+          CI: "true"
+          GROQ_API_KEY: "stub-groq-ci-key"
+      - name: Runtime security scan
+        run: |
+          python - <<'PY'
+          import sys
+          from runtime.security_scanner import scan_repo
+          findings = scan_repo('.')
+          if findings:
+              print('\n'.join(findings))
+              sys.exit(1)
+          print('runtime security scan passed')
+          PY
+      - name: Production build
+        run: npm run build
+        env:
+          CI: "true"
+
+  integration:
+    name: "Stage 2 — integration (API + Mongo)"
+    runs-on: ubuntu-latest
+    needs: pre_merge
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Python deps
+        run: pip install -r backend/requirements.txt
+      - name: Run contract tests
+        env:
+          MONGO_URL: "mongodb://localhost:27017"
+          DB_NAME: "profitengine_ci"
+          GROQ_API_KEY: "stub-groq-ci-key"
+        run: python -m pytest backend/tests/test_distillation.py -v
+
+  e2e:
+    name: "Stage 3 — e2e (backend health)"
+    runs-on: ubuntu-latest
+    needs: integration
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install deps
+        run: |
+          pip install -r backend/requirements.txt
+          npm ci
+      - name: Boot backend
+        env:
+          MONGO_URL: "mongodb://localhost:27017"
+          DB_NAME: "profitengine_ci"
+          GROQ_API_KEY: "stub-groq-ci-key"
+        run: |
+          nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
+          for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
+      - name: e2e smoke — backend health check
+        run: |
+          curl -fs http://localhost:8001/api/health | python -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          print('health:', json.dumps(d, indent=2))
+          assert d.get('ok') == True or d.get('status') == 'ok', f'health check failed: {d}'
+          print('e2e smoke: ok')
+          "
+
+  performance:
+    name: "Stage 4 — performance (k6)"
+    runs-on: ubuntu-latest
+    needs: integration
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt
+      - name: Boot backend
+        env:
+          MONGO_URL: "mongodb://localhost:27017"
+          DB_NAME: "profitengine_ci"
+          GROQ_API_KEY: "stub-groq-ci-key"
+        run: |
+          nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
+          for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
+      - name: Install k6
+        run: |
+          sudo gpg -k && sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+      - name: Run k6 smoke
+        env:
+          BASE_URL: "http://localhost:8001"
+        run: k6 run ci/load_smoke.js
+
+  deployment_gate:
+    name: "Stage 5 — deployment gate"
+    runs-on: ubuntu-latest
+    needs: [e2e, performance]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Frontend deployment gate
+        run: |
+          npm ci
+          npx --no-install eslint app/ lib/ --max-warnings=0
+          npm run typecheck
+          npm run build
+      - name: Done
+        run: echo "deployment gate passed"
+
+  readiness:
+    name: "Stage 6 — readiness gate"
+    runs-on: ubuntu-latest
+    needs: [deployment_gate]
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo "All gates passed. Ready to deploy."
+
+  oci_sync:
+    name: "Stage 7 — OCI runtime mirror sync and health verification"
+    runs-on: ubuntu-latest
+    needs: [readiness]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger OCI runtime sync without creating false production failures
+        env:
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+          RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
+          OCI_SYNC_STRICT: ${{ vars.OCI_SYNC_STRICT || 'false' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          BASE="${RUNTIME_API_URL:-https://api.profitengine.alreadyherellc.com}"
+          BASE="${BASE%/}"
+          STRICT="${OCI_SYNC_STRICT:-false}"
+          SYNC_OK=false
+          HEALTH_OK=false
+
+          echo "Calling $BASE/deploy/pull"
+          if [ -z "${PROFITENGINE_WEBHOOK_TOKEN:-}" ]; then
+            echo "::warning::PROFITENGINE_WEBHOOK_TOKEN is not configured; OCI sync skipped."
+            printf '{"ok":false,"reason":"missing_token"}\n' > /tmp/deploy_result.json
+            HTTP="000"
+          else
+            set +e
+            HTTP=$(curl -sS -o /tmp/deploy_result.json -w "%{http_code}" --connect-timeout 10 --max-time 180 \
+              -X POST "$BASE/deploy/pull" \
+              -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
+              -H "Content-Type: application/json")
+            CURL_EXIT=$?
+            set -u
+            if [ "$CURL_EXIT" -ne 0 ]; then
+              echo "::warning::OCI sync endpoint unavailable: curl_exit=$CURL_EXIT http=$HTTP"
+              printf '{"ok":false,"reason":"curl_exit_%s","http":"%s"}\n' "$CURL_EXIT" "$HTTP" > /tmp/deploy_result.json
+            fi
+          fi
+
+          echo "HTTP $HTTP"
+          cat /tmp/deploy_result.json | python3 -m json.tool 2>/dev/null || cat /tmp/deploy_result.json || true
+
+          if [[ "$HTTP" =~ ^2 ]]; then
+            if python3 - <<'PY' 2>/dev/null
+          import json, sys
+          data = json.load(open('/tmp/deploy_result.json', encoding='utf-8'))
+          sys.exit(0 if data.get('ok') is True else 1)
+          PY
+            then
+              SYNC_OK=true
+              echo "::notice::OCI sync endpoint reported ok=true."
+            else
+              echo "::warning::OCI sync endpoint answered but did not report ok=true."
+            fi
+          else
+            echo "::warning::OCI sync returned HTTP $HTTP. Treating mirror sync as degraded."
+          fi
+
+          for path in /health /api/health; do
+            set +e
+            HEALTH=$(curl -sS -o /tmp/health.json -w "%{http_code}" --connect-timeout 10 --max-time 15 "$BASE$path")
+            HEALTH_EXIT=$?
+            set -u
+            echo "Health check $BASE$path -> http=$HEALTH curl_exit=$HEALTH_EXIT"
+            cat /tmp/health.json 2>/dev/null || true
+            if [ "$HEALTH" = "200" ]; then
+              if python3 - <<'PY' 2>/dev/null
+          import json, sys
+          data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          ok = data.get('ok') is True or data.get('status') == 'ok'
+          sys.exit(0 if ok else 1)
+          PY
+              then
+                HEALTH_OK=true
+                break
+              fi
+            fi
+            sleep 5
+          done
+
+          {
+            echo "## OCI Runtime Mirror Gate"
+            echo ""
+            echo "| Check | Result |"
+            echo "|-------|--------|"
+            echo "| Sync endpoint | $SYNC_OK |"
+            echo "| Runtime health | $HEALTH_OK |"
+            echo "| Strict mode | $STRICT |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$HEALTH_OK" = "true" ]; then
+            exit 0
+          fi
+
+          if [ "$STRICT" = "true" ]; then
+            echo "ProfitEngine OCI runtime health failed and OCI_SYNC_STRICT=true."
+            exit 1
+          fi
+
+          echo "::warning::OCI runtime mirror is degraded, but Vercel remains the primary production deployment."
+          exit 0
