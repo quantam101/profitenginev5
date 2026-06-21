@@ -700,7 +700,4 @@ export async function generateAndPostYouTubeVideo(
   }
 }
 
-/**
- * Export types for API routes
- */
-export { YouTubeScript, GeneratedVideo };
+
