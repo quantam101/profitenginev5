@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { createDailyCommandSnapshot } from '@/lib/daily-command-core';
 
 export const dynamic = 'force-dynamic';
@@ -35,9 +37,9 @@ export default function DailyCommandPage() {
     >
       <section style={{ maxWidth: 1120, margin: '0 auto' }}>
         <nav style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 48 }}>
-          <a href="/command-center" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
+          <Link href="/command-center" style={{ color: '#7dd3fc', textDecoration: 'none', fontWeight: 800 }}>
             Command Center
-          </a>
+          </Link>
           <a href="/api/daily-command?verify=1" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
             Open verification API
           </a>
@@ -93,28 +95,6 @@ export default function DailyCommandPage() {
             <li>Invalid source/category payloads are quarantined.</li>
             <li>Owner approval is required before external action.</li>
           </ul>
-        </section>
-
-        <section style={{ ...cardStyle, marginTop: 24 }}>
-          <h2 style={{ marginTop: 0 }}>API contract</h2>
-          <pre style={{ whiteSpace: 'pre-wrap', color: '#a8bed0', lineHeight: 1.6 }}>
-{`POST /api/daily-command
-{
-  "rawInputs": [
-    {
-      "id": "WM_01",
-      "source": "WORKMARKET",
-      "category": "FIELD_SERVICE",
-      "status": "READY_TO_ACT",
-      "revenueStatus": "BOOKABLE",
-      "pay": 220,
-      "durationHours": 2,
-      "location": { "address": "Gilbert, AZ", "zip": "85234", "lat": 33.3524, "lng": -111.7890 }
-    }
-  ],
-  "history": []
-}`}
-          </pre>
         </section>
       </section>
     </main>
