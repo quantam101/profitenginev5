@@ -13,6 +13,8 @@ from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
+GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"  # noqa: S105
+
 try:
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials as OAuthCredentials
@@ -68,7 +70,7 @@ class YouTubeRevenueAnalytics:
             creds = OAuthCredentials(
                 token=None,
                 refresh_token=self.refresh_token,
-                token_uri="https://oauth2.googleapis.com/token",
+                token_uri=GOOGLE_OAUTH_TOKEN_URI,
                 client_id=self.client_id,
                 client_secret=self.client_secret,
             )
