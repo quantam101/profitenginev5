@@ -1110,7 +1110,7 @@ export async function exportLinksAsCSV(niche?: string): Promise<string> {
   return rows.join('\n');
 }
 
-export default {
+const affiliateEnhanced = {
   NETWORKS,
   generateLinkId,
   createAmazonLink,
@@ -1134,3 +1134,4 @@ export default {
   importLinksFromCSV,
   exportLinksAsCSV,
 };
+export default affiliateEnhanced;

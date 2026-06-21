@@ -12,7 +12,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface ReelMetadata {
   reelId: string;
@@ -59,14 +59,7 @@ export function InstagramReelsCard() {
   const [selectedApi, setSelectedApi] = useState('synthesia');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch reel statuses
-  useEffect(() => {
-    fetchReels();
-    const interval = setInterval(fetchReels, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  async function fetchReels() {
+  const fetchReels = useCallback(async function fetchReels() {
     try {
       const response = await fetch('/api/automation/instagram/list');
       const data = (await response.json()) as {
@@ -83,7 +76,14 @@ export function InstagramReelsCard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  // Fetch reel statuses
+  useEffect(() => {
+    fetchReels();
+    const interval = setInterval(fetchReels, 30000);
+    return () => clearInterval(interval);
+  }, [fetchReels]);
 
   function calculateStats(reelsList: ReelMetadata[]) {
     let totalViews = 0;

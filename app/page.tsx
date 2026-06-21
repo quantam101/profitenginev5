@@ -128,7 +128,7 @@ export default function LaunchPage() {
         <div className="shell">
           <div className="eyebrow">{'// what you get'}</div>
           <h2>Backtests. Signals. Community.<br /><span className="acid">Everything a trader needs.</span></h2>
-          <p style={{ color: 'var(--muted)', maxWidth: 700, marginTop: 16 }}>ProfitEngine doesn't hide results behind marketing. See backtest proof instantly. Get live signals delivered to your email and app. Join the community to share wins and learn from verified traders. APIs let you plug signals into your own systems.</p>
+          <p style={{ color: 'var(--muted)', maxWidth: 700, marginTop: 16 }}>ProfitEngine doesn&apos;t hide results behind marketing. See backtest proof instantly. Get live signals delivered to your email and app. Join the community to share wins and learn from verified traders. APIs let you plug signals into your own systems.</p>
           <div className="stream-grid">
             {STREAMS.map((stream) => (
               <article key={stream.name} className="stream-card">
@@ -173,7 +173,7 @@ export default function LaunchPage() {
           <div className="waitlist" data-testid="proof-section">
             <div className="eyebrow">{'// the proof ledger'}</div>
             <h2 style={{ marginTop: 12 }}>Backtest results.<br /><span className="acid">No hype. Pure data.</span></h2>
-            <p style={{ color: 'var(--muted)', maxWidth: 560, marginTop: 14 }}>Every strategy in ProfitEngine has been tested on 5+ years of real market data. You'll see exact win rates, profit factors, max drawdowns, and monthly returns before you trade a single share. Copy the backtest parameters, validate them yourself, then deploy with confidence.</p>
+            <p style={{ color: 'var(--muted)', maxWidth: 560, marginTop: 14 }}>Every strategy in ProfitEngine has been tested on 5+ years of real market data. You&apos;ll see exact win rates, profit factors, max drawdowns, and monthly returns before you trade a single share. Copy the backtest parameters, validate them yourself, then deploy with confidence.</p>
             <a
               href="#backtest-trial"
               className="l-cta"

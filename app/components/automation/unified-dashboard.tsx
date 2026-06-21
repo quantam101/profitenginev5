@@ -11,7 +11,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface ChannelMetrics {
   channelId: string;
@@ -68,7 +68,7 @@ export function UnifiedAutomationDashboard() {
   const [refreshInterval, setRefreshInterval] = useState(5000);
 
   // Fetch metrics
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       const url = selectedCategory === 'all'
         ? '/api/automation/unified-metrics'
@@ -85,7 +85,7 @@ export function UnifiedAutomationDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
   // Auto-refresh effect
   useEffect(() => {
@@ -95,7 +95,7 @@ export function UnifiedAutomationDashboard() {
 
     const interval = setInterval(fetchMetrics, refreshInterval);
     return () => clearInterval(interval);
-  }, [selectedCategory, autoRefresh, refreshInterval]);
+  }, [fetchMetrics, autoRefresh, refreshInterval]);
 
   if (loading || !data) {
     return (

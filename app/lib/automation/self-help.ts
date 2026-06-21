@@ -500,7 +500,7 @@ Include code examples, diagrams descriptions, and real-world applications.`;
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   const courseData = jsonMatch ? JSON.parse(jsonMatch[0]) : parseCourseLikeStructure(responseText);
 
-  const module: CourseModule = {
+  const courseModule: CourseModule = {
     id: `course-${Date.now()}`,
     title: courseData.title || topic,
     description: courseData.description || '',
@@ -544,7 +544,7 @@ Include code examples, diagrams descriptions, and real-world applications.`;
     learningOutcomes: courseData.learningOutcomes || [],
   };
 
-  return module;
+  return courseModule;
 }
 
 /**
@@ -1285,7 +1285,7 @@ async function generateDOCX(content: GeneratedContent): Promise<string> {
   return `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${Buffer.from(content.markdown).toString('base64')}`;
 }
 
-export default {
+const selfHelp = {
   generateContent,
   generateCourseModule,
   processYouTubeTranscript,
@@ -1293,3 +1293,4 @@ export default {
   distributeContent,
   exportContent,
 };
+export default selfHelp;
