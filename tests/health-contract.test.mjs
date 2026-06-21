@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import ts from 'typescript';
 import { buildHealthPayload } from '../lib/health.mjs';
 
 async function writeBaseFixture(root) {
@@ -60,6 +61,19 @@ production_gate_targets:
   await writeFile(join(root, 'vercel.json'), '{}\n');
 }
 
+async function loadDailyCommandModule() {
+  const source = await readFile(new URL('../lib/daily-command-core.ts', import.meta.url), 'utf8');
+  const transpiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+      strict: true,
+    },
+  });
+
+  return import(`data:text/javascript;base64,${Buffer.from(transpiled.outputText).toString('base64')}`);
+}
+
 const passingFixture = join(process.cwd(), `.health-pass-fixture-${Date.now()}`);
 const failingFixture = join(process.cwd(), `.health-fail-fixture-${Date.now()}`);
 
@@ -105,6 +119,55 @@ production_gate_targets:
   assert.equal(failingPayload.paidAdaptersEnabled, true);
   assert.ok(failingPayload.healthScore < 100);
   assert.ok(failingPayload.deploymentBlockers.length > 0);
+
+  const dailyCommand = await loadDailyCommandModule();
+  const dailySnapshot = dailyCommand.createDailyCommandSnapshot(
+    [
+      {
+        id: 'PAY_01',
+        source: 'QUICKBOOKS',
+        category: 'PAYMENT_PROTECTION',
+        status: 'INVOICED',
+        revenueStatus: 'INVOICED',
+        invoicedUsd: 650,
+        title: 'Open invoice follow-up',
+      },
+      {
+        id: 'FN_03',
+        source: 'FIELD_NATION',
+        category: 'FIELD_SERVICE',
+        status: 'NEW',
+        revenueStatus: 'OPPORTUNITY',
+        pay: 90,
+        durationHours: 1,
+        location: { address: 'Queen Creek, AZ', zip: '85142', lat: 33.2484, lng: -111.6342 },
+        title: 'Queen Creek low-pay printer call',
+      },
+      {
+        id: 'AW_04',
+        source: 'GMAIL',
+        category: 'AUTOWORKS',
+        pay: 1200,
+        durationHours: 8,
+        flags: ['DIESEL'],
+        title: 'Diesel fleet repair request',
+      },
+      {
+        id: 'BAD_01',
+        source: 'NOT_A_SOURCE',
+        category: 'FIELD_SERVICE',
+        pay: 500,
+      },
+    ],
+    [],
+    { generatedAt: '2026-06-21T12:00:00.000Z' }
+  );
+  const byTitle = new Map(dailySnapshot.rankedQueue.map((item) => [item.title, item]));
+  assert.equal(dailySnapshot.systemHealth, 'DEGRADED');
+  assert.equal(byTitle.get('Open invoice follow-up')?.grade, 'A');
+  assert.equal(byTitle.get('Queen Creek low-pay printer call')?.grade, 'C');
+  assert.ok(byTitle.get('Diesel fleet repair request')?.riskFlags.includes('FORBIDDEN_SCOPE_EXCLUSION'));
+  assert.ok(dailySnapshot.rankedQueue.some((item) => item.riskFlags.includes('QUARANTINED_INPUT')));
 
   console.log('health contract test passed');
 } finally {
