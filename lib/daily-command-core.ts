@@ -658,7 +658,6 @@ export function normalizeDailyCommandInputs(rawInputs: unknown[], generatedAt = 
       estimatedOnSiteHours,
       riskFlags: unique(riskFlags),
       exactNextStep: asString(raw.exactNextStep ?? raw.nextStep) ?? deriveNextStep(category, status, riskFlags),
-      grade: 'B',
       approvalGate: 'OWNER_APPROVAL_REQUIRED',
       requiresOwnerApproval: true,
       effectiveHourlyValue: Math.round(effectiveHourlyValue * 100) / 100,
@@ -743,7 +742,7 @@ export function buildSourceHealth(items: NormalizedItem[]): SourceCircuitStatus[
   }
 
   return Array.from(bySource.values()).filter(
-    (status) => status.acceptedCount > 0 || status.quarantinedCount > 0 || status.source === 'UNKNOWN'
+    (status) => status.acceptedCount > 0 || status.quarantinedCount > 0
   );
 }
 
