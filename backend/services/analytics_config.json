@@ -1,0 +1,41 @@
+{
+  "dashboards": [
+    {
+      "name": "Revenue Overview",
+      "metrics": [
+        "gumroad_daily_revenue",
+        "etsy_daily_revenue",
+        "stripe_daily_revenue",
+        "affiliate_daily_commission",
+        "total_daily_revenue"
+      ]
+    },
+    {
+      "name": "Product Performance",
+      "metrics": [
+        "gumroad_products_sold",
+        "etsy_units_sold",
+        "average_order_value",
+        "conversion_rate"
+      ]
+    },
+    {
+      "name": "Content Analytics",
+      "metrics": [
+        "video_views",
+        "blog_pageviews",
+        "email_open_rate",
+        "affiliate_clicks"
+      ]
+    },
+    {
+      "name": "LLM Cost Tracking",
+      "metrics": [
+        "daily_token_usage",
+        "daily_llm_cost",
+        "monthly_budget_remaining",
+        "cost_per_1k_tokens"
+      ]
+    }
+  ]
+}
