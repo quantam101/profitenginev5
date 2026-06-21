@@ -6,6 +6,12 @@ export const dynamic = 'force-dynamic';
 
 const CHECKS = [
   {
+    label: 'Daily Command Engine',
+    status: 'operational',
+    detail: 'Guarded revenue ranking, payment-control math, route-friction scoring, and Markdown export are mounted.',
+    href: '/daily-command',
+  },
+  {
     label: 'Trading Dashboard',
     status: 'live',
     detail: 'Real-time trading metrics and performance analytics.',
@@ -44,6 +50,7 @@ const CHECKS = [
 ];
 
 const ACTIONS = [
+  'Run Daily Command first for cash, payment protection, route-stack, and system health decisions.',
   'Keep Vercel as the active frontend production path.',
   'Keep the unfinished Replit/backend path out of the production critical path.',
   'Do not re-enable protected dashboard middleware until NextAuth secrets and provider config are verified.',
@@ -81,6 +88,9 @@ export default async function CommandCenterPage({ searchParams }: PageProps) {
             ProfitEngine v5
           </a>
           <div style={{ display: 'flex', gap: 24 }}>
+            <a href="/daily-command" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
+              Daily Command
+            </a>
             <a href="/command-center/trading" style={{ color: '#e5f7ff', textDecoration: 'none' }}>
               Trading Dashboard
             </a>
@@ -101,8 +111,9 @@ export default async function CommandCenterPage({ searchParams }: PageProps) {
             Production command center restored.
           </h1>
           <p style={{ color: '#a8bed0', maxWidth: 760, fontSize: 18, lineHeight: 1.6 }}>
-            This route is intentionally static and auth-free until the backend and protected dashboard stack are repaired.
-            It keeps the public production site usable while Replit/backend work is isolated from Vercel frontend delivery.
+            This route is intentionally stable while Daily Command, backend, and protected dashboard workflows are
+            hardened behind explicit approval gates. It keeps the public production site usable while revenue operations
+            continue through verified routes.
           </p>
         </header>
 
