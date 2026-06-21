@@ -1,0 +1,19 @@
+{
+  "mode": "training",
+  "timestamp": "2026-06-21T13:44:15.145938",
+  "training_round": 0,
+  "system1": {
+    "name": "System_1",
+    "balance": 100.8388107388379,
+    "profit": 0.8388107388379069,
+    "roi": 0.8388107388379069,
+    "rounds": 1
+  },
+  "system2": {
+    "name": "System_2",
+    "balance": 100.51624457385833,
+    "profit": 0.5162445738583301,
+    "roi": 0.5162445738583301,
+    "rounds": 1
+  }
+}

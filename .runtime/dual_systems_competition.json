@@ -1,0 +1,63 @@
+{
+  "round": 39,
+  "timestamp": "2026-06-21T13:35:16.024940",
+  "elapsed_time_hours": 0.05290994722222222,
+  "system1": {
+    "system_id": 1,
+    "name": "System_1",
+    "current_balance": 866.6098194515416,
+    "starting_capital": 100.0,
+    "total_profit": 766.6098194515416,
+    "roi_percent": 766.6098194515416,
+    "total_trades": 156,
+    "run_count": 39,
+    "active_strategies": [
+      1,
+      2,
+      4,
+      10
+    ],
+    "strategy_allocations": [
+      0.25,
+      0.35,
+      0.2,
+      0.2
+    ],
+    "risk_multiplier": 0.8
+  },
+  "system2": {
+    "system_id": 2,
+    "name": "System_2",
+    "current_balance": 988.5741346456028,
+    "starting_capital": 100.0,
+    "total_profit": 888.5741346456028,
+    "roi_percent": 888.5741346456027,
+    "total_trades": 156,
+    "run_count": 39,
+    "active_strategies": [
+      2,
+      3,
+      9,
+      10
+    ],
+    "strategy_allocations": [
+      0.3,
+      0.25,
+      0.25,
+      0.2
+    ],
+    "risk_multiplier": 1.2
+  },
+  "leaderboard": [
+    {
+      "rank": 1,
+      "system": "System_2",
+      "balance": 988.5741346456028
+    },
+    {
+      "rank": 2,
+      "system": "System_1",
+      "balance": 866.6098194515416
+    }
+  ]
+}

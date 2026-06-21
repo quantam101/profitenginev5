@@ -85,9 +85,9 @@ class TradingSystem:
         self.name = f"System_{system_id}"
         self.market_data = market_data
         self.starting_capital = 100.0
-        self.current_balance = starting_capital
+        self.current_balance = self.starting_capital
         self.trades = []
-        self.equity_curve = [starting_capital]
+        self.equity_curve = [self.starting_capital]
         self.run_count = 0
 
         if system_id == 1:

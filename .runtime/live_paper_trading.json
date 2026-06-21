@@ -1,0 +1,37 @@
+{
+  "round": 11,
+  "timestamp": "2026-06-21T13:44:49.962416",
+  "market_connected": false,
+  "system1": {
+    "system_id": 1,
+    "name": "System_1",
+    "current_balance": 100.0,
+    "starting_capital": 100.0,
+    "total_profit": 0.0,
+    "roi_percent": 0.0,
+    "total_trades": 44,
+    "run_count": 11,
+    "active_strategies": [
+      1,
+      2,
+      4,
+      10
+    ]
+  },
+  "system2": {
+    "system_id": 2,
+    "name": "System_2",
+    "current_balance": 100.11866207272986,
+    "starting_capital": 100.0,
+    "total_profit": 0.11866207272986173,
+    "roi_percent": 0.11866207272986173,
+    "total_trades": 44,
+    "run_count": 11,
+    "active_strategies": [
+      2,
+      3,
+      9,
+      10
+    ]
+  }
+}

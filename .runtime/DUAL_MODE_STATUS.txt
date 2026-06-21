@@ -1,0 +1,178 @@
+================================================================================
+DUAL MODE ENGINE - LIVE STATUS
+================================================================================
+
+Start Time:         2026-06-21 13:44:15
+Current Mode:       TRAINING (Saturday)
+Engine Status:      RUNNING 24/7
+
+================================================================================
+HOW IT WORKS
+================================================================================
+
+MONDAY-FRIDAY 4am-5pm:
+  [LIVE TRADING]
+  ✓ Real Finnhub stock prices
+  ✓ Real-time execution (every 1 minute)
+  ✓ Real P&L from actual markets
+  ✓ ONLY these rounds count toward $1,000 goal
+  ✓ Results: live_trading_results.json
+
+ALL OTHER TIMES:
+  [TRAINING]
+  ✓ Backtesting and optimization
+  ✓ Simulated market data
+  ✓ Strategy parameter tuning
+  ✓ Preparation for live trading
+  ✓ Results: training_results.json
+
+================================================================================
+CURRENT STANDINGS
+================================================================================
+
+System 1 (Conservative):  $100.84
+System 2 (Aggressive):    $100.52
+
+Status:             TRAINING MODE (Saturday)
+Mode:               [TRAINING] Round #1
+Leader:             System 1 (+$0.32)
+Live Rounds:        0 (waiting for Monday)
+Training Rounds:    1
+
+================================================================================
+SCHEDULE
+================================================================================
+
+SATURDAY (Now):
+  Time: 1:44 PM
+  Mode: TRAINING (outside Mon-Fri 4am-5pm window)
+  Activity: Backtesting & optimization
+  Round Type: Training round (doesn't count toward $1K)
+
+SUNDAY:
+  Mode: TRAINING (all day)
+  Activity: Continuous optimization
+
+MONDAY:
+  00:00-3:59 AM:    TRAINING
+  4:00 AM:          SWITCH TO LIVE TRADING
+  4:00-5:00 PM:     LIVE TRADING (counts toward $1K)
+  5:00 PM+:         SWITCH TO TRAINING
+
+TUESDAY-FRIDAY:
+  4:00-5:00 PM:     LIVE TRADING (counts toward $1K)
+  All other times:  TRAINING
+
+================================================================================
+TRACKING
+================================================================================
+
+LIVE ROUNDS (count toward $1,000):
+  - Only Mon-Fri 4:00-5:00 PM
+  - Real Finnhub data
+  - Real market conditions
+  - Real P&L from actual prices
+
+TRAINING ROUNDS (don't count):
+  - All times outside Mon-Fri 4-5pm
+  - Backtesting data
+  - Strategy optimization
+  - Preparation phase
+
+SEPARATE RESULTS FILES:
+  - live_trading_results.json: LIVE mode only
+  - training_results.json: TRAINING mode only
+  - dual_mode_engine.log: Both modes with tags
+
+================================================================================
+EXAMPLE EXECUTION FLOW
+================================================================================
+
+ROUND 1 (Saturday 1:44 PM):
+  Mode: TRAINING (detected Saturday)
+  Type: [TRAINING] Round #1
+  Data: Simulated
+  Results: training_results.json
+  Count: 1 training round (0 live rounds)
+
+ROUND 2 (Sunday 2:00 PM):
+  Mode: TRAINING (detected Sunday)
+  Type: [TRAINING] Round #2
+  Data: Simulated
+  Results: training_results.json
+  Count: 2 training rounds (0 live rounds)
+
+ROUND 3 (Monday 4:15 AM):
+  Mode: LIVE TRADING (detected Monday 4:15 AM)
+  Type: [LIVE TRADING] Round #1
+  Data: Real Finnhub prices
+  Results: live_trading_results.json
+  Count: 2 training rounds (1 live round) ← COUNTS
+
+ROUND 4 (Monday 6:00 PM):
+  Mode: TRAINING (outside 4-5pm window)
+  Type: [TRAINING] Round #3
+  Data: Simulated
+  Results: training_results.json
+  Count: 3 training rounds (1 live round)
+
+================================================================================
+WINNER DETERMINATION
+================================================================================
+
+Winner = First system to reach $1,000 via LIVE TRADING rounds only
+
+Examples:
+  ✓ System 1 reaches $1,000 at Monday 4:45 PM = WINNER
+  ✗ System 1 reaches $1,000 via training rounds = NOT A WINNER
+  ✓ System 2 reaches $1,000 at Friday 4:50 PM = WINNER
+
+ONLY LIVE ROUNDS COUNT (Mon-Fri 4-5pm with real Finnhub data)
+
+================================================================================
+MONITORING
+================================================================================
+
+Watch All Activity:
+  tail -f .runtime/dual_mode_engine.log
+
+Check Live Results:
+  cat .runtime/live_trading_results.json
+
+Check Training Results:
+  cat .runtime/training_results.json
+
+Search for Live Rounds:
+  grep "[LIVE TRADING]" .runtime/dual_mode_engine.log
+
+================================================================================
+NEXT EVENT
+================================================================================
+
+Next Training:      Continuing (Saturday → Sunday)
+Next Live Trading:  Monday 4:00 AM (automatic switch)
+Time Until:         ~15 hours
+
+Saturday:   TRAINING mode (as expected)
+Sunday:     TRAINING mode (as expected)
+Monday 4am: AUTOMATIC SWITCH TO LIVE TRADING
+
+================================================================================
+STATUS: DUAL MODE ENGINE RUNNING - TRAINING MODE ACTIVE
+================================================================================
+
+System is operating correctly:
+  ✓ Detected Saturday (weekend)
+  ✓ Running in TRAINING mode (correct)
+  ✓ Using simulated data (correct)
+  ✓ Tracking training rounds separately
+  ✓ Ready for Monday 4am automatic switch to LIVE TRADING
+
+When Monday arrives at 4am:
+  1. Engine detects Mon-Fri 4am-5pm window
+  2. Automatically switches to LIVE TRADING
+  3. Uses REAL Finnhub stock prices
+  4. Executes real paper trades
+  5. Results count toward $1,000 milestone
+  6. First system to $1,000 wins
+
