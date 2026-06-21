@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      OCI_HOST: 129.146.167.73
+      OCI_HOST: 129.146.236.177
     steps:
       - name: Run command on OCI host when SSH is reachable
         env:
