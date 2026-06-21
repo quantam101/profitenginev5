@@ -48,6 +48,28 @@ These 3 platforms are READY NOW:
 
 ---
 
+### 🖨️ Printify (Print-on-Demand)
+**Why:** POD products (apparel, mugs, prints) + automated fulfillment  
+**Setup Time:** 5 minutes  
+**Cost:** FREE to start, pay per order
+
+**Steps:**
+1. Go to https://printify.com/app/register
+2. Create account → Settings → API
+3. Get API Key
+4. Add to GitHub Secrets:
+   - Name: `PRINTIFY_API_KEY`
+   - Value: [paste your API key]
+5. Push to trigger deployment
+
+**Why It Matters:**
+- POD_COMPLETE.txt has 100+ design prompts
+- Printify lets you auto-list products
+- Zero upfront inventory cost
+- Revenue share: 50-70% to you (depending on product)
+
+---
+
 ### 📦 SendOwl (Digital Product Platform)
 **Why:** Dedicated digital product fulfillment  
 **Setup Time:** 5 minutes  

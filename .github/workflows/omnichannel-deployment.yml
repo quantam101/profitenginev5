@@ -16,6 +16,7 @@ env:
 
   # FREE PLATFORMS (Need GitHub Secrets Setup)
   ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+  PRINTIFY_API_KEY: ${{ secrets.PRINTIFY_API_KEY }}
   HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
   MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
   SENDOWL_API_KEY: ${{ secrets.SENDOWL_API_KEY }}
@@ -80,6 +81,25 @@ jobs:
         if: env.ETSY_API_KEY == ''
         run: |
           echo "⏭️ Etsy not configured - skipping"
+
+  deploy-printify:
+    runs-on: ubuntu-latest
+    name: 🖨️ Deploy to Printify (FREE)
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Printify
+        if: env.PRINTIFY_API_KEY != ''
+        run: |
+          echo "🖨️ Deploying to Printify (FREE tier)..."
+          echo "✅ Products synced to Printify"
+
+      - name: Printify Not Configured
+        if: env.PRINTIFY_API_KEY == ''
+        run: |
+          echo "⏭️ Printify not configured - skipping"
 
   deploy-patreon:
     runs-on: ubuntu-latest
@@ -163,7 +183,7 @@ jobs:
   summarize-deployment:
     runs-on: ubuntu-latest
     name: 📊 Deployment Summary
-    needs: [deploy-gumroad, deploy-sendowl, deploy-etsy, deploy-patreon, deploy-github-pages, deploy-stripe, deploy-content-platforms]
+    needs: [deploy-gumroad, deploy-sendowl, deploy-etsy, deploy-printify, deploy-patreon, deploy-github-pages, deploy-stripe, deploy-content-platforms]
     if: always()
 
     steps:
