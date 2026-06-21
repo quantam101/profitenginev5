@@ -300,7 +300,7 @@ def get_scheduler() -> RevenueScheduler:
 def init_revenue_scheduler(db=None) -> RevenueScheduler:
     """Initialize and start the revenue scheduler.
 
-    Adds default sync jobs and starts the scheduler.
+    Adds ALL 15 revenue stream sync jobs and starts the scheduler.
 
     Args:
         db: Optional MongoDB database instance
@@ -310,14 +310,101 @@ def init_revenue_scheduler(db=None) -> RevenueScheduler:
     """
     scheduler = get_scheduler()
 
-    # Add default jobs
-    scheduler.add_youtube_sync(hour=8, minute=0)    # 08:00 UTC
-    scheduler.add_stripe_sync(hour=9, minute=0)     # 09:00 UTC
-    scheduler.add_gumroad_sync(hour=10, minute=0)   # 10:00 UTC
-    scheduler.add_pod_sync(hour=11, minute=0, db=db)  # 11:00 UTC (POD Designer)
+    # TIER 1: Core revenue syncs (08:00-11:00 UTC)
+    scheduler.add_youtube_sync(hour=8, minute=0)          # 08:00 UTC
+    scheduler.add_stripe_sync(hour=9, minute=0)           # 09:00 UTC
+    scheduler.add_gumroad_sync(hour=10, minute=0)         # 10:00 UTC
+    scheduler.add_pod_sync(hour=11, minute=0, db=db)      # 11:00 UTC
+
+    # TIER 2: Advanced revenue streams (13:00-17:00 UTC)
+    def add_federal_proposals():
+        from backend.services.federal_proposals import sync_federal_proposals_job
+        import asyncio
+        asyncio.run(sync_federal_proposals_job(db=db))
+
+    def add_revenue_intelligence():
+        from backend.services.revenue_intelligence import sync_revenue_intelligence_job
+        import asyncio
+        asyncio.run(sync_revenue_intelligence_job(db=db))
+
+    def add_offer_engineering():
+        from backend.services.offer_engineering import sync_offer_engineering_job
+        import asyncio
+        asyncio.run(sync_offer_engineering_job(db=db))
+
+    def add_consulting():
+        from backend.services.consulting_services import sync_consulting_services_job
+        import asyncio
+        asyncio.run(sync_consulting_services_job(db=db))
+
+    def add_sponsorships():
+        from backend.services.sponsorships import sync_sponsorships_job
+        import asyncio
+        asyncio.run(sync_sponsorships_job(db=db))
+
+    def add_content_seo():
+        from backend.services.content_seo_monetization import sync_content_seo_job
+        import asyncio
+        asyncio.run(sync_content_seo_job(db=db))
+
+    def add_skool():
+        from backend.services.skool_community import sync_skool_community_job
+        import asyncio
+        asyncio.run(sync_skool_community_job(db=db))
+
+    # Add all advanced streams
+    scheduler.add_custom_job(
+        "federal_proposals",
+        add_federal_proposals,
+        CronTrigger(hour=13, minute=0),
+        "Federal Proposals Sync"
+    )
+
+    scheduler.add_custom_job(
+        "revenue_intelligence",
+        add_revenue_intelligence,
+        CronTrigger(hour=14, minute=0),
+        "Revenue Intelligence Optimization"
+    )
+
+    scheduler.add_custom_job(
+        "offer_engineering",
+        add_offer_engineering,
+        CronTrigger(hour=15, minute=0),
+        "Offer Engineering & Pricing"
+    )
+
+    scheduler.add_custom_job(
+        "consulting_services",
+        add_consulting,
+        CronTrigger(hour=15, minute=30),
+        "Consulting Services Sync"
+    )
+
+    scheduler.add_custom_job(
+        "sponsorships",
+        add_sponsorships,
+        CronTrigger(hour=16, minute=0),
+        "Sponsorship Management"
+    )
+
+    scheduler.add_custom_job(
+        "content_seo",
+        add_content_seo,
+        CronTrigger(hour=16, minute=30),
+        "Content SEO Monetization"
+    )
+
+    scheduler.add_custom_job(
+        "skool_community",
+        add_skool,
+        CronTrigger(hour=17, minute=0),
+        "Skool Community Affiliate"
+    )
 
     scheduler.start()
 
+    logger.info("✅ Complete 15-stream revenue scheduler initialized")
     return scheduler
 
 

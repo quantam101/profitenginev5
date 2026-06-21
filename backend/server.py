@@ -384,6 +384,83 @@ async def pod_sync_now() -> dict:
     return {"status": "success", **stats}
 
 
+# ── Federal Proposals (SAM.gov) ──────────────────────────────
+@app.get("/api/federal/opportunities")
+async def federal_opportunities() -> list[dict]:
+    """Get discovered federal opportunities"""
+    opportunities = await db.federal_opportunities.find({}).to_list(None)
+    return [{"id": str(o.get("_id")), **o} for o in opportunities]
+
+
+@app.post("/api/federal/sync")
+async def federal_sync() -> dict:
+    """Manually trigger federal proposals sync"""
+    from backend.services.federal_proposals import sync_federal_proposals_job
+    return await sync_federal_proposals_job(db=db)
+
+
+# ── Revenue Intelligence ─────────────────────────────────────
+@app.get("/api/intelligence/analysis")
+async def revenue_analysis() -> dict:
+    """Get revenue stream analysis and recommendations"""
+    from backend.services.revenue_intelligence import RevenueIntelligence
+    intelligence = RevenueIntelligence(db=db)
+    return await intelligence.analyze_streams()
+
+
+# ── Offer Engineering ────────────────────────────────────────
+@app.get("/api/offers/tiers")
+async def pricing_tiers() -> list[dict]:
+    """Get optimized pricing tiers"""
+    from backend.services.offer_engineering import OfferEngineer
+    engineer = OfferEngineer(db=db)
+    return await engineer.generate_pricing_tiers()
+
+
+# ── Consulting Services ──────────────────────────────────────
+@app.get("/api/consulting/packages")
+async def consulting_packages() -> list[dict]:
+    """Get available consulting packages"""
+    from backend.services.consulting_services import ConsultingEngine
+    engine = ConsultingEngine(db=db)
+    return engine.get_service_packages()
+
+
+@app.get("/api/consulting/leads")
+async def consulting_leads() -> dict:
+    """Get consulting leads and conversion stats"""
+    from backend.services.consulting_services import ConsultingEngine
+    engine = ConsultingEngine(db=db)
+    return await engine.track_leads()
+
+
+# ── Sponsorships ─────────────────────────────────────────────
+@app.get("/api/sponsorships/active")
+async def active_sponsorships() -> dict:
+    """Get active sponsorship deals"""
+    from backend.services.sponsorships import SponsorshipManager
+    manager = SponsorshipManager(db=db)
+    return await manager.track_active_deals()
+
+
+# ── Content SEO Monetization ─────────────────────────────────
+@app.get("/api/content/seo-revenue")
+async def content_seo_revenue() -> dict:
+    """Get content SEO revenue stats"""
+    from backend.services.content_seo_monetization import ContentSEOMonetization
+    monetizer = ContentSEOMonetization(db=db)
+    return await monetizer.track_blog_revenue()
+
+
+# ── Skool Community ──────────────────────────────────────────
+@app.get("/api/skool/affiliate-stats")
+async def skool_affiliate_stats() -> dict:
+    """Get Skool community affiliate revenue"""
+    from backend.services.skool_community import SkoolCommunity
+    community = SkoolCommunity(db=db)
+    return await community.track_community_affiliate()
+
+
 # ── Cycle + Sovereign ─────────────────────────────────────────
 @app.get("/api/cycle/status")
 async def cycle_status() -> dict[str, Any]:
