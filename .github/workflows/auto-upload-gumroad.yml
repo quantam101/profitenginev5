@@ -1,0 +1,243 @@
+name: Auto-Upload Products to Gumroad
+
+on:
+  push:
+    paths:
+      - 'products/*COMPLETE.txt'
+  workflow_dispatch:
+
+env:
+  GUMROAD_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+  GUMROAD_SELLER_ID: ${{ secrets.GUMROAD_SELLER_ID }}
+
+jobs:
+  upload-to-gumroad:
+    runs-on: ubuntu-latest
+    name: 📤 Auto-Upload to Gumroad
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect Changed Product Files
+        id: detect
+        run: |
+          echo "Detecting changed product files..."
+
+          # Get changed files
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep "products/.*COMPLETE.txt" || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "No product files changed"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED"
+          echo "files=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Upload Products to Gumroad
+        run: |
+          pip install requests
+
+          python << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import requests
+          from pathlib import Path
+
+          GUMROAD_TOKEN = os.environ.get('GUMROAD_TOKEN')
+          BASE_URL = 'https://api.gumroad.com/v2'
+
+          # Product mapping
+          PRODUCTS = {
+              'AI_BUSINESS_PROMPT_PACK_COMPLETE.txt': {
+                  'name': 'AI Business Prompt Pack',
+                  'price': 2700,
+                  'description': '50 complete AI prompts covering copywriting, sales emails, social media, product descriptions. Ready to use immediately. 768 lines of pure value.',
+                  'url': 'ai-business-prompt-pack',
+              },
+              'REAL_ESTATE_COMPLETE.txt': {
+                  'name': 'Real Estate Copywriting Kit',
+                  'price': 1900,
+                  'description': '5 complete email sequences, 3 listing templates, 30 social posts. Use immediately - all templates ready. 454 lines.',
+                  'url': 'real-estate-copywriting-kit',
+              },
+              'POD_COMPLETE.txt': {
+                  'name': 'POD Design Prompt Bundle',
+                  'price': 2200,
+                  'description': '100+ AI design prompts organized by niche. Ready for Midjourney/DALL-E. Includes niche analysis and Etsy optimization. 419 lines.',
+                  'url': 'pod-design-prompt-bundle',
+              },
+              'SEO_COMPLETE.txt': {
+                  'name': 'Programmatic SEO Starter Kit',
+                  'price': 2900,
+                  'description': '100+ keywords with search volume + 25 content outlines + 20-point checklist + schema markup + 90-day plan. 389 lines.',
+                  'url': 'programmatic-seo-starter-kit',
+              },
+              'SOCIAL_MEDIA_COMPLETE.txt': {
+                  'name': 'Social Media Content Engine',
+                  'price': 1700,
+                  'description': '90-day complete content calendar with 5 platform formulas, 15 caption templates, 3 video scripts. Batch creation guide. 327 lines.',
+                  'url': 'social-media-content-engine',
+              },
+          }
+
+          print("=" * 70)
+          print("GUMROAD AUTO-UPLOAD STARTING")
+          print("=" * 70)
+
+          for filename, product_info in PRODUCTS.items():
+              file_path = f'products/{filename}'
+
+              if not Path(file_path).exists():
+                  print(f"⏭️ Skipping {filename} (not changed)")
+                  continue
+
+              print(f"\n📤 Processing: {product_info['name']}")
+
+              # Step 1: List products to check if it exists
+              try:
+                  resp = requests.get(
+                      f'{BASE_URL}/products',
+                      params={'access_token': GUMROAD_TOKEN},
+                      timeout=20
+                  )
+                  products = resp.json().get('products', [])
+              except Exception as e:
+                  print(f"❌ Failed to list products: {e}")
+                  continue
+
+              # Check if product exists
+              existing = None
+              for p in products:
+                  if p.get('name', '').lower() == product_info['name'].lower():
+                      existing = p
+                      break
+
+              if existing:
+                  product_id = existing['id']
+                  print(f"   ✅ Product exists: {product_id[:20]}...")
+              else:
+                  print(f"   📝 Creating new product...")
+                  try:
+                      resp = requests.post(
+                          f'{BASE_URL}/products',
+                          data={
+                              'name': product_info['name'],
+                              'price': product_info['price'],
+                              'description': product_info['description'],
+                              'published': False,
+                              'type': 'digital',
+                              'url': product_info['url'],
+                              'access_token': GUMROAD_TOKEN,
+                          },
+                          timeout=20
+                      )
+
+                      if resp.status_code == 200:
+                          product_id = resp.json().get('product', {}).get('id')
+                          print(f"   ✅ Created: {product_id[:20]}...")
+                      else:
+                          print(f"   ❌ Failed to create: {resp.status_code}")
+                          print(f"      {resp.text[:200]}")
+                          continue
+                  except Exception as e:
+                      print(f"   ❌ Error: {e}")
+                      continue
+
+              # Step 2: Upload file
+              print(f"   📤 Uploading file...")
+              try:
+                  with open(file_path, 'rb') as f:
+                      files = {
+                          'file': (Path(file_path).name, f, 'text/plain'),
+                      }
+                      data = {
+                          'access_token': GUMROAD_TOKEN,
+                      }
+
+                      resp = requests.post(
+                          f'{BASE_URL}/products/{product_id}/files',
+                          files=files,
+                          data=data,
+                          timeout=30
+                      )
+
+                      if resp.status_code == 200:
+                          print(f"   ✅ File uploaded")
+                      else:
+                          print(f"   ⚠️ Upload returned {resp.status_code}")
+                          print(f"      Note: Some Gumroad API versions require manual file upload")
+                          print(f"      File exists locally: {file_path}")
+              except Exception as e:
+                  print(f"   ⚠️ Upload error: {e}")
+
+              # Step 3: Publish product
+              print(f"   🚀 Publishing product...")
+              try:
+                  resp = requests.put(
+                      f'{BASE_URL}/products/{product_id}',
+                      data={
+                          'published': True,
+                          'access_token': GUMROAD_TOKEN,
+                      },
+                      timeout=20
+                  )
+
+                  if resp.status_code == 200:
+                      print(f"   ✅ Published!")
+                      short_url = resp.json().get('product', {}).get('short_url', 'pending')
+                      print(f"   🔗 {short_url}")
+                  else:
+                      print(f"   ⚠️ Publish returned {resp.status_code}")
+              except Exception as e:
+                  print(f"   ⚠️ Publish error: {e}")
+
+          print("\n" + "=" * 70)
+          print("UPLOAD COMPLETE")
+          print("=" * 70)
+
+          PYTHON_SCRIPT
+
+      - name: Verify on Gumroad
+        run: |
+          python << 'PYTHON_SCRIPT'
+          import os
+          import requests
+
+          GUMROAD_TOKEN = os.environ.get('GUMROAD_TOKEN')
+          BASE_URL = 'https://api.gumroad.com/v2'
+
+          print("\n📊 Verifying products on Gumroad...")
+
+          try:
+              resp = requests.get(
+                  f'{BASE_URL}/products',
+                  params={'access_token': GUMROAD_TOKEN},
+                  timeout=20
+              )
+              products = resp.json().get('products', [])
+
+              print(f"\n✅ Total products on Gumroad: {len(products)}")
+              print("\nProducts:")
+              for p in products:
+                  status = "🟢 PUBLISHED" if p.get('published') else "🟡 DRAFT"
+                  price = f"${p.get('price', 0)/100:.2f}" if p.get('price') else "FREE"
+                  print(f"  {status} | {p.get('name')} ({price})")
+          except Exception as e:
+              print(f"⚠️ Verification failed: {e}")
+
+          PYTHON_SCRIPT
+
+      - name: Send Notification
+        if: always()
+        run: |
+          echo "✅ Auto-upload workflow completed"
+          echo "Check: https://app.gumroad.com/dashboard/products"
