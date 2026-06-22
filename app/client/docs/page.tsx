@@ -259,7 +259,7 @@ export default function ClientDocs() {
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <p className="text-blue-900 font-semibold mb-2">
-                      ✅ Events You'll Receive
+                      ✅ Events You&apos;ll Receive
                     </p>
                     <ul className="text-sm text-blue-800 space-y-1">
                       <li>charge.succeeded - Payment processed successfully</li>
@@ -300,7 +300,7 @@ export default function ClientDocs() {
                     <li>• Use HTTPS only for webhook URLs</li>
                     <li>• Respond with 2xx status code to acknowledge receipt</li>
                     <li>
-                      • We'll retry failed webhooks up to 5 times
+                      • We&apos;ll retry failed webhooks up to 5 times
                     </li>
                   </ul>
                 </div>
@@ -475,7 +475,7 @@ const localConfig = {
                     How do I revoke my API key?
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    Contact support. We'll generate a new API key and invalidate
+                    Contact support. We&apos;ll generate a new API key and invalidate
                     the old one immediately.
                   </p>
                 </div>
@@ -490,7 +490,7 @@ const localConfig = {
             Need Help?
           </h2>
           <p className="text-gray-600 mb-4">
-            Can't find what you're looking for? Check out our support
+            Can&apos;t find what you&apos;re looking for? Check out our support
             resources:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

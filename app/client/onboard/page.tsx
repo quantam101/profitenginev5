@@ -380,7 +380,7 @@ export default function ClientOnboarding() {
                   placeholder="https://your-app.com/webhooks/stripe"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  This is where we'll send payment notifications. Must be HTTPS.
+                  This is where we&apos;ll send payment notifications. Must be HTTPS.
                 </p>
               </div>
 
@@ -431,7 +431,7 @@ export default function ClientOnboarding() {
             <div className="space-y-4">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-green-600 mb-2">
-                  🎉 You're All Set!
+                  🎉 You&apos;re All Set!
                 </h2>
                 <p className="text-gray-600">
                   Your payment platform is now live and ready to accept customer
