@@ -132,19 +132,25 @@ jobs:
                   product_id = existing['id']
                   print(f"   ✅ Product exists: {product_id[:20]}...")
                   # Update existing with content
-                  try:
-                      full_description = product_info['description'] + f"\n\n---\n\n**COMPLETE CONTENT:**\n\n{file_content}"
-                      resp = requests.put(
-                          f'{BASE_URL}/products/{product_id}',
-                          data={
-                              'description': full_description,
-                              'access_token': GUMROAD_TOKEN,
-                          },
-                          timeout=20
-                      )
-                      print(f"   ✅ Updated with content")
-                  except Exception as e:
-                      print(f"   ⚠️ Update error: {e}")
+                  if file_content:
+                      try:
+                          full_description = product_info['description'] + f"\n\n---\n\n**COMPLETE CONTENT:**\n\n{file_content}"
+                          resp = requests.put(
+                              f'{BASE_URL}/products/{product_id}',
+                              data={
+                                  'description': full_description,
+                                  'access_token': GUMROAD_TOKEN,
+                              },
+                              timeout=20
+                          )
+                          if resp.status_code == 200:
+                              print(f"   ✅ Updated with {len(file_content)} chars of content")
+                          else:
+                              print(f"   ⚠️ Update failed: {resp.status_code}")
+                      except Exception as e:
+                          print(f"   ⚠️ Update error: {e}")
+                  else:
+                      print(f"   ⚠️ No file content read")
               else:
                   print(f"   📝 Creating new product...")
                   try:
