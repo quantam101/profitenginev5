@@ -35,6 +35,25 @@ logger = logging.getLogger(__name__)
 def _get_env(key: str, default: str = "") -> str:
   return os.getenv(key, default).strip()
 
+# Module-level credential refs (read at import time for verification scripts)
+TWITTER_API_KEY = _get_env("TWITTER_API_KEY")
+TWITTER_API_SECRET = _get_env("TWITTER_API_SECRET")
+TWITTER_ACCESS_TOKEN = _get_env("TWITTER_ACCESS_TOKEN")
+TWITTER_ACCESS_SECRET = _get_env("TWITTER_ACCESS_SECRET")
+REDDIT_CLIENT_ID = _get_env("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = _get_env("REDDIT_CLIENT_SECRET")
+REDDIT_USERNAME = _get_env("REDDIT_USERNAME")
+REDDIT_PASSWORD = _get_env("REDDIT_PASSWORD")
+LINKEDIN_ACCESS_TOKEN = _get_env("LINKEDIN_ACCESS_TOKEN")
+LINKEDIN_PERSON_URN = _get_env("LINKEDIN_PERSON_URN")
+FB_PAGE_ID = _get_env("FB_PAGE_ID")
+FB_PAGE_ACCESS_TOKEN = _get_env("FB_PAGE_ACCESS_TOKEN")
+IG_USER_ID = _get_env("IG_USER_ID")
+TIKTOK_ACCESS_TOKEN = _get_env("TIKTOK_ACCESS_TOKEN")
+YOUTUBE_CLIENT_ID = _get_env("YOUTUBE_CLIENT_ID")
+YOUTUBE_CLIENT_SECRET = _get_env("YOUTUBE_CLIENT_SECRET")
+YOUTUBE_REFRESH_TOKEN = _get_env("YOUTUBE_REFRESH_TOKEN")
+
 # Global HTTP client with reasonable timeouts
 http_client = httpx.AsyncClient(timeout=30.0)
 
