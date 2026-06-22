@@ -1,5 +1,4 @@
 """Consulting Services — Done-for-You Setup & Training"""
-import os
 from datetime import datetime
 from typing import Dict, List, Any
 

@@ -4,8 +4,7 @@ Tests actual functionality and generates real test data.
 """
 import pytest
 import asyncio
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 import sys
 from pathlib import Path
 
@@ -85,7 +84,6 @@ def test_gumroad_service():
     """Test Gumroad service initialization"""
     from backend.services.gumroad_service import GumroadService
 
-    db = MockDB()
     service = GumroadService(access_token="test_token", seller_id="test_seller")
 
     assert service.access_token == "test_token"

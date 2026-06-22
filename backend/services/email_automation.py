@@ -9,7 +9,6 @@ Automation:
 - Content distribution
 """
 import os
-from typing import Optional
 
 try:
     from resend import Resend

@@ -216,7 +216,7 @@ export default function ClientDashboard({
               {data.client.status === 'live' && (
                 <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <p className="text-green-800 font-semibold">
-                    ✅ You're Live!
+                    ✅ You&apos;re Live!
                   </p>
                   <p className="text-green-700 text-sm mt-2">
                     Accepting real customer payments

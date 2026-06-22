@@ -28,4 +28,5 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]       # test files may use hardcoded fixtures
+"backend/tests/**" = ["S"]  # backend test files may use hardcoded fixtures
 "scripts/**" = ["S603", "S607", "S605"]  # scripts intentionally call subprocesses

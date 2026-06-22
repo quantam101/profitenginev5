@@ -1,6 +1,4 @@
 """Content SEO Monetization — Blog Revenue from Organic Traffic"""
-import os
-from datetime import datetime
 from typing import Dict, List, Any
 
 
@@ -78,7 +76,7 @@ async def sync_content_seo_job(db=None):
     """Daily content SEO sync"""
 
     monetizer = ContentSEOMonetization(db=db)
-    posts = await monetizer.generate_seo_content()
+    await monetizer.generate_seo_content()
     stats = await monetizer.track_blog_revenue()
 
     print(f"📝 Content SEO: {stats['total_posts']} posts, ${stats['total_monthly_revenue']:.2f}/mo")

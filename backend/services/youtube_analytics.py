@@ -23,7 +23,7 @@ except ImportError:
     GOOGLE_API_AVAILABLE = False
     logger.warning("Google API client libraries not installed. YouTube Analytics will be unavailable.")
 
-GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
+GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"  # noqa: S105
 
 
 class YouTubeRevenueAnalytics:

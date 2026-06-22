@@ -41,7 +41,7 @@ class AffiliateTracker:
             "status": "pending"  # Will be updated when conversion happens
         }
 
-        result = await self.collection.insert_one(click_record)
+        await self.collection.insert_one(click_record)
         return tracking_id
 
     async def log_conversion(

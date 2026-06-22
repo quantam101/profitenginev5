@@ -11,9 +11,8 @@ Strategic networking for ProfitEngine:
 - Affiliate network management
 - Cross-promotion agreements
 """
-import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from enum import Enum
 
 
@@ -83,7 +82,7 @@ class NetworkingSystem:
             "created_at": datetime.utcnow().isoformat(),
             "revenue_potential_usd": revenue_potential,
             "terms": terms,
-            "contact_email": f"partnerships@profitengine.app",
+            "contact_email": "partnerships@profitengine.app",
             "proposal_template": self._get_proposal_template(partnership_type),
             "next_steps": [
                 "Research partner contact info",
