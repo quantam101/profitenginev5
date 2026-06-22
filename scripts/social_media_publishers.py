@@ -344,7 +344,7 @@ def publish_instagram(article: Dict[str, Any], image_url: str = "") -> Optional[
 
     See: https://developers.facebook.com/docs/instagram-api/guides/content-publishing
     """
-    ig_user_id = _get_env("ig_user_id")
+    ig_user_id = _get_env("IG_USER_ID")
     page_token = _get_env("FB_PAGE_ACCESS_TOKEN")
 
     if not ig_user_id or not page_token:
