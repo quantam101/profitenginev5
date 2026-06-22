@@ -163,7 +163,7 @@ PART 4: DATA & AI INFRASTRUCTURE VERIFICATION (4 tests)
     
 20. OpenAI Integration
     Status: PASS
-    API Key: sk-proj-45TjTVba97g2FwpsidktykripemOz4HUdfUDz7zaUMC5IsRMxcc_60bv8qC73295Cb5WigYpV8T3BlbkFJpf3k2Mu6BrHLu72-uMiVLgtBy5IFqoA5nys0HRP8tO-oUtOvcIfygk9DscWF0rb0eebK83wA
+    API Key: [REDACTED — rotate this key immediately]
     Model: gpt-4 (configured)
     Cost Limit: Zero spend enforced
     Capability: Content generation, summarization (with fallback adapters)
