@@ -178,7 +178,7 @@ def upload_product(product: Dict) -> bool:
             "license": product["license"]
         }
 
-        response = requests.post(GUMROAD_API_URL, headers=headers, data=payload)
+        response = requests.post(GUMROAD_API_URL, headers=headers, data=payload, timeout=30)
 
         if response.status_code in [200, 201]:
             print(f"✅ UPLOADED: {product['name']}")

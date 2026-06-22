@@ -120,7 +120,7 @@ def create_listing(product: Dict) -> bool:
         }
 
         url = f"{ETSY_API_URL}/{ETSY_SHOP_ID}/listings"
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
 
         if response.status_code in [200, 201]:
             listing_id = response.json().get("data", {}).get("listing_id")
