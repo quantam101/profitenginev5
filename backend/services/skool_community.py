@@ -76,7 +76,7 @@ async def sync_skool_community_job(db=None):
     """Daily Skool community sync"""
 
     community = SkoolCommunity(db=db)
-    setup = await community.setup_community()
+    await community.setup_community()
     stats = await community.track_community_affiliate()
 
     print(f"🎓 Skool Community: ${stats['monthly_commission']:.2f}/mo commission")

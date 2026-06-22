@@ -7,10 +7,8 @@ Real-time monitoring of all 9 daily revenue syncs with:
 - Performance metrics
 - Auto-recovery triggers
 """
-import os
-import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Dict, Any
 from enum import Enum
 
 

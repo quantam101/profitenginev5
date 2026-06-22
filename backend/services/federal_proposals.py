@@ -7,7 +7,6 @@ Revenue Stream: $8,500/month from awarded federal contracts
 """
 import os
 import json
-import asyncio
 import aiohttp
 from datetime import datetime
 from typing import Optional, Dict, List, Any
@@ -206,7 +205,6 @@ class FederalProposalEngine:
 
         # Log revenue opportunity
         if self.db and results["submitted"] > 0:
-            avg_value = results["value_usd"] / results["submitted"] if results["submitted"] > 0 else 0
             await self.db.transactions.insert_one({
                 "source": "federal_proposals",
                 "type": "opportunity_submitted",

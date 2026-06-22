@@ -12,9 +12,9 @@ Generates:
 - Animated explainers
 - B-roll compilations
 """
-import subprocess
 import os
-from typing import Optional
+import subprocess
+import tempfile
 
 class VideoEngine:
     """Free video generation using open-source tools."""
@@ -42,7 +42,8 @@ class VideoEngine:
         """Generate video from text script using free TTS + FFmpeg."""
 
         # Generate audio (use espeak or festival for free TTS)
-        audio_path = "/tmp/script_audio.wav"
+        fd, audio_path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
         cmd = [
             "espeak",
             "-f", "-",  # Read from stdin
@@ -56,7 +57,7 @@ class VideoEngine:
         ffmpeg_cmd = [
             "ffmpeg",
             "-f", "lavfi",
-            "-i", f"color=c=black:s=1280x720:d=10",
+            "-i", "color=c=black:s=1280x720:d=10",
             "-i", audio_path,
             "-c:v", "libx264",
             "-c:a", "aac",

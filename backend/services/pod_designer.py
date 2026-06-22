@@ -9,8 +9,6 @@ Generates print-on-demand designs and uploads to:
 Revenue Stream: $4,500-12,000/month from product sales
 """
 import os
-import json
-import asyncio
 import aiohttp
 from typing import Optional, Dict, List, Any
 from datetime import datetime

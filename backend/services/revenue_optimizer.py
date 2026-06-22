@@ -8,7 +8,6 @@ Analyzes live revenue data and automatically:
 - A/B tests offer variations
 - Identifies growth opportunities
 """
-import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 from enum import Enum
