@@ -47,6 +47,8 @@ _IGNORED_RELATIVE = {
     ".env.example",
     "scripts/secrets.env.example",
     "tests/test_core.py",
+    "runtime/daily_alerts.env.example",
+    "FINAL_VERIFICATION_REPORT.md",
 }
 
 _IGNORED_DIRS = {
