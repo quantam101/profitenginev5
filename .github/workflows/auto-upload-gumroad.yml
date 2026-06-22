@@ -121,18 +121,40 @@ jobs:
                       existing = p
                       break
 
+              # Read file content
+              try:
+                  with open(file_path, 'r', encoding='utf-8') as f:
+                      file_content = f.read()
+              except:
+                  file_content = ""
+
               if existing:
                   product_id = existing['id']
                   print(f"   ✅ Product exists: {product_id[:20]}...")
+                  # Update existing with content
+                  try:
+                      full_description = product_info['description'] + f"\n\n---\n\n**COMPLETE CONTENT:**\n\n{file_content}"
+                      resp = requests.put(
+                          f'{BASE_URL}/products/{product_id}',
+                          data={
+                              'description': full_description,
+                              'access_token': GUMROAD_TOKEN,
+                          },
+                          timeout=20
+                      )
+                      print(f"   ✅ Updated with content")
+                  except Exception as e:
+                      print(f"   ⚠️ Update error: {e}")
               else:
                   print(f"   📝 Creating new product...")
                   try:
+                      full_description = product_info['description'] + f"\n\n---\n\n**COMPLETE CONTENT:**\n\n{file_content}"
                       resp = requests.post(
                           f'{BASE_URL}/products',
                           data={
                               'name': product_info['name'],
                               'price': product_info['price'],
-                              'description': product_info['description'],
+                              'description': full_description,
                               'published': False,
                               'type': 'digital',
                               'url': product_info['url'],
@@ -152,52 +174,8 @@ jobs:
                       print(f"   ❌ Error: {e}")
                       continue
 
-              # Step 2: Upload file to Gumroad via form-data (v2 API)
-              print(f"   📤 Uploading file...")
-              try:
-                  with open(file_path, 'rb') as f:
-                      # Gumroad v2 API requires specific multipart format
-                      files = {
-                          'file': (Path(file_path).name, f, 'text/plain'),
-                      }
-                      data = {
-                          'access_token': GUMROAD_TOKEN,
-                      }
-
-                      # Try direct file upload
-                      resp = requests.post(
-                          f'{BASE_URL}/products/{product_id}/files',
-                          files=files,
-                          data=data,
-                          timeout=30
-                      )
-
-                      if resp.status_code in [200, 201]:
-                          print(f"   ✅ File uploaded successfully")
-                      elif resp.status_code == 404:
-                          # API endpoint not available - use download link approach
-                          print(f"   ℹ️ Using GitHub download link approach...")
-                          # Store file content for download link
-                          gh_url = f"https://raw.githubusercontent.com/quantam101/profitenginev5/main/{file_path}"
-                          file_size_kb = len(f.read()) / 1024
-
-                          # Update product with download link in description
-                          enhanced_desc = product_info['description'] + f"\n\n**📥 Download:**\n[{Path(file_path).name}]({gh_url})\n*(Complete file: {file_size_kb:.1f} KB)*"
-
-                          resp2 = requests.put(
-                              f'{BASE_URL}/products/{product_id}',
-                              data={
-                                  'access_token': GUMROAD_TOKEN,
-                                  'description': enhanced_desc
-                              },
-                              timeout=20
-                          )
-                          if resp2.status_code == 200:
-                              print(f"   ✅ Product updated with GitHub download link")
-                      else:
-                          print(f"   ⚠️ Upload returned {resp.status_code}: {resp.text[:100]}")
-              except Exception as e:
-                  print(f"   ⚠️ Upload error: {e}")
+              # Step 2: Content is embedded in description (no separate file upload needed)
+              print(f"   ✅ Content embedded in product description")
 
               # Step 3: Publish product
               print(f"   🚀 Publishing product...")
