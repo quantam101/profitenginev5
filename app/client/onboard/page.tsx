@@ -32,7 +32,7 @@ export default function ClientOnboarding() {
       const response = await fetch('/api/client/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, business_name }),
+        body: JSON.stringify({ email, business_name: businessName }),
       });
 
       if (!response.ok) {

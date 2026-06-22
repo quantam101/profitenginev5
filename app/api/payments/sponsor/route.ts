@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     // Get payment intent details if completed
-    let paymentStatus = session.payment_status;
+    let paymentStatus: string = session.payment_status;
     let paymentIntentId = null;
 
     if (session.payment_intent) {

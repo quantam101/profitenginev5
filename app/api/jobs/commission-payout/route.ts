@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dailyCommissionPayout } from '@/lib/commission-payout';
+import { dailyCommissionPayout } from '@/app/lib/commission-payout';
 
 /**
  * Daily Commission Payout Job
