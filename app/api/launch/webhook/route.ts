@@ -46,8 +46,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log(`Stripe webhook: ${event.type} [${event.id}]`);
-
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -117,6 +115,4 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     status: "active",
     created_at: now,
   });
-
-  console.log(`Subscription granted: tier=${tier} email=${email} amount=$${amount}`);
 }
