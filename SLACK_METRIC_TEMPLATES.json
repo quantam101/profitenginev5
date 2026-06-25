@@ -1,0 +1,210 @@
+{
+  "slack_daily_templates": {
+    "morning_8am": {
+      "channel": "#daily-execution",
+      "time": "08:00",
+      "template": ":sunrise: MORNING STANDUP — 8 AM Daily Metrics Check\n\n*TODAY'S GOALS*\n:calendar: Date: [DATE]\n:alarm_clock: Time: 8:00 AM\n\n*PLATFORM STATUS*\n[ ] Backend health check — OCI server (129.146.236.177) responding?\n   Status: _________\n[ ] Frontend — Vercel deployment live?\n   Status: _________\n[ ] Email campaign queue ready?\n   Status: _________\n\n*OVERNIGHT METRICS (11 PM - 8 AM)*\n:inbox: Email Opens: _____ (Target: >200)\n:link: Email Click-Through Rate: ____% (Target: >2.5%)\n:play_button: Video Views (YouTube/TikTok/IG): _____ (Target: >500)\n:chart_with_upwards_trend: Trading Signals Sent: _____ (Target: >3)\n:dollar: Revenue (Affiliate Commissions): $_____ (Target: >$50)\n\n*CONTENT CHECKLIST*\n[ ] 3+ trading signals written and scheduled for today\n[ ] Email copy proofread (no placeholders, real URLs)\n[ ] Affiliate links verified (alreadyhere-20 tag active)\n[ ] Video thumbnails ready for upload\n[ ] Social media posts queued\n\n*INFRASTRUCTURE*\n[ ] GitHub Actions workflows green?\n[ ] Database backups completed?\n[ ] SSL certificates valid?\n[ ] API rate limits healthy?\n\n*TODAY'S FOCUS*\n1. _________________\n2. _________________\n3. _________________\n\n:white_check_mark: READY TO START EXECUTION"
+    },
+    "midday_12pm": {
+      "channel": "#daily-execution",
+      "time": "12:00",
+      "template": ":clock1230: MIDDAY METRICS PULSE — 12 PM\n\n*MORNING TO NOON RESULTS (8 AM - 12 PM)*\n:inbox: Email Opens (so far): _____ (Running total: _____)\n:link: Email Clicks: _____ (CTR: ____%)\n:play_button: Video Views: _____ (YouTube/TikTok/IG combined)\n:chart_with_upwards_trend: Trading Signals Clicked: _____ \n:dollar: Revenue Earned: $_____ (Running total: $_____)\n\n*ACTIVITY LOG*\n[ ] Morning emails sent at: _____ (count: _____)\n[ ] Video posts published: _____ (platforms: __________)\n[ ] Affiliate link traffic: _____ clicks (source: __________)\n[ ] Support responses sent: _____ (avg response time: ___ min)\n\n*ENGAGEMENT QUALITY*\n:star: Top performing email subject line: \"___________________\"\n:fire: Hottest video clip: ________________ (views: _____)\n:clipboard: Most clicked affiliate link: ________________ (clicks: _____)\n\n*ADJUSTMENTS FOR AFTERNOON*\n[ ] Pause underperforming campaigns? (Y/N)\n[ ] Boost high-performing content? (Y/N)\n[ ] Send second wave of emails? (Y/N)\n[ ] Adjust bid strategy? (Y/N)\n\n:watch: CONTINUING EXECUTION"
+    },
+    "afternoon_3pm": {
+      "channel": "#daily-execution",
+      "time": "15:00",
+      "template": ":clock3: AFTERNOON METRICS UPDATE — 3 PM\n\n*NOON TO 3 PM RESULTS*\n:inbox: Email Opens (3 PM total): _____ (Increment: +_____)\n:link: Email CTR: ____% (Total clicks: _____)\n:play_button: Video Views: _____ (Increment: +_____)\n:chart_with_upwards_trend: Trading Signal Engagement: _____ clicks\n:dollar: New Revenue: $_____ (Daily total: $_____)\n\n*CONVERSION FUNNEL*\nEmail Sent → Opens → Clicks → Landing Page → Conversion\n______ → ____% → ____% → ____% → _____%\n\n*CONTENT PERFORMANCE RANKINGS*\n🥇 #1 Email: \"___________________\" (____% CTR)\n🥈 #2 Email: \"___________________\" (____% CTR)\n🥉 #3 Email: \"___________________\" (____% CTR)\n\n🎥 #1 Video: ________________ (_____ views, ___% engagement)\n🎥 #2 Video: ________________ (_____ views, ___% engagement)\n\n*SOCIAL MEDIA METRICS*\n:bird: Twitter/X: _____ impressions, _____ engagement rate ____% \n:camera: Instagram Reels: _____ views, _____ saves, ____% engagement\n:music: TikTok: _____ views, _____ shares, ____% engagement rate\n\n*ISSUES / BLOCKERS*\n[ ] _____________________________________\n[ ] _____________________________________\n\n:rocket: PUSHING TO EVENING FINISH LINE"
+    },
+    "evening_6pm": {
+      "channel": "#daily-execution",
+      "time": "18:00",
+      "template": ":sunset: EVENING EXECUTION SUMMARY — 6 PM Final Results\n\n*DAILY TOTALS (8 AM - 6 PM)*\n:calendar: Date: [DATE]\n\n📊 EMAIL METRICS\n:inbox: Total Emails Sent: _____ \n:envelope_with_arrow: Total Opens: _____ (CTR: _____%)\n:link: Total Clicks: _____ (CTOR: _____%)\n:heavy_check_mark: Conversion Rate: ____% (Transactions: _____)\n:dollar: Email Revenue: $_____\n\n🎥 VIDEO METRICS\n:play_button: Total Views (All Platforms): _____\n   YouTube: _____ (avg watch time: ___ sec)\n   TikTok: _____ (completion rate: ____%)\n   Instagram Reels: _____ (saves: _____)\n:star: Average Engagement Rate: _____%\n:dollar: Video Affiliate Revenue: $_____\n\n📈 TRADING SIGNALS\n:chart_with_upwards_trend: Signals Sent: _____\n:link: Signals Clicked: _____ (CTR: ____%)\n:trophy: Win Rate: ____% (Profitable trades: _____/_____)\n:dollar: Signal Revenue: $_____\n\n📱 SOCIAL MEDIA\n:bird: Twitter Impressions: _____ (engagement: _____%)\n:camera: Instagram Reach: _____ (engagement: _____%)\n:music: TikTok Reach: _____ (views: _____, saves: _____)\n\n💰 DAILY REVENUE SUMMARY\nAffiliate Commissions: $_____\nTrading Signals: $_____\nPartner Revenue: $_____\n*TOTAL DAILY REVENUE: $_____*\nTarget: $150 | Actual: $_____ | Status: ____%\n\n🎯 CONTENT PERFORMANCE TOP 3\n1. \"___________________\" — _____ opens, ____% CTR, $_____ revenue\n2. \"___________________\" — _____ opens, ____% CTR, $_____ revenue\n3. \"___________________\" — _____ opens, ____% CTR, $_____ revenue\n\n:thinking_face: DAILY REFLECTIONS\n✅ What went well: _____________________________________\n⚠️ What needs improvement: ________________________________\n🔧 Tomorrow's fixes: _____________________________________\n\n:memo: TASKS FOR TOMORROW\n[ ] _______________________________________________\n[ ] _______________________________________________\n[ ] _______________________________________________\n\n:sleeping: EXECUTION COMPLETE — See you tomorrow at 8 AM"
+    },
+    "weekly_sunday": {
+      "channel": "#weekly-reports",
+      "time": "18:00",
+      "day": "Sunday",
+      "template": ":calendar: WEEKLY EXECUTION REPORT — Sunday 6 PM\n\n*WEEK OF: [DATE] - [DATE]*\n\n📊 WEEKLY EMAIL METRICS\n:inbox: Total Emails Sent: _____\n:envelope_with_arrow: Total Opens: _____ (Avg CTR: _____%)\n:link: Total Clicks: _____ (Avg CTOR: _____%)\n:heavy_check_mark: Conversions: _____ (Conversion Rate: _____%)\n:dollar: Email Revenue: $_____\nTarget: $500 | Actual: $_____ | Achievement: ____%\n\n🎥 WEEKLY VIDEO METRICS\n:play_button: Total Views: _____\n   Monday: _____  Tuesday: _____  Wednesday: _____\n   Thursday: _____ Friday: _____  Saturday: _____  Sunday: _____\n:star: Avg Engagement Rate: _____%\n:fire: Viral Video: \"___________________\" (_____ views, ____% engagement)\n:dollar: Video Revenue: $_____\nTarget: $200 | Actual: $_____ | Achievement: ____%\n\n📈 WEEKLY TRADING SIGNALS\n:chart_with_upwards_trend: Signals Sent: _____\n:link: Signals Clicked: _____ (Avg CTR: _____%)\n:trophy: Win Rate: ____% (Winning Trades: _____/_____)\n:alarm: False Signals: _____\n:dollar: Signal Revenue: $_____\nTarget: $300 | Actual: $_____ | Achievement: ____%\n\n📱 WEEKLY SOCIAL MEDIA\nTwitter/X:\n   :bird: Impressions: _____ | Engagement: ____% | Clicks: _____\nInstagram Reels:\n   :camera: Views: _____ | Engagement: ____% | Clicks: _____\nTikTok:\n   :music: Views: _____ | Engagement: ____% | Clicks: _____\n\n💰 WEEKLY REVENUE SUMMARY\nAffiliate Commissions: $_____\nTrading Signal Revenue: $_____\nPartner Commissions: $_____\n*TOTAL WEEKLY REVENUE: $_____*\nTarget: $1,000 | Actual: $_____ | Achievement: ____%\n\n🏆 WEEKLY TOP PERFORMERS\n📧 Best Email: \"___________________\" (Opens: _____ | CTR: ____% | Revenue: $_____)\n🎥 Best Video: \"___________________\" (Views: _____ | Engagement: ____% | Revenue: $_____)\n📈 Best Signal: \"___________________\" (Accuracy: ____% | Revenue: $_____)\n\n✅ Best Day: _______ (Revenue: $_____ | Opens: _____ | Clicks: _____)\n📉 Weakest Day: _______ (Revenue: $_____ | Opens: _____ | Clicks: _____)\n\n📋 ACTION ITEMS FOR NEXT WEEK\n[ ] Focus on underperforming day (______): Strategy _______________\n[ ] Scale up best day (______): Increase budget to $_____\n[ ] Test new email subject lines\n[ ] Create new video content\n[ ] Optimize: _______________________________________________\n\n:rocket: WEEK COMPLETE — Ready for next week!"
+    }
+  },
+  "metric_quick_reference": {
+    "email_targets_daily": {
+      "opens": ">200",
+      "ctr_percent": ">2.5%",
+      "ctor_percent": ">8%",
+      "conversion_rate_percent": ">1%",
+      "target_revenue": "$50"
+    },
+    "email_targets_weekly": {
+      "total_opens": ">1000",
+      "avg_ctr_percent": ">2.5%",
+      "total_clicks": ">300",
+      "conversions": ">30",
+      "target_revenue": "$500"
+    },
+    "video_targets_daily": {
+      "total_views": ">500",
+      "youtube_views": ">200",
+      "tiktok_views": ">150",
+      "instagram_views": ">150",
+      "engagement_rate_percent": ">3%",
+      "target_revenue": "$30"
+    },
+    "video_targets_weekly": {
+      "total_views": ">3500",
+      "avg_engagement_percent": ">3%",
+      "viral_threshold": ">1000",
+      "target_revenue": "$200"
+    },
+    "trading_signal_targets_daily": {
+      "signals_sent": ">3",
+      "ctr_percent": ">15%",
+      "win_rate_percent": ">55%",
+      "false_signal_rate_percent": "<5%",
+      "target_revenue": "$70"
+    },
+    "trading_signal_targets_weekly": {
+      "signals_sent": ">20",
+      "avg_ctr_percent": ">15%",
+      "avg_win_rate_percent": ">55%",
+      "target_revenue": "$300"
+    },
+    "social_media_targets_daily": {
+      "twitter_impressions": ">1000",
+      "twitter_engagement_percent": ">1%",
+      "instagram_reach": ">500",
+      "instagram_engagement_percent": ">2%",
+      "tiktok_reach": ">1500",
+      "tiktok_engagement_percent": ">3%"
+    },
+    "social_media_targets_weekly": {
+      "twitter_impressions": ">7000",
+      "twitter_engagement_percent": ">1%",
+      "instagram_reach": ">3500",
+      "instagram_engagement_percent": ">2%",
+      "tiktok_reach": ">10000",
+      "tiktok_engagement_percent": ">3%"
+    },
+    "daily_revenue_targets": {
+      "email": "$50",
+      "video": "$30",
+      "trading_signals": "$70",
+      "total": "$150"
+    },
+    "weekly_revenue_targets": {
+      "email": "$500",
+      "video": "$200",
+      "trading_signals": "$300",
+      "total": "$1000"
+    }
+  },
+  "metric_formulas": {
+    "email_ctr": "Email Clicks ÷ Email Opens × 100",
+    "email_ctor": "Unique Clicks ÷ Email Opens × 100",
+    "email_conversion_rate": "Transactions ÷ Email Clicks × 100",
+    "email_revenue": "(Email Clicks × Conversion Rate × Avg Commission Per Click)",
+    "video_engagement_rate": "(Likes + Comments + Shares + Saves) ÷ Total Views × 100",
+    "video_completion_rate": "Videos Watched to End ÷ Total Video Plays × 100",
+    "video_revenue": "(Total Views × Click Rate × Conversion Rate × Avg Commission)",
+    "signal_ctr": "Recipients Who Clicked Signal ÷ Total Signals Sent × 100",
+    "signal_win_rate": "Profitable Trades ÷ Total Trades Executed × 100",
+    "signal_false_rate": "Unprofitable Signals ÷ Total Signals × 100",
+    "signal_revenue": "(Signals Sent × Signal CTR × Win Rate × Avg Profit Per Signal)",
+    "social_engagement_rate": "(Likes + Comments + Shares + Saves + Clicks) ÷ Impressions × 100",
+    "social_ctr": "Clicks ÷ Impressions × 100",
+    "daily_total_revenue": "Email Revenue + Video Revenue + Trading Signal Revenue + Partner Revenue"
+  },
+  "spreadsheet_template": {
+    "columns": [
+      "Date",
+      "Day",
+      "Email_Sends",
+      "Email_Opens",
+      "Email_Opens_Pct",
+      "Email_Clicks",
+      "Email_CTR_Pct",
+      "Email_CTOR_Pct",
+      "Email_Conversions",
+      "Email_Conversion_Rate_Pct",
+      "Email_Revenue_USD",
+      "Video_Views_Total",
+      "Video_Views_YouTube",
+      "Video_Views_TikTok",
+      "Video_Views_Instagram",
+      "Video_Engagement_Rate_Pct",
+      "Video_Watch_Time_Sec",
+      "Video_Revenue_USD",
+      "Signal_Sent",
+      "Signal_Clicks",
+      "Signal_CTR_Pct",
+      "Signal_Profitable",
+      "Signal_Win_Rate_Pct",
+      "Signal_False_Rate_Pct",
+      "Signal_Revenue_USD",
+      "Twitter_Impressions",
+      "Twitter_Engagement_Pct",
+      "Twitter_Clicks",
+      "Instagram_Reach",
+      "Instagram_Engagement_Pct",
+      "Instagram_Clicks",
+      "TikTok_Reach",
+      "TikTok_Engagement_Pct",
+      "TikTok_Clicks",
+      "Total_Daily_Revenue_USD",
+      "Running_Weekly_Total_USD",
+      "Notes"
+    ],
+    "description": "Use this as the header row for Google Sheets or Excel daily tracking spreadsheet"
+  },
+  "execution_checklist_items": {
+    "morning_8am_checks": [
+      "Backend health check — OCI server responding?",
+      "Frontend — Vercel deployment live?",
+      "Email campaign queue ready?",
+      "3+ trading signals written and scheduled",
+      "Email copy proofread (no placeholders)",
+      "Affiliate links verified (alreadyhere-20)",
+      "Video thumbnails ready for upload",
+      "Social media posts queued",
+      "GitHub Actions workflows green?",
+      "Database backups completed?",
+      "SSL certificates valid?",
+      "API rate limits healthy?"
+    ],
+    "midday_12pm_checks": [
+      "Morning emails sent successfully?",
+      "Video posts published?",
+      "Affiliate link traffic flowing?",
+      "Support responses handled?",
+      "Top performing email identified?",
+      "Hottest video clip identified?",
+      "Most clicked affiliate link tracked?",
+      "Underperforming campaigns paused?"
+    ],
+    "afternoon_3pm_checks": [
+      "Email CTR trending up or down?",
+      "Video views accumulating?",
+      "Trading signal engagement healthy?",
+      "Conversion funnel intact?",
+      "Content performance rankings updated?",
+      "Social media momentum building?",
+      "Any blockers to address?"
+    ],
+    "evening_6pm_checks": [
+      "All daily metrics recorded?",
+      "Revenue totals verified?",
+      "Top 3 performers documented?",
+      "Daily reflection completed?",
+      "Tomorrow's tasks scheduled?",
+      "Weekly targets on track?"
+    ],
+    "sunday_weekly_checks": [
+      "Weekly totals calculated?",
+      "Top performers identified?",
+      "Worst performing day analyzed?",
+      "Action items for next week drafted?",
+      "Next week revenue targets set?",
+      "Strategic notes documented?"
+    ]
+  }
+}

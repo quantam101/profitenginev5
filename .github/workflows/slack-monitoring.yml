@@ -1,0 +1,197 @@
+name: Slack Real-Time Monitoring
+
+on:
+  schedule:
+    # 8 AM UTC - Morning Briefing
+    - cron: "0 8 * * *"
+    # 6 PM UTC - Evening Metrics
+    - cron: "0 18 * * *"
+    # Sunday 8 PM UTC - Weekly Summary
+    - cron: "0 20 * * 0"
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      briefing_type:
+        description: "Type of briefing to post"
+        required: true
+        default: "morning"
+        type: choice
+        options:
+          - morning
+          - evening
+          - weekly
+
+jobs:
+  slack-morning-briefing:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 8 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.briefing_type == 'morning')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -q aiohttp motor python-dotenv pydantic
+          pip install --no-cache-dir -q pymongo cryptography
+
+      - name: Post Morning Briefing to Slack
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
+        run: |
+          python << 'EOF'
+          import asyncio
+          import sys
+          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          from backend.services.slack_monitoring import SlackMonitoringService
+          from motor.motor_asyncio import AsyncIOMotorClient
+          import os
+
+          async def post_morning():
+              mongo_url = os.environ.get("MONGO_URL")
+              if not mongo_url:
+                  print("ERROR: MONGO_URL not set")
+                  sys.exit(1)
+
+              client = AsyncIOMotorClient(mongo_url)
+              db = client.get_database()
+              service = SlackMonitoringService(db)
+
+              briefing = await service.morning_briefing()
+              success = await service.send_briefing(briefing)
+
+              await service.close()
+              client.close()
+
+              if success:
+                  print("✓ Morning briefing posted successfully")
+                  sys.exit(0)
+              else:
+                  print("✗ Failed to post morning briefing")
+                  sys.exit(1)
+
+          asyncio.run(post_morning())
+          EOF
+
+  slack-evening-metrics:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 18 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.briefing_type == 'evening')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -q aiohttp motor python-dotenv pydantic
+          pip install --no-cache-dir -q pymongo cryptography
+
+      - name: Post Evening Metrics to Slack
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
+        run: |
+          python << 'EOF'
+          import asyncio
+          import sys
+          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          from backend.services.slack_monitoring import SlackMonitoringService
+          from motor.motor_asyncio import AsyncIOMotorClient
+          import os
+
+          async def post_evening():
+              mongo_url = os.environ.get("MONGO_URL")
+              if not mongo_url:
+                  print("ERROR: MONGO_URL not set")
+                  sys.exit(1)
+
+              client = AsyncIOMotorClient(mongo_url)
+              db = client.get_database()
+              service = SlackMonitoringService(db)
+
+              briefing = await service.evening_metrics()
+              success = await service.send_briefing(briefing)
+
+              await service.close()
+              client.close()
+
+              if success:
+                  print("✓ Evening metrics posted successfully")
+                  sys.exit(0)
+              else:
+                  print("✗ Failed to post evening metrics")
+                  sys.exit(1)
+
+          asyncio.run(post_evening())
+          EOF
+
+  slack-weekly-summary:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 20 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.briefing_type == 'weekly')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -q aiohttp motor python-dotenv pydantic
+          pip install --no-cache-dir -q pymongo cryptography
+
+      - name: Post Weekly Summary to Slack
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
+        run: |
+          python << 'EOF'
+          import asyncio
+          import sys
+          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          from backend.services.slack_monitoring import SlackMonitoringService
+          from motor.motor_asyncio import AsyncIOMotorClient
+          import os
+
+          async def post_weekly():
+              mongo_url = os.environ.get("MONGO_URL")
+              if not mongo_url:
+                  print("ERROR: MONGO_URL not set")
+                  sys.exit(1)
+
+              client = AsyncIOMotorClient(mongo_url)
+              db = client.get_database()
+              service = SlackMonitoringService(db)
+
+              briefing = await service.weekly_summary()
+              success = await service.send_briefing(briefing)
+
+              await service.close()
+              client.close()
+
+              if success:
+                  print("✓ Weekly summary posted successfully")
+                  sys.exit(0)
+              else:
+                  print("✗ Failed to post weekly summary")
+                  sys.exit(1)
+
+          asyncio.run(post_weekly())
+          EOF

@@ -1,0 +1,144 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    PROFITENGINE v5 — METRIC QUICK REFERENCE
+                          Copy-Paste into Slack Channel Topic
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            DAILY EXECUTION TIMES                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  8:00 AM   → Morning Standup (status + overnight metrics)                    │
+│  12:00 PM  → Midday Pulse (momentum check + content performance)            │
+│  3:00 PM   → Afternoon Update (trending + conversion funnel)                │
+│  6:00 PM   → Evening Wrap-Up (final totals + daily revenue)                 │
+│  Sunday 6 PM → Weekly Report (7-day summary + next week strategy)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DAILY PERFORMANCE TARGETS                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EMAIL                     VIDEO                    SIGNALS                   │
+│ ├─ Opens: >200            ├─ Total Views: >500     ├─ Sent: >3             │
+│ ├─ CTR: >2.5%             ├─ YT: >200              ├─ CTR: >15%            │
+│ ├─ CTOR: >8%              ├─ TikTok: >150          ├─ Win Rate: >55%       │
+│ ├─ Conv Rate: >1%         ├─ IG: >150              └─ Revenue: >$70        │
+│ └─ Revenue: >$50          ├─ Engagement: >3%       SOCIAL MEDIA            │
+│                           └─ Revenue: >$30         ├─ Twitter: >1K impr    │
+│                                                    ├─ Insta: >500 reach    │
+│                           DAILY TOTAL REVENUE:    └─ TikTok: >1.5K reach  │
+│                           TARGET: $150+                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        WEEKLY PERFORMANCE TARGETS                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EMAIL: $500     VIDEO: $200     SIGNALS: $300     TOTAL WEEKLY: $1,000+    │
+│ Opens: >1,000   Views: >3,500   Win Rate: >55%    Achievement: >100%       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           KEY METRIC FORMULAS                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EMAIL CTR        = Clicks ÷ Opens × 100                                      │
+│ EMAIL CTOR       = Unique Clicks ÷ Opens × 100                              │
+│ EMAIL CONVERSION = Transactions ÷ Clicks × 100                              │
+│ VIDEO ENGAGEMENT = (Likes + Comments + Shares) ÷ Views × 100               │
+│ SIGNAL CTR       = Recipients Clicked ÷ Sent × 100                          │
+│ SIGNAL WIN RATE  = Profitable Trades ÷ Total Trades × 100                   │
+│ SOCIAL ENGAGEMENT= (All Interactions) ÷ Impressions × 100                  │
+│ DAILY REVENUE    = Email$ + Video$ + Signal$ + Partner$                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        SLACK POSTING SCHEDULE                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ CHANNEL: #daily-execution                                                    │
+│ ├─ 8:00 AM  Mon-Sun  → Morning Standup template                             │
+│ ├─ 12:00 PM Mon-Sun  → Midday Pulse template                               │
+│ ├─ 3:00 PM  Mon-Sun  → Afternoon Update template                           │
+│ └─ 6:00 PM  Mon-Sun  → Evening Summary template                            │
+│                                                                              │
+│ CHANNEL: #weekly-reports                                                     │
+│ └─ 6:00 PM  Every Sunday → Weekly Report template                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      METRIC TRACKING COLUMNS (for spreadsheet)               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Date | Email_Opens | Email_CTR% | Email_Clicks | Email_Revenue$ |           │
+│ Video_Views | Video_Engagement% | Video_Revenue$ |                          │
+│ Signal_Sent | Signal_CTR% | Signal_Win% | Signal_Revenue$ |                 │
+│ Twitter_Impr | Twitter_Eng% | Instagram_Reach | Instagram_Eng% |            │
+│ TikTok_Views | TikTok_Eng% | TOTAL_Daily_Revenue$ | Running_Weekly_Total$ │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BEST PRACTICE QUICK CHECKS                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ MORNING (8 AM)                                                               │
+│ ✓ OCI backend responding (129.146.236.177)?                                 │
+│ ✓ Vercel frontend live?                                                     │
+│ ✓ Email queue ready?                                                        │
+│ ✓ 3+ trading signals scheduled?                                             │
+│ ✓ Affiliate links use alreadyhere-20 tag?                                   │
+│                                                                              │
+│ AFTERNOON (3 PM)                                                             │
+│ ✓ Email CTR trending up?                                                    │
+│ ✓ Video views accumulating?                                                 │
+│ ✓ Top performer identified?                                                 │
+│ ✓ Any blockers to address?                                                  │
+│                                                                              │
+│ EVENING (6 PM)                                                               │
+│ ✓ All metrics recorded?                                                     │
+│ ✓ Revenue verified?                                                         │
+│ ✓ Top 3 documented?                                                         │
+│ ✓ Tomorrow's tasks scheduled?                                               │
+│                                                                              │
+│ SUNDAY (Weekly)                                                              │
+│ ✓ Weekly totals calculated?                                                 │
+│ ✓ Best/worst day identified?                                                │
+│ ✓ Next week strategy drafted?                                               │
+│ ✓ Revenue targets set?                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CONTENT PERFORMANCE TIER SYSTEM                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 🥇 TIER 1 (SCALE)     → CTR >4% | Engagement >5% | Revenue >$100            │
+│ 🥈 TIER 2 (MAINTAIN)  → CTR 2-4% | Engagement 3-5% | Revenue $50-100       │
+│ 🥉 TIER 3 (TEST)      → CTR 1-2% | Engagement 1-3% | Revenue $10-50        │
+│ ⛔ TIER 4 (PAUSE)     → CTR <1% | Engagement <1% | Revenue <$10             │
+│                                                                              │
+│ ACTION: Move content up by improving copy. Move down if trends deteriorate. │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        REVENUE BREAKDOWN REFERENCE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EMAIL REVENUE          = Email Clicks × Conversion Rate × Avg Commission     │
+│ VIDEO REVENUE          = Views × Click Rate × Conversion Rate × Commission  │
+│ SIGNAL REVENUE         = Signals × CTR × Win Rate × Avg Profit Per Signal   │
+│ AFFILIATE REVENUE      = Amazon (alreadyhere-20) + Partner Networks         │
+│                                                                              │
+│ Example Daily Calculation:                                                   │
+│   Emails: 5,000 sent × 4% open = 200 opens × 3% CTR = 6 clicks             │
+│   6 clicks × 1% conv = 0.06 trans × $45 = ~$2.70 (daily)                    │
+│   SCALE: 200 opens = 200 × 0.01 × 45 = $90/day at scale                    │
+│                                                                              │
+│   Videos: 500 views × 2% click = 10 clicks × 1% conv = 0.1 trans           │
+│   0.1 × $50 = ~$5 (daily)                                                    │
+│   SCALE: 5,000 views = 100 clicks × 1% = 1 trans × $50 = $50/day           │
+│                                                                              │
+│   Signals: 3 sent × 20% CTR = 0.6 clicks × 50% win = 0.3 profitable        │
+│   0.3 × $200 profit per signal = ~$60 (daily)                              │
+│   SCALE: 20 signals = 4 clicks × 50% = 2 profitable × $200 = $400/day      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                     DAILY EXECUTION TEMPLATES LOCATION
+═══════════════════════════════════════════════════════════════════════════════
+📄 Full Templates:    DAILY_EXECUTION_CHECKLIST.md
+📋 JSON Templates:    SLACK_METRIC_TEMPLATES.json
+⚡ Quick Reference:   METRIC_QUICK_REFERENCE_CARD.txt (this file)
+
+All templates are copy-paste ready. Paste into Slack #daily-execution channel.
+═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,618 @@
+================================================================================
+DAILY REVENUE TRACKING SYSTEM - ARCHITECTURE
+================================================================================
+
+  DAILY REVENUE TRACKING SYSTEM v1.0
+  8 Revenue Streams * Zero-Touch Automation
+
+================================================================================
+DATA FLOW ARCHITECTURE
+================================================================================
+
+EXTERNAL DATA SOURCES:
+  * Gumroad API (/v2/products, /v2/refunds, /v2/customers)
+  * Stripe API (/v1/charges, /v1/refunds)
+  * YouTube API (/analytics/reports, /channels)
+  * Email Platform API (Mailchimp, ConvertKit, etc.)
+  * Affiliate Network APIs (ShareASale, CJ, Impact, etc.)
+  * Social Media APIs (TikTok, Instagram, X, LinkedIn)
+  * Trading APIs (Robinhood, Tradier, etc.)
+
+                              |
+                              v
+                    GitHub Actions Workflow
+                    (runs hourly + daily)
+                              |
+                    +---------+---------+
+                    |                   |
+         Hourly Gumroad Check    Daily Full Aggregation
+         (top of every hour)     (9 AM UTC)
+                    |                   |
+                    |         +--------+--------+--------+
+                    |         |        |        |
+                    |      Python   JSON    Markdown
+                    |      Script   Report  Report
+                    |         |        |        |
+                    +---------+--------|--------|--------+
+                              |        |        |
+                              v        v        v
+                         Email Summary  Slack   Git Auto-Commit
+                         (SendGrid)   Webhook   (to /tracking/)
+                              |        |        |
+                              +--------+--------+
+                                      |
+                                      v
+                              User Views/Actions
+
+
+================================================================================
+COMPONENT ARCHITECTURE
+================================================================================
+
+LAYER 1: USER INTERFACE
+  * DAILY_REVENUE_TRACKING_TEMPLATE.md (main form)
+  * DAILY_REVENUE_QUICK_CHECK.md (5-min version)
+
+LAYER 2: REFERENCE & DOCUMENTATION
+  * REVENUE_METRICS_REFERENCE.md (metric definitions)
+  * DAILY_TRACKING_SETUP_GUIDE.md (setup instructions)
+  * DAILY_TRACKING_SYSTEM_OVERVIEW.md (big picture)
+  * DAILY_TRACKING_INDEX.md (navigation)
+
+LAYER 3: CONFIGURATION
+  * GitHub Secrets (8 API keys, encrypted)
+  * .env file (local development only, git ignored)
+
+LAYER 4: AUTOMATION
+  * .github/workflows/daily_revenue_tracking.yml
+    - hourly-check job (top of every hour)
+    - daily-aggregation job (9 AM UTC)
+    - email-summary job (9 AM UTC)
+    - slack-notification job (9 AM UTC)
+
+LAYER 5: PROCESSING
+  * scripts/daily_revenue_tracker.py (Python aggregator)
+    - Fetch all APIs
+    - Aggregate metrics
+    - Calculate totals
+    - Generate reports
+
+LAYER 6: STORAGE
+  * /tracking/ directory (manual daily entries, git history)
+  * GitHub artifacts (automated JSON reports, 90-day retention)
+  * /archives/YYYY-MM/ (monthly archives, manual)
+  * Git repository (permanent history)
+
+
+================================================================================
+AUTOMATION SCHEDULE
+================================================================================
+
+HOURLY (Top of Every Hour: 00:00, 01:00, 02:00 ... 23:00 UTC)
+  Trigger: GitHub Actions schedule
+  Job: hourly-check
+  Action: Fetch Gumroad API -> Log to JSON
+  Duration: ~10 seconds
+  Result: daily_revenue_YYYY-MM-DD.json (24-hour totals)
+
+DAILY (09:00 UTC)
+  Trigger: GitHub Actions schedule
+  Jobs: daily-aggregation, email-summary, slack-notification
+  Action:
+    1. Fetch all 6 major APIs in parallel
+    2. Aggregate data
+    3. Calculate consolidated metrics
+    4. Generate JSON report
+    5. Generate markdown summary
+    6. Send email via SendGrid
+    7. Post to Slack webhook
+    8. Auto-commit to git
+  Duration: ~30 seconds
+  Results:
+    * daily_revenue_YYYY-MM-DD.json
+    * DAILY_REVENUE_REPORT.md
+    * Email notification
+    * Slack notification
+    * Git commit
+
+
+================================================================================
+API ENDPOINT MAPPING
+================================================================================
+
+GUMROAD:
+  Endpoint: GET https://api.gumroad.com/v2/products
+  Auth: Bearer token
+  Frequency: Hourly + Daily
+  Extract: sales_in_last_24_hours, revenue_in_last_24_hours
+  Template: Section 1
+
+STRIPE:
+  Endpoint: GET https://api.stripe.com/v1/charges
+  Auth: Bearer token
+  Frequency: Daily
+  Filter: created[gte]=24h_ago, status=succeeded
+  Extract: amount (convert cents to dollars)
+  Template: Section 2
+
+YOUTUBE:
+  Endpoint: GET https://www.googleapis.com/youtube/v3/channels
+  Endpoint: GET https://youtubeanalytics.googleapis.com/v2/reports
+  Auth: OAuth 2.0
+  Frequency: Daily
+  Extract: views, watch_time, subscribers_gained, revenue
+  Template: Section 5
+
+EMAIL PLATFORM (e.g., Mailchimp v3):
+  Endpoint: GET https://us1.api.mailchimp.com/3.0/lists
+  Auth: API key
+  Frequency: Daily
+  Extract: subscriber count, growth rate, campaign stats
+  Template: Section 2
+
+AFFILIATE NETWORKS (e.g., ShareASale):
+  Endpoint: GET https://api.shareasale.com/x/api/stats
+  Auth: API key + token
+  Frequency: Daily
+  Extract: clicks, conversions, revenue
+  Template: Section 4
+
+TRADING (e.g., Robinhood API):
+  Endpoint: Account API endpoints (varies)
+  Auth: OAuth token
+  Frequency: Daily
+  Extract: portfolio_value, daily_pnl, positions
+  Template: Section 8
+
+
+================================================================================
+DATA TRANSFORMATION FLOW
+================================================================================
+
+RAW API RESPONSE (JSON)
+  |
+  v
+PARSED DATA EXTRACTION
+  * Remove nesting
+  * Convert currencies
+  * Aggregate across products
+  |
+  v
+METRIC CALCULATION
+  * Sum totals
+  * Calculate percentages
+  * Compute growth rates
+  |
+  v
+CONSOLIDATION
+  * Combine all streams
+  * Rank by revenue
+  * Calculate diversity
+  |
+  v
+REPORT GENERATION
+  * JSON output (for analysis)
+  * Markdown output (for humans)
+  |
+  v
+DISTRIBUTION
+  * Email summary (SendGrid)
+  * Slack notification (webhook)
+  * Git auto-commit (artifact)
+  |
+  v
+USER CONSUMPTION
+  * Email inbox
+  * Slack channel
+  * Git history
+
+
+================================================================================
+ERROR HANDLING STRATEGY
+================================================================================
+
+API ERROR (4xx, 5xx response):
+  1. Log error to errors array
+  2. Skip this API call
+  3. Continue with other APIs
+  4. Report error in daily summary
+  5. Alert via email/Slack
+
+MISSING CREDENTIAL:
+  1. Check for API key in secrets
+  2. If missing, log "not configured"
+  3. Skip this data source
+  4. Continue with others
+  5. Report missing in daily summary
+
+NETWORK TIMEOUT (> 10 seconds):
+  1. Catch timeout exception
+  2. Log error
+  3. Skip this API
+  4. Move to next
+  5. Report timeout in summary
+
+ALL SOURCES FAILED:
+  1. Generate report with empty data
+  2. Include all error messages
+  3. Send alert email
+  4. Post warning to Slack
+  5. Git commit with error log
+
+GRACEFUL DEGRADATION:
+  * Report includes all data sources that succeeded
+  * Failed sources shown as empty in report
+  * System continues even with partial data
+  * User can manually add missing metrics
+
+
+================================================================================
+FILE ORGANIZATION DURING OPERATION
+================================================================================
+
+PROJECT ROOT:
+  DAILY_REVENUE_TRACKING_TEMPLATE.md          (main form template)
+  DAILY_REVENUE_QUICK_CHECK.md                (5-min quick form)
+  DAILY_TRACKING_SETUP_GUIDE.md               (setup instructions)
+  DAILY_TRACKING_SYSTEM_OVERVIEW.md           (overview)
+  DAILY_TRACKING_INDEX.md                     (navigation)
+  REVENUE_METRICS_REFERENCE.md                (metric definitions)
+  DAILY_TRACKING_DEPLOYMENT_SUMMARY.txt       (this deployment)
+  DAILY_TRACKING_SYSTEM_ARCHITECTURE.txt      (this architecture)
+
+.github/workflows/:
+  daily_revenue_tracking.yml                  (GitHub Actions workflow)
+
+scripts/:
+  daily_revenue_tracker.py                    (Python aggregator script)
+
+tracking/: (MANUAL TRACKING DIRECTORY)
+  daily_tracking_2026-06-25.md                (today's manual entry)
+  daily_tracking_2026-06-26.md                (tomorrow's)
+  daily_tracking_2026-06-27.md                (etc.)
+
+archives/: (MONTHLY ARCHIVES - CREATED MANUALLY)
+  2026-06/
+    daily_tracking_2026-06-01.md through 2026-06-30.md
+  2026-07/
+    (next month's files)
+
+.github/artifacts/: (AUTOMATED GITHUB ARTIFACTS - 90 DAY RETENTION)
+  daily_revenue_2026-06-25.json               (auto-generated by workflow)
+  daily_revenue_2026-06-26.json
+  (etc.)
+
+
+================================================================================
+SECURITY MODEL
+================================================================================
+
+CREDENTIAL STORAGE:
+  Location: GitHub Secrets (encrypted at rest)
+  Access: GitHub Actions runners only
+  Key Rotation: Manual (update secret, re-run workflow)
+  Logging: API keys never logged or printed
+  Backup: GitHub handles encryption
+
+CREDENTIAL USAGE:
+  GitHub Actions retrieves secrets
+  Scripts read from environment variables
+  Scripts use credentials to call APIs
+  Scripts never write credentials to disk
+  Credentials deleted when process ends
+
+DATA PROTECTION:
+  API responses: Temporarily in memory
+  Generated reports: Stored in artifacts (90 days)
+  Git history: Permanent, contains no credentials
+  Manual entries: Plain text, include only aggregate numbers
+  No PII or sensitive data in reports
+
+ACCESS CONTROL:
+  GitHub repo admin access required
+  Workflow execution: GitHub Actions only
+  Manual trigger: Repo member only
+  Secrets modification: Admin only
+  Git push: Branch protection (main branch)
+
+
+================================================================================
+PERFORMANCE METRICS
+================================================================================
+
+HOURLY GUMROAD CHECK:
+  API calls: 1
+  Data transfer: ~10 KB
+  Processing time: ~5 seconds
+  Cost: Negligible
+
+DAILY FULL AGGREGATION:
+  API calls: 6 (parallel)
+  Data transfer: ~50 KB
+  Processing time: ~30 seconds
+  Cost: Negligible
+
+GitHub Actions Cost:
+  Hourly runs: 24 × 10 sec = 240 seconds/day
+  Daily runs: 1 × 30 sec = 30 seconds/day
+  Total: 270 seconds/day = 4.5 minutes/day
+  Monthly: 135 minutes
+  Free tier: 2,000 minutes/month
+  Usage: 6.75% of free tier
+  Cost: $0
+
+Email Delivery (SendGrid):
+  Emails/day: 1
+  Emails/month: 30
+  Free tier: 100/day
+  Usage: 100% within free tier
+  Cost: $0
+
+Slack Webhook:
+  Messages/day: 1
+  Messages/month: 30
+  Cost: Free (included with Slack workspace)
+
+TOTAL MONTHLY COST: $0
+
+
+================================================================================
+RECOVERY & BACKUP
+================================================================================
+
+AUTOMATIC BACKUPS:
+  * Git commits: Daily (includes daily_revenue_*.json)
+  * GitHub artifacts: 90-day retention
+  * Workflow logs: Available for 90 days
+
+MANUAL BACKUPS:
+  * Monthly archives: User creates /archives/YYYY-MM/
+  * Quarterly exports: User downloads for analysis
+  * Offline copies: User maintains local backup
+
+RECOVERY PROCEDURE:
+  If daily report missing:
+    1. Check GitHub Actions > daily_revenue_tracking > Latest run
+    2. Review Logs tab for errors
+    3. Check Artifacts tab for daily_revenue_*.json
+    4. If still missing, manually re-run workflow
+    5. Fallback: Use DAILY_REVENUE_TRACKING_TEMPLATE.md
+
+  If API credentials lost:
+    1. Regenerate API keys on each platform
+    2. Update GitHub Secrets with new values
+    3. Re-run workflow
+    4. Verify report generation
+
+  If workflow broken:
+    1. Check .github/workflows/daily_revenue_tracking.yml syntax
+    2. Review GitHub Actions error logs
+    3. Test scripts/daily_revenue_tracker.py locally
+    4. Fix and push to main branch
+
+
+================================================================================
+MONITORING & ALERTING
+================================================================================
+
+AUTOMATED MONITORING:
+  GitHub Actions Dashboard:
+    * Workflow run status (success/failed)
+    * Execution time (should be ~30 sec for daily)
+    * Error count
+    * Retry count
+
+  Email Alerts:
+    * Daily summary at 9 AM UTC
+    * Error notifications if report fails
+    * SendGrid delivery receipts
+
+  Slack Notifications:
+    * Daily summary post at 9 AM UTC
+    * Color-coded status:
+      GREEN: All systems normal, revenue positive
+      YELLOW: Minor issues (API rate limit, partial data)
+      RED: Major issues (multiple APIs down, zero revenue)
+
+MANUAL MONITORING:
+  Daily checklist:
+    [ ] Email summary received?
+    [ ] Slack notification posted?
+    [ ] Git commit visible in repo?
+
+  Weekly checklist:
+    [ ] All 7 days have reports?
+    [ ] Any consistent errors?
+    [ ] Revenue trend normal?
+
+  Monthly checklist:
+    [ ] All 30 days have reports?
+    [ ] Archives created?
+    [ ] All API keys still valid?
+    [ ] Anything to update for next month?
+
+
+================================================================================
+SCALABILITY ANALYSIS
+================================================================================
+
+CURRENT: 8 Revenue Streams
+  API calls per run: ~6
+  Data volume: ~50 KB/run
+  Processing time: ~30 seconds
+  GitHub Actions free tier usage: 6.75%
+  Cost: $0/month
+
+EXPANSION TO 15 STREAMS (Add YouTube Shorts, TikTok, LinkedIn in detail):
+  API calls per run: ~12
+  Data volume: ~100 KB/run
+  Processing time: ~45 seconds
+  GitHub Actions free tier usage: 10%
+  Cost: $0/month
+
+EXPANSION TO 25 STREAMS (Add detailed breakdowns per stream):
+  API calls per run: ~20
+  Data volume: ~200 KB/run
+  Processing time: ~60 seconds
+  GitHub Actions free tier usage: 15%
+  Cost: $0/month (still within free tier)
+
+EXPANSION TO 50 STREAMS (Multiple accounts per stream):
+  API calls per run: ~40
+  Data volume: ~400 KB/run
+  Processing time: ~120 seconds
+  GitHub Actions free tier usage: 30%
+  Cost: $0/month (still within free tier)
+
+EXPANSION TO 100+ STREAMS:
+  GitHub Actions free tier usage: 60%+
+  May exceed free tier
+  Options:
+    * Upgrade to GitHub Pro: $4/month (unlimited)
+    * Optimize API calls
+    * Reduce frequency
+    * Estimated cost: $4-50/month at scale
+
+
+================================================================================
+OPERATIONAL PROCEDURES
+================================================================================
+
+DAILY OPERATION:
+  1. Automated: 9 AM UTC full consolidation runs
+  2. Manual: Review email summary
+  3. Manual: Open tracking template for today
+  4. Manual: Add any missing metrics
+  5. Manual: Update action items
+  6. Manual: Commit to git
+
+WEEKLY OPERATION (Fridays):
+  1. Collect 7 daily files from tracking/ directory
+  2. Calculate weekly totals per stream
+  3. Identify trends (up, down, stable)
+  4. Note best/worst performing days
+  5. Plan next week optimization
+
+MONTHLY OPERATION (1st of month):
+  1. Create new /archives/YYYY-MM/ directory
+  2. Move previous month's files to archive
+  3. Calculate monthly totals
+  4. Calculate month-over-month growth
+  5. Identify revenue concentration
+  6. Set targets for next month
+  7. Review and rotate API keys (quarterly)
+
+QUARTERLY OPERATION:
+  1. Review 3-month trends
+  2. Identify seasonal patterns
+  3. Plan new revenue streams
+  4. Update revenue targets
+  5. Rotate all API keys for security
+  6. Review automation for optimization
+
+
+================================================================================
+TROUBLESHOOTING DECISION TREE
+================================================================================
+
+PROBLEM: No report generated
+
+  Is GitHub Actions enabled?
+    NO -> Enable workflow in .github/workflows/daily_revenue_tracking.yml
+    YES -> Continue
+
+  Check GitHub Actions log
+    Is workflow syntax error?
+      YES -> Fix YAML syntax, push to main
+      NO -> Continue
+
+    Are secrets configured?
+      NO -> Add all 8 secrets to GitHub Settings
+      YES -> Continue
+
+    Is at least one API responding?
+      NO -> Check internet connection, API status pages
+      YES -> Continue
+
+  Check for error messages in log
+    API timeout error?
+      -> Check API status
+      -> Try manual run again
+    Missing secret?
+      -> Add to GitHub Secrets
+    Permission denied?
+      -> Check API credentials
+    Network error?
+      -> Check firewall, proxy settings
+
+PROBLEM: Some metrics missing
+
+  Is API key correct?
+    NO -> Regenerate API key, update secret
+    YES -> Continue
+
+  Does API key have required permissions?
+    NO -> Update API key scope/permissions
+    YES -> Continue
+
+  Is API rate limit hit?
+    NO -> Continue
+    YES -> Reduce frequency or upgrade tier
+
+  Is API documentation current?
+    NO -> Check for API deprecation
+    YES -> Continue
+
+PROBLEM: Email not sending
+
+  Is SENDGRID_API_KEY configured?
+    NO -> Add to GitHub Secrets
+    YES -> Continue
+
+  Is SendGrid account active?
+    NO -> Reactivate SendGrid account
+    YES -> Continue
+
+  Is email address valid?
+    NO -> Update DAILY_TRACKING_EMAIL secret
+    YES -> Continue
+
+  Check SendGrid logs for delivery errors
+    Rate limited?
+      -> Wait, retry later
+    Invalid recipient?
+      -> Update email address
+    API error?
+      -> Check SendGrid status page
+
+PROBLEM: Slack notification not received
+
+  Is SLACK_WEBHOOK_REVENUE_ALERTS configured?
+    NO -> Add to GitHub Secrets
+    YES -> Continue
+
+  Is webhook URL valid?
+    NO -> Regenerate webhook in Slack workspace
+    YES -> Continue
+
+  Is Slack workspace active?
+    NO -> Reactivate workspace
+    YES -> Continue
+
+  Test webhook manually
+    URL working?
+      NO -> Check firewall, proxy
+      YES -> Continue
+
+  Check GitHub Actions log for errors
+    Rate limited?
+      -> Wait, retry later
+    Auth error?
+      -> Regenerate webhook
+    Network error?
+      -> Check connectivity
+
+
+================================================================================
+END OF SYSTEM ARCHITECTURE
+================================================================================

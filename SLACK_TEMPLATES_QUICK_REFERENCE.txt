@@ -1,0 +1,363 @@
+================================================================================
+  SLACK DAILY UPDATE TEMPLATES — QUICK REFERENCE
+  Already Here LLC — ProfitEngine v5
+================================================================================
+
+FILES:
+  • pipeline/slack_daily_templates.py — Core template functions (production code)
+  • pipeline/slack_integration_example.py — Database integration + examples
+  • SLACK_DAILY_TEMPLATES_GUIDE.md — Full documentation
+  • SLACK_TEMPLATES_QUICK_REFERENCE.txt — This file
+
+================================================================================
+  TEMPLATE 1: 8 AM MORNING BRIEFING
+================================================================================
+
+Purpose: Daily kickoff with engagement metrics and YTD targets
+
+Required Fields:
+  date_str (str)                 = "2026-06-25"
+  opens_24h (int)                = 42
+  clicks_24h (int)               = 18
+  sales_24h (int)                = 2
+  revenue_24h_usd (float)        = 3500.00
+  ytd_revenue_usd (float)        = 45000.00
+  ytd_target_usd (float)         = 100000.00
+  active_leads (int)             = 8
+  pipeline_value_usd (float)     = 22500.00
+  status (str)                   = "ON_TRACK" | "BEHIND" | "ALERT" | "CRITICAL"
+  channel (str, optional)        = "C0B8VN2S89Y"
+
+Code:
+  import asyncio
+  from pipeline.slack_daily_templates import send_morning_briefing
+
+  asyncio.run(send_morning_briefing(
+      date_str="2026-06-25",
+      opens_24h=42, clicks_24h=18, sales_24h=2,
+      revenue_24h_usd=3500.00,
+      ytd_revenue_usd=45000.00, ytd_target_usd=100000.00,
+      active_leads=8, pipeline_value_usd=22500.00,
+      status="ON_TRACK"
+  ))
+
+Schedule: 8:00 AM UTC daily
+Cron: 0 8 * * *
+
+================================================================================
+  TEMPLATE 2: 6 PM EVENING METRICS
+================================================================================
+
+Purpose: End-of-day close-out with deal details and sales tracking
+
+Required Fields:
+  date_str (str)                 = "2026-06-25"
+  opens_24h (int)                = 42
+  clicks_24h (int)               = 18
+  click_rate_pct (float)         = 42.9
+  sales_24h (int)                = 2
+  sales_target_24h (int)         = 2
+  revenue_24h_usd (float)        = 3500.00
+  revenue_target_24h_usd (float) = 3500.00
+  deals_closed_detail (list)     = [{"company": "CompanyA", "amount": 1500.00}]
+  leads_added (int)              = 1
+  active_leads (int)             = 8
+  status (str)                   = "ON_TRACK" | "BEHIND" | "ALERT" | "CRITICAL"
+  channel (str, optional)        = "C0B8VN2S89Y"
+
+Code:
+  import asyncio
+  from pipeline.slack_daily_templates import send_evening_metrics
+
+  asyncio.run(send_evening_metrics(
+      date_str="2026-06-25",
+      opens_24h=42, clicks_24h=18, click_rate_pct=42.9,
+      sales_24h=2, sales_target_24h=2,
+      revenue_24h_usd=3500.00, revenue_target_24h_usd=3500.00,
+      deals_closed_detail=[
+          {"company": "CompanyA", "amount": 1500.00, "service": "audit"},
+          {"company": "CompanyB", "amount": 2000.00, "service": "drone"}
+      ],
+      leads_added=1, active_leads=8,
+      status="ON_TRACK"
+  ))
+
+Schedule: 6:00 PM UTC daily
+Cron: 0 18 * * *
+
+================================================================================
+  TEMPLATE 3: SUNDAY WEEKLY SUMMARY
+================================================================================
+
+Purpose: 7-day aggregate metrics, key wins, and pipeline status
+
+Required Fields:
+  week_end_date (str)            = "2026-06-28"
+  week_opens (int)               = 280
+  week_clicks (int)              = 95
+  week_sales (int)               = 12
+  week_revenue_usd (float)       = 21000.00
+  week_target_usd (float)        = 20000.00
+  daily_avg_revenue (float)      = 3000.00
+  leads_added_week (int)         = 5
+  deals_detail (list)            = [{"company": "CompanyA", "amount": 1500.00, "date": "2026-06-24"}]
+  active_leads (int)             = 12
+  pipeline_value_usd (float)     = 35000.00
+  top_performer (str, optional)  = "Alice Smith"
+  notes (str, optional)          = "Strong week driven by..."
+  channel (str, optional)        = "C0B8VN2S89Y"
+
+Code:
+  import asyncio
+  from pipeline.slack_daily_templates import send_weekly_summary
+
+  asyncio.run(send_weekly_summary(
+      week_end_date="2026-06-28",
+      week_opens=280, week_clicks=95, week_sales=12,
+      week_revenue_usd=21000.00, week_target_usd=20000.00,
+      daily_avg_revenue=3000.00,
+      leads_added_week=5,
+      deals_detail=[
+          {"company": "CompanyA", "amount": 1500.00, "date": "2026-06-24"}
+      ],
+      active_leads=12, pipeline_value_usd=35000.00,
+      top_performer="Alice Smith",
+      notes="Strong week driven by drone adoption."
+  ))
+
+Schedule: 10:00 AM UTC every Sunday
+Cron: 0 10 * * 0
+
+================================================================================
+  TEMPLATE 4: MONTHLY COMPLETION REPORT
+================================================================================
+
+Purpose: Full month P&L, financial summary, and strategic outlook
+
+Required Fields:
+  month_year (str)               = "June 2026"
+  month_opens (int)              = 1200
+  month_clicks (int)             = 380
+  month_sales (int)              = 42
+  month_revenue_usd (float)      = 87500.00
+  month_target_usd (float)       = 100000.00
+  month_spend_usd (float)        = 12000.00
+  month_net_profit_usd (float)   = 75500.00
+  total_leads_added (int)        = 28
+  deals_closed_count (int)       = 42
+  deals_detail (list)            = [{"company": "...", "amount": 5000.00, "date": "2026-06-15"}]
+  avg_deal_size_usd (float)      = 2083.33
+  pipeline_value_usd (float)     = 45000.00
+  active_leads (int)             = 15
+  key_wins (list, optional)      = ["Drone service launched..."]
+  challenges (list, optional)    = ["Lead scoring needs work..."]
+  next_month_focus (str, optional) = "Scale audit services..."
+  channel (str, optional)        = "C0B8VN2S89Y"
+
+Code:
+  import asyncio
+  from pipeline.slack_daily_templates import send_monthly_report
+
+  asyncio.run(send_monthly_report(
+      month_year="June 2026",
+      month_opens=1200, month_clicks=380, month_sales=42,
+      month_revenue_usd=87500.00, month_target_usd=100000.00,
+      month_spend_usd=12000.00, month_net_profit_usd=75500.00,
+      total_leads_added=28, deals_closed_count=42,
+      deals_detail=[{"company": "BigCorp", "amount": 5000.00, "date": "2026-06-15"}],
+      avg_deal_size_usd=2083.33, pipeline_value_usd=45000.00, active_leads=15,
+      key_wins=["Drone service launched — 12 jobs"],
+      challenges=["Lead scoring needs refinement"],
+      next_month_focus="Scale audit services to 5-state region"
+  ))
+
+Schedule: 12:00 AM UTC on 1st of every month
+Cron: 0 0 1 * *
+
+================================================================================
+  INTEGRATION: SLACK ENVIRONMENT VARIABLES
+================================================================================
+
+Required in GitHub Secrets or .env:
+  SLACK_BOT_TOKEN = "xoxb-your-workspace-token-here"
+  SLACK_REVENUE_CHANNEL = "C0B8VN2S89Y"  (defaults to #revenue-ops)
+
+Verify:
+  $ export SLACK_BOT_TOKEN="xoxb-..."
+  $ export SLACK_REVENUE_CHANNEL="C0B8VN2S89Y"
+  $ python pipeline/slack_daily_templates.py  (runs all 4 templates as demo)
+
+Slack Channel IDs (update as needed):
+  #revenue-ops   C0B8VN2S89Y
+  #deals-won     C0B8VN2RQBC
+  #general       C0B1XSBS2AF
+
+================================================================================
+  DATABASE INTEGRATION
+================================================================================
+
+File: pipeline/slack_integration_example.py
+
+Query Functions:
+  • get_morning_briefing_data() → returns dict for send_morning_briefing()
+  • get_evening_metrics_data() → returns dict for send_evening_metrics()
+  • get_weekly_summary_data() → returns dict for send_weekly_summary()
+  • get_monthly_report_data() → returns dict for send_monthly_report()
+
+Usage:
+  python pipeline/slack_integration_example.py morning
+  python pipeline/slack_integration_example.py evening
+  python pipeline/slack_integration_example.py weekly
+  python pipeline/slack_integration_example.py monthly
+  python pipeline/slack_integration_example.py all
+  python pipeline/slack_integration_example.py all --dry-run  (stdout only)
+
+Database:
+  Default: production_mesh_edge.db
+  Override: export MESH_DB_PATH="/path/to/your.db"
+
+================================================================================
+  GITHUB ACTIONS AUTOMATION
+================================================================================
+
+Create: .github/workflows/daily-slack-updates.yml
+
+Example Schedule:
+  8 AM UTC:  0 8 * * *           (every day)
+  6 PM UTC:  0 18 * * *          (every day)
+  10 AM UTC: 0 10 * * 0          (every Sunday)
+  12 AM UTC: 0 0 1 * *           (1st of every month)
+
+Minimal Workflow:
+  name: Daily Slack Updates
+  on:
+    schedule:
+      - cron: '0 8 * * *'        # 8 AM
+      - cron: '0 18 * * *'       # 6 PM
+      - cron: '0 10 * * 0'       # Sunday
+      - cron: '0 0 1 * *'        # 1st of month
+
+  jobs:
+    update:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v4
+          with:
+            python-version: '3.11'
+        - run: pip install aiohttp
+        - run: python pipeline/slack_integration_example.py all
+          env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+            SLACK_REVENUE_CHANNEL: C0B8VN2S89Y
+
+================================================================================
+  STATUS INDICATOR THRESHOLDS
+================================================================================
+
+Achievement % Calculation:
+  • Actual vs Target: (actual / target) × 100
+
+Status Assignment:
+  ON_TRACK:  >= 100%
+  BEHIND:    85-99%
+  ALERT:     70-84%
+  CRITICAL:  < 70%
+
+Emoji Mapping:
+  ON_TRACK:  🟢 (green_circle)
+  BEHIND:    🟡 (yellow_circle)
+  ALERT:     🟠 (orange_circle)
+  CRITICAL:  🔴 (red_circle)
+
+================================================================================
+  COMMON METRICS CALCULATIONS
+================================================================================
+
+Click-to-Open Rate %:
+  (clicks / opens) × 100
+
+Daily Average (weekly report):
+  week_revenue / 7
+
+Average Deal Size (monthly):
+  total_revenue / deals_closed_count
+
+ROI %:
+  (net_profit / spend) × 100
+
+YTD Achievement %:
+  (ytd_revenue / ytd_target) × 100
+
+================================================================================
+  TESTING & TROUBLESHOOTING
+================================================================================
+
+Test Without Token (stdout only):
+  unset SLACK_BOT_TOKEN
+  python pipeline/slack_daily_templates.py
+
+Test With Token (posts to Slack):
+  export SLACK_BOT_TOKEN="xoxb-..."
+  export SLACK_REVENUE_CHANNEL="C0B8VN2S89Y"
+  python pipeline/slack_daily_templates.py
+
+Test Dry-Run (Database + stdout):
+  python pipeline/slack_integration_example.py all --dry-run
+
+Verify Token:
+  curl -X POST https://slack.com/api/auth.test \
+    -H "Authorization: Bearer $SLACK_BOT_TOKEN"
+
+Verify Bot Permissions:
+  • chat:write (post messages)
+  • chat:write.public (post to public channels)
+
+Check Message Posted:
+  1. Go to Slack workspace
+  2. Check #revenue-ops channel
+  3. Verify timestamp matches current time
+
+================================================================================
+  PRODUCTION CHECKLIST
+================================================================================
+
+Before Deploying:
+  ☐ Set SLACK_BOT_TOKEN in GitHub Secrets
+  ☐ Set SLACK_REVENUE_CHANNEL in GitHub Secrets (or use default)
+  ☐ Create .github/workflows/daily-slack-updates.yml
+  ☐ Test locally with sample data (--dry-run)
+  ☐ Wire database queries to get_*_data() functions
+  ☐ Test first real post manually
+  ☐ Verify message appears in Slack
+  ☐ Check formatting (emoji, bold, alignment)
+  ☐ Set up GitHub Action cron schedule
+  ☐ Verify first automated post (8 AM next day)
+
+During Operation:
+  ☐ Monitor Slack channel for messages
+  ☐ Check database for accuracy vs. displayed metrics
+  ☐ Watch for missing fields (NaN, "None", etc.)
+  ☐ Update targets monthly (month_target, week_target)
+  ☐ Review key_wins and challenges before post
+
+================================================================================
+  SUPPORT & DOCS
+================================================================================
+
+Full Documentation:
+  SLACK_DAILY_TEMPLATES_GUIDE.md (this directory)
+
+Template Source Code:
+  pipeline/slack_daily_templates.py
+
+Database Integration:
+  pipeline/slack_integration_example.py
+
+Slack API Reference:
+  https://api.slack.com/reference/block-kit/blocks
+
+Block Kit Playground:
+  https://app.slack.com/block-kit-builder
+
+================================================================================

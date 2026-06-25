@@ -1,0 +1,173 @@
+═══════════════════════════════════════════════════════════════════════════════
+    DAILY METRICS TRACKING — Paste this into #daily-execution channel topic
+═══════════════════════════════════════════════════════════════════════════════
+
+Daily Execution Checklist — 8am, 12pm, 3pm, 6pm | Weekly: Sunday 6pm
+Open: https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/
+Files: DAILY_EXECUTION_CHECKLIST.md | SLACK_METRIC_TEMPLATES.json | METRIC_QUICK_REFERENCE_CARD.txt
+
+TARGETS: Daily $150+ | Weekly $1,000+ | Email >2.5% CTR | Video >3% engagement | Signals >55% win rate
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+Copy below content into Slack channel sidebar description for quick reference:
+
+---
+
+COPY-PASTE INTO CHANNEL DESCRIPTION:
+(Settings > Edit > Description)
+
+📊 PROFITENGINE DAILY METRICS TRACKING
+Daily standup times: 8 AM | 12 PM | 3 PM | 6 PM
+Weekly report: Sunday 6 PM
+Spreadsheet: [YOUR_SHEET_LINK]
+
+QUICK TARGETS
+• Daily Revenue: $150+ (Email $50 + Video $30 + Signals $70)
+• Email: 200+ opens, 2.5%+ CTR, 8%+ CTOR
+• Video: 500+ total views, 3%+ engagement
+• Signals: 3+ sent, 15%+ CTR, 55%+ win rate
+• Social: 1K Twitter impressions, 500 IG reach, 1.5K TikTok reach
+
+METRIC FORMULAS
+Email CTR = Clicks ÷ Opens × 100 | Email Revenue = Clicks × Conv% × $45
+Video Engagement = (Likes+Comments+Shares) ÷ Views × 100 | Video Revenue = Views × 2% click × 1% conv × $50
+Signal Win Rate = Profitable Trades ÷ Total × 100 | Signal Revenue = Profitable × $200
+Daily Revenue = Email$ + Video$ + Signals$
+
+TEMPLATES
+• Morning (8am): status checks + overnight metrics
+• Midday (12pm): momentum check + top performers
+• Afternoon (3pm): trending + conversion funnel
+• Evening (6pm): daily totals + reflections
+• Weekly (Sun 6pm): 7-day summary + strategy
+
+Files: DAILY_EXECUTION_CHECKLIST.md (full templates) | METRIC_QUICK_REFERENCE_CARD.txt (summary)
+
+---
+
+COPY-PASTE INTO CHANNEL BOOKMARKS:
+(Click + button next to Topic, select "Create bookmark")
+
+Bookmark 1:
+Title: Morning Standup (8 AM)
+Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Emoji: :sunrise:
+
+Bookmark 2:
+Title: Evening Summary (6 PM)
+Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Emoji: :sunset:
+
+Bookmark 3:
+Title: Weekly Report (Sunday)
+Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Emoji: :calendar:
+
+Bookmark 4:
+Title: Quick Reference Card
+Link: [Link to METRIC_QUICK_REFERENCE_CARD.txt]
+Emoji: :lightning:
+
+Bookmark 5:
+Title: Metrics Tracking Sheet
+Link: [YOUR_GOOGLE_SHEETS_LINK]
+Emoji: :bar_chart:
+
+---
+
+COPY-PASTE INTO CHANNEL PINNED MESSAGE:
+(Right-click on message, Select "Pin to channel")
+
+:sunrise: DAILY STANDUP SCHEDULE
+• 8:00 AM   - Morning Standup (overnight metrics)
+• 12:00 PM  - Midday Pulse (momentum check)
+• 3:00 PM   - Afternoon Update (trending)
+• 6:00 PM   - Evening Wrap-Up (daily totals)
+• Sunday 6 PM - Weekly Report (7-day summary)
+
+DAILY REVENUE TARGETS
+Email: $50+
+Video: $30+
+Trading Signals: $70+
+TOTAL: $150+
+
+WEEKLY TARGET: $1,000+
+
+SPREADSHEET: [INSERT_LINK]
+
+---
+
+COPY-PASTE AS SLACK BOT REMINDER:
+(Use Slack workflow or bot — set for each time)
+
+MESSAGE FOR 8:00 AM REMINDER:
+"Good morning! Time for the :sunrise: Daily Standup. Check DAILY_EXECUTION_CHECKLIST.md for the morning template. Post by 8:15 AM in #daily-execution."
+
+MESSAGE FOR 12:00 PM REMINDER:
+"Midday check-in time! Post your 12 PM Midday Pulse in #daily-execution using the template from DAILY_EXECUTION_CHECKLIST.md"
+
+MESSAGE FOR 3:00 PM REMINDER:
+"Afternoon metrics update time. Post your 3 PM Afternoon Update in #daily-execution."
+
+MESSAGE FOR 6:00 PM REMINDER:
+"Evening wrap-up time! Post your 6 PM Evening Summary in #daily-execution. Include daily totals from the spreadsheet."
+
+MESSAGE FOR SUNDAY 6:00 PM REMINDER:
+"Time for the weekly report! Post your Sunday 6 PM Weekly Execution Report in #weekly-reports using the template."
+
+---
+
+QUICK METRIC LOOKUP (Paste in channel topic or bookmark):
+
+EMAIL METRICS
+├─ Opens: Unique recipients who opened email (target: 200+/day)
+├─ CTR: Clicks ÷ Opens × 100 (target: 2.5%+)
+├─ CTOR: Unique Clicks ÷ Opens × 100 (target: 8%+)
+├─ Conversion Rate: Transactions ÷ Clicks × 100 (target: 1%+)
+└─ Revenue: Clicks × Conv Rate × $45 (target: $50+/day)
+
+VIDEO METRICS
+├─ Views: Total plays across YouTube/TikTok/Instagram (target: 500+/day)
+├─ YouTube: Individual platform (target: 200+/day)
+├─ TikTok: Individual platform (target: 150+/day)
+├─ Instagram: Individual platform (target: 150+/day)
+├─ Engagement: (Likes+Comments+Shares) ÷ Views × 100 (target: 3%+)
+├─ Watch Time: Seconds watched ÷ Video length (target: >50%)
+└─ Revenue: Views × 2% click × 1% conv × $50 (target: $30+/day)
+
+TRADING SIGNAL METRICS
+├─ Sent: Number of trading signals published (target: 3+/day)
+├─ CTR: Recipients who clicked ÷ Signals sent × 100 (target: 15%+)
+├─ Win Rate: Profitable trades ÷ Total trades × 100 (target: 55%+)
+├─ False Signal Rate: Unprofitable ÷ Total × 100 (target: <5%)
+└─ Revenue: Profitable trades × $200 avg (target: $70+/day)
+
+SOCIAL MEDIA METRICS
+├─ Twitter Impressions: Times post appears (target: 1K+/day)
+├─ Twitter Engagement: Clicks ÷ Impressions × 100 (target: 1%+)
+├─ Instagram Reach: Unique users who saw post (target: 500+/day)
+├─ Instagram Engagement: Interactions ÷ Reach × 100 (target: 2%+)
+├─ TikTok Reach: Unique viewers (target: 1.5K+/day)
+└─ TikTok Engagement: Interactions ÷ Reach × 100 (target: 3%+)
+
+---
+
+TIER SYSTEM FOR CONTENT PERFORMANCE:
+
+🥇 TIER 1 (SCALE)    → CTR >4% | Engagement >5% | Revenue >$100
+🥈 TIER 2 (MAINTAIN) → CTR 2-4% | Engagement 3-5% | Revenue $50-100
+🥉 TIER 3 (TEST)     → CTR 1-2% | Engagement 1-3% | Revenue $10-50
+⛔ TIER 4 (PAUSE)    → CTR <1% | Engagement <1% | Revenue <$10
+
+---
+
+IMPORTANT NOTES:
+✅ Affiliate tag: alreadyhere-20 (required in all links)
+✅ OCI Backend: 129.146.236.177 (check health at 8 AM)
+✅ Vercel Frontend: profitengine-tau.vercel.app (check deployment)
+✅ No placeholders in production URLs
+✅ All revenue targets are daily minimums
+
+═══════════════════════════════════════════════════════════════════════════════

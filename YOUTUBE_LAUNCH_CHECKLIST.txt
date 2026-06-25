@@ -1,0 +1,479 @@
+================================================================================
+YOUTUBE LAUNCH SEQUENCE — REAL-TIME EXECUTION CHECKLIST
+================================================================================
+
+MISSION: Create channel, record 5 videos (90 min), upload & schedule in 3 hours
+START:   2026-06-25 at [HH:MM AM/PM] — SET PHONE ALARM FOR EACH PHASE
+END:     2026-06-25 at [HH:MM + 3 hours]
+TOTAL:   180 minutes (3 hours) exact
+
+================================================================================
+HOUR 0: CHANNEL SETUP (00:00 – 00:45)
+================================================================================
+
+⏱️  PHASE 0.1: CREATE CHANNEL (00:00 – 00:15) [15 min]
+────────────────────────────────────────────────────
+ALARM: 00:00 START
+TODO:
+  [ ] Open https://www.youtube.com
+  [ ] Sign in (verify Gmail is active)
+  [ ] Profile icon → "Create a channel"
+  [ ] Name: ProfitEngine Trading
+  [ ] Upload channel art (2560×1440px)
+  [ ] Click Create
+
+VERIFICATION AT 00:15:
+  [ ] Channel URL shows @ProfitEngineTrading
+  [ ] Subscriber count: 0
+  [ ] Upload count: 0
+  [ ] SCREENSHOT: Channel header
+
+MOVE TO 0.2? YES [ ] NO [ ] → TROUBLESHOOT
+
+
+⏱️  PHASE 0.2: DESCRIPTION & BRANDING (00:15 – 00:35) [20 min]
+────────────────────────────────────────────────────────────
+ALARM: 00:15 START
+TODO:
+  [ ] Settings → About tab
+  [ ] Paste description (copy from YOUTUBE_LAUNCH_SEQUENCE.md)
+  [ ] Add external links:
+      [ ] Website: https://profitengine-tau.vercel.app
+      [ ] Gumroad: https://gumroad.com/profitengine
+  [ ] Add keywords: algorithmic trading, affiliate marketing, crypto, wealth
+  [ ] Language: English
+  [ ] Upload profile picture (800×800px logo)
+  [ ] Click Publish
+
+VERIFICATION AT 00:35:
+  [ ] Description displays in About tab
+  [ ] Website link clickable
+  [ ] Gumroad link clickable
+  [ ] Profile image shows branded logo
+  [ ] Channel art displays without distortion
+  [ ] SCREENSHOT: Full About section
+
+MOVE TO 0.3? YES [ ] NO [ ] → TROUBLESHOOT
+
+
+⏱️  PHASE 0.3: LINKS & SETTINGS (00:35 – 00:45) [10 min]
+──────────────────────────────────────────────────────
+ALARM: 00:35 START
+TODO:
+  [ ] Monetization → Enable features (if eligible)
+  [ ] Links → Verify Gumroad active
+  [ ] Advanced Settings → Comment moderation: STRICT
+  [ ] Save all changes
+
+VERIFICATION AT 00:45:
+  [ ] Monetization settings saved
+  [ ] External links configured
+  [ ] Comment filters active
+  [ ] Channel ready for videos
+  [ ] SCREENSHOT: Monetization dashboard
+
+✅ HOUR 0 COMPLETE AT 00:45
+MOVE TO HOUR 1? YES [ ] NO [ ] → TROUBLESHOOT
+
+
+================================================================================
+HOUR 1: VIDEO RECORDING (00:45 – 02:15)
+================================================================================
+
+⏱️  VIDEO 1: SYSTEM OVERVIEW (00:45 – 01:03) [18 min]
+─────────────────────────────────────────────────
+ALARM: 00:45 START
+TITLE: "ProfitEngine Trading System Overview | Automated Wealth Building"
+SCRIPT OUTLINE:
+  [0:00–0:30] Intro: "Welcome to ProfitEngine Trading"
+  [0:30–4:00] Problem (traditional trading inefficiency)
+  [4:00–8:30] Solution (algorithm + automation)
+  [8:30–13:00] Key features demo
+  [13:00–16:00] Results/backtesting
+  [16:00–17:30] CTA (link to dashboard & Gumroad)
+  [17:30–18:00] Outro & subscribe
+
+RECORDING CHECKLIST:
+  [ ] Screen recording software open (OBS/Camtasia/ScreenFlow)
+  [ ] Resolution set to 1080p (1920×1080)
+  [ ] Framerate: 30fps
+  [ ] Audio input: microphone (test levels: -3dB)
+  [ ] Recording location: desktop/videos folder
+  [ ] Start recording
+  [ ] Follow script outline (aim for 18:00 total)
+  [ ] Stop recording
+  [ ] Save as: v1_overview_1080p.mp4
+  [ ] Backup to cloud storage (Google Drive/OneDrive)
+
+VERIFICATION AT 01:03:
+  [ ] File saved: v1_overview_1080p.mp4
+  [ ] Duration: 17:45–18:15 (accept 0:30 variance)
+  [ ] Audio clean (no background noise, pops, clicks)
+  [ ] Playback smooth (no corruption, stuttering)
+  [ ] File size: 300–500 MB (1080p typical)
+
+NEXT VIDEO? YES [ ] → START V2 AT 01:03
+
+
+⏱️  VIDEO 2: AFFILIATE STRATEGY (01:03 – 01:21) [18 min]
+────────────────────────────────────────────────────
+ALARM: 01:03 START
+TITLE: "How to Monetize Trading Insights | Affiliate Profit Walkthrough"
+SCRIPT OUTLINE:
+  [0:00–0:30] Intro: "How to monetize trading insights"
+  [0:30–4:00] Affiliate program overview (5 partners)
+  [4:00–9:00] Commission structures breakdown
+  [9:00–13:00] Setup step-by-step (account linking, tracking)
+  [13:00–16:00] First 30 days (passive income projection)
+  [16:00–17:30] Resources (in description)
+  [17:30–18:00] CTA & subscribe
+
+RECORDING CHECKLIST:
+  [ ] Same settings as V1 (1080p, 30fps, -3dB audio)
+  [ ] Start recording
+  [ ] Follow script
+  [ ] Stop at 18:00
+  [ ] Save as: v2_affiliate_1080p.mp4
+  [ ] Backup to cloud
+
+VERIFICATION AT 01:21:
+  [ ] File saved: v2_affiliate_1080p.mp4
+  [ ] Duration: 17:45–18:15
+  [ ] Audio normalized, no clicking/typing noise
+  [ ] Commission chart legible (16pt+ font)
+  [ ] Playback smooth
+
+NEXT VIDEO? YES [ ] → START V3 AT 01:21
+
+
+⏱️  VIDEO 3: RISK MANAGEMENT (01:21 – 01:39) [18 min]
+──────────────────────────────────────────────────
+ALARM: 01:21 START
+TITLE: "Risk Management & Backtesting | Staying Profitable Long-Term"
+SCRIPT OUTLINE:
+  [0:00–0:30] Intro: "Staying profitable long-term"
+  [0:30–4:00] Risk tiers (conservative/balanced/aggressive)
+  [4:00–9:00] Drawdown limits & position sizing
+  [9:00–13:00] Backtest results (2-year historical)
+  [13:00–16:00] Real trading performance (last 30 days)
+  [16:00–17:30] Resources & tools (in description)
+  [17:30–18:00] CTA
+
+RECORDING CHECKLIST:
+  [ ] Same settings (1080p, 30fps, -3dB)
+  [ ] Start recording
+  [ ] Display backtest charts (equity curve, drawdown)
+  [ ] Use annotations for key metrics
+  [ ] Stop at 18:00
+  [ ] Save as: v3_risk_1080p.mp4
+  [ ] Backup to cloud
+
+VERIFICATION AT 01:39:
+  [ ] File saved: v3_risk_1080p.mp4
+  [ ] Duration: 17:45–18:15
+  [ ] Charts legible (18pt+ labels)
+  [ ] Audio smooth (no pops/clicks)
+  [ ] Transitions polished
+
+NEXT VIDEO? YES [ ] → START V4 AT 01:39
+
+
+⏱️  VIDEO 4: SETUP IN 15 MIN (01:39 – 01:57) [18 min]
+───────────────────────────────────────────────────
+ALARM: 01:39 START
+TITLE: "Get Started in 15 Minutes | Complete Setup Guide"
+SCRIPT OUTLINE:
+  [0:00–0:30] Intro: "Get started today"
+  [0:30–4:00] Account requirements (broker, email, API)
+  [4:00–9:00] Step 1: Create account (live walkthrough)
+  [9:00–13:00] Step 2: Connect broker & validate API
+  [13:00–16:00] Step 3: First trade (manual or automated)
+  [16:00–17:30] Troubleshooting & support (link to docs)
+  [17:30–18:00] CTA & subscribe
+
+RECORDING CHECKLIST:
+  [ ] Same settings (1080p, 30fps, -3dB)
+  [ ] Enable cursor zoom for visibility
+  [ ] Start recording
+  [ ] Do live account creation (or staged)
+  [ ] Highlight each step clearly
+  [ ] Stop at 18:00
+  [ ] Save as: v4_setup_1080p.mp4
+  [ ] Backup to cloud
+
+VERIFICATION AT 01:57:
+  [ ] File saved: v4_setup_1080p.mp4
+  [ ] Duration: 17:45–18:15
+  [ ] Cursor clearly visible on all steps
+  [ ] Text readable (18pt minimum)
+  [ ] Audio paced for easy follow-along
+
+NEXT VIDEO? YES [ ] → START V5 AT 01:57
+
+
+⏱️  VIDEO 5: EARNINGS PROOF (01:57 – 02:15) [18 min]
+───────────────────────────────────────────────────
+ALARM: 01:57 START
+TITLE: "Earnings Proof & Success Stories | Real Results from ProfitEngine"
+SCRIPT OUTLINE:
+  [0:00–0:30] Intro: "What's possible"
+  [0:30–4:00] Earnings dashboard (anonymized)
+  [4:00–9:00] Success story #1 (first month)
+  [9:00–13:00] Success story #2 (scaling affiliate)
+  [13:00–16:00] Community highlights & testimonials
+  [16:00–17:30] Final CTA (Gumroad bundle)
+  [17:30–18:00] Outro & thank you
+
+RECORDING CHECKLIST:
+  [ ] Same settings (1080p, 30fps, -3dB)
+  [ ] Start recording
+  [ ] Display dashboard with anonymized metrics
+  [ ] Include testimonial audio clips (if available)
+  [ ] Use upward trending chart graphic
+  [ ] Stop at 18:00
+  [ ] Save as: v5_proof_1080p.mp4
+  [ ] Backup to cloud
+
+VERIFICATION AT 02:15:
+  [ ] File saved: v5_proof_1080p.mp4
+  [ ] Duration: 17:45–18:15
+  [ ] All PII anonymized (no emails, names, phone)
+  [ ] Testimonials authentic-sounding
+  [ ] Audio levels consistent across clips
+
+✅ HOUR 1 COMPLETE AT 02:15
+MOVE TO HOUR 2? YES [ ] NO [ ] → TROUBLESHOOT
+
+
+================================================================================
+HOUR 2: UPLOAD & SCHEDULING (02:15 – 03:00)
+================================================================================
+
+⏱️  PHASE 2.1: METADATA PREP (02:15 – 02:25) [10 min]
+───────────────────────────────────────────────────
+ALARM: 02:15 START
+TODO:
+  [ ] Open text editor
+  [ ] Copy metadata from YOUTUBE_LAUNCH_SEQUENCE.md (all 5 videos)
+  [ ] Verify all URLs active:
+      [ ] https://profitengine-tau.vercel.app (click test)
+      [ ] https://gumroad.com/profitengine (click test)
+      [ ] https://quantam101.github.io/content (click test)
+  [ ] Check timestamps match video lengths
+  [ ] Check tags for typos
+  [ ] Save as: metadata.txt (in project folder)
+
+VERIFICATION AT 02:25:
+  [ ] Metadata file created: metadata.txt
+  [ ] All URLs verified (active)
+  [ ] Timestamps accurate
+  [ ] Tags checked
+  [ ] Descriptions <5,000 chars each
+
+MOVE TO 2.2? YES [ ] → MOVE TO UPLOAD PHASE
+
+
+⏱️  PHASE 2.2: UPLOAD ALL 5 VIDEOS (02:25 – 02:40) [15 min]
+──────────────────────────────────────────────────────
+ALARM: 02:25 START
+NOTE: YouTube processes uploads simultaneously. Upload all 5 in parallel.
+
+UPLOAD SEQUENCE:
+  [ ] Open YouTube Studio: https://studio.youtube.com
+  [ ] Click Create → Upload videos
+  [ ] Select V1 (v1_overview_1080p.mp4)
+  [ ] While uploading, fill metadata from metadata.txt:
+      [ ] Title: "ProfitEngine Trading System Overview..."
+      [ ] Description: [paste from metadata.txt]
+      [ ] Category: Education
+      [ ] Tags: [paste from metadata.txt]
+      [ ] Comments: Allow (auto-moderate)
+      [ ] Click "Schedule" (don't publish yet)
+      [ ] Date: June 26, 2026 | Time: 9:00 AM PT
+      [ ] Click Schedule
+
+  [ ] Repeat for V2 (do NOT wait for V1 to finish):
+      [ ] Click Create → Upload videos
+      [ ] Select V2 (v2_affiliate_1080p.mp4)
+      [ ] Fill metadata (copy V2 section from metadata.txt)
+      [ ] Schedule for June 27, 2026 at 9:00 AM PT
+
+  [ ] Repeat for V3:
+      [ ] Select V3 (v3_risk_1080p.mp4)
+      [ ] Fill metadata
+      [ ] Schedule for June 28, 2026 at 9:00 AM PT
+
+  [ ] Repeat for V4:
+      [ ] Select V4 (v4_setup_1080p.mp4)
+      [ ] Fill metadata
+      [ ] Schedule for June 29, 2026 at 9:00 AM PT
+
+  [ ] Repeat for V5:
+      [ ] Select V5 (v5_proof_1080p.mp4)
+      [ ] Fill metadata
+      [ ] Schedule for June 30, 2026 at 9:00 AM PT
+
+PARALLEL PROCESSING TIMELINE:
+  00:00 – V1 upload starts
+  02:00 – V1 processing, V2 upload starts
+  04:00 – V2 processing, V3 upload starts
+  06:00 – V3 processing, V4 upload starts
+  08:00 – V4 processing, V5 upload starts
+  10:00 – V5 processing
+  15:00 – All 5 in "Scheduled" status (✓ DONE)
+
+VERIFICATION AT 02:40:
+  [ ] All 5 videos show in Studio uploads
+  [ ] Status for all: "Processing" or "Scheduled" (not errors)
+  [ ] No upload timeouts or failures
+  [ ] Each has thumbnail generated
+  [ ] Each has metadata visible in draft
+
+MOVE TO 2.3? YES [ ] → MOVE TO THUMBNAILS
+
+
+⏱️  PHASE 2.3: CUSTOM THUMBNAILS (02:40 – 02:50) [10 min]
+──────────────────────────────────────────────────────
+ALARM: 02:40 START
+SPECS: 1280×720px, <2MB, PNG or JPG
+
+TODO FOR EACH VIDEO:
+  [ ] Go to Studio → Video #1 (System Overview)
+  [ ] Click "Thumbnail" section
+  [ ] Click "Upload custom thumbnail"
+  [ ] Select V1 thumbnail file (1280×720px PNG/JPG)
+  [ ] Click "Save"
+  [ ] Verify thumbnail appears
+
+  [ ] Repeat for V2 (Affiliate):
+      [ ] Go to Video #2
+      [ ] Upload V2 thumbnail
+      [ ] Save & verify
+
+  [ ] Repeat for V3 (Risk):
+      [ ] Go to Video #3
+      [ ] Upload V3 thumbnail
+      [ ] Save & verify
+
+  [ ] Repeat for V4 (Setup):
+      [ ] Go to Video #4
+      [ ] Upload V4 thumbnail
+      [ ] Save & verify
+
+  [ ] Repeat for V5 (Proof):
+      [ ] Go to Video #5
+      [ ] Upload V5 thumbnail
+      [ ] Save & verify
+
+VERIFICATION AT 02:50:
+  [ ] All 5 videos have custom thumbnails (not auto-generated)
+  [ ] Thumbnails display correctly (no pixelation, distortion)
+  [ ] Text readable at 200×113px size (YouTube sidebar)
+  [ ] All thumbnails match 1280×720px spec
+  [ ] SCREENSHOT: Each thumbnail in Studio
+
+MOVE TO 2.4? YES [ ] → MOVE TO SCHEDULING
+
+
+⏱️  PHASE 2.4: VERIFY SCHEDULE (02:50 – 03:00) [10 min]
+────────────────────────────────────────────────────
+ALARM: 02:50 START
+GOAL: Confirm all 5 videos scheduled correctly (not yet public)
+
+VERIFICATION CHECKLIST:
+  [ ] Go to Studio → Videos tab
+  [ ] Status view shows all 5 scheduled videos:
+      [ ] V1: "Scheduled for Jun 26, 2026 at 9:00 AM PT"
+      [ ] V2: "Scheduled for Jun 27, 2026 at 9:00 AM PT"
+      [ ] V3: "Scheduled for Jun 28, 2026 at 9:00 AM PT"
+      [ ] V4: "Scheduled for Jun 29, 2026 at 9:00 AM PT"
+      [ ] V5: "Scheduled for Jun 30, 2026 at 9:00 AM PT"
+  [ ] All videos show "Scheduled" badge (NOT "Public" yet)
+  [ ] Click on each video → verify scheduled date/time in draft
+  [ ] SCREENSHOT: Full Studio schedule view with all 5 listed
+
+FINAL CHECKS:
+  [ ] Gumroad link appears in at least 3 video descriptions
+  [ ] Dashboard link appears in all descriptions
+  [ ] All links clickable (not broken)
+  [ ] No videos marked "Public" (all "Scheduled" or "Draft")
+
+AT 03:00 EXACTLY:
+✅ YOUTUBE LAUNCH SEQUENCE 100% COMPLETE
+
+FINAL STATUS:
+  ✅ HOUR 0: Channel created, branded, configured
+  ✅ HOUR 1: All 5 videos recorded (90 min total)
+  ✅ HOUR 2: All 5 videos uploaded, scheduled for Jun 26–30
+  ✅ Channel live at: youtube.com/@ProfitEngineTrading
+  ✅ Gumroad link in description: https://gumroad.com/profitengine
+  ✅ Dashboard link in descriptions: https://profitengine-tau.vercel.app
+  ✅ First video publishes: Jun 26, 2026 at 9:00 AM PT
+
+
+================================================================================
+POST-LAUNCH MONITORING (Jun 26 onwards)
+================================================================================
+
+⏱️  JUNE 26, 2026 — 9:00 AM PT (VIDEO 1 PUBLISHES)
+───────────────────────────────────────────────
+[ ] 9:00 AM: Check channel — V1 should be live
+[ ] 9:05 AM: Verify title, description, and links display correctly
+[ ] 9:30 AM: Share on social media (Twitter, LinkedIn, Reddit)
+[ ] Monitor: Views, comments, watch time
+[ ] Respond to comments within 2 hours
+
+⏱️  JUNE 27–30: VIDEOS 2–5 PUBLISH (DAILY AT 9:00 AM PT)
+──────────────────────────────────────────────────────
+[ ] Daily 9:00 AM: Next video auto-publishes
+[ ] Daily 9:15 AM: Share on social channels
+[ ] Daily monitoring: Views, comments, CTR to Gumroad
+
+METRICS TARGETS (After all 5 videos):
+  ✅ Total views: 500+
+  ✅ Watch time: 30+ hours
+  ✅ Subscribers: 10+
+  ✅ CTR to Gumroad: 5%+
+  ✅ Comment sentiment: 90%+ positive
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+UPLOAD FAILS?
+  1. Go to Studio → Uploads
+  2. Delete failed video
+  3. Wait 5 minutes (cache clears)
+  4. Re-upload with same metadata
+  5. If persistent: Try different browser (incognito)
+
+SCHEDULE WON'T SAVE?
+  1. Verify date is AFTER today (never past dates)
+  2. Timezone: Always use PT (avoid ambiguity)
+  3. Click "Schedule" again
+  4. Check status changed to "Scheduled"
+
+THUMBNAIL WON'T UPLOAD?
+  1. Convert to JPG (if PNG causing issues)
+  2. Verify 1280×720px exactly
+  3. Verify <2MB file size
+  4. Try saving locally first (not from browser)
+  5. Clear browser cache, retry
+
+LINKS BREAK IN DESCRIPTION?
+  1. Go to About → Edit
+  2. Remove any emoji or special characters
+  3. Paste links as plain text (no markup)
+  4. Click Save
+  5. Wait 5 minutes for propagation
+
+
+================================================================================
+END OF CHECKLIST
+================================================================================
+
+TOTAL TIME: 180 minutes (3 hours exactly)
+NEXT MILESTONE: Jun 26, 2026 at 9:00 AM PT — Video 1 auto-publishes
+
+Questions? See YOUTUBE_LAUNCH_SEQUENCE.md for full details.

@@ -1,0 +1,542 @@
+================================================================================
+YOUTUBE LAUNCH SEQUENCE — EXECUTIVE SUMMARY
+================================================================================
+
+PROJECT: ProfitEngine YouTube Channel Launch
+DATE: 2026-06-25 (3-hour execution window)
+CHANNEL: @ProfitEngineTrading
+GUMROAD LINK: https://gumroad.com/profitengine
+DASHBOARD: https://profitengine-tau.vercel.app
+
+================================================================================
+MISSION (3 HOURS EXACT)
+================================================================================
+
+00:00 – 00:45: Create YouTube channel, brand it, configure links
+00:45 – 02:15: Record 5 videos (18 min each, 90 min total)
+02:15 – 03:00: Upload all 5 videos, set custom thumbnails, schedule for Jun 26–30
+
+DELIVERABLES:
+✓ 1 branded YouTube channel
+✓ 5 professional videos (1080p, high quality)
+✓ 3 external links (Dashboard, Gumroad, Content)
+✓ 5 scheduled publications (auto-publish Jun 26–30, 9 AM PT daily)
+✓ 5 custom thumbnails
+✓ Full metadata (titles, descriptions, tags, chapters)
+
+================================================================================
+QUICK START CHECKLIST (PRINT THIS)
+================================================================================
+
+HOUR 0 (45 minutes):
+  [ ] Create YouTube channel: @ProfitEngineTrading
+  [ ] Add description (300+ chars, all 3 links)
+  [ ] Upload profile image (800×800px logo)
+  [ ] Upload channel art (2560×1440px header)
+  [ ] Configure monetization & comment moderation
+  DONE? → Move to Hour 1
+
+HOUR 1 (90 minutes):
+  [ ] Record Video 1: System Overview (18 min)
+  [ ] Record Video 2: Affiliate Strategy (18 min)
+  [ ] Record Video 3: Risk Management (18 min)
+  [ ] Record Video 4: Setup Guide (18 min)
+  [ ] Record Video 5: Earnings Proof (18 min)
+  [ ] Backup all 5 to cloud storage
+  DONE? → Move to Hour 2
+
+HOUR 2 (45 minutes):
+  [ ] Prepare metadata (copy from template)
+  [ ] Upload all 5 videos to YouTube Studio
+  [ ] Add metadata to each (title, desc, tags, chapters)
+  [ ] Upload custom thumbnails (1280×720px each)
+  [ ] Schedule videos:
+      V1 → Jun 26 at 9:00 AM PT
+      V2 → Jun 27 at 9:00 AM PT
+      V3 → Jun 28 at 9:00 AM PT
+      V4 → Jun 29 at 9:00 AM PT
+      V5 → Jun 30 at 9:00 AM PT
+  [ ] Verify all 5 show "Scheduled" (not Public)
+  DONE? → ✅ LAUNCH SEQUENCE COMPLETE
+
+================================================================================
+VIDEO CONTENT BREAKDOWN
+================================================================================
+
+VIDEO 1: System Overview (18 min)
+  Audience: Traders new to ProfitEngine
+  Hook: "Welcome to ProfitEngine Trading"
+  Structure:
+    - Problem: Traditional trading is inefficient (0:30–4:00)
+    - Solution: Our algorithm automates profitable trades (4:00–8:30)
+    - Features: Real-time scanning, risk management (8:30–13:00)
+    - Results: Backtesting performance (13:00–16:00)
+    - CTA: Link to Dashboard & Gumroad (16:00–17:30)
+    - Outro: Subscribe (17:30–18:00)
+  Calls-to-Action:
+    - Verbal: "Check out our dashboard"
+    - Text overlay: "https://profitengine-tau.vercel.app"
+    - Link in description: "Get Started"
+
+VIDEO 2: Affiliate Strategy (18 min)
+  Audience: People interested in passive income
+  Hook: "How to monetize trading insights"
+  Structure:
+    - Problem: Need for supplementary income (0:30–4:00)
+    - Solution: Affiliate programs (5 partner platforms) (4:00–9:00)
+    - Demo: Commission structures, account setup (9:00–13:00)
+    - Projection: First 30 days earnings (13:00–16:00)
+    - CTA: "Get bundle on Gumroad" (16:00–17:30)
+    - Outro: Subscribe (17:30–18:00)
+  Calls-to-Action:
+    - Verbal: "Sign up on Gumroad for full course"
+    - Text overlay: "https://gumroad.com/profitengine"
+    - Link in description: "Get Started"
+
+VIDEO 3: Risk Management (18 min)
+  Audience: Traders concerned about capital preservation
+  Hook: "Staying profitable long-term"
+  Structure:
+    - Problem: Risk blowups destroy accounts (0:30–4:00)
+    - Solution: Risk tiers, drawdown limits (4:00–9:00)
+    - Demo: Position sizing, backtest results (9:00–13:00)
+    - Live performance: Last 30 days (13:00–16:00)
+    - Resources: Docs, tools, support (16:00–17:30)
+    - CTA: "Learn more on dashboard" (17:30–18:00)
+  Calls-to-Action:
+    - Verbal: "See our risk management in action"
+    - Text overlay: "Dashboard → Risk Settings"
+    - Link in description: "Risk Documentation"
+
+VIDEO 4: Setup in 15 Minutes (18 min)
+  Audience: People ready to start trading
+  Hook: "Get started today"
+  Structure:
+    - Requirements: Account type, email, API key (0:30–4:00)
+    - Step 1: Account creation (live walkthrough) (4:00–9:00)
+    - Step 2: Broker integration (API linking) (9:00–13:00)
+    - Step 3: First trade (order placement) (13:00–16:00)
+    - Support: Troubleshooting, help resources (16:00–17:30)
+    - CTA: "Start now" (17:30–18:00)
+  Calls-to-Action:
+    - Verbal: "Head to the dashboard to get started"
+    - Text overlay: Step-by-step number labels (1/3, 2/3, 3/3)
+    - Link in description: "Setup Guide" + "Sign up link"
+
+VIDEO 5: Earnings Proof (18 min)
+  Audience: Skeptics who need proof of results
+  Hook: "What's possible with ProfitEngine"
+  Structure:
+    - Dashboard metrics: Anonymized earnings (0:30–4:00)
+    - Story 1: First-month trader success (4:00–9:00)
+    - Story 2: Scaling to affiliate income (9:00–13:00)
+    - Community wins: Diverse outcomes (13:00–16:00)
+    - Final offer: Gumroad bundle + support (16:00–17:30)
+    - Outro: Thank you, subscribe (17:30–18:00)
+  Calls-to-Action:
+    - Verbal: "Join our community and get started"
+    - Text overlay: Success metrics (earnings chart, growth %)
+    - Link in description: "Join on Gumroad" + "Access Dashboard"
+
+================================================================================
+PUBLICATION SCHEDULE (Automated)
+================================================================================
+
+DATE       | TIME          | VIDEO TITLE               | AUTO-PUBLISHED?
+===========|===============|==========================|==================
+Jun 26 2026| 9:00 AM PT    | System Overview           | Yes (scheduled)
+Jun 27 2026| 9:00 AM PT    | Affiliate Strategy        | Yes (scheduled)
+Jun 28 2026| 9:00 AM PT    | Risk Management           | Yes (scheduled)
+Jun 29 2026| 9:00 AM PT    | Setup Guide               | Yes (scheduled)
+Jun 30 2026| 9:00 AM PT    | Earnings Proof            | Yes (scheduled)
+
+WHY 9 AM PT?
+  - Peak US business hours (traders checking markets)
+  - 9 AM PT = 12 PM ET = 5 PM UK = 1 AM Asia (next day)
+  - First 2 hours = highest watch-time concentration
+  - Daily cadence builds viewer habit check-in
+
+================================================================================
+EXTERNAL LINKS (ALL 3 REQUIRED IN DESCRIPTIONS)
+================================================================================
+
+PRIMARY (Business):
+  https://profitengine-tau.vercel.app
+  Purpose: Main dashboard, live metrics, trading interface
+  Audience: Users ready to trade
+  Required in: V1, V2, V3, V4, V5 (all 5 videos)
+
+SECONDARY (Revenue):
+  https://gumroad.com/profitengine
+  Purpose: Course bundle, resources, affiliate program
+  Audience: Users interested in learning/earning
+  Required in: V1, V2, V3, V4, V5 (all 5 videos)
+
+TERTIARY (Documentation):
+  https://quantam101.github.io/content
+  Purpose: Educational content, docs, tutorials
+  Audience: Users seeking deep learning
+  Required in: V1, V2, V3, V4, V5 (all 5 videos)
+
+VERIFICATION:
+  Before Hour 2 upload: Click each link to verify active
+  After all videos published: Spot-check links in descriptions
+
+================================================================================
+SUCCESS CRITERIA (PASS/FAIL)
+================================================================================
+
+MUST PASS (Non-negotiable):
+  ✅ Channel created and public
+  ✅ All 5 videos recorded (each 17:45–18:15)
+  ✅ All 5 videos uploaded to Studio
+  ✅ All 5 videos scheduled for Jun 26–30, 9 AM PT
+  ✅ All 5 videos marked "Scheduled" (not Public)
+  ✅ All 5 descriptions include Gumroad link
+  ✅ All 5 descriptions include Dashboard link
+  ✅ All 3 external links are active (tested)
+
+SHOULD PASS (Target):
+  ✅ All 5 videos have custom thumbnails
+  ✅ All 5 thumbnails readable at 200×113px
+  ✅ All audio is -3dB normalized (no clipping)
+  ✅ All videos are 1080p (1920×1080)
+  ✅ Channel art is 2560×1440px (not pixelated)
+  ✅ Profile image is 800×800px (branded logo)
+
+NICE-TO-HAVE:
+  ✅ Video chapters timestamped correctly
+  ✅ Videos have intro/outro cards
+  ✅ Videos are shared on social media
+  ✅ Metadata follows brand voice guidelines
+
+STATUS:
+  🟢 PASS = All "MUST PASS" criteria met
+  🔴 BLOCKED = Any "MUST PASS" criterion fails (re-do that phase)
+
+================================================================================
+FILES CREATED (REFERENCE DOCUMENTS)
+================================================================================
+
+1. YOUTUBE_LAUNCH_SEQUENCE.md (FULL GUIDE, 450+ lines)
+   Purpose: Complete walkthrough with every detail
+   Use: Reference during Hour 0, 1, 2 (open in browser/IDE)
+   Contents: Phases 0.1–2.4, troubleshooting, resources
+
+2. YOUTUBE_LAUNCH_CHECKLIST.txt (EXECUTION CHECKLIST, 300 lines)
+   Purpose: Real-time task list to check off
+   Use: Print or open on phone, mark complete as you go
+   Contents: All tasks in sequence with time estimates
+
+3. YOUTUBE_LAUNCH_TIMELINE.txt (VISUAL TIMELINE, 400+ lines)
+   Purpose: Minute-by-minute breakdown with ASCII tables
+   Use: Quick reference for where you are in the process
+   Contents: HOUR 0, 1, 2 with colored checkboxes and metrics
+
+4. YOUTUBE_METADATA_TEMPLATE.txt (COPY-PASTE READY, 200 lines)
+   Purpose: All metadata pre-written for all 5 videos
+   Use: Copy title/description/tags from this file into YouTube Studio
+   Contents: Titles, descriptions, tags, chapters for V1–V5
+
+5. YOUTUBE_LAUNCH_SUCCESS_METRICS.txt (MONITORING GUIDE, 350+ lines)
+   Purpose: Success markers and post-launch tracking
+   Use: Verify each phase completed, monitor performance after launch
+   Contents: Checkpoints, metrics, engagement targets
+
+6. YOUTUBE_LAUNCH_SUMMARY.txt (THIS FILE, 200+ lines)
+   Purpose: High-level overview and quick start
+   Use: Read first, then jump to detailed guides as needed
+   Contents: Mission, videos, schedule, success criteria
+
+================================================================================
+HOUR 0: CHANNEL SETUP (45 minutes)
+================================================================================
+
+PHASE 0.1: CREATE CHANNEL (15 min)
+  1. Open https://www.youtube.com
+  2. Sign in (ensure Gmail active)
+  3. Profile icon → "Create a channel"
+  4. Name: "ProfitEngine Trading"
+  5. Upload channel art (2560×1440px)
+  6. Click Create
+  ✓ Success marker: Channel URL shows @ProfitEngineTrading
+
+PHASE 0.2: DESCRIPTION & BRANDING (20 min)
+  1. Go to Settings → About tab
+  2. Paste description (copy from YOUTUBE_METADATA_TEMPLATE.txt)
+  3. Add external links:
+     • Dashboard: https://profitengine-tau.vercel.app
+     • Gumroad: https://gumroad.com/profitengine
+     • Content: https://quantam101.github.io/content
+  4. Add keywords (algorithmic trading, affiliate marketing, passive income, etc.)
+  5. Language: English
+  6. Upload profile picture (800×800px logo)
+  7. Click Publish
+  ✓ Success marker: About tab displays full description with 3 links
+
+PHASE 0.3: LINKS & SETTINGS (10 min)
+  1. Monetization → Enable features (if eligible)
+  2. Links & Contact → Verify Gumroad active
+  3. Advanced Settings → Comment moderation: STRICT
+  4. Save all changes
+  ✓ Success marker: Channel ready, all settings configured
+
+================================================================================
+HOUR 1: VIDEO RECORDING (90 minutes)
+================================================================================
+
+UNIVERSAL SPECS:
+  • Resolution: 1920×1080 (1080p)
+  • Framerate: 30fps
+  • Audio: -3dB normalized, no background noise
+  • Format: MP4 (H.264 codec)
+  • Duration: 17:45–18:15 (all videos)
+  • Backup: All videos saved to cloud storage
+
+VIDEO 1 (18 min): System Overview
+  File: v1_overview_1080p.mp4
+  Sections:
+    0:00–0:30 Intro ("Welcome to ProfitEngine Trading")
+    0:30–4:00 Problem (traditional trading inefficiency)
+    4:00–8:30 Solution (algorithm automation)
+    8:30–13:00 Features (real-time scanning, risk management)
+    13:00–16:00 Results (backtesting performance)
+    16:00–17:30 CTA (Gumroad link)
+    17:30–18:00 Outro (subscribe prompt)
+
+VIDEO 2 (18 min): Affiliate Strategy
+  File: v2_affiliate_1080p.mp4
+  Sections:
+    0:00–0:30 Intro ("How to monetize trading insights")
+    0:30–4:00 Programs (5 partner platforms)
+    4:00–9:00 Commission breakdown (chart visible, 16pt+ text)
+    9:00–13:00 Setup walkthrough (account linking)
+    13:00–16:00 30-day projection (earnings chart)
+    16:00–17:30 Resources (Gumroad bundle)
+    17:30–18:00 CTA & Outro
+
+VIDEO 3 (18 min): Risk Management
+  File: v3_risk_1080p.mp4
+  Sections:
+    0:00–0:30 Intro ("Staying profitable long-term")
+    0:30–4:00 Risk tiers (conservative/balanced/aggressive)
+    4:00–9:00 Drawdown limits & position sizing
+    9:00–13:00 Backtest results (2-year chart, equity curve, drawdown)
+    13:00–16:00 Live trading performance (last 30 days)
+    16:00–17:30 Resources & tools
+    17:30–18:00 CTA
+
+VIDEO 4 (18 min): Setup Guide
+  File: v4_setup_1080p.mp4
+  Sections:
+    0:00–0:30 Intro ("Get started today")
+    0:30–4:00 Requirements (account, email, API key)
+    4:00–9:00 Step 1: Account creation (live walkthrough, cursor highlighted)
+    9:00–13:00 Step 2: Broker API integration (validation shown)
+    13:00–16:00 Step 3: First trade (order placement demo)
+    16:00–17:30 Troubleshooting & support
+    17:30–18:00 CTA & Outro
+
+VIDEO 5 (18 min): Earnings Proof
+  File: v5_proof_1080p.mp4
+  Sections:
+    0:00–0:30 Intro ("What's possible")
+    0:30–4:00 Dashboard metrics (anonymized earnings, no PII)
+    4:00–9:00 Success story #1 (first month results, testimonial)
+    9:00–13:00 Success story #2 (scaling affiliate income, testimonial)
+    13:00–16:00 Community highlights (diverse outcomes)
+    16:00–17:30 Final CTA (Gumroad bundle offer)
+    17:30–18:00 Outro (thank you, subscribe)
+
+================================================================================
+HOUR 2: UPLOAD & SCHEDULING (45 minutes)
+================================================================================
+
+PHASE 2.1: METADATA PREP (10 min)
+  1. Open text editor
+  2. Copy metadata from YOUTUBE_METADATA_TEMPLATE.txt
+  3. Verify all 3 URLs active (Dashboard, Gumroad, Content)
+  4. Check timestamps match video lengths
+  5. Check tags for typos
+  6. Save as metadata.txt
+
+PHASE 2.2: UPLOAD (15 min) — PARALLEL UPLOADS
+  1. Open YouTube Studio (https://studio.youtube.com)
+  2. Click Create → Upload videos
+  3. Select V1 (v1_overview_1080p.mp4)
+  4. While uploading, fill metadata (title, description, tags, chapters)
+  5. Click "Schedule" (not Publish)
+  6. Set date: June 26, 2026 | Time: 9:00 AM PT
+  7. Click Schedule
+  8. REPEAT FOR V2–V5 (don't wait for V1 to finish uploading)
+     • V2 → Jun 27, 9:00 AM PT
+     • V3 → Jun 28, 9:00 AM PT
+     • V4 → Jun 29, 9:00 AM PT
+     • V5 → Jun 30, 9:00 AM PT
+  ✓ Success marker: All 5 videos show "Scheduled" in Studio
+
+PHASE 2.3: CUSTOM THUMBNAILS (10 min)
+  1. Go to Studio → Video #1
+  2. Click Thumbnail → Upload custom thumbnail
+  3. Select V1 thumbnail (1280×720px, <2MB, PNG/JPG)
+  4. Click Save
+  5. REPEAT FOR V2–V5
+  ✓ Success marker: All 5 videos have custom thumbnails (not auto-generated)
+
+PHASE 2.4: VERIFY SCHEDULE (10 min)
+  1. Go to Studio → Videos tab
+  2. VERIFY EACH VIDEO:
+     • V1: "Scheduled for Jun 26, 2026 at 9:00 AM PT" ✓
+     • V2: "Scheduled for Jun 27, 2026 at 9:00 AM PT" ✓
+     • V3: "Scheduled for Jun 28, 2026 at 9:00 AM PT" ✓
+     • V4: "Scheduled for Jun 29, 2026 at 9:00 AM PT" ✓
+     • V5: "Scheduled for Jun 30, 2026 at 9:00 AM PT" ✓
+  3. Verify all show "Scheduled" (not "Public")
+  4. Take screenshot of full schedule
+  ✓ Success marker: All 5 scheduled correctly, none public yet
+
+================================================================================
+POST-LAUNCH ACTIONS
+================================================================================
+
+DAY 1 (Jun 26, 9:00 AM PT — Video 1 Publishes):
+  □ Check channel: V1 should be live and Public
+  □ Verify no errors: Title, description, thumbnail correct
+  □ Share on Twitter: Link to V1 with hook text
+  □ Share on LinkedIn: Professional version of Twitter post
+  □ Share on Reddit: Relevant subreddits (r/algotrading, r/passive_income, etc.)
+  □ Monitor comments: Respond within 2 hours
+  □ Check analytics: Views, watch time, traffic sources
+
+DAY 2–5 (Jun 27–30, 9:00 AM PT — Videos 2–5 Publish):
+  □ Each morning: Check next video is live
+  □ Share on social media (Twitter, LinkedIn, Reddit)
+  □ Monitor comments: Answer questions
+  □ Track metrics: Cumulative views, watch time, subscribers
+
+TARGET METRICS (After all 5 published):
+  Tier 1 (Baseline):  ≥100 views, ≥5 hrs watch time, ≥1 subscriber
+  Tier 2 (Target):    ≥500 views, ≥30 hrs watch time, ≥10 subscribers
+  Tier 3 (Excellent): ≥1,000 views, ≥60 hrs watch time, ≥25 subscribers
+
+================================================================================
+NEXT STEPS (AFTER LAUNCH)
+================================================================================
+
+WEEK 2–4:
+  □ Create YouTube Shorts (15-60 second clips from full videos)
+  □ Start community posts (between video uploads)
+  □ Analyze engagement: Which videos perform best?
+  □ Plan next video series (based on viewer feedback)
+
+MONTH 2:
+  □ Establish upload schedule (weekly? twice weekly?)
+  □ Create subscriber-exclusive content
+  □ Reach out for collaborations (other creators, guest appearances)
+  □ Test paid promotion ($50–200 budget)
+
+MONTH 3+:
+  □ Monetization (if eligible): Enable ads
+  □ Affiliate revenue tracking: Monitor Gumroad conversions
+  □ Long-tail SEO: Optimize older videos for search
+  □ Repurpose content: Turn popular videos into blog posts, podcasts
+
+================================================================================
+SUPPORT & TROUBLESHOOTING
+================================================================================
+
+PROBLEM: Upload fails
+SOLUTION:
+  1. Go to Studio → Uploads
+  2. Click failed video → Delete
+  3. Wait 5 minutes
+  4. Re-upload with same metadata
+  5. Try different browser if persistent
+
+PROBLEM: Schedule doesn't save
+SOLUTION:
+  1. Verify date is AFTER today
+  2. Timezone: Always use PT
+  3. Click Schedule again
+  4. Verify status changed to "Scheduled"
+
+PROBLEM: Thumbnail won't upload
+SOLUTION:
+  1. Convert to JPG (if PNG issues)
+  2. Verify dimensions: 1280×720px exactly
+  3. Verify file size: <2MB
+  4. Try different image (save locally)
+  5. Clear browser cache
+
+PROBLEM: Views stuck at 0 after 24 hours
+SOLUTION:
+  1. Verify video is Public (not Scheduled)
+  2. Check for content flags (inappropriate, etc.)
+  3. Boost social media sharing
+  4. Share in relevant communities
+  5. Test paid promotion
+
+================================================================================
+RESOURCES
+================================================================================
+
+OFFICIAL:
+  • YouTube Studio: https://studio.youtube.com
+  • Creator Academy: https://creatoracademy.youtube.com
+  • YouTube Help: https://support.google.com/youtube
+
+PROFITENGINE LINKS:
+  • Dashboard: https://profitengine-tau.vercel.app
+  • Gumroad: https://gumroad.com/profitengine
+  • Content: https://quantam101.github.io/content
+
+TOOLS (RECOMMENDATIONS):
+  • Recording: Camtasia, OBS Studio, ScreenFlow
+  • Editing: DaVinci Resolve, Adobe Premiere
+  • Voiceover: Descript, Audacity
+  • Thumbnails: Canva, Photoshop
+
+================================================================================
+FINAL CHECKLIST (BEFORE YOU START)
+================================================================================
+
+SETUP (Do Before Hour 0):
+  □ Computer with internet access (high speed for uploads)
+  □ Microphone + audio interface (test audio levels)
+  □ Camera or screen recording software (test resolution)
+  □ Google account (verified email for YouTube)
+  □ Backup storage (Google Drive, OneDrive, AWS S3)
+  □ Text editor open (for metadata template)
+  □ YouTube Studio open (test that it loads)
+  □ Timer or alarm set (for each hour)
+
+DOCUMENTATION (Do Before Hour 0):
+  □ Print YOUTUBE_LAUNCH_CHECKLIST.txt (or open on phone)
+  □ Read YOUTUBE_LAUNCH_SEQUENCE.md (full guide)
+  □ Copy YOUTUBE_METADATA_TEMPLATE.txt (ready to paste)
+  □ Have YOUTUBE_LAUNCH_TIMELINE.txt open (quick reference)
+
+LINKS (Do Before Hour 0):
+  □ Test Dashboard link: https://profitengine-tau.vercel.app (loads?)
+  □ Test Gumroad link: https://gumroad.com/profitengine (accessible?)
+  □ Test Content link: https://quantam101.github.io/content (accessible?)
+
+START:
+  □ Set phone alarm for 00:00 (Hour 0 start)
+  □ Set phone alarm for 00:45 (Hour 1 start)
+  □ Set phone alarm for 02:15 (Hour 2 start)
+  □ Open this checklist
+  ✅ READY? GO TO HOUR 0
+
+================================================================================
+END OF SUMMARY
+================================================================================
+
+Questions? See detailed guides:
+  • YOUTUBE_LAUNCH_SEQUENCE.md (full implementation)
+  • YOUTUBE_LAUNCH_CHECKLIST.txt (real-time task list)
+  • YOUTUBE_LAUNCH_TIMELINE.txt (minute-by-minute breakdown)
+  • YOUTUBE_LAUNCH_SUCCESS_METRICS.txt (monitoring guide)
+
+Total execution: 3 hours exactly
+Next milestone: Jun 26, 2026 at 9:00 AM PT (Video 1 auto-publishes)

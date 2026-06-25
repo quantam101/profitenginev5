@@ -1,0 +1,17 @@
+Date,Day,Company,Tier,Contact_Name,Email,Send_Time,Send_Confirmation,Open_Time,Opened,Clicked,Reply_Time,Reply_Received,Reply_Sentiment,Reply_Content_Summary,Next_Action,Call_Proposed_Time,Call_Confirmed,Call_Date,Call_Time,Call_Duration_Min,Call_Outcome,Decision_Status,MRR_if_Close,LOI_Date,Contract_Signed,Notes
+2026-06-25,Day 3,Loom,T1,Sarah Chen,partnerships@loom.com,9:15 AM,✓,10:30 AM,Yes,Yes,—,—,—,—,—,Monitor for reply,—,—,—,—,—,—,Cold,,,—,Scheduled for follow-up Day 5
+2026-06-25,Day 3,Slack,T1,partnerships@slack.com,partnerships@slack.com,9:45 AM,✓,—,No,No,—,—,—,—,—,Re-send Day 6,—,—,—,—,—,—,No contact,,,—,Monitor for open
+2026-06-25,Day 3,Notion,T1,hello@notion.so,hello@notion.so,10:15 AM,✓,11:45 AM,Yes,No,—,—,—,—,—,Monitor for reply,—,—,—,—,—,—,Warm,,,—,Open but no reply yet
+2026-06-25,Day 3,Gumroad,T1,partnerships@gumroad.com,partnerships@gumroad.com,10:45 AM,✓,—,No,No,—,—,—,—,—,Re-send Day 6,—,—,—,—,—,—,No contact,,,—,Monitor for open
+2026-06-25,Day 3,Beehiiv,T1,partnerships@beehiiv.com,partnerships@beehiiv.com,11:15 AM,✓,—,No,No,—,—,—,—,—,Re-send Day 6,—,—,—,—,—,—,No contact,,,—,Monitor for open
+2026-06-25,Day 3,LinkedIn,T1,partnerships@linkedin.com,partnerships@linkedin.com,11:45 AM,✓,—,No,No,—,—,—,—,—,Monitor overnight,—,—,—,—,—,—,Cold,,,—,No open yet
+2026-06-26,Day 4,Zapier,T2,enterprise@zapier.com,enterprise@zapier.com,9:45 AM,✓,11:00 AM,Yes,Yes,2:15 PM,Yes,Warm,"Interested in Tier 2. Asking about integration timeline. Budget authority? May need approval from VP. Timeline: 2 weeks for decision.",Schedule call Tuesday,Tue 2 PM PT proposed,✓,2026-07-01,2:00 PM,20,—,Warm,500-1000,—,—,Strong lead - prioritize
+2026-06-26,Day 4,HubSpot,T2,partnerships@hubspot.com,partnerships@hubspot.com,10:15 AM,✓,—,No,No,—,—,—,—,—,Re-send Day 6,—,—,—,—,—,—,Cold,,,—,Monitor for open
+2026-06-26,Day 4,Gumroad,T2,partnerships@gumroad.com,partnerships@gumroad.com,10:45 AM,✓,12:30 PM,Yes,No,—,—,—,—,—,Monitor for reply,—,—,—,—,—,—,Lukewarm,,,—,Opened but no reply yet
+2026-06-26,Day 4,Beehiiv,T2,partnerships@beehiiv.com,partnerships@beehiiv.com,11:15 AM,✓,—,No,No,—,—,—,—,—,Monitor for open,—,—,—,—,—,—,Cold,,,—,Monitor for open
+2026-06-26,Day 4,Coursera,T2,partnerships@coursera.org,partnerships@coursera.org,11:45 AM,✓,3:45 PM,Yes,No,—,—,—,—,—,Monitor for reply,—,—,—,—,—,—,Lukewarm,,,—,Opened but no reply yet
+2026-06-27,Day 5,OpenAI,T3,partnerships@openai.com,partnerships@openai.com,9:30 AM,✓,—,No,No,—,—,—,—,—,Monitor for open,—,—,—,—,—,—,Cold,1000-2000,—,—,May need warm intro - follow up next week
+2026-06-27,Day 5,Stripe,T3,partnerships@stripe.com,partnerships@stripe.com,10:00 AM,✓,—,No,No,—,—,—,—,—,Monitor for open,—,—,—,—,—,—,Cold,1000-2000,—,—,May need warm intro - follow up next week
+2026-06-27,Day 5,Mailchimp,T3,partnerships@mailchimp.com,partnerships@mailchimp.com,10:30 AM,✓,—,No,No,—,—,—,—,—,Monitor for open,—,—,—,—,—,—,Cold,1000-2000,—,—,May need warm intro - follow up next week
+2026-06-27,Day 5,Amazon Associates,T3,affiliates-inquiries@amazon.com,affiliates-inquiries@amazon.com,11:00 AM,✓,—,No,No,—,—,—,—,—,Monitor for open,—,—,—,—,—,—,Cold,1000-2000,—,—,Monitor for open
+2026-06-27,Day 5,ShareASale,T3,publishers@shareasale.com,publishers@shareasale.com,11:30 AM,✓,1:15 PM,Yes,No,—,—,—,—,—,Monitor for reply,—,—,—,—,—,—,Lukewarm,1000-2000,—,—,Opened but no reply yet

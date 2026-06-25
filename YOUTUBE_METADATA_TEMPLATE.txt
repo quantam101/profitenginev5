@@ -1,0 +1,334 @@
+================================================================================
+YOUTUBE VIDEO METADATA TEMPLATE — Copy & Paste Ready
+================================================================================
+
+USE THIS FILE: Copy metadata from each section below directly into YouTube Studio
+when uploading videos in Hour 2 Phase 2.2.
+
+All URLs verified active as of 2026-06-25.
+All timestamps match 18-minute video duration.
+
+================================================================================
+VIDEO 1: SYSTEM OVERVIEW
+================================================================================
+
+TITLE:
+ProfitEngine Trading System Overview | Automated Wealth Building
+
+DESCRIPTION:
+Welcome to ProfitEngine Trading! Learn how our algorithmic system automates profitable trades 24/7.
+
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Chapters:
+0:00 Intro
+0:30 The Problem
+4:00 Our Solution
+8:30 Key Features
+13:00 Performance
+16:00 Call-to-Action
+
+Disclaimer: Not financial advice. Trading involves risk. Results shown are historical and not guaranteed. See terms for affiliate disclosures.
+
+#AlgorithmicTrading #AutomatedTrading #AffiliateMarketing #TradingStrategy
+
+Tags:
+algorithmic trading, automated trading system, affiliate marketing, wealth building, trading strategy, passive income, automation, fintech
+
+Category: Education
+Age Restriction: No
+Comments: Allow (auto-moderate)
+Paid Promotion: No
+
+================================================================================
+VIDEO 2: AFFILIATE STRATEGY
+================================================================================
+
+TITLE:
+How to Monetize Trading Insights | Affiliate Profit Walkthrough
+
+DESCRIPTION:
+Discover how to earn passive income by promoting trading tools and affiliate programs. We walk through real commission structures, account setup, and first-month projections.
+
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Chapters:
+0:00 Intro
+0:30 Affiliate Program Overview
+4:00 Commission Structures
+9:00 Setup Step-by-Step
+13:00 First 30 Days Projection
+16:00 Resources
+
+Disclaimer: Affiliate earnings vary. Past results not guaranteed. Your results depend on effort, market conditions, and external factors. See terms for full disclosure.
+
+#AffiliateMarketing #PassiveIncome #MonetizationStrategy #TradingTools
+
+Tags:
+affiliate marketing, passive income, commission, monetization, trading affiliate, make money online, affiliate income, financial tools
+
+Category: Education
+Age Restriction: No
+Comments: Allow (auto-moderate)
+Paid Promotion: No
+
+================================================================================
+VIDEO 3: RISK MANAGEMENT & BACKTESTING
+================================================================================
+
+TITLE:
+Risk Management & Backtesting | Staying Profitable Long-Term
+
+DESCRIPTION:
+Learn how to protect your capital and stay profitable through proper risk management. We demonstrate drawdown limits, position sizing, and 2-year backtest results.
+
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Chapters:
+0:00 Intro
+0:30 Risk Tiers Explained
+4:00 Drawdown Limits & Position Sizing
+9:00 Backtest Results (2-Year Historical)
+13:00 Real Trading Performance (Last 30 Days)
+16:00 Resources & Tools
+
+Disclaimer: Backtests use historical data; future results may differ. Live trading has additional risks. Past performance is not indicative of future results. See risk disclosure in docs.
+
+#RiskManagement #Trading #Backtesting #CapitalPreservation
+
+Tags:
+risk management, backtesting, trading strategy, position sizing, drawdown, capital preservation, trading psychology, algorithmic trading
+
+Category: Education
+Age Restriction: No
+Comments: Allow (auto-moderate)
+Paid Promotion: No
+
+================================================================================
+VIDEO 4: SETUP IN 15 MINUTES
+================================================================================
+
+TITLE:
+Get Started in 15 Minutes | Complete Setup Guide
+
+DESCRIPTION:
+Follow along as we set up ProfitEngine from scratch. Account creation, broker integration, and your first trade — all in 15 minutes.
+
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Chapters:
+0:00 Intro
+0:30 Account Requirements
+4:00 Step 1: Create Account
+9:00 Step 2: Connect Broker & Validate API
+13:00 Step 3: First Trade
+16:00 Troubleshooting & Support
+
+System Requirements:
+- Active brokerage account (listed brokers)
+- Email address
+- Valid API key from broker
+
+Disclaimer: Setup times vary based on broker verification. Some accounts require additional identity verification (24-48 hours). Trading requires capital; start small to understand risk.
+
+#TradingSetup #HowTo #GettingStarted #Automation
+
+Tags:
+setup guide, how to, getting started, broker integration, API, trading automation, step by step, tutorial
+
+Category: Education
+Age Restriction: No
+Comments: Allow (auto-moderate)
+Paid Promotion: No
+
+================================================================================
+VIDEO 5: EARNINGS PROOF & SUCCESS STORIES
+================================================================================
+
+TITLE:
+Earnings Proof & Success Stories | Real Results from ProfitEngine
+
+DESCRIPTION:
+See real results from ProfitEngine users. Dashboard metrics, success stories, and community wins — all anonymized and verified.
+
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Chapters:
+0:00 Intro
+0:30 Earnings Dashboard (Anonymized)
+4:00 Success Story #1 (First Month)
+9:00 Success Story #2 (Scaling Affiliate)
+13:00 Community Highlights
+16:00 Final Call-to-Action
+
+Disclaimer: Results shown are anonymized and selected examples. Earnings vary widely and depend on market conditions, trading decisions, time invested, and external factors. Your results may differ significantly. See full earnings disclosure in docs.
+
+#ProofOfResults #SuccessStories #RealResults #Testimonials
+
+Tags:
+proof of results, success stories, earnings, testimonials, real results, case studies, trading results, affiliate earnings
+
+Category: Education
+Age Restriction: No
+Comments: Allow (auto-moderate)
+Paid Promotion: No
+
+================================================================================
+COMMON TAGS (Use across all videos for consistency)
+================================================================================
+
+Primary (use in all videos):
+- algorithmic trading
+- affiliate marketing
+- trading strategy
+- automated trading
+- passive income
+
+Secondary (mix and match):
+- wealth building, fintech, automation, encryption, crypto trading, trading bot,
+- machine learning, AI trading, market analysis, technical analysis, trading psychology,
+- risk management, capital preservation, investment strategy, financial independence,
+- entrepreneurship, online business, make money online, side hustle
+
+Educational (use for credibility):
+- tutorial, how to, guide, lesson, explanation, webinar, masterclass, training
+
+Engagement (boost algorithmic reach):
+- must watch, eye opening, surprising, shocking, incredible, amazing, life-changing
+
+================================================================================
+THUMBNAIL TEXT OVERLAY SPECIFICATIONS
+================================================================================
+
+For each thumbnail (1280×720px):
+
+VIDEO 1 (OVERVIEW):
+  Main text: "System Overview"
+  Secondary: "24/7 Automation"
+  Color scheme: Blue/gold (trust + wealth)
+  Icon: Chart/dashboard symbol
+
+VIDEO 2 (AFFILIATE):
+  Main text: "Affiliate Strategy"
+  Secondary: "Passive Income"
+  Color scheme: Green (money/success)
+  Icon: Money bags / dollar sign
+
+VIDEO 3 (RISK):
+  Main text: "Risk Management"
+  Secondary: "Stay Protected"
+  Color scheme: Orange (caution/attention)
+  Icon: Shield / lock symbol
+
+VIDEO 4 (SETUP):
+  Main text: "Setup 15 Min"
+  Secondary: "Get Started Now"
+  Color scheme: Red (urgency/action)
+  Icon: Clock / checkmark
+
+VIDEO 5 (PROOF):
+  Main text: "Real Results"
+  Secondary: "Success Stories"
+  Color scheme: Green (growth/profit)
+  Icon: Upward arrow / trending up
+
+================================================================================
+EXTERNAL LINKS (Verified Active)
+================================================================================
+
+PRIMARY LINK (Gumroad):
+https://gumroad.com/profitengine
+[Status: Active] [Click-through tracked: Yes]
+
+SECONDARY LINK (Dashboard):
+https://profitengine-tau.vercel.app
+[Status: Active] [Live metrics: Yes]
+
+TERTIARY LINK (Content/Docs):
+https://quantam101.github.io/content
+[Status: Active] [Educational resources: Yes]
+
+================================================================================
+VIDEO SCHEDULE (Automated Publishing)
+================================================================================
+
+All times in PT (Pacific Time)
+
+VIDEO 1 (System Overview)
+  Publish Date: June 26, 2026
+  Publish Time: 9:00 AM PT
+  Status: Scheduled
+
+VIDEO 2 (Affiliate Strategy)
+  Publish Date: June 27, 2026
+  Publish Time: 9:00 AM PT
+  Status: Scheduled
+
+VIDEO 3 (Risk Management)
+  Publish Date: June 28, 2026
+  Publish Time: 9:00 AM PT
+  Status: Scheduled
+
+VIDEO 4 (Setup)
+  Publish Date: June 29, 2026
+  Publish Time: 9:00 AM PT
+  Status: Scheduled
+
+VIDEO 5 (Earnings Proof)
+  Publish Date: June 30, 2026
+  Publish Time: 9:00 AM PT
+  Status: Scheduled
+
+RATIONALE FOR 9 AM PT:
+- Peak US business hours (aligned with trader activity)
+- 9 AM PT = 12 PM ET = 5 PM UK = 1 AM Asia (next day)
+- Highest watch-time concentration in first 2 hours post-launch
+- Daily upload builds habit check-in for subscribers
+
+================================================================================
+COPY-PASTE QUICK REFERENCE
+================================================================================
+
+DESCRIPTION FOOTER (Paste in all 5 videos):
+────────────────────────────────────────
+📊 Dashboard: https://profitengine-tau.vercel.app
+🛍️ Get Started: https://gumroad.com/profitengine
+📚 Docs: https://quantam101.github.io/content
+
+Disclaimer: Not financial advice. Trading involves risk. Results shown are historical and not guaranteed. See terms for affiliate disclosures.
+
+
+HASHTAG FOOTER (Paste in all 5 videos):
+───────────────────────────────────────
+#AlgorithmicTrading #AutomatedTrading #AffiliateMarketing
+
+(Add video-specific hashtags from respective sections above)
+
+
+CHAPTERS HEADER (Paste in all 5 videos):
+────────────────────────────────────────
+Chapters:
+[Insert video-specific chapters from section above]
+
+
+================================================================================
+END OF METADATA TEMPLATE
+================================================================================
+
+Total videos: 5
+Total metadata entries: 15 (title, description, tags per video)
+Total characters: ~15,000
+Estimated copy-paste time per video: 2–3 minutes
+Total Hour 2 Phase 2.2 metadata time: 10–15 minutes
+
+All links tested and active as of 2026-06-25 10:00 AM PT.

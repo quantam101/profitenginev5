@@ -1,0 +1,602 @@
+================================================================================
+YOUTUBE LAUNCH SEQUENCE — SUCCESS METRICS & MONITORING
+================================================================================
+
+This document defines success criteria at each stage of the 3-hour launch and
+post-launch monitoring metrics to track campaign performance.
+
+================================================================================
+HOUR 0: CHANNEL SETUP — SUCCESS MARKERS
+================================================================================
+
+PHASE 0.1: CREATE CHANNEL
+────────────────────────
+✅ Channel created under Google account (email verified)
+✅ Channel name: "ProfitEngine Trading" (exact match)
+✅ Channel URL pattern: youtube.com/@ProfitEngineTrading
+✅ Subscriber count: 0 (fresh channel)
+✅ Upload count: 0 (no videos yet)
+✅ Channel profile accessible (no 404 errors)
+✅ Channel visits respond in <2 seconds
+
+VERIFICATION COMMAND:
+  → Visit: youtube.com/@ProfitEngineTrading
+  → Check: Page loads, no redirect errors
+  → Screenshot: Channel header showing 0 subscribers, channel name correct
+
+
+PHASE 0.2: DESCRIPTION & BRANDING
+──────────────────────────────────
+✅ About tab displays full description (300+ characters)
+✅ First line readable: "ProfitEngine Trading — Real-time algorithmic..."
+✅ All 3 external links present:
+   ✓ Dashboard link: https://profitengine-tau.vercel.app (clickable)
+   ✓ Gumroad link: https://gumroad.com/profitengine (clickable)
+   ✓ Content link: https://quantam101.github.io/content (clickable)
+✅ Profile image uploaded (shows branded logo)
+✅ Profile image size: 800×800px (displays correctly, not stretched)
+✅ Channel art uploaded (shows header image)
+✅ Channel art size: 2560×1440px (no pixelation)
+✅ Keywords visible in channel metadata (7–10 tags)
+✅ Channel language: English
+✅ No broken links (all 3 URLs resolve to active pages)
+
+VERIFICATION COMMAND:
+  → Visit: youtube.com/@ProfitEngineTrading
+  → Click: "About" tab
+  → Check: Description shows, all links clickable
+  → Hover: Profile image (verify size, no distortion)
+  → Check: Channel art displays properly (spanning header)
+  → Test: Click each of 3 links (all should open new tab)
+  → Screenshot: Full About tab (all links visible)
+
+
+PHASE 0.3: LINKS & SETTINGS
+────────────────────────────
+✅ Monetization settings page accessible (if eligible)
+✅ Comment moderation level: "Strict" (enforced)
+✅ Comments auto-held for review: Enabled
+✅ External links configured (Gumroad appears in header)
+✅ Advanced settings saved (no unsaved changes indicator)
+✅ All changes persisted (refresh page, settings remain)
+✅ No error messages during configuration
+✅ Channel privacy: Public (searchable)
+
+VERIFICATION COMMAND:
+  → Go to: youtube.com/@ProfitEngineTrading/about
+  → Open: Settings → Channel
+  → Check: Monetization section accessible
+  → Check: Comments → Moderation level = "Strict"
+  → Check: Advanced settings all saved
+  → Refresh page: Verify settings persist
+  → Screenshot: Settings page showing all configurations
+
+
+HOUR 0 SUCCESS SUMMARY
+══════════════════════
+✅ PASS if ALL of the above markers verified
+✗ BLOCKED if ANY marker fails (troubleshoot before Hour 1)
+
+Expected completion time: 00:45 from start
+If running over: Audit which phase (0.1, 0.2, 0.3) is slow, optimize next step
+
+
+================================================================================
+HOUR 1: VIDEO RECORDING — SUCCESS MARKERS
+================================================================================
+
+UNIVERSAL SPECIFICATIONS (All 5 Videos)
+────────────────────────────────────────
+✅ Resolution: 1920×1080 (1080p native)
+✅ Framerate: 30 fps (not 24, not 60)
+✅ Codec: H.264 (standard YouTube, best compatibility)
+✅ Audio bitrate: 128 kbps stereo
+✅ Audio sample rate: 44.1 kHz
+✅ Duration: 17:45–18:15 (all within ±30 sec of 18:00 target)
+✅ File container: MP4 (standard format)
+✅ File size: 300–500 MB per video (expect ~350 MB average)
+✅ Audio levels: Normalized to -3 dB (no clipping, no dead silence)
+✅ No background noise (< -40 dB ambient)
+✅ No clicking, popping, or dropout artifacts
+✅ Playback smooth (no stuttering, no corruption)
+✅ Video backed up to cloud storage (Google Drive, OneDrive, or AWS S3)
+
+
+VIDEO 1: SYSTEM OVERVIEW — SPECIFIC MARKERS
+─────────────────────────────────────────────
+✅ File saved: v1_overview_1080p.mp4
+✅ Duration: 17:45–18:15 seconds (18:00 target ±30 sec)
+✅ Intro section: Friendly, clear audio (0:00–0:30)
+✅ Problem section: Engaging narrative (0:30–4:00)
+✅ Solution section: Clear explanation with visuals (4:00–8:30)
+✅ Features section: Dashboard/chart visible (8:30–13:00)
+✅ Performance section: Backtest/results charts legible (13:00–16:00)
+✅ Call-to-action: Gumroad link mentioned clearly (16:00–17:30)
+✅ Outro: Subscribe prompt + contact info (17:30–18:00)
+✅ Thumbnail extracted: Frame at 0:00 saved (for reference)
+✅ No dead space: All 18 minutes contain relevant content
+✅ Audio sync: Audio matches video timeline (no lip-sync issues)
+✅ Color grading: Consistent throughout (no jump cuts in color)
+
+VERIFICATION COMMAND:
+  → Play: v1_overview_1080p.mp4 in media player
+  → Check: Duration shows 17:45–18:15 in bottom timeline
+  → Spot-check chapters: Jump to 4:00 (solution), 13:00 (results), 17:00 (CTA)
+  → Check: Audio is clear (turn up volume, listen for background noise)
+  → Check: Playback smooth (no stuttering, buffering, or frame drops)
+  → Screenshot: Video properties (resolution, codec, duration)
+  → Backup: Verify file exists in cloud storage
+
+
+VIDEO 2: AFFILIATE STRATEGY — SPECIFIC MARKERS
+─────────────────────────────────────────────────
+✅ File saved: v2_affiliate_1080p.mp4
+✅ Duration: 17:45–18:15 seconds
+✅ Intro: Motivating hook about passive income (0:00–0:30)
+✅ Program overview: 5 partner programs mentioned with logos (0:30–4:00)
+✅ Commission structures: Chart visible, numbers legible (16pt+ font) (4:00–9:00)
+✅ Setup demo: Account linking step-by-step (9:00–13:00)
+✅ 30-day projection: Earnings chart trending upward (13:00–16:00)
+✅ CTA: Gumroad bundle promotion (16:00–17:30)
+✅ Outro: Subscribe + thank you (17:30–18:00)
+✅ Chart legibility: All numbers readable at 200×113px (YouTube sidebar size)
+✅ No typing noise: Screen recording clean (no keyboard clicks)
+✅ Audio quality: Professional tone (no robotic, no rushed)
+
+VERIFICATION COMMAND:
+  → Play: v2_affiliate_1080p.mp4
+  → Jump to 4:00: Commission chart visible, text legible?
+  → Jump to 9:00: Account setup clear (steps numbered/highlighted)?
+  → Jump to 13:00: Projection chart shows upward trend?
+  → Listen: No clicking/keyboard noise in audio
+  → Check: Voiceover is clear, not rushed (<160 wpm)
+  → Screenshot: Commission chart from video
+
+
+VIDEO 3: RISK MANAGEMENT — SPECIFIC MARKERS
+──────────────────────────────────────────────
+✅ File saved: v3_risk_1080p.mp4
+✅ Duration: 17:45–18:15 seconds
+✅ Intro: Importance of risk clarity (0:00–0:30)
+✅ Risk tiers: Conservative/Balanced/Aggressive definitions clear (0:30–4:00)
+✅ Drawdown limits: Percentages and examples shown (4:00–9:00)
+✅ Position sizing: Math explained (small positions recommended) (9:00–13:00)
+✅ Backtest results: 2-year chart with performance metrics (13:00–16:00)
+✅ Real trading: Last 30 days shown (actual P&L, not simulated) (13:00–16:00)
+✅ Resources: Docs/tools listed in description (16:00–17:30)
+✅ CTA: Gumroad link + next steps (17:30–18:00)
+✅ Charts legible: All axis labels 18pt+, grid visible
+✅ Color contrast: Charts visible on light and dark backgrounds
+✅ Annotations: Key metrics highlighted (max drawdown, best month, etc.)
+
+VERIFICATION COMMAND:
+  → Play: v3_risk_1080p.mp4
+  → Jump to 9:00: Position sizing math visible (no illegible small text)?
+  → Jump to 13:00: Backtest chart shows equity curve, drawdown, monthly returns?
+  → Check: All metrics labeled (max drawdown %, Sharpe ratio, etc.)?
+  → Check: Real trading data is recent (not >60 days old)?
+  → Screenshot: Equity curve chart (verify 18pt+ font)
+  → Check: Chart colors distinct (not confusing light-on-light)
+
+
+VIDEO 4: SETUP IN 15 MINUTES — SPECIFIC MARKERS
+─────────────────────────────────────────────────
+✅ File saved: v4_setup_1080p.mp4
+✅ Duration: 17:45–18:15 seconds
+✅ Intro: "Get started today" (motivating, clear) (0:00–0:30)
+✅ Requirements: Account type, email, API key listed (0:30–4:00)
+✅ Step 1 demo: Account creation walkthrough (4:00–9:00)
+   ✓ Cursor highlighted/zoomed (clear visibility)
+   ✓ Form fields labeled (email, password, etc.)
+   ✓ All steps numbered (Step 1 of 3, etc.)
+✅ Step 2 demo: Broker API connection (9:00–13:00)
+   ✓ API key location shown (broker dashboard)
+   ✓ Paste action clear (where to paste, what to paste)
+   ✓ Verification step shown (API connected = success)
+✅ Step 3 demo: First trade execution (13:00–16:00)
+   ✓ Order placement screen visible
+   ✓ Buttons to click highlighted
+   ✓ Confirmation screen shown
+✅ Troubleshooting: Common errors mentioned (16:00–17:30)
+✅ Support: Docs link + email provided (17:30–18:00)
+✅ Cursor visibility: Highlighted/magnified (not default arrow)
+✅ Text size: All instructions 18pt+ (readable on mobile)
+✅ Pacing: ~30 seconds per step (easy to follow, not rushed)
+
+VERIFICATION COMMAND:
+  → Play: v4_setup_1080p.mp4
+  → Jump to 4:00: Cursor visible, highlighted (not default)?
+  → Jump to 9:00: API key location clear (broker dashboard shown)?
+  → Jump to 13:00: Order placement screen visible, easy to follow?
+  → Listen: Audio paced slowly (under 160 wpm, clear diction)?
+  → Check: All on-screen text ≥18pt (legible on mobile)?
+  → Screenshot: Account creation screen with highlighted cursor
+
+
+VIDEO 5: EARNINGS PROOF — SPECIFIC MARKERS
+─────────────────────────────────────────────
+✅ File saved: v5_proof_1080p.mp4
+✅ Duration: 17:45–18:15 seconds
+✅ Intro: "What's possible" hook (0:00–0:30)
+✅ Dashboard metrics: Anonymized user data (no emails, names, phone) (0:30–4:00)
+   ✓ Earnings chart visible (totals, monthly breakdown)
+   ✓ Account balance trending upward
+   ✓ Affiliate commissions shown separately
+✅ Success story #1: First month results (4:00–9:00)
+   ✓ User testimonial (audio, 20–30 seconds)
+   ✓ Starting capital shown
+   ✓ First-month P&L (positive or realistic)
+   ✓ User's next steps mentioned
+✅ Success story #2: Scaling phase (9:00–13:00)
+   ✓ Second user testimonial (audio)
+   ✓ Timeline shown (month 2–3 progression)
+   ✓ Affiliate income component highlighted
+   ✓ Growth trajectory clear
+✅ Community highlights: Additional wins mentioned (13:00–16:00)
+   ✓ Testimonials from 2–3 additional users
+   ✓ Diverse outcomes (trading + affiliate mix)
+   ✓ No cherry-picked outliers only (balance shown)
+✅ Final CTA: Gumroad bundle call-to-action (16:00–17:30)
+✅ Outro: Thank you, subscribe prompt (17:30–18:00)
+✅ PII anonymized: No email addresses, real names, or phone numbers visible
+✅ Testimonials authentic: Real voice audio (not synthesized/robotic)
+✅ Audio levels: All testimonials at same volume (-3dB normalized)
+✅ No cherry-picking: Outcomes shown are diverse (not all massive wins)
+
+VERIFICATION COMMAND:
+  → Play: v5_proof_1080p.mp4
+  → Jump to 0:30: Dashboard shows earnings, no PII visible?
+  → Scan entire video: Search for emails, phone numbers (should find none)
+  → Jump to 4:00, 9:00, 13:00: Listen to each testimonial (authentic voice)?
+   → Check: All testimonials same volume (no jarring loud/quiet switch)?
+  → Check: Outcomes vary (some small wins, some large) = credible?
+  → Screenshot: Dashboard metrics (verify anonymization)
+
+
+HOUR 1 SUCCESS SUMMARY
+══════════════════════
+✅ PASS if ALL 5 videos meet universal specifications + their specific markers
+✗ BLOCKED if ANY video has:
+   - Duration outside 17:45–18:15 (even 1 second outside = re-record)
+   - Audio clipping, noise, or dropout (> 5% of total audio affected)
+   - Unreadable text (<16pt, or indecipherable on mobile)
+   - Unverified file corruption (playback stutter, frame drops)
+   - Missing backup to cloud (single point of failure)
+
+Expected completion time: 02:15 from start (90 minutes total)
+If over: Parallel record videos 2–5 while 1 uploads, save time in Hour 2
+
+
+================================================================================
+HOUR 2: UPLOAD & SCHEDULING — SUCCESS MARKERS
+================================================================================
+
+PHASE 2.1: METADATA PREPARATION
+─────────────────────────────────
+✅ Metadata file created: YOUTUBE_METADATA_TEMPLATE.txt (or similar)
+✅ All 5 video titles extracted and verified (no typos, under 100 chars)
+✅ All 5 descriptions copied (full text, >500 chars, <5,000 chars each)
+✅ All 5 tag lists prepared (50–60 total tags across all videos)
+✅ Chapter timestamps verified (match video duration):
+   ✓ V1: 0:00, 0:30, 4:00, 8:30, 13:00, 16:00, 17:30 (7 chapters)
+   ✓ V2: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
+   ✓ V3: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
+   ✓ V4: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
+   ✓ V5: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
+✅ All 3 external links verified active:
+   ✓ https://profitengine-tau.vercel.app (responds <2 sec)
+   ✓ https://gumroad.com/profitengine (product page loads)
+   ✓ https://quantam101.github.io/content (docs accessible)
+✅ No placeholder text remaining (no "<replace>", "TODO", "your-domain", etc.)
+✅ Gumroad link appears in ALL 5 descriptions
+✅ Dashboard link appears in ALL 5 descriptions
+✅ Content link appears in ALL 5 descriptions
+✅ Metadata file saved locally (backup copy)
+
+VERIFICATION COMMAND:
+  → Open: metadata.txt in text editor
+  → Search: "http://" and "https://" (count links, verify all 3 present 5x each)
+  → Search: "<" or "TODO" (result: 0 occurrences = good)
+  → Search: "gumroad" (result: 5 occurrences minimum = good)
+  → Verify: Each URL clickable in text editor (Ctrl+click)
+  → Check: File size ~30 KB (typical for 5 full descriptions)
+  → Screenshot: Metadata file open, showing all 3 links
+
+
+PHASE 2.2: UPLOAD ALL 5 VIDEOS
+────────────────────────────────
+✅ YouTube Studio accessible (https://studio.youtube.com loads)
+✅ Upload interface functioning (drag-and-drop or file picker works)
+✅ V1 upload initiated (file selected, upload progress visible)
+✅ V1 metadata entered (title, description, tags all filled)
+✅ V1 scheduled: Date = June 26, 2026 | Time = 9:00 AM PT
+✅ V1 status: "Scheduled" (not "Public" or "Draft")
+✅ V2 upload initiated (no need to wait for V1 to finish)
+✅ V2 metadata entered (title, description, tags all filled)
+✅ V2 scheduled: Date = June 27, 2026 | Time = 9:00 AM PT
+✅ V2 status: "Scheduled"
+✅ V3 upload initiated
+✅ V3 metadata entered
+✅ V3 scheduled: Date = June 28, 2026 | Time = 9:00 AM PT
+✅ V3 status: "Scheduled"
+✅ V4 upload initiated
+✅ V4 metadata entered
+✅ V4 scheduled: Date = June 29, 2026 | Time = 9:00 AM PT
+✅ V4 status: "Scheduled"
+✅ V5 upload initiated
+✅ V5 metadata entered
+✅ V5 scheduled: Date = June 30, 2026 | Time = 9:00 AM PT
+✅ V5 status: "Scheduled"
+✅ All 5 uploads complete (no errors, no timeouts)
+✅ All 5 videos visible in Studio "Videos" tab
+✅ None of the 5 are marked "Public" yet (status = "Scheduled")
+
+VERIFICATION COMMAND:
+  → Go to: https://studio.youtube.com
+  → Navigate: Videos tab (left sidebar)
+  → Verify: All 5 videos listed (5 rows visible)
+  → Check each video status:
+      ✓ V1: "Scheduled for Jun 26, 2026 at 9:00 AM PT" (exact match)
+      ✓ V2: "Scheduled for Jun 27, 2026 at 9:00 AM PT"
+      ✓ V3: "Scheduled for Jun 28, 2026 at 9:00 AM PT"
+      ✓ V4: "Scheduled for Jun 29, 2026 at 9:00 AM PT"
+      ✓ V5: "Scheduled for Jun 30, 2026 at 9:00 AM PT"
+  → Click: Each video to open draft (verify description, tags, title)
+  → Verify: Description contains Gumroad link (Ctrl+F "gumroad" = 1+ hits)
+  → Screenshot: Studio Videos tab showing all 5
+
+
+PHASE 2.3: CUSTOM THUMBNAILS
+──────────────────────────────
+✅ Thumbnail 1 uploaded: v1_thumbnail.png or .jpg (1280×720px, <2MB)
+✅ Thumbnail 1 applied: V1 draft shows custom thumbnail (not auto-generated)
+✅ Thumbnail 1 readable: Text legible at 200×113px (YouTube sidebar size)
+✅ Thumbnail 2 uploaded: v2_thumbnail (1280×720px, <2MB)
+✅ Thumbnail 2 applied: V2 draft shows custom thumbnail
+✅ Thumbnail 2 readable: Text legible at 200×113px
+✅ Thumbnail 3 uploaded: v3_thumbnail (1280×720px, <2MB)
+✅ Thumbnail 3 applied: V3 draft shows custom thumbnail
+✅ Thumbnail 3 readable: Text legible at 200×113px
+✅ Thumbnail 4 uploaded: v4_thumbnail (1280×720px, <2MB)
+✅ Thumbnail 4 applied: V4 draft shows custom thumbnail
+✅ Thumbnail 4 readable: Text legible at 200×113px
+✅ Thumbnail 5 uploaded: v5_thumbnail (1280×720px, <2MB)
+✅ Thumbnail 5 applied: V5 draft shows custom thumbnail
+✅ Thumbnail 5 readable: Text legible at 200×113px
+✅ All thumbnails display correctly (no pixelation, no distortion)
+✅ All thumbnails have clear visual hierarchy (main text > secondary text)
+✅ All thumbnails use contrasting colors (text ≠ background)
+✅ No thumbnails have faces covering >30% of area (exception: if branding)
+
+VERIFICATION COMMAND:
+  → Go to: https://studio.youtube.com
+  → For each video (V1–V5):
+      ✓ Click: Video to open draft
+      ✓ Look: Thumbnail section (main preview image)
+      ✓ Verify: Custom thumbnail appears (not default/auto-generated)
+      ✓ Right-click: Thumbnail → Inspect (verify 1280×720px in HTML)
+      ✓ Screenshot: Thumbnail at 200×113px size (as YouTube shows it)
+  → Compare: All 5 thumbnails for visual consistency (brand cohesion)
+
+
+PHASE 2.4: VERIFY SCHEDULE
+────────────────────────────
+✅ All 5 videos visible in Studio Videos tab
+✅ V1 status text: "Scheduled for Jun 26, 2026 at 9:00 AM PT" (exact)
+✅ V2 status text: "Scheduled for Jun 27, 2026 at 9:00 AM PT" (exact)
+✅ V3 status text: "Scheduled for Jun 28, 2026 at 9:00 AM PT" (exact)
+✅ V4 status text: "Scheduled for Jun 29, 2026 at 9:00 AM PT" (exact)
+✅ V5 status text: "Scheduled for Jun 30, 2026 at 9:00 AM PT" (exact)
+✅ NO videos marked "Public" (status ≠ "Public" for all 5)
+✅ NO videos marked "Unlisted" or "Private"
+✅ Schedule visibility: All dates are in the future (after 2026-06-25)
+✅ Time consistency: All 5 use same time (9:00 AM PT)
+✅ Time zone consistency: All 5 use PT (not ET, not UTC)
+✅ Scheduling persists: Refresh page (F5), schedule remains unchanged
+
+VERIFICATION COMMAND:
+  → Go to: https://studio.youtube.com
+  → Navigate: Videos tab
+  → For each video:
+      ✓ Hover: Status text (should show scheduled date/time)
+      ✓ Click: Video to open draft
+      ✓ Scroll: Find "Schedule" field
+      ✓ Verify: Date = Jun 26/27/28/29/30 (correct incremental date)
+      ✓ Verify: Time = 9:00 AM (exact, not 9:01, not 9:30)
+      ✓ Verify: Timezone = PT (not ET, UTC, or other)
+      ✓ Back: Close draft, check status badge updated
+  → Press: F5 (refresh page)
+  → Verify: All 5 still show correct "Scheduled for..." dates
+  → Screenshot: Full Videos tab showing all 5 with status badges
+
+
+HOUR 2 SUCCESS SUMMARY
+══════════════════════
+✅ PASS if ALL phases 2.1–2.4 markers verified:
+   - Metadata: All URLs active, no placeholders
+   - Uploads: All 5 in "Scheduled" status (not Public, not Draft)
+   - Thumbnails: All 5 custom, readable at 200×113px
+   - Schedule: All dates Jun 26–30, all times 9:00 AM PT, all zones PT
+
+✗ BLOCKED if ANY of:
+   - Video marked "Public" before scheduled date (requires deletion + re-upload)
+   - Metadata contains broken links (fix + re-save draft)
+   - Thumbnail < 1280×720px or > 2MB (upload replacement)
+   - Schedule date in past (change to future date, or delete & re-upload)
+   - Timezone not PT (update schedule field)
+
+Expected completion time: 03:00 from start (45 minutes total)
+If running over: Reduce time spent on Phase 2.3 (thumbnails can use auto-gen as fallback)
+
+
+================================================================================
+POST-LAUNCH MONITORING (Jun 26 onwards)
+================================================================================
+
+FIRST PUBLICATION (Jun 26, 9:00 AM PT — Video 1)
+═════════════════════════════════════════════════
+
+✅ IMMEDIATE VERIFICATION (within 5 min of 9:00 AM):
+   [ ] Channel shows new video (V1 "System Overview")
+   [ ] V1 marked as "Public" (no longer "Scheduled")
+   [ ] V1 appears in Videos tab with current date timestamp
+   [ ] V1 title displays correctly (no encoding errors)
+   [ ] V1 description displays correctly (all links clickable)
+   [ ] V1 thumbnail displays correctly (custom image, not corrupted)
+   [ ] V1 video playable (click to watch, no error message)
+   [ ] Playback works (no buffering, no "This video is unavailable" message)
+
+✅ SHORT-TERM METRICS (First 24 hours):
+   Target views: ≥50 (organic from subscribers + notifications)
+   Target watch time: ≥10 hours (at least 50 people watching part of video)
+   Target engagement: ≥2 comments (viewers interacting)
+   Target CTR to Gumroad: ≥1 click (from YouTube analytics)
+
+✅ DAILY ACTIONS (Day 1):
+   [ ] Share V1 link on Twitter: "Just launched ProfitEngine Trading on YouTube..."
+   [ ] Share V1 link on LinkedIn: "Day 1 of our YouTube launch..."
+   [ ] Share V1 link on relevant subreddits (r/algotrading, r/passive_income, etc.)
+   [ ] Monitor comments: Respond within 2 hours to each new comment
+   [ ] Check analytics: Views, watch time, traffic sources
+
+
+CONTINUING PUBLICATIONS (Jun 27–30 — Videos 2–5)
+════════════════════════════════════════════════════
+
+✅ EACH MORNING (9:00 AM PT):
+   [ ] Check channel: Next video should be live and Public
+   [ ] Verify no errors: Title, description, thumbnail all correct
+   [ ] Share on social media (Twitter, LinkedIn, Reddit)
+   [ ] Monitor comments: Respond to questions/feedback
+   [ ] Update analytics: Track cumulative views, watch time, CTR
+
+✅ CUMULATIVE METRICS (After all 5 videos published):
+
+   TIER 1 — BASELINE (Minimum success):
+   • Total views across all 5 videos: ≥100
+   • Total watch time across all 5: ≥5 hours
+   • Total subscribers gained: ≥1
+   • Average engagement (comments per video): ≥0.5
+
+   TIER 2 — TARGET (Expected success):
+   • Total views: ≥500
+   • Total watch time: ≥30 hours
+   • Total subscribers: ≥10
+   • Average engagement: ≥2 comments per video
+   • CTR to Gumroad: ≥2%
+   • CTR to Dashboard: ≥1%
+
+   TIER 3 — EXCELLENT (Viral growth):
+   • Total views: ≥1,000
+   • Total watch time: ≥60+ hours
+   • Total subscribers: ≥25+
+   • Average engagement: ≥4+ comments per video
+   • CTR to Gumroad: ≥5%
+   • CTR to Dashboard: ≥3%
+
+   METRIC TRACKING SPREADSHEET:
+   ─────────────────────────────
+   Date | V# | Views | Watch Time (hrs) | Comments | Subs | Gumroad Clicks
+   ────────────────────────────────────────────────────────────────────────
+   Jun26 | 1  |       |                  |          |      |
+   Jun27 | 2  |       |                  |          |      |
+   Jun28 | 3  |       |                  |          |      |
+   Jun29 | 4  |       |                  |          |      |
+   Jun30 | 5  |       |                  |          |      |
+   ────────────────────────────────────────────────────────────────────────
+   TOTAL |    |       |                  |          |      |
+
+
+IF VIEWS/ENGAGEMENT BELOW EXPECTATIONS
+═════════════════════════════════════════
+
+   Trigger: <50 views on first video within 24 hours
+   → Action 1: Verify video is Public (not still Scheduled)
+   → Action 2: Check YouTube is not restricting video (no "inappropriate" flag)
+   → Action 3: Boost social media sharing (more posts, more platforms)
+   → Action 4: Share in relevant communities (Reddit, forums, Discord)
+   → Action 5: Consider paid promotion ($20–50 test campaign)
+
+   Trigger: <5 hours watch time after all 5 published
+   → Action 1: Review video scripts for pacing (too slow? too fast?)
+   → Action 2: Update thumbnails (A/B test new versions)
+   → Action 3: Improve SEO (titles, descriptions, tags)
+   → Action 4: Create shorts/clips from full videos (repurpose content)
+   → Action 5: Engage with related channels (collaborate, comment, cross-promote)
+
+   Trigger: 0% CTR to Gumroad link
+   → Action 1: Verify link is active in descriptions (test click)
+   → Action 2: Make CTA more prominent (verbal, on-screen text)
+   → Action 3: Add link in first 30 seconds of video (higher CTR)
+   → Action 4: Use YouTube's "Cards" feature to promote link (interactive)
+   → Action 5: Test different Gumroad landing page (clear value prop?)
+
+
+IF ENGAGEMENT EXCEEDS EXPECTATIONS
+════════════════════════════════════
+
+   Trigger: >100 views on first video within 24 hours
+   → Action 1: Double down on social sharing (every 6 hours, not just once)
+   → Action 2: Pin top comment (positive feedback visible)
+   → Action 3: Respond to all comments (build community)
+   → Action 4: Plan next video series (sustained momentum)
+
+   Trigger: >10 new subscribers after 5 videos
+   → Action 1: Create subscriber-exclusive content (unlisted playlist)
+   → Action 2: Send premiere notification for next video (24 hours advance)
+   → Action 3: Create community posts (between video uploads)
+   → Action 4: Establish upload schedule (weekly? twice weekly?)
+
+   Trigger: >5% CTR to Gumroad
+   → Action 1: Monitor Gumroad sales/signups (correlation)
+   → Action 2: Thank customers in next video (word-of-mouth boost)
+   → Action 3: Negotiate affiliate terms with Gumroad (revenue share)
+   → Action 4: Create follow-up product based on viewer feedback
+
+
+================================================================================
+SUCCESS CHECKPOINTS (Complete These)
+================================================================================
+
+☐ HOUR 0 CHECKPOINT (00:45 elapsed)
+   - Channel live: youtube.com/@ProfitEngineTrading accessible
+   - Description shows all 3 links (Dashboard, Gumroad, Content)
+   - All links tested (clickable, no 404 errors)
+
+☐ HOUR 1 CHECKPOINT (02:15 elapsed)
+   - 5 videos recorded (v1–v5_*.mp4, each 17:45–18:15)
+   - All videos backed up to cloud storage
+   - All audio normalized (no clipping, no noise)
+
+☐ HOUR 2 CHECKPOINT (03:00 elapsed)
+   - All 5 videos uploaded to YouTube Studio
+   - All 5 videos "Scheduled" (not Public)
+   - All 5 videos have dates Jun 26–30, time 9:00 AM PT
+   - All 5 videos have custom thumbnails
+   - All 5 descriptions include Gumroad link
+   - Screenshot: Studio Videos tab showing all 5
+
+☐ DAY 1 CHECKPOINT (Jun 26, 10:00 AM PT)
+   - V1 published (marked Public, not Scheduled)
+   - V1 viewable without errors
+   - V1 shared on social media (Twitter, LinkedIn)
+   - V1 has ≥1 view (from you or tester)
+
+☐ DAY 5 CHECKPOINT (Jun 30, 10:00 AM PT)
+   - All 5 videos published (none Scheduled)
+   - Cumulative views ≥100 (or ≥1,000 if Tier 3)
+   - Cumulative watch time ≥5 hours
+   - Cumulative subscribers ≥1
+   - All 3 links still active (no broken links)
+
+
+================================================================================
+END OF SUCCESS METRICS DOCUMENT
+================================================================================
+
+Print this page. Tape to desk. Check boxes as milestones complete.
+
+Total 3-hour execution: PASS if all Hour 0, 1, 2 checkpoints verified ✓
+Post-launch tracking: Monitor daily for first week, then weekly
+
+Questions? See YOUTUBE_LAUNCH_SEQUENCE.md for full implementation details.
