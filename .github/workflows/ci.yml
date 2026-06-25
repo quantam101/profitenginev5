@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHONUNBUFFERED: "1"
 
 jobs:
@@ -32,7 +31,7 @@ jobs:
           pip install -r backend/requirements.txt
           pip install ruff pytest
       - name: Install Node deps
-        run: npm ci
+        run: npm ci --include=dev
       - name: Ruff lint
         run: ruff check backend code_merger
       - name: Frontend lint
@@ -130,7 +129,7 @@ jobs:
       - name: Install deps
         run: |
           pip install -r backend/requirements.txt
-          npm ci
+          npm ci --include=dev
       - name: Boot backend
         env:
           MONGO_URL: "mongodb://localhost:27017"
@@ -195,7 +194,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Frontend deployment gate
         run: |
-          npm ci
+          npm ci --include=dev
           npx --no-install eslint app/ lib/ --max-warnings=0
           npm run typecheck
           npm run build
