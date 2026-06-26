@@ -4,13 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "regions": ["iad1"],
-  "env": [
-    "NEXT_PUBLIC_API_URL",
-    "PROFITENGINE_URL",
-    "PROFITENGINE_WEBHOOK_TOKEN",
-    "RUNTIME_API_URL",
-    "AFFILIATE_LINKS"
-  ],
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
