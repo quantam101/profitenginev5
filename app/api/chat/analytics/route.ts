@@ -50,7 +50,7 @@ Your revenue is ${dailyRevenue > 1380 ? 'ABOVE' : 'at'} baseline. Top performer:
 
   // Platform questions
   if (q.includes('platform') || q.includes('tiktok') || q.includes('twitter') || q.includes('instagram') || q.includes('facebook') || q.includes('youtube')) {
-    const platforms = daily.platforms.sort((a, b) => b.revenue - a.revenue);
+    const platforms = daily.platforms.sort((a: any, b: any) => b.revenue - a.revenue);
 
     let response = '📱 **Platform Performance:**\n\n';
     platforms.slice(0, 3).forEach((p) => {
@@ -65,13 +65,12 @@ Your revenue is ${dailyRevenue > 1380 ? 'ABOVE' : 'at'} baseline. Top performer:
     const totalReach = daily.total_reach;
     const avgEngagement = (daily.platforms.reduce((sum, p) => sum + p.engagement_rate, 0) / daily.platforms.length).toFixed(1);
 
+    const bestEngagement = daily.platforms.sort((a: any, b: any) => b.engagement_rate - a.engagement_rate)[0];
     return `📈 **Engagement Analysis:**
 
 **Total Reach:** ${(totalReach / 1000).toFixed(0)}K impressions
 **Average Engagement:** ${avgEngagement}%
-**Best Engagement:** ${
-      daily.platforms.sort((a, b) => b.engagement_rate - a.engagement_rate)[0].platform
-    } at ${daily.platforms.sort((a, b) => b.engagement_rate - a.engagement_rate)[0].engagement_rate.toFixed(1)}%
+**Best Engagement:** ${bestEngagement.platform} at ${bestEngagement.engagement_rate.toFixed(1)}%
 
 Your engagement is healthy and trending upward with strategic posting times.`;
   }
