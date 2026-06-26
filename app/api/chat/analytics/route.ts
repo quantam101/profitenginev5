@@ -34,17 +34,18 @@ function generateAnalyticsInsight(question: string, context: any): string {
     const monthlyRevenue = dailyRevenue * 30;
     const annualRevenue = dailyRevenue * 365;
 
+    const entries = Object.entries(summary.revenue_per_platform) as Array<[string, number]>;
+    const topEntry = entries.sort(([, a], [, b]) => (b as number) - (a as number))[0];
+    const topPlatform = topEntry?.[0] || 'Unknown';
+    const topRevenue = topEntry?.[1] || 0;
+
     return `💰 **Revenue Insights:**
 
 **Today:** $${dailyRevenue.toFixed(2)}
 **Monthly Projection:** $${monthlyRevenue.toFixed(2)}
 **Annual Projection:** $${annualRevenue.toFixed(2)}
 
-Your revenue is ${dailyRevenue > 1380 ? 'ABOVE' : 'at'} baseline. Top performer: ${
-      Object.entries(summary.revenue_per_platform).sort(([, a], [, b]) => b - a)[0][0]
-    } generating $${
-      Object.entries(summary.revenue_per_platform).sort(([, a], [, b]) => b - a)[0][1].toFixed(2)
-    }.`;
+Your revenue is ${dailyRevenue > 1380 ? 'ABOVE' : 'at'} baseline. Top performer: ${topPlatform} generating $${topRevenue.toFixed(2)}.`;
   }
 
   // Platform questions
@@ -92,7 +93,9 @@ Your system is operating optimally with AI-powered strategic posting across all 
 
   // Optimization questions
   if (q.includes('optim') || q.includes('improv') || q.includes('increase') || q.includes('better')) {
-    const bottomPlatform = daily.platforms.sort((a, b) => a.revenue - b.revenue)[0];
+    const sortedByRevenue = [...daily.platforms].sort((a, b) => a.revenue - b.revenue);
+    const bottomPlatform = sortedByRevenue[0];
+    const topPerformer = [...daily.platforms].sort((a, b) => b.revenue - a.revenue)[0];
 
     return `🚀 **Optimization Recommendations:**
 
@@ -101,11 +104,7 @@ Your system is operating optimally with AI-powered strategic posting across all 
    - Improve content format
    - Increase post frequency
 
-2. **Leverage ${
-      daily.platforms.sort((a, b) => b.revenue - a.revenue)[0].platform
-    }:** Your top performer - increase posts from ${
-      daily.platforms.sort((a, b) => b.revenue - a.revenue)[0].posts
-    } to ${daily.platforms.sort((a, b) => b.revenue - a.revenue)[0].posts + 1}x daily
+2. **Leverage ${topPerformer.platform}:** Your top performer - increase posts from ${topPerformer.posts} to ${topPerformer.posts + 1}x daily
 
 3. **Cross-promotion:** Use top-platform content on bottom platforms to boost engagement
 
