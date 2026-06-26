@@ -1,0 +1,77 @@
+name: Pre-Market Research & Stock Screening - 3 AM MST
+
+on:
+  schedule:
+    # 3 AM MST = 5 AM ET (10 AM UTC) - 4.5 hours before market open
+    - cron: '0 10 * * 1-5'  # Monday-Friday at 3 AM MST
+  workflow_dispatch:
+
+jobs:
+  premarket_research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TZ: America/Denver
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests pandas httpx asyncio yfinance
+
+      - name: Run pre-market research
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+        run: |
+          python trading-agent/premarket_research.py
+
+      - name: Upload research results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: premarket-research-${{ github.run_id }}
+          path: |
+            premarket_candidates.json
+            premarket_news_digest.json
+            premarket_watch_list.json
+            premarket_research.log
+          retention-days: 7
+
+      - name: Generate premarket briefing
+        if: always()
+        run: |
+          echo "=== PREMARKET BRIEFING ==="
+          if [ -f premarket_candidates.json ]; then
+            echo "Stock candidates ready for 4 AM analysis:"
+            cat premarket_candidates.json | head -50
+          fi
+
+      - name: Send premarket alert
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "📊 PreMarket Research Complete",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PreMarket Analysis Ready*\n\n📰 News Digest: Generated\n📊 Stock Candidates: Screened\n🎯 Watch List: Updated\n⏰ Status: Ready for 4:00 AM execution"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

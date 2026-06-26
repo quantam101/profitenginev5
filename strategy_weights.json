@@ -1,0 +1,11 @@
+{
+  "mean_reversion": 1.035,
+  "momentum_continuation": 1.035,
+  "support_resistance": 1.035,
+  "volatility_breakout": 0.95,
+  "institutional_patterns": 1.0,
+  "order_flow": 1.0,
+  "price_action": 1.0,
+  "ml_ensemble": 1.0,
+  "causal_inference": 1.0
+}

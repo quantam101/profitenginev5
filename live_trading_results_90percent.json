@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-06-25T17:19:01.088501",
+  "account_number": "794764977",
+  "mode": "90_percent_winrate",
+  "system": "90% Win Rate Ensemble (All 9 Strategies)",
+  "trades_generated": [
+    {
+      "symbol": "EHGO",
+      "action": "BUY",
+      "confluence": 7,
+      "confidence": 82.57142857142857,
+      "expected_win_rate": 0.92,
+      "position_size": 400,
+      "strategies_agreeing": [
+        "Mean Reversion",
+        "Momentum",
+        "Support/Resistance",
+        "Institutional",
+        "Order Flow",
+        "Price Action",
+        "ML Ensemble"
+      ],
+      "status": "WOULD_EXECUTE"
+    }
+  ],
+  "trades_executed": [],
+  "daily_pnl": 0.0,
+  "signal_count": 0,
+  "deployment_status": "LIVE"
+}

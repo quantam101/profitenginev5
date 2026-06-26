@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-06-25T17:58:55.011561",
+  "sentiment": {
+    "APPS": {
+      "symbol": "APPS",
+      "bullish_pct": 78,
+      "bearish_pct": 22,
+      "sentiment": "VERY BULLISH",
+      "conversation_volume": 8500,
+      "price_mentions": "Up 45% vs yesterday",
+      "risk_warning": "High (above 70% bullish)",
+      "top_sentiment": "Earnings beat incoming"
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "bullish_pct": 82,
+      "bearish_pct": 18,
+      "sentiment": "EXTREMELY BULLISH",
+      "conversation_volume": 125000,
+      "price_mentions": "Up 120% vs yesterday",
+      "risk_warning": "EXTREME (above 80% bullish)",
+      "top_sentiment": "AI boom continues, earnings coming"
+    },
+    "EHGO": {
+      "symbol": "EHGO",
+      "bullish_pct": 71,
+      "bearish_pct": 29,
+      "sentiment": "BULLISH",
+      "conversation_volume": 3200,
+      "price_mentions": "Up 35% vs yesterday",
+      "risk_warning": "Moderate (at 70% threshold)",
+      "top_sentiment": "Analyst upgrade, flying drone appeal"
+    },
+    "CRWD": {
+      "symbol": "CRWD",
+      "bullish_pct": 65,
+      "bearish_pct": 35,
+      "sentiment": "MODERATELY BULLISH",
+      "conversation_volume": 5600,
+      "price_mentions": "Up 12% vs yesterday",
+      "risk_warning": "Low (balanced)",
+      "top_sentiment": "Cybersecurity tailwind, steady performer"
+    }
+  }
+}

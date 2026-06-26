@@ -1,0 +1,94 @@
+{
+  "timestamp": "2026-06-25T17:58:55.010464",
+  "catalysts": {
+    "earnings_announcements": [
+      {
+        "symbol": "APPS",
+        "company": "AppLovin",
+        "event": "Q2 Earnings",
+        "time": "After market close",
+        "expected_move": "3-5%",
+        "analyst_expect": "Beat",
+        "catalyst_strength": "high"
+      },
+      {
+        "symbol": "NVDA",
+        "company": "NVIDIA",
+        "event": "Q3 Earnings",
+        "time": "After market close",
+        "expected_move": "5-8%",
+        "analyst_expect": "Strong beat",
+        "catalyst_strength": "very_high"
+      }
+    ],
+    "analyst_changes": [
+      {
+        "symbol": "EHGO",
+        "company": "EHang Holdings",
+        "change": "Upgrade to BUY",
+        "from_rating": "HOLD",
+        "to_rating": "BUY",
+        "price_target": "$8.50",
+        "previous_target": "$5.00",
+        "catalyst_strength": "high",
+        "analyst": "JPMorgan"
+      },
+      {
+        "symbol": "CRWD",
+        "company": "CrowdStrike",
+        "change": "Upgrade + PT raise",
+        "from_rating": "BUY",
+        "to_rating": "STRONG BUY",
+        "price_target": "$450",
+        "previous_target": "$420",
+        "catalyst_strength": "medium",
+        "analyst": "Goldman Sachs"
+      }
+    ],
+    "sector_news": [
+      {
+        "sector": "Technology",
+        "direction": "BULLISH",
+        "news": "AI Optimism / Fed Rate Cuts",
+        "impact": "High",
+        "affected_stocks": [
+          "APPS",
+          "NVDA",
+          "CRWD",
+          "DDOG"
+        ],
+        "expected_move": "+2-3% sector avg"
+      },
+      {
+        "sector": "Healthcare",
+        "direction": "BULLISH",
+        "news": "FDA Approvals + GLP-1 Tailwind",
+        "impact": "High",
+        "affected_stocks": [
+          "MRNA",
+          "AMGN",
+          "BNTX"
+        ],
+        "expected_move": "+3-5% sector avg"
+      }
+    ],
+    "economic_calendar": [
+      {
+        "event": "CPI Release",
+        "time": "8:30 AM ET",
+        "importance": "HIGH",
+        "forecast": "3.2% (down from 3.4%)",
+        "impact": "If lower = risk-on (tech up)",
+        "market_sensitivity": "All sectors"
+      },
+      {
+        "event": "Fed Rate Decision",
+        "time": "2:00 PM ET",
+        "importance": "CRITICAL",
+        "forecast": "50 bps cut expected",
+        "impact": "If cut = tech rallies (lower rates)",
+        "market_sensitivity": "All sectors (especially tech)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+2026-06-25 17:19:01,088 - __main__ - INFO - ======================================================================
+2026-06-25 17:19:01,088 - __main__ - INFO - 90% WIN RATE SYSTEM STARTING
+2026-06-25 17:19:01,088 - __main__ - INFO - ======================================================================
+2026-06-25 17:19:01,089 - __main__ - INFO - 
+=== VERIFYING 90% SYSTEM DEPLOYMENT ===
+
+2026-06-25 17:19:01,162 - __main__ - INFO - 
+=== SYSTEM CONFIGURATION ===
+
+2026-06-25 17:19:01,162 - __main__ - INFO - Account: 794764977
+2026-06-25 17:19:01,162 - __main__ - INFO - Mode: 90_percent_winrate
+2026-06-25 17:19:01,162 - __main__ - INFO - Target Win Rate: 90% MINIMUM
+2026-06-25 17:19:01,162 - __main__ - INFO - Strategies: All 9 Academic Strategies
+2026-06-25 17:19:01,162 - __main__ - INFO - Confluence Required: 3+ signals minimum
+2026-06-25 17:19:01,162 - __main__ - INFO - Confidence Threshold: 75% minimum
+2026-06-25 17:19:01,162 - __main__ - INFO - Risk/Reward: 2.5:1 minimum
+2026-06-25 17:19:01,162 - __main__ - INFO - Stop Loss: 2.0x ATR
+2026-06-25 17:19:01,163 - __main__ - INFO - Position Sizing: Confluence-scaled ($200-500)
+2026-06-25 17:19:01,163 - __main__ - INFO - Daily Loss Limit: $200
+2026-06-25 17:19:01,163 - __main__ - INFO - Max Trades Per Day: 4 (quality over quantity)
+2026-06-25 17:19:01,163 - __main__ - INFO - Regime Detection: Enabled (trending/consolidating/high-vol)
+2026-06-25 17:19:01,163 - __main__ - INFO - 
+======================================================================
+
+2026-06-25 17:19:01,163 - __main__ - INFO - Running system test with mock market data...
+
+2026-06-25 17:19:01,163 - __main__ - INFO - Mock Data Analysis:
+2026-06-25 17:19:01,163 - __main__ - INFO -   Strategies with signals: 7
+2026-06-25 17:19:01,163 - __main__ - INFO -   Average confidence: 82.6%
+2026-06-25 17:19:01,163 - __main__ - INFO -   Confluence requirement: 3+
+2026-06-25 17:19:01,163 - __main__ - INFO -   Confidence requirement: 75%+
+2026-06-25 17:19:01,163 - __main__ - INFO -    Expected win rate: 90%+
+2026-06-25 17:19:01,163 - __main__ - INFO -    Action: EXECUTE BUY
+2026-06-25 17:19:01,164 - __main__ - INFO -    Position: $400
+2026-06-25 17:19:01,164 - __main__ - INFO -    Risk/Reward: 1:2.8
+2026-06-25 17:19:01,164 - __main__ - INFO -    Strategies: Mean Reversion, Momentum, Support/Resistance, Institutional, Order Flow, Price Action, ML Ensemble
+
+2026-06-25 17:19:01,164 - __main__ - INFO - Results saved: live_trading_results_90percent.json
+2026-06-25 17:19:01,164 - __main__ - INFO - ======================================================================
+2026-06-25 17:19:01,165 - __main__ - INFO - ======================================================================
+2026-06-25 17:19:01,165 - __main__ - INFO - 
+System Status:
+2026-06-25 17:19:01,166 - __main__ - INFO - 
+Ready for live execution at 4:00 AM MST
+2026-06-25 17:19:01,166 - __main__ - INFO - ======================================================================
+

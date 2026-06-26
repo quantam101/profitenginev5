@@ -1,0 +1,208 @@
+2026-06-25 17:28:46,935 - __main__ - INFO - ======================================================================
+2026-06-25 17:28:46,935 - __main__ - INFO - MARKET-WIDE BULL RUN SCANNER STARTING
+2026-06-25 17:28:46,935 - __main__ - INFO - ======================================================================
+2026-06-25 17:28:46,935 - __main__ - INFO - 
+Scanning entire market for bull run setups...
+2026-06-25 17:28:46,935 - __main__ - INFO - (This would scan 5,000+ stocks in production)
+
+2026-06-25 17:28:46,935 - __main__ - INFO - 
+=== BUILDING MARKET UNIVERSE ===
+
+2026-06-25 17:28:46,935 - __main__ - INFO - Market universe: 17 stocks
+2026-06-25 17:28:46,968 - __main__ - INFO -   - AAPL (Technology)
+2026-06-25 17:28:46,968 - __main__ - INFO -   - MSFT (Technology)
+2026-06-25 17:28:46,968 - __main__ - INFO -   - NVDA (Technology)
+2026-06-25 17:28:46,968 - __main__ - INFO -   - TSLA (Automotive)
+2026-06-25 17:28:46,968 - __main__ - INFO -   - APPS (Technology)
+2026-06-25 17:28:46,968 - __main__ - INFO -   ... and 12 more
+
+2026-06-25 17:28:46,968 - __main__ - INFO - 
+=== TIER 1: TREND QUALIFICATION ===
+
+2026-06-25 17:28:46,968 - __main__ - INFO - Screening for stocks currently in uptrends...
+2026-06-25 17:28:46,968 - __main__ - INFO - Criteria: Price > SMA20 > SMA50, ADX > 25, higher highs/lows
+
+2026-06-25 17:28:46,968 - __main__ - INFO - TIER 1 RESULTS: 10 stocks in uptrends (of 17 scanned)
+2026-06-25 17:28:46,968 - __main__ - INFO - Qualification rate: 58.8%
+
+2026-06-25 17:28:46,972 - __main__ - INFO -   ... and 2 more
+
+2026-06-25 17:28:46,972 - __main__ - INFO - === TIER 2: MOMENTUM ACCELERATION ===
+
+2026-06-25 17:28:46,972 - __main__ - INFO - Screening for uptrends with accelerating momentum...
+2026-06-25 17:28:46,972 - __main__ - INFO - Criteria: RSI > 50, MACD positive, volume acceleration
+
+2026-06-25 17:28:46,972 - __main__ - INFO - TIER 2 RESULTS: 8 stocks with accelerating momentum (of 10 from Tier 1)
+2026-06-25 17:28:46,972 - __main__ - INFO - Survival rate: 80.0%
+
+2026-06-25 17:28:46,973 - __main__ - INFO -   ... and 3 more
+
+2026-06-25 17:28:46,973 - __main__ - INFO - === TIER 3: ENTRY SETUP QUALIFICATION ===
+
+2026-06-25 17:28:46,973 - __main__ - INFO - Screening for actionable entry setups...
+2026-06-25 17:28:46,973 - __main__ - INFO - Criteria: At support, at moving average, or breakout setup
+
+2026-06-25 17:28:46,973 - __main__ - INFO - TIER 3 RESULTS: 5 stocks with actionable setups (of 8 from Tier 2)
+2026-06-25 17:28:46,973 - __main__ - INFO - Survival rate: 62.5%
+
+2026-06-25 17:28:46,975 - __main__ - INFO - === TIER 4: CATALYST CONFIRMATION ===
+
+2026-06-25 17:28:46,975 - __main__ - INFO - Confirming catalysts for trade-ready setups...
+
+2026-06-25 17:28:46,975 - __main__ - INFO - TIER 4 RESULTS: 5 TRADE-READY setups (of 5 from Tier 3)
+2026-06-25 17:28:46,975 - __main__ - INFO - Survival rate: 100.0%
+
+2026-06-25 17:28:46,975 - __main__ - INFO - ======================================================================
+2026-06-25 17:28:46,975 - __main__ - INFO - HIGH-PROBABILITY BULL RUN SETUPS (Today's Candidates)
+2026-06-25 17:28:46,975 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:28:46,975 - __main__ - INFO - 1. EHGO     | Score: 84.5/100 | Setup: moving_avg_confluence
+2026-06-25 17:28:46,975 - __main__ - INFO -    Price: $4.85 | Catalyst: Analyst upgrade + Fed supportive
+2026-06-25 17:28:46,975 - __main__ - INFO -    Entry Quality: excellent | Momentum: accelerating
+
+2026-06-25 17:28:46,975 - __main__ - INFO - 2. NVDA     | Score: 79.0/100 | Setup: breakout
+2026-06-25 17:28:46,975 - __main__ - INFO -    Price: $850.00 | Catalyst: Earnings beat expected
+2026-06-25 17:28:46,975 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:28:46,975 - __main__ - INFO - 3. APPS     | Score: 52.8/100 | Setup: support_bounce
+2026-06-25 17:28:46,975 - __main__ - INFO -    Price: $11.50 | Catalyst: Sector rotation into tech
+2026-06-25 17:28:46,975 - __main__ - INFO -    Entry Quality: excellent | Momentum: accelerating
+
+2026-06-25 17:28:46,975 - __main__ - INFO - 4. AAPL     | Score: 46.5/100 | Setup: support_bounce
+2026-06-25 17:28:46,975 - __main__ - INFO -    Price: $180.00 | Catalyst: Analyst upgrade
+2026-06-25 17:28:46,975 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:28:46,975 - __main__ - INFO - 5. DDOG     | Score: 46.5/100 | Setup: support_bounce
+2026-06-25 17:28:46,975 - __main__ - INFO -    Price: $155.00 | Catalyst: New product launch
+2026-06-25 17:28:46,975 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:28:46,975 - __main__ - INFO - ======================================================================
+2026-06-25 17:28:46,975 - __main__ - INFO - MARKET SCAN SUMMARY
+2026-06-25 17:28:46,975 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:28:46,975 - __main__ - INFO - Market Universe: 17 stocks
+2026-06-25 17:28:46,975 - __main__ - INFO - Tier 1 (Uptrends): 10 (58.8%)
+2026-06-25 17:28:46,975 - __main__ - INFO - Tier 2 (Accelerating): 8 (80.0%)
+2026-06-25 17:28:46,975 - __main__ - INFO - Tier 3 (Entry Ready): 5 (62.5%)
+2026-06-25 17:28:46,975 - __main__ - INFO - Tier 4 (TRADE-READY): 5 (100.0%)
+
+2026-06-25 17:28:46,975 - __main__ - INFO - FILTRATION FUNNEL:
+2026-06-25 17:28:46,976 - __main__ - INFO - ======================================================================
+2026-06-25 17:28:46,976 - __main__ - INFO - SAVING SCAN RESULTS
+2026-06-25 17:28:46,976 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:28:46,977 - __main__ - ERROR - SCAN FAILED: name 'i' is not defined
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\bull_run_market_scanner.py", line 400, in run
+    self.save_results()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\bull_run_market_scanner.py", line 357, in save_results
+    "rank": i + 1,
+            ^
+NameError: name 'i' is not defined. Did you mean: 'id'?
+2026-06-25 17:29:04,017 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,017 - __main__ - INFO - MARKET-WIDE BULL RUN SCANNER STARTING
+2026-06-25 17:29:04,017 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,017 - __main__ - INFO - 
+Scanning entire market for bull run setups...
+2026-06-25 17:29:04,017 - __main__ - INFO - (This would scan 5,000+ stocks in production)
+
+2026-06-25 17:29:04,017 - __main__ - INFO - 
+=== BUILDING MARKET UNIVERSE ===
+
+2026-06-25 17:29:04,017 - __main__ - INFO - Market universe: 17 stocks
+2026-06-25 17:29:04,017 - __main__ - INFO -   - AAPL (Technology)
+2026-06-25 17:29:04,017 - __main__ - INFO -   - MSFT (Technology)
+2026-06-25 17:29:04,017 - __main__ - INFO -   - NVDA (Technology)
+2026-06-25 17:29:04,017 - __main__ - INFO -   - TSLA (Automotive)
+2026-06-25 17:29:04,017 - __main__ - INFO -   - APPS (Technology)
+2026-06-25 17:29:04,017 - __main__ - INFO -   ... and 12 more
+
+2026-06-25 17:29:04,017 - __main__ - INFO - 
+=== TIER 1: TREND QUALIFICATION ===
+
+2026-06-25 17:29:04,017 - __main__ - INFO - Screening for stocks currently in uptrends...
+2026-06-25 17:29:04,017 - __main__ - INFO - Criteria: Price > SMA20 > SMA50, ADX > 25, higher highs/lows
+
+2026-06-25 17:29:04,017 - __main__ - INFO - TIER 1 RESULTS: 10 stocks in uptrends (of 17 scanned)
+2026-06-25 17:29:04,017 - __main__ - INFO - Qualification rate: 58.8%
+
+2026-06-25 17:29:04,021 - __main__ - INFO -   ... and 2 more
+
+2026-06-25 17:29:04,021 - __main__ - INFO - === TIER 2: MOMENTUM ACCELERATION ===
+
+2026-06-25 17:29:04,021 - __main__ - INFO - Screening for uptrends with accelerating momentum...
+2026-06-25 17:29:04,021 - __main__ - INFO - Criteria: RSI > 50, MACD positive, volume acceleration
+
+2026-06-25 17:29:04,021 - __main__ - INFO - TIER 2 RESULTS: 8 stocks with accelerating momentum (of 10 from Tier 1)
+2026-06-25 17:29:04,021 - __main__ - INFO - Survival rate: 80.0%
+
+2026-06-25 17:29:04,022 - __main__ - INFO -   ... and 3 more
+
+2026-06-25 17:29:04,022 - __main__ - INFO - === TIER 3: ENTRY SETUP QUALIFICATION ===
+
+2026-06-25 17:29:04,022 - __main__ - INFO - Screening for actionable entry setups...
+2026-06-25 17:29:04,022 - __main__ - INFO - Criteria: At support, at moving average, or breakout setup
+
+2026-06-25 17:29:04,022 - __main__ - INFO - TIER 3 RESULTS: 5 stocks with actionable setups (of 8 from Tier 2)
+2026-06-25 17:29:04,022 - __main__ - INFO - Survival rate: 62.5%
+
+2026-06-25 17:29:04,024 - __main__ - INFO - === TIER 4: CATALYST CONFIRMATION ===
+
+2026-06-25 17:29:04,024 - __main__ - INFO - Confirming catalysts for trade-ready setups...
+
+2026-06-25 17:29:04,024 - __main__ - INFO - TIER 4 RESULTS: 5 TRADE-READY setups (of 5 from Tier 3)
+2026-06-25 17:29:04,024 - __main__ - INFO - Survival rate: 100.0%
+
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,024 - __main__ - INFO - HIGH-PROBABILITY BULL RUN SETUPS (Today's Candidates)
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:29:04,024 - __main__ - INFO - 1. EHGO     | Score: 84.5/100 | Setup: moving_avg_confluence
+2026-06-25 17:29:04,024 - __main__ - INFO -    Price: $4.85 | Catalyst: Analyst upgrade + Fed supportive
+2026-06-25 17:29:04,024 - __main__ - INFO -    Entry Quality: excellent | Momentum: accelerating
+
+2026-06-25 17:29:04,024 - __main__ - INFO - 2. NVDA     | Score: 79.0/100 | Setup: breakout
+2026-06-25 17:29:04,024 - __main__ - INFO -    Price: $850.00 | Catalyst: Earnings beat expected
+2026-06-25 17:29:04,024 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:29:04,024 - __main__ - INFO - 3. APPS     | Score: 52.8/100 | Setup: support_bounce
+2026-06-25 17:29:04,024 - __main__ - INFO -    Price: $11.50 | Catalyst: Sector rotation into tech
+2026-06-25 17:29:04,024 - __main__ - INFO -    Entry Quality: excellent | Momentum: accelerating
+
+2026-06-25 17:29:04,024 - __main__ - INFO - 4. AAPL     | Score: 46.5/100 | Setup: support_bounce
+2026-06-25 17:29:04,024 - __main__ - INFO -    Price: $180.00 | Catalyst: Analyst upgrade
+2026-06-25 17:29:04,024 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:29:04,024 - __main__ - INFO - 5. DDOG     | Score: 46.5/100 | Setup: support_bounce
+2026-06-25 17:29:04,024 - __main__ - INFO -    Price: $155.00 | Catalyst: New product launch
+2026-06-25 17:29:04,024 - __main__ - INFO -    Entry Quality: high | Momentum: accelerating
+
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,024 - __main__ - INFO - MARKET SCAN SUMMARY
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:29:04,024 - __main__ - INFO - Market Universe: 17 stocks
+2026-06-25 17:29:04,024 - __main__ - INFO - Tier 1 (Uptrends): 10 (58.8%)
+2026-06-25 17:29:04,024 - __main__ - INFO - Tier 2 (Accelerating): 8 (80.0%)
+2026-06-25 17:29:04,024 - __main__ - INFO - Tier 3 (Entry Ready): 5 (62.5%)
+2026-06-25 17:29:04,024 - __main__ - INFO - Tier 4 (TRADE-READY): 5 (100.0%)
+
+2026-06-25 17:29:04,024 - __main__ - INFO - FILTRATION FUNNEL:
+2026-06-25 17:29:04,024 - __main__ - INFO -   5,000+ stocks -> 10 uptrends (10%)
+2026-06-25 17:29:04,024 - __main__ - INFO -               -> 8 accelerating (3%)
+2026-06-25 17:29:04,024 - __main__ - INFO -               -> 5 entry-ready (1%)
+2026-06-25 17:29:04,024 - __main__ - INFO -               -> 5 TRADE-READY (0.3%)
+
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,024 - __main__ - INFO - SAVING SCAN RESULTS
+2026-06-25 17:29:04,024 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:29:04,026 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,026 - __main__ - INFO - MARKET SCAN COMPLETE
+2026-06-25 17:29:04,026 - __main__ - INFO - ======================================================================
+2026-06-25 17:29:04,026 - __main__ - INFO - 
+Trade-ready candidates: 5
+2026-06-25 17:29:04,026 - __main__ - INFO - Next step: 4:00 AM 90% ensemble validation
+2026-06-25 17:29:04,026 - __main__ - INFO - Expected: 2-5 high-probability trades daily
+

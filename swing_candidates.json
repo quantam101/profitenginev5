@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-06-25T17:58:55.008348",
+  "candidates": [
+    {
+      "rank": 1,
+      "symbol": "NVDA",
+      "catalyst": "Earnings beat expected + AI tailwind",
+      "catalyst_strength": "VERY HIGH",
+      "technical_setup": "Strong uptrend, support at $825",
+      "sentiment": "EXTREMELY BULLISH (82%)",
+      "morningstar": "5 stars, STRONG BUY",
+      "investment_thesis": "AI mega-trend + earnings catalyst + bullish sentiment",
+      "expected_move": "5-8% in 2-4 days",
+      "swing_score": 95,
+      "recommended_entry": "Support at $825 or breakout at $875",
+      "stop_loss": "$800",
+      "target": "$900-950"
+    },
+    {
+      "rank": 2,
+      "symbol": "APPS",
+      "catalyst": "Earnings beat expected",
+      "catalyst_strength": "HIGH",
+      "technical_setup": "Support bounce at $11.00",
+      "sentiment": "VERY BULLISH (78%)",
+      "morningstar": "4.5 stars, BUY",
+      "investment_thesis": "Earnings beat + sector rotation + technical support",
+      "expected_move": "3-5% in 2-3 days",
+      "swing_score": 87,
+      "recommended_entry": "Bounce from $11.00 support",
+      "stop_loss": "$10.50",
+      "target": "$12.50"
+    },
+    {
+      "rank": 3,
+      "symbol": "EHGO",
+      "catalyst": "Analyst upgrade + flying drone sector",
+      "catalyst_strength": "HIGH",
+      "technical_setup": "Breakout above $5.00 resistance",
+      "sentiment": "BULLISH (71%)",
+      "morningstar": "4 stars, BUY",
+      "investment_thesis": "Upgrade catalyst + technical breakout + bullish crowd",
+      "expected_move": "3-5% in 2-4 days",
+      "swing_score": 85,
+      "recommended_entry": "Breakout at $5.00 or pullback to $4.70",
+      "stop_loss": "$4.50",
+      "target": "$5.50"
+    },
+    {
+      "rank": 4,
+      "symbol": "CRWD",
+      "catalyst": "Analyst upgrade + cybersecurity tailwind",
+      "catalyst_strength": "MEDIUM",
+      "technical_setup": "Consolidation ready for breakout",
+      "sentiment": "MODERATELY BULLISH (65%)",
+      "morningstar": "4 stars, STRONG BUY",
+      "investment_thesis": "Upgrade + stable company + sector tailwind",
+      "expected_move": "2-4% in 3-5 days",
+      "swing_score": 78,
+      "recommended_entry": "Breakout above $420 or support at $410",
+      "stop_loss": "$405",
+      "target": "$440"
+    }
+  ],
+  "total": 4
+}

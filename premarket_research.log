@@ -1,0 +1,106 @@
+2026-06-25 17:22:23,177 - __main__ - INFO - ======================================================================
+2026-06-25 17:22:23,177 - __main__ - INFO - PRE-MARKET RESEARCH ENGINE STARTING
+2026-06-25 17:22:23,177 - __main__ - INFO - ======================================================================
+2026-06-25 17:22:23,177 - __main__ - INFO - 
+=== SCREENING NEWS FOR CATALYSTS ===
+
+2026-06-25 17:22:23,177 - __main__ - INFO - Searching for:
+2026-06-25 17:22:23,177 - __main__ - INFO -   - Federal Reserve
+2026-06-25 17:22:23,178 - __main__ - INFO -   - CPI
+2026-06-25 17:22:23,178 - __main__ - INFO -   - Non-Farm Payroll
+2026-06-25 17:22:23,179 - __main__ - INFO -   - GDP
+2026-06-25 17:22:23,179 - __main__ - INFO -   - Earnings Report
+2026-06-25 17:22:23,179 - __main__ - INFO -   - IPO
+2026-06-25 17:22:23,179 - __main__ - INFO -   - Merger
+2026-06-25 17:22:23,179 - __main__ - INFO - 
+EARNINGS_ANNOUNCEMENTS:
+2026-06-25 17:22:23,179 - __main__ - INFO -   {'symbol': 'APPS', 'type': 'Earnings', 'time': 'After market close'}
+2026-06-25 17:22:23,180 - __main__ - INFO -   {'symbol': 'EHGO', 'type': 'Analyst upgrade', 'time': 'Pre-market'}
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+ECONOMIC_DATA:
+2026-06-25 17:22:23,180 - __main__ - INFO -   {'event': 'CPI Release', 'time': '8:30 AM ET', 'impact': 'HIGH'}
+2026-06-25 17:22:23,180 - __main__ - INFO -   {'event': 'Fed Decision', 'time': '2:00 PM ET', 'impact': 'CRITICAL'}
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+SECTOR_MOVERS:
+2026-06-25 17:22:23,180 - __main__ - INFO -   {'sector': 'Technology', 'direction': 'UP', 'catalyst': 'AI optimism'}
+2026-06-25 17:22:23,180 - __main__ - INFO -   {'sector': 'Finance', 'direction': 'DOWN', 'catalyst': 'Rate concerns'}
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+GAP_OPPORTUNITIES:
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+=== SCREENING FOR GAPS & VOLUME SPIKES ===
+
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+APPS:
+2026-06-25 17:22:23,180 - __main__ - INFO -   Gap: 3.2%
+2026-06-25 17:22:23,180 - __main__ - INFO -   Volume spike: 1.8x
+2026-06-25 17:22:23,180 - __main__ - INFO -   Reason: Analyst upgrade overnight
+2026-06-25 17:22:23,180 - __main__ - INFO -   Setup type: Gap continuation + mean reversion
+2026-06-25 17:22:23,180 - __main__ - INFO -   Ensemble confidence potential: 78%
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+EHGO:
+2026-06-25 17:22:23,180 - __main__ - INFO -   Gap: 2.1%
+2026-06-25 17:22:23,180 - __main__ - INFO -   Volume spike: 2.2x
+2026-06-25 17:22:23,180 - __main__ - INFO -   Reason: Sector rotation into small-cap
+2026-06-25 17:22:23,180 - __main__ - INFO -   Setup type: Volume breakout + momentum
+2026-06-25 17:22:23,180 - __main__ - INFO -   Ensemble confidence potential: 82%
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+TECH_ETF:
+2026-06-25 17:22:23,180 - __main__ - INFO -   Gap: 1.5%
+2026-06-25 17:22:23,180 - __main__ - INFO -   Volume spike: 1.4x
+2026-06-25 17:22:23,180 - __main__ - INFO -   Reason: Fed decision anticipation
+2026-06-25 17:22:23,180 - __main__ - INFO -   Setup type: Momentum continuation
+2026-06-25 17:22:23,180 - __main__ - INFO -   Ensemble confidence potential: 72%
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+3 candidates identified for 4 AM analysis
+
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+=== BUILDING WATCH LIST ===
+
+2026-06-25 17:22:23,180 - __main__ - INFO - 
+APPS (HIGH):
+2026-06-25 17:22:23,180 - __main__ - INFO -   Reason: Current holding, gap setup
+2026-06-25 17:22:23,181 - __main__ - INFO -   Key levels: S=9.27, R=10.5
+2026-06-25 17:22:23,181 - __main__ - INFO -   Entry targets: [10.5, 10.2, 9.9]
+2026-06-25 17:22:23,181 - __main__ - INFO - 
+EHGO (HIGH):
+2026-06-25 17:22:23,181 - __main__ - INFO -   Reason: Current holding, volume breakout
+2026-06-25 17:22:23,181 - __main__ - INFO -   Key levels: S=4.34, R=5.0
+2026-06-25 17:22:23,181 - __main__ - INFO -   Entry targets: [4.7, 4.5, 4.3]
+2026-06-25 17:22:23,181 - __main__ - INFO - 
+QQQ (MEDIUM):
+2026-06-25 17:22:23,181 - __main__ - INFO -   Reason: Sector gauge for tech exposure
+2026-06-25 17:22:23,181 - __main__ - INFO -   Key levels: S=400, R=410
+2026-06-25 17:22:23,182 - __main__ - INFO - 
+SPY (MEDIUM):
+2026-06-25 17:22:23,182 - __main__ - INFO -   Reason: Broad market direction
+2026-06-25 17:22:23,182 - __main__ - INFO -   Key levels: S=565, R=575
+2026-06-25 17:22:23,182 - __main__ - INFO - 
+4 stocks on active watch list
+
+2026-06-25 17:22:23,182 - __main__ - INFO - 
+=== PRE-MARKET BRIEFING ===
+
+2026-06-25 17:22:23,182 - __main__ - INFO - MARKET INTELLIGENCE:
+2026-06-25 17:22:23,182 - __main__ - INFO -   Time to market open: 4.5 hours
+2026-06-25 17:22:23,182 - __main__ - INFO -   Candidates screened: 3
+2026-06-25 17:22:23,182 - __main__ - INFO -   Watch list active: 4 stocks
+2026-06-25 17:22:23,182 - __main__ - INFO -   Key levels identified: True
+2026-06-25 17:22:23,182 - __main__ - INFO -   90% ensemble ready: True
+2026-06-25 17:22:23,183 - __main__ - INFO - 
+Status: READY FOR 4:00 AM EXECUTION
+2026-06-25 17:22:23,183 - __main__ - INFO - 
+=== SAVING RESEARCH RESULTS ===
+
+2026-06-25 17:22:23,186 - __main__ - INFO - 
+======================================================================
+2026-06-25 17:22:23,187 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:22:23,187 - __main__ - INFO - 
+RESEARCH OUTPUTS:
+2026-06-25 17:22:23,187 - __main__ - INFO -   - 3 candidates ready for ensemble analysis
+2026-06-25 17:22:23,187 - __main__ - INFO -   - 4 stocks on active watch list
+2026-06-25 17:22:23,187 - __main__ - INFO -   - Key support/resistance levels identified
+2026-06-25 17:22:23,187 - __main__ - INFO -   - Economic calendar reviewed
+2026-06-25 17:22:23,187 - __main__ - INFO -   - News digest generated
+2026-06-25 17:22:23,187 - __main__ - INFO - 
+4:00 AM system will execute with high-quality candidate list

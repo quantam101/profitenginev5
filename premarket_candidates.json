@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-06-25T17:22:23.183557",
+  "candidates": [
+    {
+      "symbol": "APPS",
+      "gap_pct": 3.2,
+      "volume_spike": 1.8,
+      "reason": "Analyst upgrade overnight",
+      "setup_type": "Gap continuation + mean reversion",
+      "confidence": 0.78
+    },
+    {
+      "symbol": "EHGO",
+      "gap_pct": 2.1,
+      "volume_spike": 2.2,
+      "reason": "Sector rotation into small-cap",
+      "setup_type": "Volume breakout + momentum",
+      "confidence": 0.82
+    },
+    {
+      "symbol": "TECH_ETF",
+      "gap_pct": 1.5,
+      "volume_spike": 1.4,
+      "reason": "Fed decision anticipation",
+      "setup_type": "Momentum continuation",
+      "confidence": 0.72
+    }
+  ],
+  "count": 3
+}

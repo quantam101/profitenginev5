@@ -1,0 +1,84 @@
+name: Aggressive Micro Trading - 4 AM MST Daily
+
+on:
+  schedule:
+    # 4 AM MST = 6 AM ET (pre-market)
+    - cron: '0 11 * * 1-5'  # Monday-Friday at 4 AM MST
+  workflow_dispatch:
+
+jobs:
+  aggressive_trading:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TZ: America/Denver
+      TRADING_MODE: aggressive
+      CONFIG_FILE: trading-control/aggressive-trading.yaml
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml numpy requests httpx asyncio
+
+      - name: Run aggressive trading system
+        env:
+          ROBINHOOD_API_KEY: ${{ secrets.ROBINHOOD_API_KEY }}
+          ROBINHOOD_SECRET: ${{ secrets.ROBINHOOD_SECRET }}
+          ACCOUNT_NUMBER: "794764977"
+          TRADING_MODE: aggressive
+          CONFIG_FILE: trading-control/aggressive-trading.yaml
+          LOG_LEVEL: INFO
+        run: |
+          python trading-agent/run_aggressive_trading.py
+
+      - name: Upload trading results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggressive-trading-results-${{ github.run_id }}
+          path: |
+            live_trading_results_aggressive.json
+            live_trading_results.json
+            aggressive_trading.log
+            signal_analysis_aggressive.json
+          retention-days: 30
+
+      - name: Post trading summary
+        if: always()
+        run: |
+          echo "=== AGGRESSIVE TRADING SESSION COMPLETE ==="
+          if [ -f live_trading_results_aggressive.json ]; then
+            echo "Aggressive Trade Summary:"
+            cat live_trading_results_aggressive.json
+          fi
+
+      - name: Alert on high P&L
+        if: always()
+        run: |
+          python -c "
+          import json
+          try:
+            with open('live_trading_results_aggressive.json', 'r') as f:
+              results = json.load(f)
+              pnl = results.get('daily_pnl', 0)
+              trades = len(results.get('trades_executed', []))
+              if pnl > 50:
+                print(f'🚀 STRONG DAY: \${pnl:.2f} on {trades} trades')
+              elif pnl > 0:
+                print(f'✅ POSITIVE: \${pnl:.2f} on {trades} trades')
+              elif pnl > -100:
+                print(f'⚠️ SMALL LOSS: \${pnl:.2f} on {trades} trades')
+              else:
+                print(f'🔴 SIGNIFICANT LOSS: \${pnl:.2f} on {trades} trades')
+          except:
+            pass
+          "

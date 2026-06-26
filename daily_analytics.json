@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-06-25T19:21:21.277398",
+  "daily": {
+    "trades": 6,
+    "pnl": 3800.0,
+    "roi": 143.18010550113036,
+    "win_rate": 100.0,
+    "profit_factor": Infinity
+  },
+  "weekly": {
+    "trades": 6,
+    "pnl": 3800.0,
+    "roi": 1184.0,
+    "win_rate": 100.0,
+    "profit_factor": Infinity,
+    "sharpe": 41.828074321332565
+  },
+  "monthly": {
+    "trades": 6,
+    "pnl": 3800.0,
+    "roi": 1184.0,
+    "win_rate": 100.0,
+    "profit_factor": Infinity,
+    "sharpe": 41.828074321332565,
+    "sortino": Infinity,
+    "max_drawdown": 0
+  },
+  "all_time": {
+    "trades": 6,
+    "pnl": 3800.0,
+    "win_rate": 100.0,
+    "profit_factor": Infinity,
+    "sharpe": 41.828074321332565,
+    "sortino": Infinity,
+    "max_drawdown": 0
+  },
+  "streaks": {
+    "max_wins": 6,
+    "max_losses": 0,
+    "current_streak": 6
+  },
+  "avg_trade": {
+    "avg_winner": 633.3333333333334,
+    "avg_loser": 0
+  },
+  "by_strategy": {
+    "mean_reversion": {
+      "trades": 2,
+      "win_rate": 100.0,
+      "profit_factor": Infinity,
+      "avg_roi": 300.0,
+      "total_pnl": 3000.0
+    },
+    "support_resistance": {
+      "trades": 2,
+      "win_rate": 100.0,
+      "profit_factor": Infinity,
+      "avg_roi": 125.0,
+      "total_pnl": 300.0
+    },
+    "momentum": {
+      "trades": 2,
+      "win_rate": 100.0,
+      "profit_factor": Infinity,
+      "avg_roi": 167.0,
+      "total_pnl": 500.0
+    }
+  }
+}

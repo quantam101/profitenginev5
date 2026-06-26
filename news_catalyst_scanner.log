@@ -1,0 +1,239 @@
+2026-06-25 17:58:35,974 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:35,974 - __main__ - INFO - NEWS & CATALYST SCANNER STARTING
+2026-06-25 17:58:35,974 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:35,974 - __main__ - INFO - 
+Integrating real news sources...
+2026-06-25 17:58:35,974 - __main__ - INFO - Sources: Finnhub, Stocktwits, Morningstar, Investing.com
+
+2026-06-25 17:58:35,974 - __main__ - INFO - 
+=== SCANNING FINNHUB NEWS (Earnings, Upgrades, Sector) ===
+
+2026-06-25 17:58:36,006 - __main__ - INFO - EARNINGS_ANNOUNCEMENTS:
+2026-06-25 17:58:36,006 - __main__ - INFO -   {'symbol': 'APPS', 'company': 'AppLovin', 'event': 'Q2 Earnings', 'time': 'After market close', 'expected_move': '3-5%', 'analyst_expect': 'Beat', 'catalyst_strength': 'high'}
+2026-06-25 17:58:36,006 - __main__ - INFO -   {'symbol': 'NVDA', 'company': 'NVIDIA', 'event': 'Q3 Earnings', 'time': 'After market close', 'expected_move': '5-8%', 'analyst_expect': 'Strong beat', 'catalyst_strength': 'very_high'}
+2026-06-25 17:58:36,006 - __main__ - ERROR - SCAN FAILED: Logger.info() missing 1 required positional argument: 'msg'
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 479, in run
+    self.scan_finnhub_news()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 141, in scan_finnhub_news
+    logger.info()
+    ~~~~~~~~~~~^^
+TypeError: Logger.info() missing 1 required positional argument: 'msg'
+2026-06-25 17:58:43,712 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:43,712 - __main__ - INFO - NEWS & CATALYST SCANNER STARTING
+2026-06-25 17:58:43,712 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:43,712 - __main__ - INFO - 
+Integrating real news sources...
+2026-06-25 17:58:43,712 - __main__ - INFO - Sources: Finnhub, Stocktwits, Morningstar, Investing.com
+
+2026-06-25 17:58:43,712 - __main__ - INFO - 
+=== SCANNING FINNHUB NEWS (Earnings, Upgrades, Sector) ===
+
+2026-06-25 17:58:43,712 - __main__ - INFO - EARNINGS_ANNOUNCEMENTS:
+2026-06-25 17:58:43,712 - __main__ - INFO -   {'symbol': 'APPS', 'company': 'AppLovin', 'event': 'Q2 Earnings', 'time': 'After market close', 'expected_move': '3-5%', 'analyst_expect': 'Beat', 'catalyst_strength': 'high'}
+2026-06-25 17:58:43,712 - __main__ - INFO -   {'symbol': 'NVDA', 'company': 'NVIDIA', 'event': 'Q3 Earnings', 'time': 'After market close', 'expected_move': '5-8%', 'analyst_expect': 'Strong beat', 'catalyst_strength': 'very_high'}
+2026-06-25 17:58:43,712 - __main__ - INFO - 
+2026-06-25 17:58:43,712 - __main__ - INFO - ANALYST_CHANGES:
+2026-06-25 17:58:43,712 - __main__ - INFO -   {'symbol': 'EHGO', 'company': 'EHang Holdings', 'change': 'Upgrade to BUY', 'from_rating': 'HOLD', 'to_rating': 'BUY', 'price_target': '$8.50', 'previous_target': '$5.00', 'catalyst_strength': 'high', 'analyst': 'JPMorgan'}
+2026-06-25 17:58:43,712 - __main__ - INFO -   {'symbol': 'CRWD', 'company': 'CrowdStrike', 'change': 'Upgrade + PT raise', 'from_rating': 'BUY', 'to_rating': 'STRONG BUY', 'price_target': '$450', 'previous_target': '$420', 'catalyst_strength': 'medium', 'analyst': 'Goldman Sachs'}
+2026-06-25 17:58:43,713 - __main__ - INFO - 
+2026-06-25 17:58:43,713 - __main__ - INFO - SECTOR_NEWS:
+2026-06-25 17:58:43,713 - __main__ - INFO -   {'sector': 'Technology', 'direction': 'BULLISH', 'news': 'AI Optimism / Fed Rate Cuts', 'impact': 'High', 'affected_stocks': ['APPS', 'NVDA', 'CRWD', 'DDOG'], 'expected_move': '+2-3% sector avg'}
+2026-06-25 17:58:43,713 - __main__ - INFO -   {'sector': 'Healthcare', 'direction': 'BULLISH', 'news': 'FDA Approvals + GLP-1 Tailwind', 'impact': 'High', 'affected_stocks': ['MRNA', 'AMGN', 'BNTX'], 'expected_move': '+3-5% sector avg'}
+2026-06-25 17:58:43,713 - __main__ - INFO - 
+2026-06-25 17:58:43,713 - __main__ - INFO - ECONOMIC_CALENDAR:
+2026-06-25 17:58:43,713 - __main__ - INFO -   {'event': 'CPI Release', 'time': '8:30 AM ET', 'importance': 'HIGH', 'forecast': '3.2% (down from 3.4%)', 'impact': 'If lower = risk-on (tech up)', 'market_sensitivity': 'All sectors'}
+2026-06-25 17:58:43,713 - __main__ - INFO -   {'event': 'Fed Rate Decision', 'time': '2:00 PM ET', 'importance': 'CRITICAL', 'forecast': '50 bps cut expected', 'impact': 'If cut = tech rallies (lower rates)', 'market_sensitivity': 'All sectors (especially tech)'}
+2026-06-25 17:58:43,713 - __main__ - INFO - 
+2026-06-25 17:58:43,713 - __main__ - INFO - === SCANNING STOCKTWITS SENTIMENT (Bull/Bear Ratio) ===
+
+2026-06-25 17:58:43,713 - __main__ - INFO - APPS: VERY BULLISH (78% bulls)
+2026-06-25 17:58:43,713 - __main__ - INFO -   Volume: 8,500 mentions
+2026-06-25 17:58:43,713 - __main__ - INFO -   Top: Earnings beat incoming
+2026-06-25 17:58:43,713 - __main__ - ERROR - SCAN FAILED: Logger.info() missing 1 required positional argument: 'msg'
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 480, in run
+    self.scan_stocktwits_sentiment()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 200, in scan_stocktwits_sentiment
+    logger.info()
+    ~~~~~~~~~~~^^
+TypeError: Logger.info() missing 1 required positional argument: 'msg'
+2026-06-25 17:58:47,220 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:47,221 - __main__ - INFO - NEWS & CATALYST SCANNER STARTING
+2026-06-25 17:58:47,221 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+Integrating real news sources...
+2026-06-25 17:58:47,221 - __main__ - INFO - Sources: Finnhub, Stocktwits, Morningstar, Investing.com
+
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+=== SCANNING FINNHUB NEWS (Earnings, Upgrades, Sector) ===
+
+2026-06-25 17:58:47,221 - __main__ - INFO - EARNINGS_ANNOUNCEMENTS:
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'symbol': 'APPS', 'company': 'AppLovin', 'event': 'Q2 Earnings', 'time': 'After market close', 'expected_move': '3-5%', 'analyst_expect': 'Beat', 'catalyst_strength': 'high'}
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'symbol': 'NVDA', 'company': 'NVIDIA', 'event': 'Q3 Earnings', 'time': 'After market close', 'expected_move': '5-8%', 'analyst_expect': 'Strong beat', 'catalyst_strength': 'very_high'}
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+2026-06-25 17:58:47,221 - __main__ - INFO - ANALYST_CHANGES:
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'symbol': 'EHGO', 'company': 'EHang Holdings', 'change': 'Upgrade to BUY', 'from_rating': 'HOLD', 'to_rating': 'BUY', 'price_target': '$8.50', 'previous_target': '$5.00', 'catalyst_strength': 'high', 'analyst': 'JPMorgan'}
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'symbol': 'CRWD', 'company': 'CrowdStrike', 'change': 'Upgrade + PT raise', 'from_rating': 'BUY', 'to_rating': 'STRONG BUY', 'price_target': '$450', 'previous_target': '$420', 'catalyst_strength': 'medium', 'analyst': 'Goldman Sachs'}
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+2026-06-25 17:58:47,221 - __main__ - INFO - SECTOR_NEWS:
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'sector': 'Technology', 'direction': 'BULLISH', 'news': 'AI Optimism / Fed Rate Cuts', 'impact': 'High', 'affected_stocks': ['APPS', 'NVDA', 'CRWD', 'DDOG'], 'expected_move': '+2-3% sector avg'}
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'sector': 'Healthcare', 'direction': 'BULLISH', 'news': 'FDA Approvals + GLP-1 Tailwind', 'impact': 'High', 'affected_stocks': ['MRNA', 'AMGN', 'BNTX'], 'expected_move': '+3-5% sector avg'}
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+2026-06-25 17:58:47,221 - __main__ - INFO - ECONOMIC_CALENDAR:
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'event': 'CPI Release', 'time': '8:30 AM ET', 'importance': 'HIGH', 'forecast': '3.2% (down from 3.4%)', 'impact': 'If lower = risk-on (tech up)', 'market_sensitivity': 'All sectors'}
+2026-06-25 17:58:47,221 - __main__ - INFO -   {'event': 'Fed Rate Decision', 'time': '2:00 PM ET', 'importance': 'CRITICAL', 'forecast': '50 bps cut expected', 'impact': 'If cut = tech rallies (lower rates)', 'market_sensitivity': 'All sectors (especially tech)'}
+2026-06-25 17:58:47,221 - __main__ - INFO - 
+2026-06-25 17:58:47,221 - __main__ - INFO - === SCANNING STOCKTWITS SENTIMENT (Bull/Bear Ratio) ===
+
+2026-06-25 17:58:47,221 - __main__ - INFO - APPS: VERY BULLISH (78% bulls)
+2026-06-25 17:58:47,221 - __main__ - INFO -   Volume: 8,500 mentions
+2026-06-25 17:58:47,221 - __main__ - INFO -   Top: Earnings beat incoming
+2026-06-25 17:58:47,221 - __main__ - ERROR - SCAN FAILED: Logger.info() missing 1 required positional argument: 'msg'
+Traceback (most recent call last):
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 480, in run
+    self.scan_stocktwits_sentiment()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\alrea\Downloads\profitengine-v5-final (1)\trading-agent\news_catalyst_scanner.py", line 200, in scan_stocktwits_sentiment
+    logger.info()
+    ~~~~~~~~~~~^^
+TypeError: Logger.info() missing 1 required positional argument: 'msg'
+2026-06-25 17:58:55,005 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,005 - __main__ - INFO - NEWS & CATALYST SCANNER STARTING
+2026-06-25 17:58:55,005 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,005 - __main__ - INFO - 
+Integrating real news sources...
+2026-06-25 17:58:55,005 - __main__ - INFO - Sources: Finnhub, Stocktwits, Morningstar, Investing.com
+
+2026-06-25 17:58:55,005 - __main__ - INFO - 
+=== SCANNING FINNHUB NEWS (Earnings, Upgrades, Sector) ===
+
+2026-06-25 17:58:55,005 - __main__ - INFO - EARNINGS_ANNOUNCEMENTS:
+2026-06-25 17:58:55,005 - __main__ - INFO -   {'symbol': 'APPS', 'company': 'AppLovin', 'event': 'Q2 Earnings', 'time': 'After market close', 'expected_move': '3-5%', 'analyst_expect': 'Beat', 'catalyst_strength': 'high'}
+2026-06-25 17:58:55,005 - __main__ - INFO -   {'symbol': 'NVDA', 'company': 'NVIDIA', 'event': 'Q3 Earnings', 'time': 'After market close', 'expected_move': '5-8%', 'analyst_expect': 'Strong beat', 'catalyst_strength': 'very_high'}
+2026-06-25 17:58:55,005 - __main__ - INFO - 
+2026-06-25 17:58:55,005 - __main__ - INFO - ANALYST_CHANGES:
+2026-06-25 17:58:55,005 - __main__ - INFO -   {'symbol': 'EHGO', 'company': 'EHang Holdings', 'change': 'Upgrade to BUY', 'from_rating': 'HOLD', 'to_rating': 'BUY', 'price_target': '$8.50', 'previous_target': '$5.00', 'catalyst_strength': 'high', 'analyst': 'JPMorgan'}
+2026-06-25 17:58:55,006 - __main__ - INFO -   {'symbol': 'CRWD', 'company': 'CrowdStrike', 'change': 'Upgrade + PT raise', 'from_rating': 'BUY', 'to_rating': 'STRONG BUY', 'price_target': '$450', 'previous_target': '$420', 'catalyst_strength': 'medium', 'analyst': 'Goldman Sachs'}
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - SECTOR_NEWS:
+2026-06-25 17:58:55,006 - __main__ - INFO -   {'sector': 'Technology', 'direction': 'BULLISH', 'news': 'AI Optimism / Fed Rate Cuts', 'impact': 'High', 'affected_stocks': ['APPS', 'NVDA', 'CRWD', 'DDOG'], 'expected_move': '+2-3% sector avg'}
+2026-06-25 17:58:55,006 - __main__ - INFO -   {'sector': 'Healthcare', 'direction': 'BULLISH', 'news': 'FDA Approvals + GLP-1 Tailwind', 'impact': 'High', 'affected_stocks': ['MRNA', 'AMGN', 'BNTX'], 'expected_move': '+3-5% sector avg'}
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - ECONOMIC_CALENDAR:
+2026-06-25 17:58:55,006 - __main__ - INFO -   {'event': 'CPI Release', 'time': '8:30 AM ET', 'importance': 'HIGH', 'forecast': '3.2% (down from 3.4%)', 'impact': 'If lower = risk-on (tech up)', 'market_sensitivity': 'All sectors'}
+2026-06-25 17:58:55,006 - __main__ - INFO -   {'event': 'Fed Rate Decision', 'time': '2:00 PM ET', 'importance': 'CRITICAL', 'forecast': '50 bps cut expected', 'impact': 'If cut = tech rallies (lower rates)', 'market_sensitivity': 'All sectors (especially tech)'}
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - === SCANNING STOCKTWITS SENTIMENT (Bull/Bear Ratio) ===
+
+2026-06-25 17:58:55,006 - __main__ - INFO - APPS: VERY BULLISH (78% bulls)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Volume: 8,500 mentions
+2026-06-25 17:58:55,006 - __main__ - INFO -   Top: Earnings beat incoming
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - NVDA: EXTREMELY BULLISH (82% bulls)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Volume: 125,000 mentions
+2026-06-25 17:58:55,006 - __main__ - INFO -   Top: AI boom continues, earnings coming
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - EHGO: BULLISH (71% bulls)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Volume: 3,200 mentions
+2026-06-25 17:58:55,006 - __main__ - INFO -   Top: Analyst upgrade, flying drone appeal
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - CRWD: MODERATELY BULLISH (65% bulls)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Volume: 5,600 mentions
+2026-06-25 17:58:55,006 - __main__ - INFO -   Top: Cybersecurity tailwind, steady performer
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - === SCANNING MORNINGSTAR RATINGS (Analyst Consensus) ===
+
+2026-06-25 17:58:55,006 - __main__ - INFO - APPS: BUY (4.5/5 stars)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Fair value: $$13.50 (Current: $$11.50)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Upside: 17%
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - NVDA: STRONG BUY (5/5 stars)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Fair value: $$950 (Current: $$850)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Upside: 11%
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - EHGO: BUY (4/5 stars)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Fair value: $$8.50 (Current: $$4.85)
+2026-06-25 17:58:55,006 - __main__ - INFO -   Upside: 75%
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - === SCANNING INVESTING.COM TECHNICALS (Support/Resistance) ===
+
+2026-06-25 17:58:55,006 - __main__ - INFO - APPS: STRONG BUY
+2026-06-25 17:58:55,006 - __main__ - INFO -   Price: $11.5
+2026-06-25 17:58:55,006 - __main__ - INFO -   Resistance: $12.0 / $12.5
+2026-06-25 17:58:55,006 - __main__ - INFO -   Support: $11.0 / $10.5
+2026-06-25 17:58:55,006 - __main__ - INFO - 
+2026-06-25 17:58:55,006 - __main__ - INFO - NVDA: STRONG BUY
+2026-06-25 17:58:55,007 - __main__ - INFO -   Price: $850
+2026-06-25 17:58:55,007 - __main__ - INFO -   Resistance: $875 / $900
+2026-06-25 17:58:55,007 - __main__ - INFO -   Support: $825 / $800
+2026-06-25 17:58:55,007 - __main__ - INFO - 
+2026-06-25 17:58:55,007 - __main__ - INFO - EHGO: BUY
+2026-06-25 17:58:55,007 - __main__ - INFO -   Price: $4.85
+2026-06-25 17:58:55,007 - __main__ - INFO -   Resistance: $5.0 / $5.5
+2026-06-25 17:58:55,007 - __main__ - INFO -   Support: $4.7 / $4.5
+2026-06-25 17:58:55,007 - __main__ - INFO - 
+2026-06-25 17:58:55,007 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,007 - __main__ - INFO - SWING TRADING CANDIDATES (News + Technical + Sentiment)
+2026-06-25 17:58:55,007 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:58:55,007 - __main__ - INFO - 1. NVDA - SWING SCORE: 95/100
+2026-06-25 17:58:55,007 - __main__ - INFO -    Catalyst: Earnings beat expected + AI tailwind
+2026-06-25 17:58:55,007 - __main__ - INFO -    Technical: Strong uptrend, support at $825
+2026-06-25 17:58:55,007 - __main__ - INFO -    Sentiment: EXTREMELY BULLISH (82%)
+2026-06-25 17:58:55,007 - __main__ - INFO -    Entry: Support at $825 or breakout at $875
+2026-06-25 17:58:55,007 - __main__ - INFO -    Target: $900-950
+2026-06-25 17:58:55,007 - __main__ - INFO -    Expected move: 5-8% in 2-4 days
+
+2026-06-25 17:58:55,007 - __main__ - INFO - 2. APPS - SWING SCORE: 87/100
+2026-06-25 17:58:55,007 - __main__ - INFO -    Catalyst: Earnings beat expected
+2026-06-25 17:58:55,007 - __main__ - INFO -    Technical: Support bounce at $11.00
+2026-06-25 17:58:55,007 - __main__ - INFO -    Sentiment: VERY BULLISH (78%)
+2026-06-25 17:58:55,007 - __main__ - INFO -    Entry: Bounce from $11.00 support
+2026-06-25 17:58:55,007 - __main__ - INFO -    Target: $12.50
+2026-06-25 17:58:55,007 - __main__ - INFO -    Expected move: 3-5% in 2-3 days
+
+2026-06-25 17:58:55,007 - __main__ - INFO - 3. EHGO - SWING SCORE: 85/100
+2026-06-25 17:58:55,007 - __main__ - INFO -    Catalyst: Analyst upgrade + flying drone sector
+2026-06-25 17:58:55,007 - __main__ - INFO -    Technical: Breakout above $5.00 resistance
+2026-06-25 17:58:55,007 - __main__ - INFO -    Sentiment: BULLISH (71%)
+2026-06-25 17:58:55,007 - __main__ - INFO -    Entry: Breakout at $5.00 or pullback to $4.70
+2026-06-25 17:58:55,007 - __main__ - INFO -    Target: $5.50
+2026-06-25 17:58:55,007 - __main__ - INFO -    Expected move: 3-5% in 2-4 days
+
+2026-06-25 17:58:55,007 - __main__ - INFO - 4. CRWD - SWING SCORE: 78/100
+2026-06-25 17:58:55,007 - __main__ - INFO -    Catalyst: Analyst upgrade + cybersecurity tailwind
+2026-06-25 17:58:55,007 - __main__ - INFO -    Technical: Consolidation ready for breakout
+2026-06-25 17:58:55,007 - __main__ - INFO -    Sentiment: MODERATELY BULLISH (65%)
+2026-06-25 17:58:55,007 - __main__ - INFO -    Entry: Breakout above $420 or support at $410
+2026-06-25 17:58:55,007 - __main__ - INFO -    Target: $440
+2026-06-25 17:58:55,007 - __main__ - INFO -    Expected move: 2-4% in 3-5 days
+
+2026-06-25 17:58:55,007 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,007 - __main__ - INFO - SWING TRADING DAILY REPORT
+2026-06-25 17:58:55,007 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:58:55,007 - __main__ - INFO - Catalysts found: 8
+2026-06-25 17:58:55,007 - __main__ - INFO -   - Earnings: 2
+2026-06-25 17:58:55,007 - __main__ - INFO -   - Upgrades: 2
+2026-06-25 17:58:55,007 - __main__ - INFO -   - Sector news: 2
+2026-06-25 17:58:55,007 - __main__ - INFO -   - Economic events: 2
+
+2026-06-25 17:58:55,007 - __main__ - INFO - Swing candidates identified: 4
+2026-06-25 17:58:55,007 - __main__ - INFO - Average swing score: 86.2/100
+2026-06-25 17:58:55,008 - __main__ - INFO - Average expected move: 3-5% over 2-4 days
+
+2026-06-25 17:58:55,008 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,008 - __main__ - INFO - SAVING NEWS & CATALYST RESULTS
+2026-06-25 17:58:55,008 - __main__ - INFO - ======================================================================
+
+2026-06-25 17:58:55,012 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,012 - __main__ - INFO - NEWS & CATALYST SCAN COMPLETE
+2026-06-25 17:58:55,012 - __main__ - INFO - ======================================================================
+2026-06-25 17:58:55,012 - __main__ - INFO - 
+Swing candidates ready: 4
+2026-06-25 17:58:55,012 - __main__ - INFO - Next step: 4:00 AM 90% ensemble validation on swing candidates
+2026-06-25 17:58:55,012 - __main__ - INFO - Expected: 1-3 high-probability swing trades
+

@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-06-25T17:29:04.025373",
+  "candidates": [
+    {
+      "rank": 1,
+      "symbol": "EHGO",
+      "sector": "Technology",
+      "price": 4.85,
+      "bull_run_score": 84.5,
+      "setup_type": "moving_avg_confluence",
+      "entry_quality": "excellent",
+      "catalyst": "Analyst upgrade + Fed supportive",
+      "catalyst_strength": "very_strong",
+      "momentum_status": "accelerating",
+      "trade_ready": false
+    },
+    {
+      "rank": 2,
+      "symbol": "NVDA",
+      "sector": "Technology",
+      "price": 850,
+      "bull_run_score": 79.0,
+      "setup_type": "breakout",
+      "entry_quality": "high",
+      "catalyst": "Earnings beat expected",
+      "catalyst_strength": "very_strong",
+      "momentum_status": "accelerating",
+      "trade_ready": false
+    },
+    {
+      "rank": 3,
+      "symbol": "APPS",
+      "sector": "Technology",
+      "price": 11.5,
+      "bull_run_score": 52.75,
+      "setup_type": "support_bounce",
+      "entry_quality": "excellent",
+      "catalyst": "Sector rotation into tech",
+      "catalyst_strength": "strong",
+      "momentum_status": "accelerating",
+      "trade_ready": false
+    },
+    {
+      "rank": 4,
+      "symbol": "AAPL",
+      "sector": "Technology",
+      "price": 180,
+      "bull_run_score": 46.5,
+      "setup_type": "support_bounce",
+      "entry_quality": "high",
+      "catalyst": "Analyst upgrade",
+      "catalyst_strength": "strong",
+      "momentum_status": "accelerating",
+      "trade_ready": false
+    },
+    {
+      "rank": 5,
+      "symbol": "DDOG",
+      "sector": "Technology",
+      "price": 155,
+      "bull_run_score": 46.5,
+      "setup_type": "support_bounce",
+      "entry_quality": "high",
+      "catalyst": "New product launch",
+      "catalyst_strength": "strong",
+      "momentum_status": "accelerating",
+      "trade_ready": false
+    }
+  ],
+  "total_candidates": 5
+}

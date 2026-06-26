@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-06-25T17:22:23.186293",
+  "watch_list": [
+    {
+      "symbol": "APPS",
+      "reason": "Current holding, gap setup",
+      "watch_level": "HIGH",
+      "entry_targets": [
+        10.5,
+        10.2,
+        9.9
+      ],
+      "key_levels": {
+        "support": 9.27,
+        "resistance": 10.5
+      }
+    },
+    {
+      "symbol": "EHGO",
+      "reason": "Current holding, volume breakout",
+      "watch_level": "HIGH",
+      "entry_targets": [
+        4.7,
+        4.5,
+        4.3
+      ],
+      "key_levels": {
+        "support": 4.34,
+        "resistance": 5.0
+      }
+    },
+    {
+      "symbol": "QQQ",
+      "reason": "Sector gauge for tech exposure",
+      "watch_level": "MEDIUM",
+      "entry_targets": [],
+      "key_levels": {
+        "support": 400,
+        "resistance": 410
+      }
+    },
+    {
+      "symbol": "SPY",
+      "reason": "Broad market direction",
+      "watch_level": "MEDIUM",
+      "entry_targets": [],
+      "key_levels": {
+        "support": 565,
+        "resistance": 575
+      }
+    }
+  ],
+  "count": 4
+}
