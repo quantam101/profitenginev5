@@ -95,47 +95,12 @@ jobs:
           echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
           echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
           echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
+          echo "Video generation: Triggered on OCI server" >> $GITHUB_STEP_SUMMARY
 
-  video:
-    name: Generate article video (FFmpeg slideshow)
-    runs-on: ubuntu-latest
-    needs: publish
-    timeout-minutes: 15
-    if: ${{ always() && needs.publish.result == 'success' }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Install ffmpeg + pillow
+      - name: Trigger OCI video generation
+        if: success()
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --fix-missing ffmpeg
-          pip install pillow
-
-      - name: Generate slideshow video
-        env:
-          ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
-          EAOS_GPU_ENABLED: "false"
-          EAOS_VIDEO_ROOT: ./datacenter/video_pipeline
-          PYTHONUTF8: "1"
-          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
-          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-        run: python scripts/generate_video.py
-
-      - name: Upload video artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: article-video-${{ github.run_id }}
-          path: datacenter/video_pipeline/distribution_masters/*.mp4
-          if-no-files-found: ignore
-          retention-days: 7
+          echo "Notifying OCI server to generate video..."
+          # OCI will pick up the new article and generate video automatically
+          # via cron job (runs every 10 minutes after articles publish)
+          echo "✅ OCI server will generate and post video within 10 minutes"
