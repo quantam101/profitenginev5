@@ -11,8 +11,8 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Literal
-from dataclasses import dataclass, asdict
+from typing import Any
+from dataclasses import dataclass
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -179,7 +179,7 @@ class SlackMonitoringService:
         """Generate 6 PM evening metrics post."""
         return SlackBriefing(
             title="📈 ProfitEngine Evening Metrics",
-            subtitle=f"*Daily Performance Summary*\nEnd-of-day snapshot",
+            subtitle="*Daily Performance Summary*\nEnd-of-day snapshot",
             metrics=await self._fetch_evening_metrics(),
             alerts=await self._fetch_evening_alerts(),
             color="#0099ff"  # Blue
