@@ -23,16 +23,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/oci_key
-          chmod 600 ~/.ssh/oci_key
-          ssh-keyscan -H 129.146.236.177 >> ~/.ssh/known_hosts 2>/dev/null
-
       - name: Deploy to OCI
         run: |
-          ssh -i ~/.ssh/oci_key ubuntu@129.146.236.177 << 'EOFSCRIPT'
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 129.146.236.177 >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@129.146.236.177 << 'EOFSCRIPT'
           set -e
 
           echo "===== OCI HYBRID SETUP ====="
