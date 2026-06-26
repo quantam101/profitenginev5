@@ -142,9 +142,25 @@ export async function GET(request: NextRequest): Promise<NextResponse<DashboardD
     return NextResponse.json(dashboardData);
   } catch (error) {
     console.error('Dashboard API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch dashboard data' },
-      { status: 500 }
-    );
+    const fallback: DashboardData = {
+      timestamp: new Date().toISOString(),
+      daily: {
+        date: new Date().toISOString().split('T')[0],
+        total_posts: 0,
+        total_reach: 0,
+        total_revenue: 0,
+        platforms: []
+      },
+      hourly: [],
+      top_platform: { name: 'N/A', revenue: 0, posts: 0 },
+      summary: {
+        total_posts_today: 0,
+        total_reach_today: 0,
+        total_revenue_today: 0,
+        average_revenue_per_post: 0,
+        revenue_per_platform: {}
+      }
+    };
+    return NextResponse.json(fallback, { status: 500 });
   }
 }
