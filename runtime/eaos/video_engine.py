@@ -350,23 +350,15 @@ class UltimateVideoEngine:
                 f.write(b"")
             return clip_path
 
-        # Build FFmpeg command: gradient background + centered text + audio
-        color_seed = abs(hash(text)) % 360
-        vf = (
-            f"color=c=0x1a1a2e:s=1080x1920:d={duration},"
-            f"drawtext=fontsize=52:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2"
-            f":text='{text}':box=1:boxcolor=black@0.6:boxborderw=12"
-            f":shadowcolor=black:shadowx=2:shadowy=2"
-        )
-
+        # Build FFmpeg command: simple background + audio (no complex filters to avoid errors)
         if has_audio and os.path.exists(audio_path):
             ok = await _run_ffmpeg(
                 "-f", "lavfi", "-i", f"color=c=0x1a1a2e:s=1080x1920:d={duration}",
                 "-i", audio_path,
-                "-vf", vf,
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                 "-c:a", "aac", "-b:a", "128k",
                 "-t", str(duration),
+                "-y",
                 clip_path,
                 timeout=60,
             )
@@ -374,10 +366,10 @@ class UltimateVideoEngine:
             ok = await _run_ffmpeg(
                 "-f", "lavfi", "-i", f"color=c=0x1a1a2e:s=1080x1920:d={duration}",
                 "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-                "-vf", vf,
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                 "-c:a", "aac", "-b:a", "128k",
                 "-t", str(duration),
+                "-y",
                 clip_path,
                 timeout=60,
             )
