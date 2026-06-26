@@ -3,7 +3,70 @@
   "installCommand": "npm ci --include=dev",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
+  "regions": ["iad1"],
   "env": {
-    "RUNTIME_API_URL": "https://api.profitengine.alreadyherellc.com"
-  }
+    "NEXT_PUBLIC_API_URL": {
+      "description": "Production API URL",
+      "required": true,
+      "default": "https://profitengine-tau.vercel.app"
+    },
+    "PROFITENGINE_URL": {
+      "description": "ProfitEngine production URL",
+      "required": true,
+      "default": "https://profitengine-tau.vercel.app"
+    },
+    "PROFITENGINE_WEBHOOK_TOKEN": {
+      "description": "Webhook authentication token (set in Vercel secrets)",
+      "required": true
+    },
+    "RUNTIME_API_URL": {
+      "description": "Runtime service API URL",
+      "required": false,
+      "default": "https://api.profitengine.alreadyherellc.com"
+    },
+    "AFFILIATE_LINKS": {
+      "description": "JSON map of affiliate links (set in Vercel secrets)",
+      "required": false
+    }
+  },
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/api/health",
+      "destination": "/api/health",
+      "permanent": false
+    }
+  ]
 }

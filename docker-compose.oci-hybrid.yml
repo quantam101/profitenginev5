@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  profitengine-video:
+    build:
+      context: .
+      dockerfile: Dockerfile.oci-video
+    container_name: profitengine-video-engine
+    restart: always
+    environment:
+      # Video generation
+      EAOS_VIDEO_ROOT: /app/datacenter/video_pipeline
+      EAOS_GPU_ENABLED: "false"
+      PYTHONUTF8: "1"
+
+      # TikTok
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
+      TIKTOK_ACCESS_TOKEN: ${TIKTOK_ACCESS_TOKEN}
+
+      # Twitter/X
+      TWITTER_API_KEY: ${TWITTER_API_KEY}
+      TWITTER_API_SECRET: ${TWITTER_API_SECRET}
+      TWITTER_ACCESS_TOKEN: ${TWITTER_ACCESS_TOKEN}
+      TWITTER_ACCESS_SECRET: ${TWITTER_ACCESS_SECRET}
+
+      # LinkedIn
+      LINKEDIN_ACCESS_TOKEN: ${LINKEDIN_ACCESS_TOKEN}
+      LINKEDIN_PERSON_URN: ${LINKEDIN_PERSON_URN}
+
+      # Instagram
+      IG_USER_ID: ${IG_USER_ID}
+      IG_PAGE_ACCESS_TOKEN: ${IG_PAGE_ACCESS_TOKEN}
+
+      # Facebook
+      FB_PAGE_ID: ${FB_PAGE_ID}
+      FB_PAGE_ACCESS_TOKEN: ${FB_PAGE_ACCESS_TOKEN}
+
+      # YouTube
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET}
+      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN}
+
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+
+      # Article config
+      CANONICAL_URL: ${CANONICAL_URL:-https://quantam101.github.io/content}
+      ARTICLE_TOPIC: ${ARTICLE_TOPIC:-Best AI Tools for Passive Income in 2026}
+
+    volumes:
+      - video_pipeline:/app/datacenter/video_pipeline
+      - video_logs:/app/logs
+
+    networks:
+      - profitengine
+
+    # Run video generation every 10 minutes
+    command: >
+      sh -c "
+      while true; do
+        echo '[$(date -u)] Starting video generation...'
+        python3 scripts/oci_generate_and_post.py || echo '[$(date -u)] Video generation failed, retrying in 10 minutes'
+        sleep 600
+      done
+      "
+
+    healthcheck:
+      test: ["CMD", "test", "-f", "/app/logs/health.check"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  video_pipeline:
+    driver: local
+  video_logs:
+    driver: local
+
+networks:
+  profitengine:
+    driver: bridge

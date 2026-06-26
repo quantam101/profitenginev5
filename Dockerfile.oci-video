@@ -1,0 +1,53 @@
+FROM python:3.11-slim
+
+LABEL maintainer="quantam101@alreadyherellc.com"
+LABEL description="ProfitEngine OCI Video Generation & Multi-Platform Posting"
+LABEL version="1.0"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy repository
+COPY . .
+
+# Create Python virtual environment
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    httpx \
+    pillow \
+    fastapi \
+    uvicorn \
+    aiohttp \
+    aiosqlite \
+    pydantic \
+    python-dotenv
+
+# Create necessary directories
+RUN mkdir -p /app/datacenter/video_pipeline/{raw_clips,audio_tracks,subtitles,distribution_masters} && \
+    mkdir -p /app/logs && \
+    chmod -R 755 /app/datacenter /app/logs
+
+# Health check script
+RUN echo '#!/bin/bash\ntouch /app/logs/health.check\n' > /usr/local/bin/health-check.sh && \
+    chmod +x /usr/local/bin/health-check.sh
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    EAOS_GPU_ENABLED=false \
+    EAOS_VIDEO_ROOT=/app/datacenter/video_pipeline
+
+# Run video generation service
+CMD ["python3", "scripts/oci_generate_and_post.py"]
