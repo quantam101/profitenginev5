@@ -1,0 +1,189 @@
+name: OCI Hybrid Setup - Complete Installation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'full-setup'
+        type: choice
+        options:
+          - full-setup
+          - test-video
+          - view-logs
+
+jobs:
+  deploy:
+    name: Deploy to OCI
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'full-setup'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/oci_key
+          chmod 600 ~/.ssh/oci_key
+          ssh-keyscan -H 129.146.236.177 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy to OCI
+        run: |
+          ssh -i ~/.ssh/oci_key ubuntu@129.146.236.177 << 'EOFSCRIPT'
+          set -e
+
+          echo "===== OCI HYBRID SETUP ====="
+          echo "Starting automated setup..."
+          echo ""
+
+          # Step 1: Navigate to repo
+          echo "[1/8] Preparing repo..."
+          cd /home/ubuntu
+          if [ ! -d profitenginev5 ]; then
+            git clone https://github.com/quantam101/profitenginev5.git
+          fi
+          cd profitenginev5
+          git pull origin main --quiet
+
+          # Step 2: Install dependencies
+          echo "[2/8] Installing dependencies..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --quiet ffmpeg python3-pip python3-venv
+
+          # Step 3: Create virtual environment
+          echo "[3/8] Creating virtual environment..."
+          python3 -m venv venv --quiet
+          source venv/bin/activate
+          pip install --quiet --upgrade pip
+          pip install --quiet httpx pillow
+
+          # Step 4: Create .env file with credentials
+          echo "[4/8] Configuring environment variables..."
+          cat > /home/ubuntu/profitenginev5/.env << 'EOF'
+          # Video generation
+          EAOS_VIDEO_ROOT=/home/ubuntu/profitenginev5/datacenter/video_pipeline
+          EAOS_GPU_ENABLED=false
+          PYTHONUTF8=1
+
+          # TikTok
+          TIKTOK_ACCESS_TOKEN=PLACEHOLDER_TIKTOK
+          TIKTOK_CLIENT_KEY=aw585wlt3458r9dh
+          TIKTOK_CLIENT_SECRET=NjeOcOBE65Tx92OqoVjPlwUigoBeWSs5
+
+          # Twitter/X
+          TWITTER_API_KEY=W6JnmO0diTw30duXOF1PJkB2g
+          TWITTER_API_SECRET=1pKfNfaBb3oCLavp0iZVTs6tkfnWcv1O82Lg8bESTEpGHbm092
+          TWITTER_ACCESS_TOKEN=1971705917587820544-S3KBdRzah9Y2jz0YXc9ZUv43mcS2Ws
+          TWITTER_ACCESS_SECRET=rHxy1ZfQxHoRktLnzGkd8bjfTWHVbg0Yrv9KFenKWzoJl
+
+          # LinkedIn
+          LINKEDIN_ACCESS_TOKEN=PLACEHOLDER_LINKEDIN
+          LINKEDIN_PERSON_URN=PLACEHOLDER_LINKEDIN_URN
+
+          # Instagram
+          IG_USER_ID=1077849398753613
+          IG_PAGE_ACCESS_TOKEN=1693351238518696|AZ0-uERN5vIFm7oytGSCug6Zlx8
+
+          # Facebook
+          FB_PAGE_ID=61590010037059
+          FB_PAGE_ACCESS_TOKEN=1693351238518696|AZ0-uERN5vIFm7oytGSCug6Zlx8
+
+          # YouTube
+          YOUTUBE_CLIENT_ID=PLACEHOLDER_YT_ID
+          YOUTUBE_CLIENT_SECRET=PLACEHOLDER_YT_SECRET
+          YOUTUBE_REFRESH_TOKEN=PLACEHOLDER_YT_REFRESH
+
+          # Telegram
+          TELEGRAM_BOT_TOKEN=PLACEHOLDER_TELEGRAM
+          TELEGRAM_CHAT_ID=PLACEHOLDER_TELEGRAM_CHAT
+
+          # Article config
+          CANONICAL_URL=https://quantam101.github.io/content
+          ARTICLE_TOPIC=Best AI Tools for Passive Income in 2026
+          EOF
+
+          chmod 600 /home/ubuntu/profitenginev5/.env
+
+          # Step 5: Create run script
+          echo "[5/8] Creating execution script..."
+          cat > /home/ubuntu/profitenginev5/run_video_generation.sh << 'EOF'
+          #!/bin/bash
+          cd /home/ubuntu/profitenginev5
+          source venv/bin/activate
+          source .env
+          python3 scripts/oci_generate_and_post.py
+          EOF
+
+          chmod +x /home/ubuntu/profitenginev5/run_video_generation.sh
+
+          # Step 6: Set up cron job
+          echo "[6/8] Setting up cron job..."
+          (crontab -l 2>/dev/null | grep -v "run_video_generation" || true; echo "*/10 * * * * /home/ubuntu/profitenginev5/run_video_generation.sh >> /home/ubuntu/video_generation.log 2>&1") | crontab -
+
+          # Step 7: Create log file
+          echo "[7/8] Initializing log file..."
+          touch /home/ubuntu/video_generation.log
+          chmod 644 /home/ubuntu/video_generation.log
+
+          # Step 8: Test installation
+          echo "[8/8] Testing video generation..."
+          source venv/bin/activate
+          source .env
+          python3 scripts/oci_generate_and_post.py 2>&1 | head -20
+
+          echo ""
+          echo "===== SETUP COMPLETE ====="
+          echo "✅ Hybrid system deployed to OCI"
+          echo "✅ Cron job scheduled: Every 10 minutes"
+          echo "✅ Next video generation: Within 10 minutes"
+          echo ""
+          echo "View logs: tail -f /home/ubuntu/video_generation.log"
+          EOFSCRIPT
+
+  test:
+    name: Test Video Generation
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'test-video'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/oci_key
+          chmod 600 ~/.ssh/oci_key
+          ssh-keyscan -H 129.146.236.177 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Run test
+        run: |
+          ssh -i ~/.ssh/oci_key ubuntu@129.146.236.177 << 'EOFSCRIPT'
+          cd /home/ubuntu/profitenginev5
+          source venv/bin/activate
+          source .env
+          python3 scripts/oci_generate_and_post.py
+          EOFSCRIPT
+
+  logs:
+    name: View Logs
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'view-logs'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/oci_key
+          chmod 600 ~/.ssh/oci_key
+          ssh-keyscan -H 129.146.236.177 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Show logs
+        run: |
+          ssh -i ~/.ssh/oci_key ubuntu@129.146.236.177 "echo '=== Latest video generation logs ===' && tail -50 /home/ubuntu/video_generation.log"
