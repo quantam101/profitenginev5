@@ -4,31 +4,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_API_URL": {
-      "description": "Production API URL",
-      "required": true,
-      "default": "https://profitengine-tau.vercel.app"
-    },
-    "PROFITENGINE_URL": {
-      "description": "ProfitEngine production URL",
-      "required": true,
-      "default": "https://profitengine-tau.vercel.app"
-    },
-    "PROFITENGINE_WEBHOOK_TOKEN": {
-      "description": "Webhook authentication token (set in Vercel secrets)",
-      "required": true
-    },
-    "RUNTIME_API_URL": {
-      "description": "Runtime service API URL",
-      "required": false,
-      "default": "https://api.profitengine.alreadyherellc.com"
-    },
-    "AFFILIATE_LINKS": {
-      "description": "JSON map of affiliate links (set in Vercel secrets)",
-      "required": false
-    }
-  },
+  "env": [
+    "NEXT_PUBLIC_API_URL",
+    "PROFITENGINE_URL",
+    "PROFITENGINE_WEBHOOK_TOKEN",
+    "RUNTIME_API_URL",
+    "AFFILIATE_LINKS"
+  ],
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
