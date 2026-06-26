@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
-
 interface CheckoutRequest {
   tool: string;
   tier: string;
@@ -63,6 +61,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://profitenginev5-dboenhqyq-already-here-llc-s-projects.vercel.app';
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
