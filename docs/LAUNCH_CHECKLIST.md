@@ -55,7 +55,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij
 
 ### Option A — OCI Console (easiest, 2 minutes)
 1. Go to https://cloud.oracle.com → sign in
-2. Compute → Instances → click your instance (IP: 129.146.167.73)
+2. Compute → Instances → click your instance (IP: 129.146.236.177)
 3. Click **Edit** (top right)
 4. Under **SSH keys** → **Add SSH keys** → paste the key above
 5. Click **Save changes**
@@ -69,7 +69,7 @@ docker exec -it local-operator bash
 bw login   # enter your Bitwarden email + master password
 bw list items --search "OCI" | python3 -c "import json,sys; [print(i['login']['password']) for i in json.loads(sys.stdin.read()) if 'key' in i.get('name','').lower()]"
 # Copy the private key, save to ~/.ssh/oci_key, chmod 600
-# Then SSH: ssh -i ~/.ssh/oci_key ubuntu@129.146.167.73
+# Then SSH: ssh -i ~/.ssh/oci_key opc@129.146.236.177
 # Once in: paste the bootstrap one-liner from Option C
 ```
 
@@ -120,6 +120,6 @@ To add a secret: GitHub → repo → Settings → Secrets → Actions → New se
 ## Domain / DNS
 
 - [ ] `SITE_DOMAIN` set in `.env` (default: `profitengine.alreadyherellc.com`)
-- [ ] A records: `@`, `app`, `api` → 129.146.167.73
+- [ ] A records: `@`, `app`, `api` → 129.146.236.177
 - [ ] Caddy is running and HTTPS certificates are issued
 - [ ] n8n not publicly exposed until `N8N_BASIC_AUTH_ACTIVE=true` confirmed

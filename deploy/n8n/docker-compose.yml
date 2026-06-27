@@ -1,10 +1,10 @@
 version: "3.8"
 
 # Already Here LLC — N8N Automation Hub
-# Runs free forever on OCI Always-Free tier (129.146.167.73)
+# Runs free forever on OCI Always-Free tier (129.146.236.177)
 # Replaces Zapier. Orchestrates Taylor, outreach, Slack, Gmail, Stripe.
 #
-# Deploy: ssh ubuntu@129.146.167.73 && cd /opt/already-here && docker compose -f deploy/n8n/docker-compose.yml up -d
+# Deploy: ssh opc@129.146.236.177 && cd /opt/already-here && docker compose -f deploy/n8n/docker-compose.yml up -d
 
 services:
 

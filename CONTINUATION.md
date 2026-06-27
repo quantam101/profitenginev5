@@ -13,7 +13,7 @@
 | Health score | ✅ 100/100 | ok=true, all 11 checks pass |
 | Disk usage | ✅ 67% (9.9 GB free) | Was 100% — 3.3 GB build cache cleared |
 | Docker Guard cron | ✅ Installed | Runs every 6h via cron + GitHub Actions |
-| DNS | ✅ Propagated | All 4 A records → 129.146.167.73 |
+| DNS | ✅ Propagated | All 4 A records → 129.146.236.177 |
 | HTTPS / Caddy cert | ✅ Live | TLS certs issued for all 4 subdomains |
 | Content pipeline | ✅ LIVE | GitHub Pages + Dev.to publishing daily |
 | Dev.to publishing | ✅ Working | Tag sanitization fix (commit 516a841) |
@@ -23,7 +23,7 @@
 ## 🔧 Manual Steps Required (priority order)
 
 ### 1. DNS — ✅ COMPLETE (2026-05-27)
-All 4 A records set in GoDaddy → 129.146.167.73. TLS certs live.
+All 4 A records set in GoDaddy → 129.146.236.177. TLS certs live.
 
 Live URLs:
 - https://profitengine.alreadyherellc.com        ← main dashboard
@@ -69,14 +69,14 @@ Add `PROFITENGINE_WEBHOOK_TOKEN=85e7269ade9a0d356c5d3ad74e7662046f9353ad91aa6a20
 
 ```powershell
 # SSH to server
-ssh -i "$env:USERPROFILE\profitengine-ed25519" opc@129.146.167.73
+ssh -i "$env:USERPROFILE\profitengine-ed25519" opc@129.146.236.177
 
 # Key files
 C:\Users\alrea\profitengine-ed25519        # private key (ED25519)
 C:\Users\alrea\profitengine-ed25519.pub    # public key
 ```
 
-**Server:** `129.146.167.73` | OCI Oracle Linux 9.7 | 4 OCPUs / 24 GB RAM
+**Server:** `129.146.236.177` | OCI Oracle Linux 9.7 | 4 OCPUs / 24 GB RAM
 **ED25519 fingerprint:** `SHA256:lEzI1h1lTjWqNqjJmtO2WQQ8l/D09oAqFzOyeVPAhLM`
 
 ---
@@ -136,7 +136,7 @@ gh secret set DEVTO_API_KEY --body "your-key-here" -R quantam101/profitenginev5
 | Docker Guard agent | Bash + Python | `scripts/docker-guard.sh` + `runtime/agent_impls/docker_guard.py` |
 | CI/CD | GitHub Actions (7 workflows) | `.github/workflows/` |
 | Reverse proxy | Caddy 2 | `caddy/Caddyfile` |
-| Monitoring | Uptime Kuma | `http://129.146.167.73:3001` (after port forward) |
+| Monitoring | Uptime Kuma | `http://129.146.236.177:3001` (after port forward) |
 | Automation | n8n | Internal only (auth required) |
 
 ---
@@ -144,7 +144,7 @@ gh secret set DEVTO_API_KEY --body "your-key-here" -R quantam101/profitenginev5
 ## 📊 Service Health (as of 2026-05-27)
 
 ```
-Server: 129.146.167.73
+Server: 129.146.236.177
 Disk: 67% used (9.9 GB free / 30 GB total)
 Containers: caddy, web, runtime (healthy), n8n, postgres, uptime-kuma (healthy)
 Health score: 100/100
@@ -154,7 +154,7 @@ Docker guard cron: 0 */6 * * * (every 6 hours)
 
 ### To check health manually:
 ```bash
-ssh -i ~/profitengine-ed25519 opc@129.146.167.73 \
+ssh -i ~/profitengine-ed25519 opc@129.146.236.177 \
   "docker exec profitenginev5-runtime-1 wget -qO- http://web:3000/api/health | python3 -c 'import sys,json; d=json.load(sys.stdin); print(\"ok:\",d[\"ok\"],\"score:\",d[\"healthScore\"])'"
 ```
 
@@ -172,7 +172,7 @@ ssh -i ~/profitengine-ed25519 opc@129.146.167.73 \
 | Hashnode API investigation | Now requires Pro plan — script handles failure gracefully |
 | Fix CONTENT_REPO_TOKEN (expired) | ✅ Updated to working OAuth token |
 | Fix Dev.to 422 (tag sanitization) | ✅ Commit `516a841` — strips spaces/special chars |
-| DNS A records (GoDaddy) | ✅ All 4 set → 129.146.167.73 |
+| DNS A records (GoDaddy) | ✅ All 4 set → 129.146.236.177 |
 | TLS certs (Caddy/ACME) | ✅ All 4 subdomains provisioned |
 | End-to-end pipeline smoke test | ✅ GitHub Pages + Dev.to — article live |
 | **PRODUCTION GO-LIVE** | ✅ **2026-05-27** |

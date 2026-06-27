@@ -17,11 +17,11 @@
 #
 #  METHOD B — OCI Cloud Shell (if instance is on public subnet):
 #    Open Cloud Shell (>_ in OCI Console top bar)
-#    → ssh ubuntu@129.146.167.73   (if your OCI Cloud Shell key is in authorized_keys)
+#    → ssh opc@129.146.236.177   (if your OCI Cloud Shell key is in authorized_keys)
 #    → Paste this script
 #
 #  METHOD C — Any machine with any working SSH key:
-#    ssh -i YOUR_KEY ubuntu@129.146.167.73
+#    ssh -i YOUR_KEY opc@129.146.236.177
 #    → Paste this script
 #
 #  Fill in your API keys below before running.
@@ -115,7 +115,7 @@ log ""
 log "╔══════════════════════════════════════════════════════════════╗"
 log "║  FIRST BOOT COMPLETE                                         ║"
 log "╠══════════════════════════════════════════════════════════════╣"
-log "║  Dashboard: http://129.146.167.73:3000                       ║"
-log "║  Health:    http://129.146.167.73:3000/api/health            ║"
+log "║  Dashboard: http://129.146.236.177:3000                       ║"
+log "║  Health:    http://129.146.236.177:3000/api/health            ║"
 log "║  CI/CD:     every git push to main auto-deploys now          ║"
 log "╚══════════════════════════════════════════════════════════════╝"

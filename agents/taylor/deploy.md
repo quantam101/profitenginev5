@@ -69,7 +69,7 @@ python server.py
 
 Option B — OCI server (recommended — always on):
 ```bash
-ssh ubuntu@129.146.167.73
+ssh opc@129.146.236.177
 cd /opt/already-here
 git pull
 pip install fastapi uvicorn aiohttp stripe

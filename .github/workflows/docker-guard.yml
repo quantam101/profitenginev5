@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   guard:
-    name: Guard 129.146.167.73
+    name: Guard 129.146.236.177
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -45,7 +45,7 @@ jobs:
         run: |
           AGGR="${{ github.event.inputs.aggressive || 'false' }}"
           HTTP_CODE=$(curl -s -o /tmp/guard-response.json -w "%{http_code}" --max-time 660 \
-            -X POST "http://129.146.167.73/guard/run" \
+            -X POST "http://129.146.236.177/guard/run" \
             -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"aggressive\": ${AGGR}}")

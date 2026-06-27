@@ -127,14 +127,14 @@ After the pull the inference cascade activates automatically on the next executi
 Point your DNS records to your server IP **before** running the deploy script.
 Caddy handles TLS automatically via Let's Encrypt.
 
-Required DNS records — A records pointing to `129.146.167.73`:
+Required DNS records — A records pointing to `129.146.236.177`:
 
 | Subdomain | Points to | Purpose |
 |---|---|---|
-| `profitengine.alreadyherellc.com` | `129.146.167.73` | Marketing site |
-| `app.profitengine.alreadyherellc.com` | `129.146.167.73` | Command center (Next.js) |
-| `api.profitengine.alreadyherellc.com` | `129.146.167.73` | Runtime API (FastAPI) |
-| `status.profitengine.alreadyherellc.com` | `129.146.167.73` | Uptime Kuma monitoring |
+| `profitengine.alreadyherellc.com` | `129.146.236.177` | Marketing site |
+| `app.profitengine.alreadyherellc.com` | `129.146.236.177` | Command center (Next.js) |
+| `api.profitengine.alreadyherellc.com` | `129.146.236.177` | Runtime API (FastAPI) |
+| `status.profitengine.alreadyherellc.com` | `129.146.236.177` | Uptime Kuma monitoring |
 
 n8n is NOT publicly exposed by default (security policy). Enable it in the Caddyfile
 only after verifying `N8N_BASIC_AUTH_ACTIVE=true` is set.

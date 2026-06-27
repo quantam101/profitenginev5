@@ -19,7 +19,7 @@ jobs:
       - name: Trigger digest via runtime API
         run: |
           code=$(curl -s -o /tmp/digest_response.json -w "%{http_code}" --max-time 60 \
-            -X POST "http://129.146.167.73/digest/run" \
+            -X POST "http://129.146.236.177/digest/run" \
             -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json")
           echo "HTTP $code"
@@ -27,5 +27,5 @@ jobs:
           if [[ "$code" =~ ^2 ]]; then
             echo "::notice::Digest triggered successfully (HTTP $code)"
           else
-            echo "::warning::Digest trigger failed (HTTP $code) — runtime unreachable or misconfigured. Check http://129.146.167.73/digest/run"
+            echo "::warning::Digest trigger failed (HTTP $code) — runtime unreachable or misconfigured. Check http://129.146.236.177/digest/run"
           fi

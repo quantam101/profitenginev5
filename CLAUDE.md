@@ -38,7 +38,7 @@ No partial "looks good" status is acceptable.
 ## Architecture
 
 - **Frontend/API**: Next.js 14 on Vercel → `profitengine-tau.vercel.app`
-- **Runtime**: Python FastAPI (Docker) on OCI `129.146.167.73`
+- **Runtime**: Python FastAPI (Docker) on OCI `129.146.236.177`
 - **Content**: GitHub Pages → `quantam101.github.io/content`
 - **CI/CD**: GitHub Actions → auto-deploy on push to `main`
 - **Content pipeline**: GitHub Actions cron `07:05 UTC` daily
@@ -57,7 +57,7 @@ No partial "looks good" status is acceptable.
 - Affiliate links injected via `AFFILIATE_LINKS` env var (JSON map)
 
 ## Server Access
-- OCI server: `ubuntu@129.146.167.73`
+- OCI server: `opc@129.146.236.177`
 - Deploy key (public): `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions`
 - Add via OCI Console → Instance → Edit → SSH keys
 

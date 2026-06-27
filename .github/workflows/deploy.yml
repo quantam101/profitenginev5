@@ -11,7 +11,7 @@ on:
       oci_host:
         description: 'OCI public IP or DNS name to check'
         required: false
-        default: '129.146.167.73'
+        default: '129.146.236.177'
         type: string
 
 concurrency:
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DEFAULT_OCI_HOST: '129.146.167.73'
+  DEFAULT_OCI_HOST: '129.146.236.177'
 
 jobs:
   oci_preflight:

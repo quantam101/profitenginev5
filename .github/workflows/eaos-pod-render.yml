@@ -43,7 +43,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
-      RUNTIME_BASE: http://129.146.167.73
+      RUNTIME_BASE: http://129.146.236.177
 
     steps:
       - uses: actions/checkout@v5
