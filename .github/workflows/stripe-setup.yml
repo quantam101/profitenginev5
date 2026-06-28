@@ -1,0 +1,134 @@
+name: Setup Stripe Pricing Table
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-stripe-products:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Stripe
+        run: npm install stripe
+
+      - name: Create Stripe Products & Prices
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          node << 'SCRIPT'
+          const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+          const products = {
+            travel: [
+              { tier: 'starter', name: 'Budget Itinerary', price: 49900 },
+              { tier: 'standard', name: 'Extended Itinerary', price: 149900 },
+              { tier: 'premium', name: 'VIP Concierge', price: 249900 },
+            ],
+            newsletter: [
+              { tier: 'starter', name: '1 Month Trial', price: 99900 },
+              { tier: 'standard', name: '3-Month Package', price: 249900 },
+              { tier: 'premium', name: 'Annual Retainer', price: 299900 },
+            ],
+            'sales-copy': [
+              { tier: 'starter', name: 'Basic Page', price: 499900 },
+              { tier: 'standard', name: 'Professional Page', price: 1299900 },
+              { tier: 'premium', name: 'Enterprise Package', price: 2499900 },
+            ],
+            linkedin: [
+              { tier: 'starter', name: 'Single Post', price: 49900 },
+              { tier: 'standard', name: 'Monthly Package', price: 199900 },
+              { tier: 'premium', name: 'Quarterly Retainer', price: 499900 },
+            ],
+            resume: [
+              { tier: 'starter', name: 'Resume Only', price: 24900 },
+              { tier: 'standard', name: 'Bundle', price: 69900 },
+              { tier: 'premium', name: 'Career Package', price: 149900 },
+            ],
+            kdp: [
+              { tier: 'starter', name: 'Single Book', price: 49900 },
+              { tier: 'standard', name: 'Book Bundle', price: 129900 },
+              { tier: 'premium', name: 'Publishing Bundle', price: 249900 },
+            ],
+          };
+
+          (async () => {
+            try {
+              console.log('🚀 Creating Stripe products and prices...\n');
+              const priceIds = [];
+
+              for (const [tool, tiers] of Object.entries(products)) {
+                console.log(`📦 ${tool.toUpperCase()}`);
+
+                // Check if product exists
+                const existingProducts = await stripe.products.list({
+                  limit: 100,
+                  expand: ['data.default_price'],
+                });
+
+                let product = existingProducts.data.find(p =>
+                  p.name.toLowerCase().includes(tool.replace('-', ' ').toLowerCase())
+                );
+
+                if (!product) {
+                  product = await stripe.products.create({
+                    name: tool.replace('-', ' ').toUpperCase(),
+                    description: `${tool.replace('-', ' ')} service package`,
+                  });
+                  console.log(`   ✓ Created product: ${product.id}`);
+                } else {
+                  console.log(`   ✓ Found existing product: ${product.id}`);
+                }
+
+                // Create prices
+                for (const { tier, name, price } of tiers) {
+                  const priceObj = await stripe.prices.create({
+                    product: product.id,
+                    unit_amount: price,
+                    currency: 'usd',
+                    nickname: `${tool}-${tier}`,
+                    metadata: {
+                      tool,
+                      tier,
+                      displayName: name,
+                    },
+                  });
+
+                  priceIds.push(priceObj.id);
+                  console.log(`   ✓ ${tier}: $${price / 100} → ${priceObj.id}`);
+                }
+              }
+
+              console.log('\n✅ ALL PRODUCTS CREATED!\n');
+              console.log('📋 NEXT STEP - Create Pricing Table in Stripe Dashboard:');
+              console.log('1. Go to: https://dashboard.stripe.com/billing/pricing-tables');
+              console.log('2. Click "Create pricing table"');
+              console.log('3. Select these price IDs:');
+              priceIds.forEach((id, i) => console.log(`   ${i + 1}. ${id}`));
+              console.log('4. Configure and click "Create"');
+              console.log('5. Copy the Pricing Table ID (prctbl_xxxxx)');
+              console.log('\n💾 Save the Pricing Table ID for Vercel setup.');
+
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ Error:', error.message);
+              process.exit(1);
+            }
+          })();
+          SCRIPT
+
+      - name: Output Summary
+        run: |
+          echo "✅ Stripe setup complete!"
+          echo ""
+          echo "📌 NEXT STEPS:"
+          echo "1. Check the logs above for all Price IDs"
+          echo "2. Go to: https://dashboard.stripe.com/billing/pricing-tables"
+          echo "3. Create pricing table with those price IDs"
+          echo "4. Copy the Pricing Table ID"
+          echo "5. Add to Vercel env vars"
