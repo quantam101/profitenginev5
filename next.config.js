@@ -2,6 +2,7 @@ const nextConfig = {
   // Bundle config/registry YAML files into serverless functions so runtime
   // health/status routes can read them from process.cwd().
   outputFileTracingIncludes: {
+    '/api/checkout': ['node_modules/stripe'],
     '/api/distillation/status': ['config/distillation.yaml'],
     '/api/agents/parallel': ['agents/registry.yaml'],
     '/api/health': [
