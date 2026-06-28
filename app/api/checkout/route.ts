@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 interface CheckoutRequest {
   tool: string;
   tier: string;
-  email: string;
+  email?: string;
 }
 
 const toolPricing: Record<string, Record<string, { name: string; price: number }>> = {
@@ -45,9 +45,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body: CheckoutRequest = await request.json();
     const { tool, tier, email } = body;
 
-    if (!tool || !tier || !email) {
+    if (!tool || !tier) {
       return NextResponse.json(
-        { error: 'Tool, tier, and email are required' },
+        { error: 'Tool and tier are required' },
         { status: 400 }
       );
     }
@@ -60,9 +60,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://profitenginev5-dboenhqyq-already-here-llc-s-projects.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.alreadyherellc.com';
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+    if (!stripeKey) {
+      return NextResponse.json(
+        { error: 'Stripe key not configured' },
+        { status: 500 }
+      );
+    }
+
+    const stripe = new Stripe(stripeKey);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -82,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       mode: 'payment',
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout`,
-      customer_email: email,
+      ...(email && { customer_email: email }),
       metadata: {
         tool,
         tier,
