@@ -1,23 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'stripe-pricing-table': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          'pricing-table-id': string;
-          'publishable-key': string;
-          'client-reference-id'?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
+import { useEffect, useRef } from 'react';
 
 export default function CheckoutPage() {
+  const pricingTableRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // Load Stripe Pricing Table script
     const script = document.createElement('script');
@@ -26,8 +13,24 @@ export default function CheckoutPage() {
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
+  }, []);
+
+  useEffect(() => {
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
+    const pricingTableId = process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || '';
+
+    if (publishableKey && pricingTableId && pricingTableRef.current) {
+      const table = document.createElement('stripe-pricing-table');
+      table.setAttribute('pricing-table-id', pricingTableId);
+      table.setAttribute('publishable-key', publishableKey);
+
+      pricingTableRef.current.innerHTML = '';
+      pricingTableRef.current.appendChild(table);
+    }
   }, []);
 
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
@@ -51,11 +54,8 @@ export default function CheckoutPage() {
           Choose Your Perfect Package
         </h1>
 
-        {/* Stripe Pricing Table */}
-        <stripe-pricing-table
-          pricing-table-id={pricingTableId}
-          publishable-key={publishableKey}
-        />
+        {/* Stripe Pricing Table Container */}
+        <div ref={pricingTableRef} />
       </div>
     </div>
   );
