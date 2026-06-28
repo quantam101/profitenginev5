@@ -1,0 +1,267 @@
+name: AH-POS Daily Sync
+
+on:
+  schedule:
+    # Run at 06:00 UTC daily (midnight EST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sam-gov-sync:
+    runs-on: ubuntu-latest
+    name: SAM.gov Solicitation Sync
+
+    env:
+      DATABASE_URL: ${{ secrets.AH_POS_DATABASE_URL }}
+      NAICS_CODES: '541611,541512,541330'  # IT services, consulting, etc.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ah-pos/requirements.txt
+
+      - name: Run SAM.gov scraper
+        run: |
+          cd ah-pos/backend
+          python scrape_sam_gov.py
+
+      - name: Verify sync
+        run: |
+          cd ah-pos/backend
+          python -c "
+          from sqlalchemy import create_engine, func
+          from sqlalchemy.orm import sessionmaker
+          from models import Solicitation
+          import os
+
+          engine = create_engine(os.getenv('DATABASE_URL'))
+          Session = sessionmaker(bind=engine)
+          session = Session()
+
+          total = session.query(Solicitation).count()
+          recent = session.query(Solicitation).filter(
+              Solicitation.last_updated >= func.now() - func.interval('1 hour')
+          ).count()
+
+          print(f'Total solicitations: {total}')
+          print(f'Updated in last hour: {recent}')
+          session.close()
+          "
+
+      - name: Send success notification
+        if: success()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+              -H 'Content-Type: application/json' \
+              -d '{"text":"✓ AH-POS SAM.gov sync completed successfully"}'
+          fi
+
+      - name: Send failure notification
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+              -H 'Content-Type: application/json' \
+              -d '{"text":"✗ AH-POS SAM.gov sync FAILED - check logs"}'
+          fi
+
+  pricing-update:
+    runs-on: ubuntu-latest
+    name: Update Pricing & Labor Rates
+    needs: sam-gov-sync
+
+    env:
+      DATABASE_URL: ${{ secrets.AH_POS_DATABASE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ah-pos/requirements.txt
+
+      - name: Update COLA rates
+        run: |
+          cd ah-pos/backend
+          python -c "
+          from sqlalchemy import create_engine, func, update
+          from sqlalchemy.orm import sessionmaker
+          from models import LaborCategory, RateCard
+          from decimal import Decimal
+          import os
+
+          # Apply 2026 COLA (typically 2-3% annually)
+          cola_factor = Decimal('1.028')
+
+          engine = create_engine(os.getenv('DATABASE_URL'))
+          Session = sessionmaker(bind=engine)
+          session = Session()
+
+          updated = session.query(LaborCategory).filter(
+              LaborCategory.loaded_rate_2025 != None
+          ).update({
+              LaborCategory.loaded_rate_2026: (LaborCategory.loaded_rate_2025 * cola_factor)
+          })
+
+          session.commit()
+          print(f'Updated {updated} labor categories with COLA')
+          session.close()
+          "
+
+      - name: Verify pricing
+        run: |
+          cd ah-pos/backend
+          python -c "
+          from sqlalchemy import create_engine, func
+          from sqlalchemy.orm import sessionmaker
+          from models import LaborCategory
+          import os
+
+          engine = create_engine(os.getenv('DATABASE_URL'))
+          Session = sessionmaker(bind=engine)
+          session = Session()
+
+          categories = session.query(LaborCategory).filter(
+              LaborCategory.loaded_rate_2026 != None
+          ).count()
+
+          avg_rate = session.query(func.avg(LaborCategory.loaded_rate_2026)).scalar()
+
+          print(f'Labor categories with 2026 rates: {categories}')
+          print(f'Average loaded rate: \${avg_rate:.2f}')
+          session.close()
+          "
+
+  cpars-refresh:
+    runs-on: ubuntu-latest
+    name: Refresh CPARS Ratings
+    needs: sam-gov-sync
+
+    env:
+      DATABASE_URL: ${{ secrets.AH_POS_DATABASE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ah-pos/requirements.txt
+
+      - name: Fetch CPARS ratings
+        run: |
+          cd ah-pos/backend
+          python -c "
+          from sqlalchemy import create_engine, update
+          from sqlalchemy.orm import sessionmaker
+          from models import IncumbentContract
+          import os
+          import requests
+          from datetime import date
+
+          # Note: CPARS public API requires some setup. For now, just log the intention.
+          print('CPARS ratings refresh: would query cpars.sam.gov API')
+          print('(Full implementation requires SAM account or CPARS API key)')
+          "
+
+  report:
+    runs-on: ubuntu-latest
+    name: Generate Daily Report
+    needs: [sam-gov-sync, pricing-update]
+    if: always()
+
+    env:
+      DATABASE_URL: ${{ secrets.AH_POS_DATABASE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ah-pos/requirements.txt
+
+      - name: Generate report
+        run: |
+          cd ah-pos/backend
+          python -c "
+          from sqlalchemy import create_engine, func
+          from sqlalchemy.orm import sessionmaker
+          from models import Solicitation, Alert, PastPerformanceContract, LaborCategory
+          from datetime import datetime, timedelta
+          import os
+
+          engine = create_engine(os.getenv('DATABASE_URL'))
+          Session = sessionmaker(bind=engine)
+          session = Session()
+
+          today = datetime.utcnow().date()
+          yesterday = today - timedelta(days=1)
+
+          total_sols = session.query(Solicitation).count()
+          new_sols = session.query(Solicitation).filter(
+              Solicitation.first_seen_date >= yesterday
+          ).count()
+          high_priority = session.query(Solicitation).filter(
+              Solicitation.status == 'open'
+          ).count()
+
+          new_alerts = session.query(Alert).filter(
+              Alert.created_at >= yesterday
+          ).count()
+
+          past_perf = session.query(PastPerformanceContract).count()
+          labor_cats = session.query(LaborCategory).count()
+
+          print('╔════════════════════════════════════════╗')
+          print('║    AH-POS DAILY SYNC REPORT           ║')
+          print(f'║    Date: {today.isoformat()}          ║')
+          print('╠════════════════════════════════════════╣')
+          print(f'║ Total Solicitations:      {total_sols:>20} ║')
+          print(f'║ New (last 24h):           {new_sols:>20} ║')
+          print(f'║ High Priority (Open):     {high_priority:>20} ║')
+          print(f'║ New Alerts (last 24h):    {new_alerts:>20} ║')
+          print('╠════════════════════════════════════════╣')
+          print(f'║ Past Performance Records: {past_perf:>20} ║')
+          print(f'║ Labor Categories:         {labor_cats:>20} ║')
+          print('╚════════════════════════════════════════╝')
+
+          session.close()
+          "
