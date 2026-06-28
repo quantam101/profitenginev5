@@ -79,6 +79,46 @@ class ChatbotRequest(BaseModel):
     send_email: bool = Field(default=True)
 
 
+class CheckoutRequest(BaseModel):
+    tool: str = Field(min_length=1, max_length=50)
+    tier: str = Field(min_length=1, max_length=50)
+    email: str = Field(min_length=5, max_length=200)
+
+
+TOOL_PRICING = {
+    "travel": {
+        "starter": {"name": "Budget Itinerary", "price": 49900},
+        "standard": {"name": "Extended Itinerary", "price": 149900},
+        "premium": {"name": "VIP Concierge", "price": 249900},
+    },
+    "newsletter": {
+        "starter": {"name": "1 Month Trial", "price": 99900},
+        "standard": {"name": "3-Month Package", "price": 249900},
+        "premium": {"name": "Annual Retainer", "price": 299900},
+    },
+    "sales-copy": {
+        "starter": {"name": "Basic Page", "price": 499900},
+        "standard": {"name": "Professional Page", "price": 1299900},
+        "premium": {"name": "Enterprise Package", "price": 2499900},
+    },
+    "linkedin": {
+        "starter": {"name": "Single Post", "price": 49900},
+        "standard": {"name": "Monthly Package", "price": 199900},
+        "premium": {"name": "Quarterly Retainer", "price": 499900},
+    },
+    "resume": {
+        "starter": {"name": "Resume Only", "price": 24900},
+        "standard": {"name": "Bundle", "price": 69900},
+        "premium": {"name": "Career Package", "price": 149900},
+    },
+    "kdp": {
+        "starter": {"name": "Single Book", "price": 49900},
+        "standard": {"name": "Book Bundle", "price": 129900},
+        "premium": {"name": "Publishing Bundle", "price": 249900},
+    },
+}
+
+
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or hashlib.sha256(f"{time.time_ns()}:{request.url.path}".encode()).hexdigest()[:16]
@@ -96,6 +136,47 @@ def health() -> Dict[str, Any]:
         "mode": core.cost_guard.status()["mode"],
         "registry": registry.status(),
     }
+
+
+@app.post("/api/checkout")
+async def create_checkout(req: CheckoutRequest) -> Dict[str, Any]:
+    import stripe
+    import os
+
+    pricing = TOOL_PRICING.get(req.tool, {}).get(req.tier)
+    if not pricing:
+        raise HTTPException(status_code=400, detail="Invalid tool or tier")
+
+    try:
+        stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+        if not stripe_key:
+            raise HTTPException(status_code=500, detail="Stripe key not configured")
+
+        stripe.api_key = stripe_key
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"{pricing['name']} - {req.tool}",
+                            "description": f"{req.tool} {req.tier}",
+                        },
+                        "unit_amount": pricing["price"],
+                    },
+                    "quantity": 1,
+                }
+            ],
+            mode="payment",
+            success_url="https://www.alreadyherellc.com/success",
+            cancel_url="https://www.alreadyherellc.com/checkout",
+            customer_email=req.email,
+            metadata={"tool": req.tool, "tier": req.tier},
+        )
+        return {"sessionId": session.id, "url": session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/agents")
