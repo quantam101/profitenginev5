@@ -11,13 +11,7 @@ export async function POST(request: NextRequest) {
     const { analytics_data, revenue_data } = await request.json();
 
     // Store in memory/cache (in production, use Redis or database)
-    // For now, we'll log and acknowledge
-
-    console.log('[Analytics Sync]', {
-      timestamp: new Date().toISOString(),
-      posts: analytics_data?.posts || 0,
-      revenue: revenue_data?.total || 0,
-    });
+    // For now, we'll acknowledge silently for performance
 
     return NextResponse.json({
       success: true,

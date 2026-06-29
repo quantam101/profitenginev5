@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import SignOutButton from '@/app/components/SignOutButton';
@@ -27,13 +28,13 @@ export default async function CommandCenterLayout({ children }: { children: Reac
         {session?.user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {session.user.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={session.user.image}
                 alt={session.user.name ?? 'User'}
                 width={28}
                 height={28}
                 style={{ borderRadius: '50%', border: '1px solid #26364f' }}
+                priority={false}
               />
             )}
             <span style={{ color: '#9fb0c6', fontSize: 13 }}>

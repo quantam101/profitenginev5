@@ -52,8 +52,6 @@ export async function POST(request: NextRequest) {
   const priceIds: string[] = [];
 
   try {
-    console.log('🚀 Creating Stripe products and prices...');
-
     for (const [tool, tiers] of Object.entries(products)) {
       // Create or find product
       const existingProducts = await stripe.products.list({ limit: 100 });
@@ -68,8 +66,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`📦 ${tool}: ${product.id}`);
-
       // Create prices
       for (const { tier, name, price } of tiers) {
         const priceObj = await stripe.prices.create({
@@ -81,7 +77,6 @@ export async function POST(request: NextRequest) {
         });
 
         priceIds.push(priceObj.id);
-        console.log(`   ✓ ${tier}: ${priceObj.id}`);
       }
     }
 
