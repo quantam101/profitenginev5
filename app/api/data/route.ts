@@ -1,4 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getCacheHeaders } from '@/app/lib/cache';
+
+export const revalidate = 300;
 
 const ORACLE = process.env.ORACLE_API_URL ?? 'http://localhost:3000';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
@@ -106,7 +109,7 @@ export async function GET(request: NextRequest) {
         lastPublished: ghStats.lastTitle,
         lastPublishedDate: ghStats.lastDate,
       },
-      { headers: { 'Cache-Control': 'no-store', 'x-data-source': 'oracle+github' } },
+      { headers: getCacheHeaders('SHORT') },
     );
   }
 
