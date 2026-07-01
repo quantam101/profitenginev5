@@ -39,7 +39,7 @@ const products = {
 export async function POST(request: NextRequest) {
   // Security: require authorization header
   const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${process.env.STRIPE_SETUP_TOKEN || 'test-token'}`) {
+  if (!process.env.STRIPE_SETUP_TOKEN || auth !== `Bearer ${process.env.STRIPE_SETUP_TOKEN}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
