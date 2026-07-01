@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Rate limiting (simple IP-based)
-  const ip = request.ip || 'unknown';
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const key = `rate-limit:${ip}`;
   
   // For demonstration — in production use Vercel Redis or similar

@@ -136,12 +136,12 @@ def infer(
     return (
         f"INFERENCE_STUB\nNo AI model responded. Last error: {last_error}\n"
         "Configure at least one of:\n"
-        "  LM_STUDIO_BASE_URL=http://localhost:1234/v1  (LM Studio, local)\n"
-        "  GMAOS_LOCAL_MODEL_ENABLED=true               (Ollama, local)\n"
-        "  GROQ_API_KEY=...                             (Groq, free)\n"
-        "  HF_TOKEN=...                                 (HuggingFace, free)\n"
-        "  GEMINI_API_KEY=...                           (Gemini Flash, free)\n"
-        "  ANTHROPIC_API_KEY=...                        (Claude, paid)\n"
+        "  LM_STUDIO_BASE_URL  (LM Studio, local)\n"
+        "  GMAOS_LOCAL_MODEL_ENABLED  (Ollama, local)\n"
+        "  GROQ_API_KEY  (Groq, free)\n"
+        "  HF_TOKEN  (HuggingFace, free)\n"
+        "  GEMINI_API_KEY  (Gemini Flash, free)\n"
+        "  ANTHROPIC_API_KEY  (Claude, paid)\n"
         "  (Pollinations is always enabled as zero-key fallback)",
         "deterministic_fallback",
     )
