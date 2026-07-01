@@ -21,7 +21,9 @@ export function middleware(request: NextRequest) {
   }
 
   // Rate limiting (simple IP-based)
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const ip = request.headers.get('x-real-ip')
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown';
   const key = `rate-limit:${ip}`;
   
   // For demonstration — in production use Vercel Redis or similar
@@ -35,13 +37,28 @@ export function middleware(request: NextRequest) {
 }
 
 function isBot(userAgent: string): boolean {
+  // Allow legitimate search engine crawlers for SEO
+  const allowedBots = [
+    /googlebot/i,
+    /bingbot/i,
+    /slurp/i,
+    /duckduckbot/i,
+    /baiduspider/i,
+    /yandexbot/i,
+    /facebookexternalhit/i,
+    /twitterbot/i,
+    /linkedinbot/i,
+  ];
+  if (allowedBots.some(pattern => pattern.test(userAgent))) {
+    return false;
+  }
+
   const botPatterns = [
-    /bot/i,
-    /crawler/i,
-    /spider/i,
     /scraper/i,
     /curl/i,
     /wget/i,
+    /python-requests/i,
+    /go-http-client/i,
   ];
   return botPatterns.some(pattern => pattern.test(userAgent));
 }
