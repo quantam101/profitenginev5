@@ -131,7 +131,7 @@ assert 'API_KEY=' not in result.output
 - `/command-center` (index) returns 404 — only subpages with `[section]` slug work
 - `/api/health` may have redirect loops on Vercel preview — this is a Vercel config issue
 - The security scanner skips its own source files and `verifier.py` to avoid false positives
-- The verifier blocks output containing `API_KEY=`, `BEGIN PRIVATE KEY`, `sk-`, `password:`, `token:` — ensure agent output doesn't contain these patterns
+- The verifier blocks output containing secret-like patterns (e.g. private key headers, API key assignments, password fields) — ensure agent output doesn't contain these patterns
 - When running multiple GMAOS repos simultaneously, use different ports
 - Next.js may auto-modify `tsconfig.json` on first dev server start — expected, can be ignored
 - `Caddyfile` and `docker-compose.yml` may reference `alreadyherellc.com` — update per project before deployment
