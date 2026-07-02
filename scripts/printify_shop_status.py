@@ -11,6 +11,7 @@ from typing import Any
 
 PRINTIFY_API = "https://api.printify.com/v1"
 REQUIRED_PUBLISH_SCOPES = {"shops.read", "products.read", "products.write", "uploads.write"}
+USER_AGENT = "ProfitEngine/5.0"
 
 
 @dataclass(frozen=True)
@@ -22,7 +23,7 @@ class PrintifyConfig:
 def _request(path: str, config: PrintifyConfig) -> dict[str, Any] | list[dict[str, Any]]:
     req = urllib.request.Request(  # noqa: S310 - fixed Printify HTTPS API endpoint
         f"{PRINTIFY_API}{path}",
-        headers={"Authorization": f"Bearer {config.token}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {config.token}", "Content-Type": "application/json", "User-Agent": USER_AGENT},
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - fixed Printify HTTPS API endpoint
@@ -44,7 +45,7 @@ def verify_upload_permission(config: PrintifyConfig) -> dict[str, Any]:
         f"{PRINTIFY_API}/uploads/images.json",
         data=body,
         method="POST",
-        headers={"Authorization": f"Bearer {config.token}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {config.token}", "Content-Type": "application/json", "User-Agent": USER_AGENT},
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310

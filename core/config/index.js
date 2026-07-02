@@ -85,7 +85,7 @@ function build() {
     amazonPayoutThreshold: envFloat('AMAZON_PAYOUT_THRESHOLD', 10),
 
     // POD
-    printifyApiKey: env('PRINTIFY_API_KEY', ''),
+    printifyApiKey: env('PRINTIFY_API_KEY', env('PRINTIFY_API_TOKEN', '')),
     printifyShopId: env('PRINTIFY_SHOP_ID', ''),
 
     // Email

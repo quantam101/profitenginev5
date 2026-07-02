@@ -13,7 +13,7 @@ logger = logging.getLogger("EAOS.Printify")
 logging.basicConfig(level=os.getenv("EAOS_LOG_LEVEL", "INFO"))
 
 PRINTIFY_API = "https://api.printify.com/v1"
-SHOP_ID = os.environ.get("PRINTIFY_SHOP_ID", "")
+USER_AGENT = "ProfitEngine/5.0"
 
 DEFAULT_VARIANT_IDS = [17887, 17888, 17889, 17890, 17891]
 
@@ -34,7 +34,7 @@ def _request_json(path: str, token: str, *, method: str = "GET", payload: Option
         f"{PRINTIFY_API}{path}",
         data=data,
         method=method,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": USER_AGENT},
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
@@ -131,7 +131,7 @@ def _build_product_payload(
 
 
 async def push_product(file_path: str, meta: Dict[str, Any], token: str) -> bool:
-    shop_id = SHOP_ID or str(meta.get("shop_id", "")).strip()
+    shop_id = os.environ.get("PRINTIFY_SHOP_ID", "").strip() or str(meta.get("shop_id", "")).strip()
     if not shop_id:
         logger.error("[Printify] PRINTIFY_SHOP_ID not set - cannot push product")
         return False

@@ -32,13 +32,14 @@ Return JSON array: [{ productType, designConcept, targetAudience, colors:[], tag
 
 async function createPrintifyProduct(design) {
   if (!cfg().printifyApiKey || !cfg().printifyShopId) return false;
+  if (!design.imageId) { logger.warn('Printify creation skipped: design has no uploaded imageId'); return false; }
   try {
     const res = await axios.post(
       `https://api.printify.com/v1/shops/${cfg().printifyShopId}/products.json`,
       { title: design.tagline, description: design.designConcept, blueprint_id: 5, print_provider_id: 1,
         variants: [{ id: 17390, price: Math.round((parseFloat(design.price || 25)) * 100), is_enabled: true }],
-        print_areas: [{ variant_ids: [17390], placeholders: [{ position: 'front', images: [] }] }] },
-      { headers: { Authorization: `Bearer ${cfg().printifyApiKey}`, 'Content-Type': 'application/json' }, timeout: 20_000 }
+        print_areas: [{ variant_ids: [17390], placeholders: [{ position: 'front', images: [{ id: design.imageId, x: 0.5, y: 0.5, scale: 1.0, angle: 0 }] }] }] },
+      { headers: { Authorization: `Bearer ${cfg().printifyApiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'ProfitEngine/5.0' }, timeout: 20_000 }
     );
     logger.info(`Printify product created: ${res.data?.id}`);
     state.push('printifyProducts', { id: res.data?.id, title: design.tagline, ts: new Date().toISOString() }, 100);
