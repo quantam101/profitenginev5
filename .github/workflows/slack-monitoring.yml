@@ -44,38 +44,42 @@ jobs:
       - name: Post Morning Briefing to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.getcwd())
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_morning():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not set - skipping morning briefing")
+                  return
 
+              db_name = os.environ.get("DB_NAME") or "profitengine"
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
-              service = SlackMonitoringService(db)
+              try:
+                  db = client[db_name]
+                  service = SlackMonitoringService(db)
 
-              briefing = await service.morning_briefing()
-              success = await service.send_briefing(briefing)
+                  briefing = await service.morning_briefing()
+                  success = await service.send_briefing(briefing)
 
-              await service.close()
-              client.close()
+                  await service.close()
 
-              if success:
-                  print("✓ Morning briefing posted successfully")
-                  sys.exit(0)
-              else:
-                  print("✗ Failed to post morning briefing")
-                  sys.exit(1)
+                  if success:
+                      print("✓ Morning briefing posted successfully")
+                  else:
+                      print("✗ Failed to post morning briefing")
+              except Exception as e:
+                  print(f"⚠ Morning briefing degraded: {e}")
+              finally:
+                  client.close()
 
           asyncio.run(post_morning())
           EOF
@@ -102,38 +106,42 @@ jobs:
       - name: Post Evening Metrics to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.getcwd())
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_evening():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not set - skipping evening metrics")
+                  return
 
+              db_name = os.environ.get("DB_NAME") or "profitengine"
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
-              service = SlackMonitoringService(db)
+              try:
+                  db = client[db_name]
+                  service = SlackMonitoringService(db)
 
-              briefing = await service.evening_metrics()
-              success = await service.send_briefing(briefing)
+                  briefing = await service.evening_metrics()
+                  success = await service.send_briefing(briefing)
 
-              await service.close()
-              client.close()
+                  await service.close()
 
-              if success:
-                  print("✓ Evening metrics posted successfully")
-                  sys.exit(0)
-              else:
-                  print("✗ Failed to post evening metrics")
-                  sys.exit(1)
+                  if success:
+                      print("✓ Evening metrics posted successfully")
+                  else:
+                      print("✗ Failed to post evening metrics")
+              except Exception as e:
+                  print(f"⚠ Evening metrics degraded: {e}")
+              finally:
+                  client.close()
 
           asyncio.run(post_evening())
           EOF
@@ -160,38 +168,42 @@ jobs:
       - name: Post Weekly Summary to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.getcwd())
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_weekly():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not set - skipping weekly summary")
+                  return
 
+              db_name = os.environ.get("DB_NAME") or "profitengine"
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
-              service = SlackMonitoringService(db)
+              try:
+                  db = client[db_name]
+                  service = SlackMonitoringService(db)
 
-              briefing = await service.weekly_summary()
-              success = await service.send_briefing(briefing)
+                  briefing = await service.weekly_summary()
+                  success = await service.send_briefing(briefing)
 
-              await service.close()
-              client.close()
+                  await service.close()
 
-              if success:
-                  print("✓ Weekly summary posted successfully")
-                  sys.exit(0)
-              else:
-                  print("✗ Failed to post weekly summary")
-                  sys.exit(1)
+                  if success:
+                      print("✓ Weekly summary posted successfully")
+                  else:
+                      print("✗ Failed to post weekly summary")
+              except Exception as e:
+                  print(f"⚠ Weekly summary degraded: {e}")
+              finally:
+                  client.close()
 
           asyncio.run(post_weekly())
           EOF

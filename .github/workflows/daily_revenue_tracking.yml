@@ -119,19 +119,21 @@ jobs:
               data = json.load(f)
 
           # Generate markdown
-          md = f"""# Daily Revenue Report
-
-**Date:** {data.get('date')}
-**Generated:** {datetime.utcnow().isoformat()}
-
-## Summary
-- **Total Revenue (24h):** ${data.get('consolidated', {}).get('total_revenue_24h', 0):.2f}
-- **Active Streams:** {data.get('consolidated', {}).get('active_revenue_streams', 0)}/6
-
-## Revenue Breakdown
-| Stream | Revenue |
-|--------|---------|
-"""
+          md = "\n".join([
+              "# Daily Revenue Report",
+              "",
+              f"**Date:** {data.get('date')}",
+              f"**Generated:** {datetime.utcnow().isoformat()}",
+              "",
+              "## Summary",
+              f"- **Total Revenue (24h):** ${data.get('consolidated', {}).get('total_revenue_24h', 0):.2f}",
+              f"- **Active Streams:** {data.get('consolidated', {}).get('active_revenue_streams', 0)}/6",
+              "",
+              "## Revenue Breakdown",
+              "| Stream | Revenue |",
+              "|--------|---------|",
+              "",
+          ])
 
           for stream, amount in data.get('consolidated', {}).get('revenue_breakdown', {}).items():
               md += f"| {stream.capitalize()} | ${amount:.2f} |\n"
@@ -173,6 +175,8 @@ jobs:
           import requests
           import json
           import glob
+          import os
+          import base64
           from datetime import datetime
 
           if not all([
@@ -212,9 +216,6 @@ jobs:
 
           # Send via SendGrid
           try:
-              import os
-              import base64
-
               api_key = os.getenv("SENDGRID_API_KEY")
               recipient = os.getenv("RECIPIENT_EMAIL")
 
