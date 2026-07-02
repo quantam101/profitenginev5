@@ -233,9 +233,13 @@ def get_sales(product_id: Optional[str] = None, after: Optional[str] = None) -> 
 
 def revenue_summary() -> Dict[str, Any]:
     """Aggregate revenue across all products."""
+    if not _token():
+        return {"ok": False, "error": "GUMROAD_ACCESS_TOKEN not set"}
     products = list_products()
     today    = datetime.now(timezone.utc).strftime("%Y-%m-01")   # month start
     month_sales = get_sales(after=today)
+    if not month_sales.get("ok"):
+        return {"ok": False, "error": month_sales.get("error", "unknown"), "products": len(products)}
     return {
         "ok":              True,
         "products":        len(products),

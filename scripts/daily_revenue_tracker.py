@@ -64,15 +64,32 @@ class RevenueTracker:
                 product_info = {
                     "id": product.get("id"),
                     "name": product.get("name"),
-                    "sales_24h": product.get("sales_in_last_24_hours", 0),
-                    "revenue_24h": product.get("revenue_in_last_24_hours", 0),
-                    "url": product.get("url")
+                    "sales_count": product.get("sales_count", 0),
+                    "revenue_usd": product.get("sales_usd_cents", 0) / 100,
+                    "url": product.get("short_url")
                 }
                 gumroad_data["products"][product.get("id")] = product_info
                 gumroad_data["total_revenue"] += product.get("sales_usd_cents", 0) / 100
                 gumroad_data["total_sales"] += product.get("sales_count", 0)
-                gumroad_data["last_24h"]["revenue"] += product.get("revenue_in_last_24_hours", 0)
-                gumroad_data["last_24h"]["sales"] += product.get("sales_in_last_24_hours", 0)
+
+            cutoff = datetime.utcnow() - timedelta(days=1)
+            sales_response = requests.get(
+                "https://api.gumroad.com/v2/sales",
+                headers=headers,
+                params={"after": cutoff.strftime("%Y-%m-%d")},
+                timeout=10
+            )
+            if sales_response.status_code == 200:
+                for sale in sales_response.json().get("sales", []):
+                    try:
+                        created = datetime.strptime(sale.get("created_at", ""), "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        continue
+                    if created >= cutoff:
+                        gumroad_data["last_24h"]["sales"] += 1
+                        gumroad_data["last_24h"]["revenue"] += int(sale.get("price", 0)) / 100
+            else:
+                self.errors.append(f"Gumroad sales API error: {sales_response.status_code}")
 
             return gumroad_data
 
