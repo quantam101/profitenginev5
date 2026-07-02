@@ -115,19 +115,17 @@ def _request(method: str, path: str, data: Optional[Dict] = None) -> Dict[str, A
     if not token:
         return {"success": False, "message": "GUMROAD_ACCESS_TOKEN not set"}
 
-    url  = f"{_BASE}/{path}"
-    body = urllib.parse.urlencode({**(data or {}), "access_token": token}).encode()
+    url    = f"{_BASE}/{path}"
+    params = urllib.parse.urlencode({**(data or {}), "access_token": token}, doseq=True)
 
-    req = urllib.request.Request(
-        url,
-        data  = body if method != "GET" else None,
-        method = method,
-        headers = {"Content-Type": "application/x-www-form-urlencoded"},
-    )
     if method == "GET":
+        req = urllib.request.Request(f"{url}?{params}", method="GET")
+    else:
         req = urllib.request.Request(
-            f"{url}?access_token={urllib.parse.quote(token)}",
-            method="GET",
+            url,
+            data    = params.encode(),
+            method  = method,
+            headers = {"Content-Type": "application/x-www-form-urlencoded"},
         )
 
     try:
@@ -212,10 +210,7 @@ def get_sales(product_id: Optional[str] = None, after: Optional[str] = None) -> 
     Fetch recent sales. Returns total_revenue_usd and sale count.
     after: ISO date string e.g. '2026-01-01'
     """
-    path = "sales"
-    if after:
-        path += f"?after={after}"
-    resp = _request("GET", path)
+    resp = _request("GET", "sales", {"after": after} if after else None)
     if not resp.get("success"):
         return {"ok": False, "error": resp.get("message", "unknown")}
 
@@ -234,9 +229,13 @@ def get_sales(product_id: Optional[str] = None, after: Optional[str] = None) -> 
 
 def revenue_summary() -> Dict[str, Any]:
     """Aggregate revenue across all products."""
+    if not _token():
+        return {"ok": False, "error": "GUMROAD_ACCESS_TOKEN not set"}
     products = list_products()
     today    = datetime.now(timezone.utc).strftime("%Y-%m-01")   # month start
     month_sales = get_sales(after=today)
+    if not month_sales.get("ok"):
+        return {"ok": False, "error": month_sales.get("error", "unknown"), "products": len(products)}
     return {
         "ok":              True,
         "products":        len(products),

@@ -421,7 +421,7 @@ def products_bootstrap() -> Dict[str, Any]:
     """Ensure all 5 Gumroad digital products exist (idempotent — income stream 3)."""
     from .gumroad_client import bootstrap_catalog
     results = bootstrap_catalog()
-    return {"ok": True, "products": results}
+    return {"ok": all(r.get("ok") for r in results), "products": results}
 
 
 @app.get("/products/revenue")
