@@ -44,6 +44,7 @@ jobs:
       - name: Post Morning Briefing to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
@@ -61,7 +62,7 @@ jobs:
                   sys.exit(1)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.morning_briefing()
@@ -102,6 +103,7 @@ jobs:
       - name: Post Evening Metrics to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
@@ -119,7 +121,7 @@ jobs:
                   sys.exit(1)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.evening_metrics()
@@ -160,6 +162,7 @@ jobs:
       - name: Post Weekly Summary to Slack
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           PROFITENGINE_SLACK_WEBHOOK_URL: ${{ secrets.PROFITENGINE_SLACK_WEBHOOK_URL }}
         run: |
           python << 'EOF'
@@ -177,7 +180,7 @@ jobs:
                   sys.exit(1)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_database()
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.weekly_summary()
