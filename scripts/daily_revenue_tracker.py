@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional, List
 import sys
 
 # Configuration from environment variables
-GUMROAD_TOKEN = os.getenv("GUMROAD_API_KEY")
+GUMROAD_TOKEN = os.getenv("GUMROAD_ACCESS_TOKEN") or os.getenv("GUMROAD_API_KEY")
 STRIPE_KEY = os.getenv("STRIPE_SECRET_KEY")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 EMAIL_PLATFORM_API = os.getenv("EMAIL_PLATFORM_API_KEY")
@@ -33,7 +33,7 @@ class RevenueTracker:
         """Fetch hourly sales data from Gumroad."""
         try:
             if not GUMROAD_TOKEN:
-                self.errors.append("GUMROAD_API_KEY not set")
+                self.errors.append("GUMROAD_ACCESS_TOKEN not set")
                 return {}
 
             headers = {"Authorization": f"Bearer {GUMROAD_TOKEN}"}
