@@ -116,18 +116,17 @@ def _request(method: str, path: str, data: Optional[Dict] = None) -> Dict[str, A
         return {"success": False, "message": "GUMROAD_ACCESS_TOKEN not set"}
 
     url  = f"{_BASE}/{path}"
-    body = urllib.parse.urlencode({**(data or {}), "access_token": token}).encode()
+    payload = urllib.parse.urlencode({**(data or {}), "access_token": token}, doseq=True)
 
-    req = urllib.request.Request(
-        url,
-        data  = body if method != "GET" else None,
-        method = method,
-        headers = {"Content-Type": "application/x-www-form-urlencoded"},
-    )
     if method == "GET":
+        sep = "&" if "?" in url else "?"
+        req = urllib.request.Request(f"{url}{sep}{payload}", method="GET")
+    else:
         req = urllib.request.Request(
-            f"{url}?access_token={urllib.parse.quote(token)}",
-            method="GET",
+            url,
+            data  = payload.encode(),
+            method = method,
+            headers = {"Content-Type": "application/x-www-form-urlencoded"},
         )
 
     try:
@@ -212,10 +211,10 @@ def get_sales(product_id: Optional[str] = None, after: Optional[str] = None) -> 
     Fetch recent sales. Returns total_revenue_usd and sale count.
     after: ISO date string e.g. '2026-01-01'
     """
-    path = "sales"
+    params: Dict[str, Any] = {}
     if after:
-        path += f"?after={after}"
-    resp = _request("GET", path)
+        params["after"] = after
+    resp = _request("GET", "sales", params)
     if not resp.get("success"):
         return {"ok": False, "error": resp.get("message", "unknown")}
 
