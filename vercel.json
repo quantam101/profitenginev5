@@ -30,12 +30,5 @@
         }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/api/health",
-      "destination": "/api/health",
-      "permanent": false
-    }
   ]
 }
