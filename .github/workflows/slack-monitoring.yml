@@ -49,20 +49,23 @@ jobs:
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.environ.get("GITHUB_WORKSPACE", "."))
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_morning():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not configured — skipping morning briefing")
+                  sys.exit(0)
+              if not os.environ.get("PROFITENGINE_SLACK_WEBHOOK_URL"):
+                  print("⚠ PROFITENGINE_SLACK_WEBHOOK_URL not configured — skipping morning briefing")
+                  sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client[os.environ.get("DB_NAME") or "profitengine"]
+              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
               service = SlackMonitoringService(db)
 
               briefing = await service.morning_briefing()
@@ -108,20 +111,23 @@ jobs:
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.environ.get("GITHUB_WORKSPACE", "."))
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_evening():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not configured — skipping evening metrics")
+                  sys.exit(0)
+              if not os.environ.get("PROFITENGINE_SLACK_WEBHOOK_URL"):
+                  print("⚠ PROFITENGINE_SLACK_WEBHOOK_URL not configured — skipping evening metrics")
+                  sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client[os.environ.get("DB_NAME") or "profitengine"]
+              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
               service = SlackMonitoringService(db)
 
               briefing = await service.evening_metrics()
@@ -167,20 +173,23 @@ jobs:
         run: |
           python << 'EOF'
           import asyncio
+          import os
           import sys
-          sys.path.insert(0, "/home/runner/work/profitengine-v5-final/profitengine-v5-final")
+          sys.path.insert(0, os.environ.get("GITHUB_WORKSPACE", "."))
           from backend.services.slack_monitoring import SlackMonitoringService
           from motor.motor_asyncio import AsyncIOMotorClient
-          import os
 
           async def post_weekly():
               mongo_url = os.environ.get("MONGO_URL")
               if not mongo_url:
-                  print("ERROR: MONGO_URL not set")
-                  sys.exit(1)
+                  print("⚠ MONGO_URL not configured — skipping weekly summary")
+                  sys.exit(0)
+              if not os.environ.get("PROFITENGINE_SLACK_WEBHOOK_URL"):
+                  print("⚠ PROFITENGINE_SLACK_WEBHOOK_URL not configured — skipping weekly summary")
+                  sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client[os.environ.get("DB_NAME") or "profitengine"]
+              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
               service = SlackMonitoringService(db)
 
               briefing = await service.weekly_summary()

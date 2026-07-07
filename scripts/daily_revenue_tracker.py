@@ -69,6 +69,8 @@ class RevenueTracker:
                     "url": product.get("url")
                 }
                 gumroad_data["products"][product.get("id")] = product_info
+                gumroad_data["total_revenue"] += product.get("sales_usd_cents", 0) / 100
+                gumroad_data["total_sales"] += product.get("sales_count", 0)
                 gumroad_data["last_24h"]["revenue"] += product.get("revenue_in_last_24_hours", 0)
                 gumroad_data["last_24h"]["sales"] += product.get("sales_in_last_24_hours", 0)
 

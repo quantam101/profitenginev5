@@ -122,6 +122,7 @@ jobs:
               data = json.load(f)
 
           # Generate markdown
+
           md = (
               f"# Daily Revenue Report\n\n"
               f"**Date:** {data.get('date')}\n"
@@ -199,17 +200,12 @@ jobs:
           consolidated = data.get('consolidated', {})
 
           # Build email
-          email_body = f"""
-          <h2>Daily Revenue Summary - {data.get('date')}</h2>
-
-          <p><strong>Total Revenue (24h):</strong> ${consolidated.get('total_revenue_24h', 0):.2f}</p>
-
-          <table border="1" cellpadding="5">
-            <tr>
-              <th>Revenue Stream</th>
-              <th>Amount</th>
-            </tr>
-          """
+          email_body = (
+              f"<h2>Daily Revenue Summary - {data.get('date')}</h2>"
+              f"<p><strong>Total Revenue (24h):</strong> ${consolidated.get('total_revenue_24h', 0):.2f}</p>"
+              '<table border="1" cellpadding="5">'
+              "<tr><th>Revenue Stream</th><th>Amount</th></tr>"
+          )
 
           for stream, amount in consolidated.get('revenue_breakdown', {}).items():
               email_body += f"<tr><td>{stream.capitalize()}</td><td>${amount:.2f}</td></tr>"
