@@ -12,12 +12,12 @@ NC='\033[0m' # No Color
 
 # Patterns that indicate secrets
 SECRET_PATTERNS=(
-    # API Keys
-    "sk_live_"
-    "sk_test_"
-    "sk-proj-"
-    "gsk_"
-    "AIzaSy"
+    # API Keys (bracket classes keep these from matching this file itself)
+    "sk_live[_]"
+    "sk_test[_]"
+    "sk-proj[-]"
+    "gsk[_][A-Za-z0-9]"
+    "AIzaSy[A-Za-z0-9_-]"
     "AKIA[0-9A-Z]{16}"  # AWS
     "ghp_[A-Za-z0-9_]*"  # GitHub Personal
     "ghs_[A-Za-z0-9_]*"  # GitHub OAuth
