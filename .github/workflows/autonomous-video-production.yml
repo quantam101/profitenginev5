@@ -1,0 +1,241 @@
+name: Autonomous Video Production (YouTube)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 0'
+
+env:
+  PYTHON_VERSION: '3.11'
+  VIDEO_OUTPUT_DIR: './videos/openmontage'
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install FFmpeg and dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --upgrade pip -qq
+          pip install -q google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp
+
+      - name: Generate videos with FFmpeg
+        run: |
+          python -c "
+          import subprocess
+          import json
+          from pathlib import Path
+          from datetime import datetime
+
+          output_dir = Path('./videos/openmontage')
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          programs = [
+              {'name': 'semrush', 'title': 'Semrush SEO Toolkit Review 2026', 'desc': 'Complete Semrush review'},
+              {'name': 'hostinger', 'title': 'Hostinger Web Hosting Review', 'desc': 'Hostinger hosting review'},
+              {'name': 'digitalocean', 'title': 'DigitalOcean Deployment Review', 'desc': 'DigitalOcean review'},
+          ]
+
+          videos = []
+          for prog in programs:
+              prog_name = prog['name']
+              prog_title = prog['title']
+              prog_desc = prog['desc']
+
+              video_path = output_dir / f'{prog_name}_{datetime.now().strftime(\"%Y%m%d%H%M%S\")}.mp4'
+
+              cmd = [
+                  'ffmpeg', '-y',
+                  '-f', 'lavfi',
+                  '-i', 'color=c=1a1a2e:s=1080x1920:d=15',
+                  '-vf', f'drawtext=text=\"{prog_title}\":fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2',
+                  '-c:v', 'libx264', '-preset', 'ultrafast',
+                  '-pix_fmt', 'yuv420p',
+                  str(video_path)
+              ]
+
+              result = subprocess.run(cmd, capture_output=True, timeout=60)
+              if result.returncode == 0:
+                  size = video_path.stat().st_size
+                  print(f'✅ Generated: {video_path.name} ({size} bytes)')
+                  videos.append({
+                      'program': prog_name,
+                      'title': prog_title,
+                      'description': prog_desc,
+                      'path': str(video_path),
+                      'size_bytes': size
+                  })
+              else:
+                  print(f'❌ Failed: {prog_name}')
+                  print(result.stderr.decode())
+
+          print(f'✅ Campaign: {len(videos)} videos generated')
+          with open('videos_manifest.json', 'w') as f:
+              json.dump(videos, f, indent=2)
+          "
+
+      - name: Test YouTube API connection
+        env:
+          YOUTUBE_CLIENT_ID: \${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: \${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: \${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          python -c "
+          import os
+          import json
+          from google.auth.transport.requests import Request
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+
+          # Test credentials
+          creds_dict = {
+              'type': 'authorized_user',
+              'client_id': os.getenv('YOUTUBE_CLIENT_ID'),
+              'client_secret': os.getenv('YOUTUBE_CLIENT_SECRET'),
+              'refresh_token': os.getenv('YOUTUBE_REFRESH_TOKEN'),
+          }
+
+          try:
+              creds = Credentials.from_authorized_user_info(creds_dict)
+              if creds.expired:
+                  creds.refresh(Request())
+
+              youtube = build('youtube', 'v3', credentials=creds)
+
+              # Get user info to verify connection
+              request = youtube.channels().list(
+                  part='snippet',
+                  mine=True
+              )
+              response = request.execute()
+
+              if response.get('items'):
+                  channel = response['items'][0]['snippet']
+                  print(f'✅ YouTube connection verified')
+                  print(f'   Channel: {channel.get(\"title\")}')
+              else:
+                  print('⚠️  YouTube connection OK but no channel found')
+          except Exception as e:
+              print(f'❌ YouTube connection failed: {e}')
+              exit(1)
+          "
+
+      - name: Upload to YouTube Shorts
+        env:
+          YOUTUBE_CLIENT_ID: \${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: \${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: \${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          python -c "
+          import os
+          import json
+          from pathlib import Path
+          from google.auth.transport.requests import Request
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+
+          # Load manifest
+          with open('videos_manifest.json') as f:
+              videos = json.load(f)
+
+          creds_dict = {
+              'type': 'authorized_user',
+              'client_id': os.getenv('YOUTUBE_CLIENT_ID'),
+              'client_secret': os.getenv('YOUTUBE_CLIENT_SECRET'),
+              'refresh_token': os.getenv('YOUTUBE_REFRESH_TOKEN'),
+          }
+
+          creds = Credentials.from_authorized_user_info(creds_dict)
+          if creds.expired:
+              creds.refresh(Request())
+
+          youtube = build('youtube', 'v3', credentials=creds)
+
+          uploads = []
+          for video in videos:
+              try:
+                  video_path = video['path']
+                  if not Path(video_path).exists():
+                      print(f'❌ Video not found: {video_path}')
+                      continue
+
+                  body = {
+                      'snippet': {
+                          'title': video['title'],
+                          'description': video['description'],
+                          'tags': ['affiliate', 'review', video['program']],
+                          'categoryId': '22',
+                      },
+                      'status': {
+                          'privacyStatus': 'public',
+                          'madeForKids': False,
+                      },
+                  }
+
+                  request = youtube.videos().insert(
+                      part='snippet,status',
+                      body=body,
+                      media_body=MediaFileUpload(video_path, mimetype='video/mp4')
+                  )
+
+                  response = request.execute()
+                  video_id = response['id']
+
+                  uploads.append({
+                      'program': video['program'],
+                      'video_id': video_id,
+                      'url': f'https://www.youtube.com/shorts/{video_id}',
+                      'status': 'success'
+                  })
+
+                  print(f'✅ YouTube upload successful: {video['program']}')
+                  print(f'   Video ID: {video_id}')
+                  print(f'   URL: https://www.youtube.com/shorts/{video_id}')
+
+              except Exception as e:
+                  print(f'❌ Upload failed for {video['program']}: {e}')
+                  uploads.append({
+                      'program': video['program'],
+                      'status': 'failed',
+                      'error': str(e)
+                  })
+
+          print(f'\\n✅ Campaign complete: {sum(1 for u in uploads if u['status'] == 'success')}/{len(uploads)} uploaded')
+
+          with open('youtube_uploads.json', 'w') as f:
+              json.dump(uploads, f, indent=2)
+          "
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-uploads
+          path: |
+            videos/openmontage/*.mp4
+            videos_manifest.json
+            youtube_uploads.json
+          retention-days: 30
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "=== VIDEO GENERATION & UPLOAD COMPLETE ==="
+          echo ""
+          if [ -f "youtube_uploads.json" ]; then
+            echo "📺 YouTube Shorts Uploaded:"
+            cat youtube_uploads.json | jq -r '.[] | select(.status=="success") | "  ✅ \(.program): https://www.youtube.com/shorts/\(.video_id)"'
+          fi
+          echo ""
+          ls -lh videos/openmontage/*.mp4 2>/dev/null | awk '{print "  📁 " $9 " (" $5 ")"}'

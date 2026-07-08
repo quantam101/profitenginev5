@@ -1,0 +1,196 @@
+{
+  "campaign": "Affiliate Scaling - Video Edition",
+  "date": "2026-06-23T15:05:44.438401",
+  "total_videos": 9,
+  "videos": [
+    {
+      "output_file": "videos\\affiliate_campaign\\hostinger_shorts_20260623.mp4",
+      "platform": "shorts",
+      "affiliate": "hostinger",
+      "metadata": {
+        "title": "hostinger - Start at $2.99/month",
+        "description": "Ready to save money or make passive income?\n\nStart at $2.99/month\n\nLink: https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Start at $2.99/month",
+        "platform": "shorts",
+        "affiliate_link": "https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\digitalocean_shorts_20260623.mp4",
+      "platform": "shorts",
+      "affiliate": "digitalocean",
+      "metadata": {
+        "title": "digitalocean - Get $200 free credits",
+        "description": "Ready to save money or make passive income?\n\nGet $200 free credits\n\nLink: https://m.do.co/c/alreadyhere20\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Get $200 free credits",
+        "platform": "shorts",
+        "affiliate_link": "https://m.do.co/c/alreadyhere20",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\amazon_shorts_20260623.mp4",
+      "platform": "shorts",
+      "affiliate": "amazon",
+      "metadata": {
+        "title": "amazon - Join Amazon Associates free",
+        "description": "Ready to save money or make passive income?\n\nJoin Amazon Associates free\n\nLink: https://affiliates.amazon.com/\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Join Amazon Associates free",
+        "platform": "shorts",
+        "affiliate_link": "https://affiliates.amazon.com/",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\hostinger_tiktok_20260623.mp4",
+      "platform": "tiktok",
+      "affiliate": "hostinger",
+      "metadata": {
+        "title": "hostinger - Start at $2.99/month",
+        "description": "Ready to save money or make passive income?\n\nStart at $2.99/month\n\nLink: https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Start at $2.99/month",
+        "platform": "tiktok",
+        "affiliate_link": "https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\digitalocean_tiktok_20260623.mp4",
+      "platform": "tiktok",
+      "affiliate": "digitalocean",
+      "metadata": {
+        "title": "digitalocean - Get $200 free credits",
+        "description": "Ready to save money or make passive income?\n\nGet $200 free credits\n\nLink: https://m.do.co/c/alreadyhere20\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Get $200 free credits",
+        "platform": "tiktok",
+        "affiliate_link": "https://m.do.co/c/alreadyhere20",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\amazon_tiktok_20260623.mp4",
+      "platform": "tiktok",
+      "affiliate": "amazon",
+      "metadata": {
+        "title": "amazon - Join Amazon Associates free",
+        "description": "Ready to save money or make passive income?\n\nJoin Amazon Associates free\n\nLink: https://affiliates.amazon.com/\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Join Amazon Associates free",
+        "platform": "tiktok",
+        "affiliate_link": "https://affiliates.amazon.com/",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\hostinger_reels_20260623.mp4",
+      "platform": "reels",
+      "affiliate": "hostinger",
+      "metadata": {
+        "title": "hostinger - Start at $2.99/month",
+        "description": "Ready to save money or make passive income?\n\nStart at $2.99/month\n\nLink: https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Start at $2.99/month",
+        "platform": "reels",
+        "affiliate_link": "https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\digitalocean_reels_20260623.mp4",
+      "platform": "reels",
+      "affiliate": "digitalocean",
+      "metadata": {
+        "title": "digitalocean - Get $200 free credits",
+        "description": "Ready to save money or make passive income?\n\nGet $200 free credits\n\nLink: https://m.do.co/c/alreadyhere20\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Get $200 free credits",
+        "platform": "reels",
+        "affiliate_link": "https://m.do.co/c/alreadyhere20",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    },
+    {
+      "output_file": "videos\\affiliate_campaign\\amazon_reels_20260623.mp4",
+      "platform": "reels",
+      "affiliate": "amazon",
+      "metadata": {
+        "title": "amazon - Join Amazon Associates free",
+        "description": "Ready to save money or make passive income?\n\nJoin Amazon Associates free\n\nLink: https://affiliates.amazon.com/\n\nVideo content from blog:\nhttps://dev.to/already_herellc_c954583f\n\n#hosting #webdev #startup #affiliate",
+        "tags": [
+          "hosting",
+          "startup",
+          "webdev",
+          "affiliate",
+          "tutorial"
+        ],
+        "thumbnail_text": "Join Amazon Associates free",
+        "platform": "reels",
+        "affiliate_link": "https://affiliates.amazon.com/",
+        "status": "ready_for_review"
+      },
+      "status": "pending_generation"
+    }
+  ]
+}
