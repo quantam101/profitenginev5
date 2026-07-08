@@ -55,8 +55,15 @@ jobs:
             cat premarket_candidates.json | head -50
           fi
 
+      - name: Check Slack webhook configured
+        id: slack_check
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: echo "configured=$([ -n "$SLACK_WEBHOOK_URL" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Send premarket alert
-        if: ${{ always() && secrets.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.slack_check.outputs.configured == 'true' }}
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
