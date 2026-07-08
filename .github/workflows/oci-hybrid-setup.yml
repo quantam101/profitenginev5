@@ -39,7 +39,7 @@ jobs:
 
           # Step 1: Navigate to repo
           echo "[1/8] Preparing repo..."
-          cd /home/ubuntu
+          cd /home/opc
           if [ ! -d profitenginev5 ]; then
             git clone https://github.com/quantam101/profitenginev5.git
           fi
