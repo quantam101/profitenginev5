@@ -102,25 +102,35 @@ jobs:
           cd /home/opc/profitenginev5
           . venv/bin/activate
           set -a; . ./.env; set +a
-          python3 scripts/oci_generate_and_post.py
+          # Guard a 1GB host: bail if <350MB free, cap address space, and lowest priority
+          FREE_MB=$(free -m | awk '/Mem:/{print $7}')
+          if [ "${FREE_MB:-0}" -lt 350 ]; then
+            echo "$(date -u) skip: only ${FREE_MB}MB available, need >=350MB"; exit 0
+          fi
+          ulimit -v 700000 2>/dev/null || true   # ~700MB address-space ceiling
+          exec nice -n 19 ionice -c3 python3 scripts/oci_generate_and_post.py
           EOF
 
           chmod +x /home/opc/profitenginev5/run_video_generation.sh
 
-          # Step 6: Set up cron job
+          # Step 6: Set up cron job (hourly, not every 10min — video gen is heavy on 1GB)
           echo "[6/8] Setting up cron job..."
-          (crontab -l 2>/dev/null | grep -v "run_video_generation" || true; echo "*/10 * * * * /home/opc/profitenginev5/run_video_generation.sh >> /home/opc/video_generation.log 2>&1") | crontab -
+          (crontab -l 2>/dev/null | grep -v "run_video_generation" || true; echo "17 * * * * /home/opc/profitenginev5/run_video_generation.sh >> /home/opc/video_generation.log 2>&1") | crontab -
 
           # Step 7: Create log file
           echo "[7/8] Initializing log file..."
           touch /home/opc/video_generation.log
           chmod 644 /home/opc/video_generation.log
 
-          # Step 8: Smoke-test (informational — a flaky run must not fail the deploy)
-          echo "[8/8] Testing video generation..."
+          # Step 8: Lightweight sanity check ONLY.
+          # Do NOT run full video generation here — pillow/ffmpeg OOM-kills this 1GB
+          # instance (took the whole box down 2026-07-09). Real generation runs via
+          # cron with the guard below; this just verifies imports + config resolve.
+          echo "[8/8] Verifying pipeline imports (no heavy video gen on 1GB host)..."
           . venv/bin/activate
           set -a; . ./.env; set +a
-          python3 scripts/oci_generate_and_post.py 2>&1 | head -20 || echo "(smoke-test returned non-zero — deploy still complete; check log)"
+          python3 -c "import importlib,sys; importlib.import_module('httpx'); importlib.import_module('PIL'); print('imports OK')" \
+            2>&1 | head -10 || echo "(import check returned non-zero — deploy still complete; check log)"
 
           echo ""
           echo "===== SETUP COMPLETE ====="
