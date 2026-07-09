@@ -111,7 +111,7 @@ jobs:
           #!/bin/bash
           cd /home/opc/profitenginev5
           . venv/bin/activate
-          source .env
+          set -a; . ./.env; set +a
           python3 scripts/oci_generate_and_post.py
           EOF
 
@@ -129,7 +129,7 @@ jobs:
           # Step 8: Test installation
           echo "[8/8] Testing video generation..."
           . venv/bin/activate
-          source .env
+          set -a; . ./.env; set +a
           python3 scripts/oci_generate_and_post.py 2>&1 | head -20
 
           echo ""
@@ -162,7 +162,7 @@ jobs:
           ssh -i ~/.ssh/oci_key opc@129.146.236.177 << 'EOFSCRIPT'
           cd /home/opc/profitenginev5
           . venv/bin/activate
-          source .env
+          set -a; . ./.env; set +a
           python3 scripts/oci_generate_and_post.py
           EOFSCRIPT
 
