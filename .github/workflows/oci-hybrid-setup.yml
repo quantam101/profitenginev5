@@ -54,7 +54,7 @@ jobs:
           # Step 3: Create virtual environment
           echo "[3/8] Creating virtual environment..."
           python3 -m venv venv
-          source venv/bin/activate
+          . venv/bin/activate
           pip install --quiet --upgrade pip
           pip install --quiet httpx pillow
 
@@ -110,7 +110,7 @@ jobs:
           cat > /home/opc/profitenginev5/run_video_generation.sh << 'EOF'
           #!/bin/bash
           cd /home/opc/profitenginev5
-          source venv/bin/activate
+          . venv/bin/activate
           source .env
           python3 scripts/oci_generate_and_post.py
           EOF
@@ -128,7 +128,7 @@ jobs:
 
           # Step 8: Test installation
           echo "[8/8] Testing video generation..."
-          source venv/bin/activate
+          . venv/bin/activate
           source .env
           python3 scripts/oci_generate_and_post.py 2>&1 | head -20
 
@@ -161,7 +161,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/oci_key opc@129.146.236.177 << 'EOFSCRIPT'
           cd /home/opc/profitenginev5
-          source venv/bin/activate
+          . venv/bin/activate
           source .env
           python3 scripts/oci_generate_and_post.py
           EOFSCRIPT
