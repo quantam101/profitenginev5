@@ -66,37 +66,24 @@ jobs:
           EAOS_GPU_ENABLED=false
           PYTHONUTF8=1
 
+          # Credentials are injected from GitHub Secrets — never hardcode here.
           # TikTok
-          TIKTOK_ACCESS_TOKEN=PLACEHOLDER_TIKTOK
-          TIKTOK_CLIENT_KEY=aw585wlt3458r9dh
-          TIKTOK_CLIENT_SECRET=NjeOcOBE65Tx92OqoVjPlwUigoBeWSs5
+          TIKTOK_CLIENT_KEY="${{ secrets.TIKTOK_CLIENT_KEY }}"
+          TIKTOK_CLIENT_SECRET="${{ secrets.TIKTOK_CLIENT_SECRET }}"
 
           # Twitter/X
-          TWITTER_API_KEY=W6JnmO0diTw30duXOF1PJkB2g
-          TWITTER_API_SECRET=1pKfNfaBb3oCLavp0iZVTs6tkfnWcv1O82Lg8bESTEpGHbm092
-          TWITTER_ACCESS_TOKEN=1971705917587820544-S3KBdRzah9Y2jz0YXc9ZUv43mcS2Ws
-          TWITTER_ACCESS_SECRET=rHxy1ZfQxHoRktLnzGkd8bjfTWHVbg0Yrv9KFenKWzoJl
-
-          # LinkedIn
-          LINKEDIN_ACCESS_TOKEN=PLACEHOLDER_LINKEDIN
-          LINKEDIN_PERSON_URN=PLACEHOLDER_LINKEDIN_URN
+          TWITTER_API_KEY="${{ secrets.TWITTER_API_KEY }}"
+          TWITTER_API_SECRET="${{ secrets.TWITTER_API_SECRET }}"
+          TWITTER_ACCESS_TOKEN="${{ secrets.TWITTER_ACCESS_TOKEN }}"
+          TWITTER_ACCESS_SECRET="${{ secrets.TWITTER_ACCESS_SECRET }}"
 
           # Instagram
-          IG_USER_ID=1077849398753613
-          IG_PAGE_ACCESS_TOKEN=1693351238518696|AZ0-uERN5vIFm7oytGSCug6Zlx8
+          IG_USER_ID="${{ secrets.IG_USER_ID }}"
+          IG_PAGE_ACCESS_TOKEN="${{ secrets.IG_PAGE_ACCESS_TOKEN }}"
 
           # Facebook
-          FB_PAGE_ID=61590010037059
-          FB_PAGE_ACCESS_TOKEN=1693351238518696|AZ0-uERN5vIFm7oytGSCug6Zlx8
-
-          # YouTube
-          YOUTUBE_CLIENT_ID=PLACEHOLDER_YT_ID
-          YOUTUBE_CLIENT_SECRET=PLACEHOLDER_YT_SECRET
-          YOUTUBE_REFRESH_TOKEN=PLACEHOLDER_YT_REFRESH
-
-          # Telegram
-          TELEGRAM_BOT_TOKEN=PLACEHOLDER_TELEGRAM
-          TELEGRAM_CHAT_ID=PLACEHOLDER_TELEGRAM_CHAT
+          FB_PAGE_ID="${{ secrets.FB_PAGE_ID }}"
+          FB_PAGE_ACCESS_TOKEN="${{ secrets.FB_PAGE_ACCESS_TOKEN }}"
 
           # Article config
           CANONICAL_URL=https://quantam101.github.io/content
