@@ -54,7 +54,11 @@ def send_via_resend(api_key: str, recipient: str = RECIPIENT) -> None:
         "https://api.resend.com/emails",
         data=payload,
         method="POST",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "already-here-llc-mailer/1.0",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
