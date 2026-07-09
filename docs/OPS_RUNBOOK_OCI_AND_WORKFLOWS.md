@@ -41,15 +41,22 @@ in GitHub Actions secrets, Vercel project env, and the server's `.env` files onl
   www.roadkingstransport.us` — aliasing the apex alone leaves www on the old deployment.
   vercel.json gotcha: redirect `source` must be `"/(.*)"` (+`$1`) — `/:path*` does not match `/`.
 
-## Open items (need owner action)
+## Resolved 2026-07-09
 
-1. **One root session on the OCI box** (OCI Console serial console or sudo password) to run:
-   - `usermod -aG docker opc` — without it, workflow docker commands silently no-op
-   - provision TLS for `api.alreadyherellc.com` (cert + proxy vhost → 127.0.0.1:8001);
-     until then `register-client.yml` fails with curl exit 35
-   - optional: `echo 'opc ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/opc` to unblock oci-hybrid-setup
-2. **Rotate `GMAIL_APP_PASSWORD`** (Google rejects the stored value — send-medium-email fails)
-3. **Add YouTube OAuth secrets** `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
-   `YOUTUBE_REFRESH_TOKEN` (autonomous-video-production)
-4. **Run `setup-telegram.yml` once** with the real bot token from @BotFather
-5. **Regenerate `GH_PAT_WRITE`** in already-here-llc (repo+workflow scopes) — apply-patches
+- **Root access:** `root@129.146.236.177` is reachable with `~/.ssh/cmdos_deploy_key`.
+  Done: `usermod -aG docker opc`, `/etc/sudoers.d/opc` (NOPASSWD sudo), TLS vhost.
+- **`api.alreadyherellc.com` TLS:** added a site block to `/opt/command-os/Caddyfile.sqlite`
+  reverse-proxying to `command-os-backend:8001`, then `caddy reload`. register-client + oci-docker-start GREEN.
+- **Email (send-medium-email):** moved off the dead Gmail app password to Resend
+  (`RESEND_API_KEY`, verified domain `alreadyherellc.com`). NOTE: Resend is behind
+  Cloudflare — set an explicit `User-Agent` or requests get HTTP 403 "error code: 1010".
+- **apply-patches:** now uses built-in `GITHUB_TOKEN` (same-repo push) — no PAT needed. GREEN.
+- **Security:** 8 live social tokens that were hardcoded in oci-hybrid-setup were migrated
+  to GitHub Secrets — **rotate them, they were in git history** (Twitter x4, TikTok x2, IG, FB).
+
+## Open items (still need owner action)
+
+1. **Rotate the 8 exposed social tokens** (Twitter/TikTok/IG/FB) now stored as GitHub Secrets.
+2. **Add YouTube OAuth secrets** `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
+   `YOUTUBE_REFRESH_TOKEN` (autonomous-video-production) — needs Google OAuth consent.
+3. **Run `setup-telegram.yml` once** with the real bot token from @BotFather.
