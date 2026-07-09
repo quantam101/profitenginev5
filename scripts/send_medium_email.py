@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Send Medium API access request email via Gmail SMTP."""
+"""Send Medium API access request email via Resend (verified domain alreadyherellc.com).
+
+Falls back to Gmail SMTP only if RESEND_API_KEY is absent. Resend is preferred because
+the Gmail app password was revoked; alreadyherellc.com is a verified Resend sender domain.
+"""
+import json
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import urllib.request
 
-gmail_user = os.environ.get("GMAIL_USER", "alreadyherellc@gmail.com")
-app_password = os.environ.get("GMAIL_APP_PASSWORD", "")
-
-if not app_password:
-    raise SystemExit("GMAIL_APP_PASSWORD secret not set — add it in GitHub Secrets")
+RECIPIENT = "yourfriends@medium.com"
+SUBJECT = "API Access Request - ProfitEngine v5 / Already Here LLC"
+SENDER = "Stephen - Already Here LLC <dispatch@alreadyherellc.com>"
 
 body = (
     "Hi Medium team,\n\n"
@@ -40,15 +41,54 @@ body = (
     "https://profitengine.alreadyherellc.com"
 )
 
-msg = MIMEMultipart("alternative")
-msg["Subject"] = "API Access Request - ProfitEngine v5 / Already Here LLC"
-msg["From"] = f"Stephen - Already Here LLC <{gmail_user}>"
-msg["To"] = "yourfriends@medium.com"
-msg["Reply-To"] = "dispatch@alreadyherellc.com"
-msg.attach(MIMEText(body, "plain"))
 
-with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-    server.login(gmail_user, app_password)
-    server.sendmail(gmail_user, "yourfriends@medium.com", msg.as_string())
+def send_via_resend(api_key: str) -> None:
+    payload = json.dumps({
+        "from": SENDER,
+        "to": [RECIPIENT],
+        "reply_to": "dispatch@alreadyherellc.com",
+        "subject": SUBJECT,
+        "text": body,
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        method="POST",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        result = json.loads(resp.read().decode())
+    print(f"SUCCESS: Email sent to {RECIPIENT} via Resend (id={result.get('id')})")
 
-print("SUCCESS: Email sent to yourfriends@medium.com")
+
+def send_via_gmail(user: str, app_password: str) -> None:
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = SUBJECT
+    msg["From"] = f"Stephen - Already Here LLC <{user}>"
+    msg["To"] = RECIPIENT
+    msg["Reply-To"] = "dispatch@alreadyherellc.com"
+    msg.attach(MIMEText(body, "plain"))
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(user, app_password)
+        server.sendmail(user, RECIPIENT, msg.as_string())
+    print(f"SUCCESS: Email sent to {RECIPIENT} via Gmail")
+
+
+def main() -> None:
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    if resend_key:
+        send_via_resend(resend_key)
+        return
+    gmail_user = os.environ.get("GMAIL_USER", "alreadyherellc@gmail.com")
+    app_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+    if not app_password:
+        raise SystemExit("Neither RESEND_API_KEY nor GMAIL_APP_PASSWORD is set")
+    send_via_gmail(gmail_user, app_password)
+
+
+if __name__ == "__main__":
+    main()
