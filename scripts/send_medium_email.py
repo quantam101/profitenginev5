@@ -42,10 +42,10 @@ body = (
 )
 
 
-def send_via_resend(api_key: str) -> None:
+def send_via_resend(api_key: str, recipient: str = RECIPIENT) -> None:
     payload = json.dumps({
         "from": SENDER,
-        "to": [RECIPIENT],
+        "to": [recipient],
         "reply_to": "dispatch@alreadyherellc.com",
         "subject": SUBJECT,
         "text": body,
@@ -56,9 +56,13 @@ def send_via_resend(api_key: str) -> None:
         method="POST",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode())
-    print(f"SUCCESS: Email sent to {RECIPIENT} via Resend (id={result.get('id')})")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")
+        raise SystemExit(f"Resend rejected the send (HTTP {exc.code}): {detail}")
+    print(f"SUCCESS: Email sent to {recipient} via Resend (id={result.get('id')})")
 
 
 def send_via_gmail(user: str, app_password: str) -> None:
@@ -80,8 +84,9 @@ def send_via_gmail(user: str, app_password: str) -> None:
 
 def main() -> None:
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    override = os.environ.get("TEST_RECIPIENT", "").strip()
     if resend_key:
-        send_via_resend(resend_key)
+        send_via_resend(resend_key, override or RECIPIENT)
         return
     gmail_user = os.environ.get("GMAIL_USER", "alreadyherellc@gmail.com")
     app_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
