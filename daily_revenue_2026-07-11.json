@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-07-11T10:20:54.871422",
+  "date": "2026-07-11",
+  "metrics": {
+    "gumroad": {
+      "total_revenue": 0.0,
+      "total_sales": 0,
+      "products": {
+        "B4npFuWPuXvSQIMi3S8Exg==": {
+          "id": "B4npFuWPuXvSQIMi3S8Exg==",
+          "name": "Complete Automation Bundle - All 5 Tools",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/fsbseb"
+        },
+        "GeX8g4jKzPxE35qiTl8rOg==": {
+          "id": "GeX8g4jKzPxE35qiTl8rOg==",
+          "name": "Email List Gold Mine",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/ujctf"
+        },
+        "9nlFRttIUBp7-hOmRI7lHA==": {
+          "id": "9nlFRttIUBp7-hOmRI7lHA==",
+          "name": "Digital Product Manager",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/tztrgo"
+        },
+        "amG3pda7GtONgo8htTY5lw==": {
+          "id": "amG3pda7GtONgo8htTY5lw==",
+          "name": "Affiliate Income Tracker",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/alnhou"
+        },
+        "Xz-pBE3iCabWO-L1R8Jvyg==": {
+          "id": "Xz-pBE3iCabWO-L1R8Jvyg==",
+          "name": "Content Publishing Autopilot",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/mhczf"
+        },
+        "YHv8W4GiQ1lTHYZO8bYGUw==": {
+          "id": "YHv8W4GiQ1lTHYZO8bYGUw==",
+          "name": "AI Profit Dashboard Pro",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/dfojy"
+        },
+        "m5H8q3m4g8REIh2WbNbSnw==": {
+          "id": "m5H8q3m4g8REIh2WbNbSnw==",
+          "name": "AI Profit Suite Pro",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/mfiitq"
+        }
+      },
+      "last_24h": {
+        "revenue": 0,
+        "sales": 0,
+        "new_customers": 0
+      }
+    },
+    "stripe": {
+      "total_revenue": 0,
+      "total_transactions": 0,
+      "successful_transactions": 0,
+      "failed_transactions": 0,
+      "refunds": 0,
+      "avg_transaction_value": 0
+    },
+    "youtube": {},
+    "email": {},
+    "affiliates": {},
+    "trading": {}
+  },
+  "consolidated": {
+    "total_revenue_24h": 0,
+    "active_revenue_streams": 2,
+    "revenue_breakdown": {
+      "gumroad": 0,
+      "stripe": 0,
+      "youtube": 0,
+      "email": 0,
+      "affiliates": 0,
+      "trading": 0
+    },
+    "trading_pnl": 0
+  },
+  "errors": [
+    "YOUTUBE_API_KEY not set",
+    "EMAIL_PLATFORM_API_KEY not set",
+    "AFFILIATE_API_KEY not set",
+    "TRADING_API_KEY not set"
+  ]
+}
