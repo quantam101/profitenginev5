@@ -16,14 +16,20 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, subprocess, urllib.request, datetime
+          # Render URLs are the live services after the OCI->Render migration
+          # (2026-07-12). Re-add api./app.alreadyherellc.com once DNS is
+          # repointed off the dead OCI box (129.146.236.177).
           ENDPOINTS = [
-              "https://api.alreadyherellc.com/api/health",
-              "https://app.alreadyherellc.com",
-              "https://profitengine-tau.vercel.app",
+              "https://profitengine-api-6cwb.onrender.com/api/health",
+              "https://profitengine-runtime.onrender.com/health",
+              "https://profitenginev5.vercel.app",
           ]
+          # Browser UA: the Next.js edge middleware 403s curl user-agents.
+          # -m 90: Render free tier cold-starts in ~30-60s after idle.
+          UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36 uptime-monitor"
           down = []
           for u in ENDPOINTS:
-              code = subprocess.run(["curl","-s","-o","/dev/null","-m","15","-L","-w","%{http_code}",u],
+              code = subprocess.run(["curl","-s","-o","/dev/null","-m","90","-L","-A",UA,"-w","%{http_code}",u],
                                     capture_output=True, text=True).stdout.strip() or "000"
               print(f"{code}  {u}")
               if not code[:1] in ("2","3"):

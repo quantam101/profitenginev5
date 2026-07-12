@@ -150,6 +150,18 @@ jobs:
           url = svc.get("serviceDetails", {}).get("url", "")
           print(f"service url: {url}")
 
+          # Stage the production custom domain (idempotent; DNS cutover at the
+          # registrar is a separate manual step).
+          try:
+              call("POST", f"/services/{svc['id']}/custom-domains",
+                   {"name": "api.alreadyherellc.com"})
+              print("custom domain api.alreadyherellc.com staged")
+          except RuntimeError as e:
+              if "409" in str(e) or "already exists" in str(e):
+                  print("custom domain api.alreadyherellc.com already staged")
+              else:
+                  print(f"::warning::custom domain staging failed: {e}")
+
           # Poll deploy until terminal state (Docker build on free tier can be slow)
           if deploy_id:
               deadline = time.time() + 25 * 60
