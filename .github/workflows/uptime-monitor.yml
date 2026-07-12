@@ -16,10 +16,13 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, subprocess, urllib.request, datetime
-          # Render URLs are the live services after the OCI->Render migration
-          # (2026-07-12). Re-add api./app.alreadyherellc.com once DNS is
-          # repointed off the dead OCI box (129.146.236.177).
+          # Custom domains cut over to Render/Vercel on 2026-07-12
+          # (api -> CNAME profitengine-api-6cwb.onrender.com, app -> CNAME
+          # cname.vercel-dns.com); onrender/vercel URLs probed too so a future
+          # DNS problem is distinguishable from a service outage.
           ENDPOINTS = [
+              "https://api.alreadyherellc.com/api/health",
+              "https://app.alreadyherellc.com",
               "https://profitengine-api-6cwb.onrender.com/api/health",
               "https://profitengine-runtime.onrender.com/health",
               "https://profitenginev5.vercel.app",
