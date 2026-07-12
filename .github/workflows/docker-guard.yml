@@ -35,6 +35,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+      RUNTIME_BASE: ${{ secrets.RUNTIME_API_URL || 'http://129.146.236.177' }}
 
     steps:
       - name: Checkout code
@@ -45,7 +46,7 @@ jobs:
         run: |
           AGGR="${{ github.event.inputs.aggressive || 'false' }}"
           HTTP_CODE=$(curl -s -o /tmp/guard-response.json -w "%{http_code}" --max-time 660 \
-            -X POST "http://129.146.236.177/guard/run" \
+            -X POST "${RUNTIME_BASE}/guard/run" \
             -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"aggressive\": ${AGGR}}")

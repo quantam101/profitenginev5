@@ -1,0 +1,107 @@
+name: Render Runtime Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Create/deploy profitengine-runtime on Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      SERVICE_NAME: profitengine-runtime
+    steps:
+      - name: Check API key
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "::error::RENDER_API_KEY secret is not set (repo Settings → Secrets → Actions)"
+            exit 1
+          fi
+
+      - name: Find or create service
+        id: svc
+        run: |
+          auth=(-H "Authorization: Bearer ${RENDER_API_KEY}" -H "Content-Type: application/json")
+          existing=$(curl -s "${auth[@]}" "https://api.render.com/v1/services?name=${SERVICE_NAME}&limit=1")
+          svc_id=$(echo "$existing" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['service']['id'] if d else '')")
+          if [ -z "$svc_id" ]; then
+            owner_id=$(curl -s "${auth[@]}" "https://api.render.com/v1/owners?limit=1" | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['owner']['id'])")
+            create=$(curl -s "${auth[@]}" -X POST "https://api.render.com/v1/services" -d "{
+              \"type\": \"web_service\",
+              \"name\": \"${SERVICE_NAME}\",
+              \"ownerId\": \"${owner_id}\",
+              \"repo\": \"https://github.com/${GITHUB_REPOSITORY}\",
+              \"branch\": \"main\",
+              \"autoDeploy\": \"yes\",
+              \"serviceDetails\": {
+                \"plan\": \"free\",
+                \"runtime\": \"docker\",
+                \"envSpecificDetails\": {
+                  \"dockerfilePath\": \"./Dockerfile.runtime\",
+                  \"dockerCommand\": \"uvicorn runtime.api:app --host 0.0.0.0 --port \$PORT\"
+                },
+                \"healthCheckPath\": \"/health\"
+              }
+            }")
+            svc_id=$(echo "$create" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('service',{}).get('id',''))")
+            if [ -z "$svc_id" ]; then
+              echo "$create"
+              echo "::error::Service creation failed"
+              exit 1
+            fi
+            echo "Created service $svc_id"
+          else
+            echo "Found existing service $svc_id"
+          fi
+          echo "svc_id=$svc_id" >> "$GITHUB_OUTPUT"
+
+      - name: Sync env vars from GitHub secrets
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          PRINTIFY_API_TOKEN: ${{ secrets.PRINTIFY_API_TOKEN }}
+          PRINTIFY_SHOP_ID: ${{ secrets.PRINTIFY_SHOP_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 - "${{ steps.svc.outputs.svc_id }}" <<'EOF'
+          import json, os, sys, urllib.request
+          svc_id = sys.argv[1]
+          names = ["MONGO_URL","GUMROAD_ACCESS_TOKEN","PRINTIFY_API_TOKEN","PRINTIFY_SHOP_ID",
+                   "STRIPE_SECRET_KEY","PROFITENGINE_WEBHOOK_TOKEN","TELEGRAM_BOT_TOKEN",
+                   "TELEGRAM_CHAT_ID","GROQ_API_KEY","GEMINI_API_KEY","ANTHROPIC_API_KEY"]
+          payload = [{"key": "DB_NAME", "value": os.environ.get("DB_NAME") or "profitengine"}]
+          payload += [{"key": n, "value": os.environ[n]} for n in names if os.environ.get(n)]
+          req = urllib.request.Request(
+              f"https://api.render.com/v1/services/{svc_id}/env-vars",
+              data=json.dumps(payload).encode(), method="PUT",
+              headers={"Authorization": f"Bearer {os.environ['RENDER_API_KEY']}",
+                       "Content-Type": "application/json"})
+          urllib.request.urlopen(req).read()
+          print(f"Synced {len(payload)} env vars")
+          EOF
+
+      - name: Trigger deploy and wait
+        run: |
+          auth=(-H "Authorization: Bearer ${RENDER_API_KEY}" -H "Content-Type: application/json")
+          svc_id="${{ steps.svc.outputs.svc_id }}"
+          deploy_id=$(curl -s "${auth[@]}" -X POST "https://api.render.com/v1/services/${svc_id}/deploys" -d '{}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))")
+          echo "Deploy: $deploy_id"
+          for i in $(seq 1 60); do
+            status=$(curl -s "${auth[@]}" "https://api.render.com/v1/services/${svc_id}/deploys/${deploy_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
+            echo "[$i] $status"
+            case "$status" in
+              live) break ;;
+              build_failed|update_failed|deactivated|canceled) echo "::error::Deploy failed: $status"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          url=$(curl -s "${auth[@]}" "https://api.render.com/v1/services/${svc_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('serviceDetails',{}).get('url',''))")
+          echo "Service URL: $url"
+          curl -sf --max-time 90 "$url/health" && echo "" && echo "::notice::Runtime healthy at $url — set repo secret RUNTIME_API_URL=$url and Vercel env RUNTIME_API_URL=$url"

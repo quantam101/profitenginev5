@@ -45,7 +45,7 @@ jobs:
             check "TokenForge Frontend" "https://forge.alreadyherellc.com"
             check "Tradegate2"          "https://tradegate2-one.vercel.app"
             check "Content Repo"        "https://quantam101.github.io/content/"
-            check "OCI Health Probe"    "http://129.146.236.177/health"
+            check "Runtime Health Probe" "${{ secrets.RUNTIME_API_URL || 'http://129.146.236.177' }}/health"
           } | tee /tmp/health_results.txt
 
       - name: Build daily report
