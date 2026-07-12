@@ -1,0 +1,151 @@
+name: Render Deploy (backend API)
+# Migrates the customer-facing FastAPI backend off the OCI 1GB box
+# (down since the 2026-07-09 OOM) onto Render. Idempotent:
+# creates the service on first run, then re-deploys on subsequent runs.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'Dockerfile'
+      - '.github/workflows/render-deploy.yml'
+
+concurrency:
+  group: render-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or deploy Render service
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_NAME: profitengine-api
+          REPO_URL: https://github.com/${{ github.repository }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, time, urllib.request, urllib.error
+
+          API = "https://api.render.com/v1"
+          KEY = os.environ["RENDER_API_KEY"].strip()
+          NAME = os.environ["SERVICE_NAME"]
+
+          def call(method, path, body=None):
+              req = urllib.request.Request(API + path,
+                  data=json.dumps(body).encode() if body is not None else None,
+                  method=method,
+                  headers={"Authorization": f"Bearer {KEY}",
+                           "Accept": "application/json",
+                           "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode(errors="replace")
+                  raise RuntimeError(f"{method} {path} -> HTTP {e.code}: {detail}") from None
+
+          if not KEY:
+              print("::error::RENDER_API_KEY secret is empty")
+              sys.exit(1)
+
+          env_vars = [{"key": k, "value": os.environ[k]}
+                      for k in ("MONGO_URL", "JWT_SECRET", "STRIPE_API_KEY",
+                                "GEMINI_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
+                                "OPENROUTER_API_KEY", "AMAZON_PARTNER_TAG")
+                      if os.environ.get(k, "").strip()]
+          env_vars += [{"key": "DB_NAME", "value": "profitengine"},
+                       {"key": "SITE_DOMAIN", "value": "alreadyherellc.com"}]
+
+          # Find existing service
+          services = call("GET", f"/services?name={NAME}&limit=20")
+          svc = next((s["service"] for s in services
+                      if s.get("service", {}).get("name") == NAME), None)
+
+          if svc is None:
+              owners = call("GET", "/owners?limit=10")
+              if not owners:
+                  print("::error::Render API key has no owners/workspaces")
+                  sys.exit(1)
+              owner_id = owners[0]["owner"]["id"]
+              print(f"creating service {NAME} under owner {owner_id}")
+              try:
+                  created = call("POST", "/services", {
+                      "type": "web_service",
+                      "name": NAME,
+                      "ownerId": owner_id,
+                      "repo": os.environ["REPO_URL"],
+                      "branch": "main",
+                      "autoDeploy": "yes",
+                      "envVars": env_vars,
+                      "serviceDetails": {
+                          "runtime": "docker",
+                          "plan": "free",
+                          "region": "oregon",
+                          "healthCheckPath": "/api/health",
+                          "envSpecificDetails": {
+                              "dockerfilePath": "./Dockerfile",
+                              "dockerContext": ".",
+                          },
+                      },
+                  })
+              except RuntimeError as e:
+                  print(f"::error::service creation failed: {e}")
+                  print("If the error mentions repo access: connect the GitHub account "
+                        "'quantam101' to Render (dashboard.render.com -> Account Settings "
+                        "-> Git Providers) and grant access to profitenginev5, then re-run.")
+                  sys.exit(1)
+              svc = created["service"]
+              deploy_id = created.get("deployId", "")
+              print(f"service created: {svc['id']}")
+          else:
+              print(f"service exists: {svc['id']} — syncing env vars and deploying")
+              call("PUT", f"/services/{svc['id']}/env-vars", env_vars)
+              dep = call("POST", f"/services/{svc['id']}/deploys",
+                         {"clearCache": "do_not_clear"})
+              deploy_id = dep.get("id", "")
+
+          url = svc.get("serviceDetails", {}).get("url", "")
+          print(f"service url: {url}")
+
+          # Poll deploy until terminal state (Docker build on free tier can be slow)
+          if deploy_id:
+              deadline = time.time() + 25 * 60
+              status = "created"
+              while time.time() < deadline:
+                  dep = call("GET", f"/services/{svc['id']}/deploys/{deploy_id}")
+                  status = dep.get("status", "")
+                  print(f"deploy {deploy_id}: {status}")
+                  if status == "live":
+                      break
+                  if status in ("build_failed", "update_failed", "canceled",
+                                "pre_deploy_failed", "deactivated"):
+                      print(f"::error::deploy ended in state {status} — check Render dashboard logs")
+                      sys.exit(1)
+                  time.sleep(30)
+              else:
+                  print(f"::error::deploy timed out (last status: {status})")
+                  sys.exit(1)
+
+          # Smoke test
+          if url:
+              import subprocess
+              code = subprocess.run(["curl", "-s", "-o", "/dev/null", "-m", "30",
+                                     "-w", "%{http_code}", f"{url}/api/health"],
+                                    capture_output=True, text=True).stdout.strip()
+              print(f"health check {url}/api/health -> {code}")
+              if not code.startswith("2"):
+                  print(f"::error::health check failed with {code}")
+                  sys.exit(1)
+          print("PASS — Render service live and healthy")
+          PY

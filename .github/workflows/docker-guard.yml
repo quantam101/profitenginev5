@@ -45,11 +45,14 @@ jobs:
         id: guard
         run: |
           AGGR="${{ github.event.inputs.aggressive || 'false' }}"
+          # '|| true': under 'set -e' a connection failure would kill the step
+          # before guard-output.txt is written, crashing the later steps too.
           HTTP_CODE=$(curl -s -o /tmp/guard-response.json -w "%{http_code}" --max-time 660 \
             -X POST "${RUNTIME_BASE}/guard/run" \
             -H "Authorization: Bearer ${PROFITENGINE_WEBHOOK_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"aggressive\": ${AGGR}}")
+            -d "{\"aggressive\": ${AGGR}}" || true)
+          HTTP_CODE="${HTTP_CODE:-000}"
           echo "HTTP $HTTP_CODE"
 
           GUARD_OUTPUT=$(python3 -c "import json,sys; d=json.load(open('/tmp/guard-response.json')); print(d.get('output',''))" 2>/dev/null || echo "")
@@ -58,7 +61,7 @@ jobs:
           echo "$GUARD_OUTPUT"
 
           if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
-            echo "::warning::Guard trigger failed (HTTP $HTTP_CODE) — runtime unreachable or misconfigured."
+            echo "::warning::Guard trigger failed (HTTP $HTTP_CODE) — runtime unreachable or misconfigured. Uptime Monitor owns outage alerting; skipping analysis."
           fi
 
           AVAIL=$(echo "$GUARD_OUTPUT" | grep "event=disk_snapshot" | grep -oP "avail_gb=\K[\d.]+" || echo "?")
@@ -96,7 +99,10 @@ jobs:
           python3 - <<'PYEOF'
           import sys
 
-          guard_out = open('/tmp/guard-output.txt', encoding='utf-8').read()
+          try:
+              guard_out = open('/tmp/guard-output.txt', encoding='utf-8').read()
+          except FileNotFoundError:
+              guard_out = ''
           if not guard_out.strip():
               print('No guard output to analyze.')
               sys.exit(0)
