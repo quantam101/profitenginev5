@@ -4,6 +4,12 @@ name: Render Deploy (backend API)
 # creates the service on first run, then re-deploys on subsequent runs.
 on:
   workflow_dispatch:
+    inputs:
+      diagnose:
+        description: 'Only print service config, deploy history, and recent logs'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -24,6 +30,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_NAME: profitengine-api
           REPO_URL: https://github.com/${{ github.repository }}
+          DIAGNOSE: ${{ github.event.inputs.diagnose || 'false' }}
           MONGO_URL: ${{ secrets.MONGO_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
@@ -71,6 +78,29 @@ jobs:
           services = call("GET", f"/services?name={NAME}&limit=20")
           svc = next((s["service"] for s in services
                       if s.get("service", {}).get("name") == NAME), None)
+
+          if os.environ.get("DIAGNOSE") == "true":
+              if svc is None:
+                  print("no service named", NAME)
+                  sys.exit(0)
+              print("=== service ===")
+              print(json.dumps(svc, indent=2))
+              print("=== recent deploys ===")
+              deploys = call("GET", f"/services/{svc['id']}/deploys?limit=5")
+              for d in deploys:
+                  dd = d["deploy"]
+                  print(f"{dd['id']}  {dd.get('status')}  {dd.get('createdAt')}  "
+                        f"commit={dd.get('commit', {}).get('id', '')[:9]}")
+              print("=== recent events ===")
+              events = call("GET", f"/services/{svc['id']}/events?limit=20")
+              print(json.dumps(events, indent=2)[:6000])
+              print("=== recent logs ===")
+              owners = call("GET", "/owners?limit=10")
+              oid = owners[0]["owner"]["id"]
+              logs = call("GET", f"/logs?ownerId={oid}&resource={svc['id']}&limit=100")
+              for line in logs.get("logs", []):
+                  print(line.get("timestamp", ""), line.get("message", ""))
+              sys.exit(0)
 
           if svc is None:
               owners = call("GET", "/owners?limit=10")
