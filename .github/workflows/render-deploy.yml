@@ -161,6 +161,17 @@ jobs:
                   print("custom domain api.alreadyherellc.com already staged")
               else:
                   print(f"::warning::custom domain staging failed: {e}")
+          # Nudge verification so cert issuance starts as soon as DNS points here
+          try:
+              for d in call("GET", f"/services/{svc['id']}/custom-domains?limit=20"):
+                  dom = d.get("customDomain", d)
+                  status = dom.get("verificationStatus", "")
+                  print(f"custom domain {dom.get('name')}: {status}")
+                  if status != "verified":
+                      call("POST", f"/services/{svc['id']}/custom-domains/{dom['id']}/verify")
+                      print(f"verification re-triggered for {dom.get('name')}")
+          except RuntimeError as e:
+              print(f"::warning::custom domain verify failed: {e}")
 
           # Poll deploy until terminal state (Docker build on free tier can be slow)
           if deploy_id:
