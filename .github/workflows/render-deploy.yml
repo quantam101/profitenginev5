@@ -31,7 +31,9 @@ jobs:
           SERVICE_NAME: profitengine-api
           REPO_URL: https://github.com/${{ github.repository }}
           DIAGNOSE: ${{ github.event.inputs.diagnose || 'false' }}
-          MONGO_URL: ${{ secrets.MONGO_URL }}
+          # MONGODB_URL (2026-06-25) is newer than MONGO_URL (2026-05-29, dead
+          # SRV host profitenginev5.4ccsjgp.mongodb.net) — prefer it.
+          MONGO_URL: ${{ secrets.MONGODB_URL || secrets.MONGO_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

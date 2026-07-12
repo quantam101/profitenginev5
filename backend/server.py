@@ -45,7 +45,19 @@ from backend.services.proof_publisher import ProofPublisher  # noqa: E402
 
 MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
-mongo_client = AsyncIOMotorClient(MONGO_URL)
+MONGO_BOOT_ERROR: str | None = None
+try:
+    # mongodb+srv:// URIs resolve DNS eagerly here — a deleted Atlas
+    # cluster must not prevent boot; db-backed endpoints degrade instead.
+    mongo_client = AsyncIOMotorClient(MONGO_URL)
+except Exception as _mongo_exc:
+    MONGO_BOOT_ERROR = str(_mongo_exc)
+    import logging as _mlog
+    _mlog.getLogger("server").error("Mongo unavailable at boot: %s", MONGO_BOOT_ERROR)
+    mongo_client = AsyncIOMotorClient(
+        "mongodb://mongo-unavailable.invalid:27017/?serverSelectionTimeoutMS=2000",
+        connect=False,
+    )
 db = mongo_client[DB_NAME]
 distiller = Distiller(db)
 proof_publisher = ProofPublisher(db)
@@ -151,6 +163,7 @@ except Exception as _gmaos_err:
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
     return {"ok": True, "status": "ok", "service": "profitengine-v5",
+            "mongo": f"degraded: {MONGO_BOOT_ERROR}" if MONGO_BOOT_ERROR else "configured",
             "time": datetime.now(timezone.utc).isoformat()}
 
 
