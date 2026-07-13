@@ -1,0 +1,179 @@
+name: Ecosystem Matrix — Daily Orchestration Audit
+# Read-only master health matrix for the whole Already Here LLC profit
+# ecosystem: live endpoints, CI status of every repo, and revenue-stream
+# source-of-truth probes. Writes a status table to the run summary and
+# emails via Resend ONLY when something is red.
+#
+# Fast outage detection stays with uptime-monitor.yml (every 10 min);
+# this is the daily deep audit across all repos and revenue functions.
+on:
+  schedule:
+    - cron: '20 13 * * *'   # daily 13:20 UTC (after the 07:05 content run and 11:35 income run)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ecosystem-matrix
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Probe ecosystem and build matrix
+        env:
+          # CONTENT_REPO_TOKEN is a PAT that can read private repos; fall back
+          # to the workflow token (covers this repo + public repos).
+          GH_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN || github.token }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: dispatch@alreadyherellc.com
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures as cf
+          import datetime, json, os, re, subprocess, sys, urllib.request
+
+          UA = "Mozilla/5.0 ecosystem-matrix"
+          TODAY = datetime.date.today()
+
+          # ── live endpoints (component, url, expect) ──────────────────
+          ENDPOINTS = [
+              ("api custom domain",   "https://api.alreadyherellc.com/api/health",              "json:ok"),
+              ("app custom domain",   "https://app.alreadyherellc.com",                          "2xx"),
+              ("backend (render)",    "https://profitengine-api-6cwb.onrender.com/api/health",   "json:ok"),
+              ("runtime (render)",    "https://profitengine-runtime.onrender.com/health",        "json:ok"),
+              ("tokenforge (render)", "https://tokenforge-api.onrender.com/api/health",          "json:ok"),
+              ("frontend dashboard",  "https://profitenginev5.vercel.app/api/dashboard",         "2xx"),
+              ("www site",            "https://www.alreadyherellc.com",                          "2xx"),
+              ("forge redirect stub", "https://forge.alreadyherellc.com",                        "2xx"),
+              ("roadkings client",    "https://roadkingstransport.us",                           "2xx"),
+          ]
+
+          # ── revenue-stream source-of-truth probes ────────────────────
+          def check_newsletter():
+              body, code = fetch("https://profitengine-runtime.onrender.com/newsletter/stats")
+              if code != 200: return ("newsletter (beehiiv)", f"HTTP {code}", False)
+              d = json.loads(body)
+              ok = bool(d.get("ok"))
+              return ("newsletter (beehiiv)", f"ok={ok} pub={d.get('name','?')}", ok)
+
+          def check_mongo():
+              body, code = fetch("https://api.alreadyherellc.com/api/health")
+              if code != 200: return ("mongo persistence", f"HTTP {code}", False)
+              m = json.loads(body).get("mongo", "?")
+              return ("mongo persistence", m, m == "configured")
+
+          def check_content_freshness():
+              body, code = fetch("https://quantam101.github.io/content/")
+              if code != 200: return ("content pipeline", f"HTTP {code}", False)
+              dates = sorted(set(re.findall(r"posts/(\d{4}-\d{2}-\d{2})", body)))
+              if not dates: return ("content pipeline", "no posts found", False)
+              newest = datetime.date.fromisoformat(dates[-1])
+              age = (TODAY - newest).days
+              return ("content pipeline", f"newest post {dates[-1]} ({age}d old)", age <= 1)
+
+          # ── repo CI status via GitHub API ────────────────────────────
+          REPOS = ["profitenginev5", "content", "already-here-llc",
+                   "already-here-dashboard", "tradegate2", "ai-profit-suite",
+                   "Token", "alreadyhere-site", "stabilitycapitalos",
+                   "roadkingstransport"]
+
+          def fetch(url, headers=None, timeout=90):
+              req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      return r.read().decode(errors="replace"), r.status
+              except urllib.error.HTTPError as e:
+                  return e.read().decode(errors="replace"), e.code
+              except Exception as e:
+                  return str(e), 0
+
+          def check_endpoint(item):
+              name, url, expect = item
+              body, code = fetch(url)
+              if code < 200 or code >= 400:
+                  return (name, f"HTTP {code}", False)
+              if expect == "json:ok":
+                  try:
+                      ok = bool(json.loads(body).get("ok"))
+                  except Exception:
+                      return (name, f"HTTP {code} (bad json)", False)
+                  return (name, f"HTTP {code} ok={ok}", ok)
+              return (name, f"HTTP {code}", True)
+
+          def check_repo(repo):
+              hdrs = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                      "Accept": "application/vnd.github+json"}
+              body, code = fetch(f"https://api.github.com/repos/quantam101/{repo}/actions/runs?per_page=6&status=completed", hdrs, 30)
+              if code == 404 or code == 403:
+                  return (f"repo {repo}", "no access (token scope)", True)  # fail-soft, not red
+              if code != 200:
+                  return (f"repo {repo}", f"HTTP {code}", False)
+              runs = json.loads(body).get("workflow_runs", [])
+              if not runs:
+                  return (f"repo {repo}", "no workflow runs", True)
+              latest = runs[0]
+              fails = sum(1 for r in runs if r.get("conclusion") == "failure")
+              ok = latest.get("conclusion") == "success"
+              return (f"repo {repo}", f"latest={latest.get('conclusion')} ({fails}/{len(runs)} recent fails)", ok)
+
+          jobs = ([("endpoint", e) for e in ENDPOINTS]
+                  + [("special", f) for f in (check_newsletter, check_mongo, check_content_freshness)]
+                  + [("repo", r) for r in REPOS])
+
+          def run_job(j):
+              kind, arg = j
+              try:
+                  if kind == "endpoint": return check_endpoint(arg)
+                  if kind == "special":  return arg()
+                  return check_repo(arg)
+              except Exception as e:
+                  name = arg if isinstance(arg, str) else getattr(arg, "__name__", str(arg))
+                  return (str(name), f"check crashed: {e}", False)
+
+          with cf.ThreadPoolExecutor(max_workers=12) as ex:
+              results = list(ex.map(run_job, jobs))
+
+          red = [(n, d) for n, d, ok in results if not ok]
+
+          # ── run summary table ────────────────────────────────────────
+          lines = [f"## Ecosystem Matrix — {TODAY} ({'ALL GREEN' if not red else str(len(red)) + ' RED'})",
+                   "", "| Component | Detail | Status |", "|---|---|---|"]
+          for n, d, ok in results:
+              lines.append(f"| {n} | {d} | {'🟢' if ok else '🔴'} |")
+          summary = "\n".join(lines)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(summary + "\n")
+          print(summary)
+
+          if not red:
+              print("all components green")
+              raise SystemExit(0)
+
+          print("::warning::red components: " + "; ".join(n for n, _ in red))
+          key = os.environ.get("RESEND_API_KEY", "").strip()
+          if key:
+              body_txt = ("Ecosystem Matrix found RED components:\n\n"
+                          + "\n".join(f"- {n}: {d}" for n, d in red)
+                          + f"\n\nFull table: {os.environ.get('RUN_URL','')}")
+              payload = json.dumps({
+                  "from": "Ecosystem Matrix <dispatch@alreadyherellc.com>",
+                  "to": [os.environ["ALERT_TO"]],
+                  "subject": f"MATRIX: {len(red)} component(s) RED",
+                  "text": body_txt,
+              }).encode()
+              req = urllib.request.Request("https://api.resend.com/emails", data=payload,
+                  method="POST", headers={"Authorization": f"Bearer {key}",
+                                          "Content-Type": "application/json",
+                                          "User-Agent": UA})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      print("alert email sent, id=" + json.loads(r.read()).get("id", ""))
+              except Exception as e:
+                  print("alert email FAILED:", e)
+          raise SystemExit(1)
+          PY
