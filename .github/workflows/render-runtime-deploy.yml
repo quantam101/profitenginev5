@@ -69,13 +69,16 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+          BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
         run: |
           python3 - "${{ steps.svc.outputs.svc_id }}" <<'EOF'
           import json, os, sys, urllib.request
           svc_id = sys.argv[1]
           names = ["MONGO_URL","GUMROAD_ACCESS_TOKEN","PRINTIFY_API_TOKEN","PRINTIFY_SHOP_ID",
                    "STRIPE_SECRET_KEY","PROFITENGINE_WEBHOOK_TOKEN","TELEGRAM_BOT_TOKEN",
-                   "TELEGRAM_CHAT_ID","GROQ_API_KEY","GEMINI_API_KEY","ANTHROPIC_API_KEY"]
+                   "TELEGRAM_CHAT_ID","GROQ_API_KEY","GEMINI_API_KEY","ANTHROPIC_API_KEY",
+                   "BEEHIIV_API_KEY","BEEHIIV_PUBLICATION_ID"]
           payload = [{"key": "DB_NAME", "value": os.environ.get("DB_NAME") or "profitengine"}]
           payload += [{"key": n, "value": os.environ[n]} for n in names if os.environ.get(n)]
           req = urllib.request.Request(
