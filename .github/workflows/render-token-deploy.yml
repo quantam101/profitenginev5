@@ -1,0 +1,116 @@
+name: Render Deploy (tokenforge API)
+# TokenForge backend lost its host when the OCI box died (2026-07-09).
+# Deploys quantam101/Token's backend/ as a Render web service. Lives in
+# this repo because RENDER_API_KEY is configured here.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: render-token-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Create or deploy tokenforge-api on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_NAME: tokenforge-api
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, time, urllib.request, urllib.error
+
+          API = "https://api.render.com/v1"
+          KEY = os.environ["RENDER_API_KEY"].strip()
+          NAME = os.environ["SERVICE_NAME"]
+
+          def call(method, path, body=None):
+              req = urllib.request.Request(API + path,
+                  data=json.dumps(body).encode() if body is not None else None,
+                  method=method,
+                  headers={"Authorization": f"Bearer {KEY}",
+                           "Accept": "application/json",
+                           "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  raise RuntimeError(f"{method} {path} -> HTTP {e.code}: {e.read().decode(errors='replace')}") from None
+
+          # NOTE: no MONGO_URL — the old Atlas cluster is deleted and the
+          # backend boots fine without it (client=None). Add it via this list
+          # once a replacement cluster exists.
+          env_vars = [
+              {"key": "DB_NAME", "value": "tokenforge"},
+              {"key": "APP_ENV", "value": "production"},
+              {"key": "ENV", "value": "production"},
+              {"key": "CORS_ORIGINS", "value": "https://forge.alreadyherellc.com"},
+              {"key": "FRONTEND_ORIGIN", "value": "https://forge.alreadyherellc.com"},
+          ]
+          if os.environ.get("STRIPE_API_KEY", "").strip():
+              env_vars.append({"key": "STRIPE_API_KEY", "value": os.environ["STRIPE_API_KEY"]})
+
+          services = call("GET", f"/services?name={NAME}&limit=20")
+          svc = next((s["service"] for s in services
+                      if s.get("service", {}).get("name") == NAME), None)
+
+          if svc is None:
+              owner_id = call("GET", "/owners?limit=10")[0]["owner"]["id"]
+              print(f"creating service {NAME}")
+              created = call("POST", "/services", {
+                  "type": "web_service",
+                  "name": NAME,
+                  "ownerId": owner_id,
+                  "repo": "https://github.com/quantam101/Token",
+                  "branch": "main",
+                  "autoDeploy": "yes",
+                  "envVars": env_vars,
+                  "serviceDetails": {
+                      "runtime": "docker",
+                      "plan": "free",
+                      "region": "oregon",
+                      "healthCheckPath": "/api/health",
+                      "envSpecificDetails": {
+                          "dockerfilePath": "./backend/Dockerfile",
+                          "dockerContext": "./backend",
+                      },
+                  },
+              })
+              svc = created["service"]
+              deploy_id = created.get("deployId", "")
+          else:
+              print(f"service exists: {svc['id']} — syncing env and deploying")
+              call("PUT", f"/services/{svc['id']}/env-vars", env_vars)
+              deploy_id = call("POST", f"/services/{svc['id']}/deploys",
+                               {"clearCache": "do_not_clear"}).get("id", "")
+
+          url = svc.get("serviceDetails", {}).get("url", "")
+          print(f"service url: {url}")
+
+          if deploy_id:
+              deadline = time.time() + 25 * 60
+              while time.time() < deadline:
+                  status = call("GET", f"/services/{svc['id']}/deploys/{deploy_id}").get("status", "")
+                  print(f"deploy {deploy_id}: {status}")
+                  if status == "live":
+                      break
+                  if status in ("build_failed", "update_failed", "canceled",
+                                "pre_deploy_failed", "deactivated"):
+                      print(f"::error::deploy ended in state {status}")
+                      sys.exit(1)
+                  time.sleep(30)
+              else:
+                  print("::error::deploy timed out")
+                  sys.exit(1)
+
+          import subprocess
+          code = subprocess.run(["curl", "-s", "-o", "/dev/null", "-m", "60",
+                                 "-w", "%{http_code}", f"{url}/api/health"],
+                                capture_output=True, text=True).stdout.strip()
+          print(f"health check {url}/api/health -> {code}")
+          sys.exit(0 if code.startswith("2") else 1)
+          PY
