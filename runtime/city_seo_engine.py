@@ -188,18 +188,22 @@ _FTC = (
     "[FTC Disclosure](https://alreadyherellc.com/disclosure)*"
 )
 
-_SCHEMA_TEMPLATE = """{
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "name": "{h1}",
-  "description": "{description}",
-  "areaServed": {
-    "@type": "City",
-    "name": "{city}",
-    "containedInPlace": {"@type": "State", "name": "{state}"}
-  },
-  "url": "https://alreadyherellc.com"
-}"""
+def _schema_json(h1: str, description: str, city: str, state: str) -> str:
+    """JSON-LD LocalBusiness schema. Built with json.dumps — a str.format
+    template can't hold literal JSON braces, and this escapes quotes in
+    titles/descriptions correctly."""
+    return json.dumps({
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": h1,
+        "description": description,
+        "areaServed": {
+            "@type": "City",
+            "name": city,
+            "containedInPlace": {"@type": "State", "name": state},
+        },
+        "url": "https://alreadyherellc.com",
+    }, indent=2)
 
 
 # ── Page generator ─────────────────────────────────────────────────────────────
@@ -288,9 +292,7 @@ def generate_page(
     body   = _gen_body(city, state, niche_cfg, year)
     desc   = f"Find the best {kw} providers in {city}, {state}. Curated by AI, updated {year}."
 
-    schema = _SCHEMA_TEMPLATE.format(
-        h1=h1, description=desc[:150], city=city, state=state
-    )
+    schema = _schema_json(h1, desc[:150], city, state)
 
     md = f"""---
 title: "{title}"

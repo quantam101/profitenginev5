@@ -14,10 +14,13 @@ Set these in your server .env:
 from __future__ import annotations
 
 import base64
+import logging
 import os
 from typing import Any, Dict, Optional
 
 import httpx
+
+logger = logging.getLogger("github_client")
 
 _GH_BASE = "https://api.github.com"
 
@@ -104,6 +107,42 @@ def publish_file(
         raise RuntimeError(
             f"GitHub API error {exc.response.status_code}: {exc.response.text}"
         ) from exc
+
+
+def commit_file(path: str, content: str, message: str) -> bool:
+    """
+    Create or update a file at an arbitrary repo-relative path in the
+    configured content repo (unlike publish_file, which forces the
+    configured posts dir). Returns True on success, False on failure.
+    Used by city_seo_engine (income stream 10).
+    """
+    cfg = _cfg()
+    if not cfg["token"] or not cfg["owner"] or not cfg["repo"]:
+        logger.error("[GitHub] commit_file: GITHUB_CONTENT_TOKEN/OWNER/REPO not configured")
+        return False
+
+    content_b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
+    sha = _get_file_sha(cfg["token"], cfg["owner"], cfg["repo"], path, cfg["branch"])
+    payload: Dict[str, Any] = {
+        "message": message,
+        "content": content_b64,
+        "branch": cfg["branch"],
+    }
+    if sha:
+        payload["sha"] = sha
+
+    try:
+        resp = httpx.put(
+            f"{_GH_BASE}/repos/{cfg['owner']}/{cfg['repo']}/contents/{path}",
+            headers=_headers(cfg["token"]),
+            json=payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return True
+    except Exception as exc:
+        logger.error(f"[GitHub] commit_file failed for {path}: {exc}")
+        return False
 
 
 def pages_url() -> str:
