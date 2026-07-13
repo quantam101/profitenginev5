@@ -10,6 +10,11 @@ on:
         required: false
         default: false
         type: boolean
+      diagnose_service:
+        description: 'Service name to diagnose (default profitengine-api)'
+        required: false
+        default: 'profitengine-api'
+        type: string
   push:
     branches: [main]
     paths:
@@ -31,6 +36,7 @@ jobs:
           SERVICE_NAME: profitengine-api
           REPO_URL: https://github.com/${{ github.repository }}
           DIAGNOSE: ${{ github.event.inputs.diagnose || 'false' }}
+          DIAGNOSE_SERVICE: ${{ github.event.inputs.diagnose_service || 'profitengine-api' }}
           # MONGODB_URL (2026-06-25) is newer than MONGO_URL (2026-05-29, dead
           # SRV host profitenginev5.4ccsjgp.mongodb.net) — prefer it.
           MONGO_URL: ${{ secrets.MONGODB_URL || secrets.MONGO_URL }}
@@ -82,8 +88,13 @@ jobs:
                       if s.get("service", {}).get("name") == NAME), None)
 
           if os.environ.get("DIAGNOSE") == "true":
+              diag_name = os.environ.get("DIAGNOSE_SERVICE", NAME)
+              if diag_name != NAME:
+                  services = call("GET", f"/services?name={diag_name}&limit=20")
+                  svc = next((s["service"] for s in services
+                              if s.get("service", {}).get("name") == diag_name), None)
               if svc is None:
-                  print("no service named", NAME)
+                  print("no service named", diag_name)
                   sys.exit(0)
               print("=== service ===")
               print(json.dumps(svc, indent=2))
