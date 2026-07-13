@@ -104,6 +104,10 @@ jobs:
               'client_secret': (os.getenv('YOUTUBE_CLIENT_SECRET') or '').strip(),
               'refresh_token': (os.getenv('YOUTUBE_REFRESH_TOKEN') or '').strip(),
           }
+          # Debug (non-secret): lengths + id prefix to catch stale/malformed values
+          cid = creds_dict['client_id']
+          print(f'client_id len={len(cid)} head={cid[:14]}')
+          print('secret len=%d rt len=%d' % (len(creds_dict['client_secret']), len(creds_dict['refresh_token'])))
 
           try:
               creds = Credentials.from_authorized_user_info(creds_dict)
