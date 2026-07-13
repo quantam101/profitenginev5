@@ -40,6 +40,8 @@ def _request(method: str, path: str, body: Optional[Dict[str, Any]] = None) -> D
         headers={
             "Authorization": f"Bearer {_key()}",
             "Content-Type": "application/json",
+            # Cloudflare 403s the default Python-urllib agent (error 1010)
+            "User-Agent": "already-here-llc-newsletter/1.0",
         },
     )
     try:
