@@ -203,19 +203,22 @@ jobs:
                       'status': 'success'
                   })
 
-                  print(f'✅ YouTube upload successful: {video['program']}')
+                  prog = video['program']
+                  print(f'✅ YouTube upload successful: {prog}')
                   print(f'   Video ID: {video_id}')
                   print(f'   URL: https://www.youtube.com/shorts/{video_id}')
 
               except Exception as e:
-                  print(f'❌ Upload failed for {video['program']}: {e}')
+                  prog = video['program']
+                  print(f'❌ Upload failed for {prog}: {e}')
                   uploads.append({
                       'program': video['program'],
                       'status': 'failed',
                       'error': str(e)
                   })
 
-          print(f'\\n✅ Campaign complete: {sum(1 for u in uploads if u['status'] == 'success')}/{len(uploads)} uploaded')
+          ok_count = sum(1 for u in uploads if u['status'] == 'success')
+          print(f'\\n✅ Campaign complete: {ok_count}/{len(uploads)} uploaded')
 
           with open('youtube_uploads.json', 'w') as f:
               json.dump(uploads, f, indent=2)
