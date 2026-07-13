@@ -100,9 +100,9 @@ jobs:
           # Test credentials
           creds_dict = {
               'type': 'authorized_user',
-              'client_id': (os.getenv('YOUTUBE_CLIENT_ID') or '').strip(),
-              'client_secret': (os.getenv('YOUTUBE_CLIENT_SECRET') or '').strip(),
-              'refresh_token': (os.getenv('YOUTUBE_REFRESH_TOKEN') or '').strip(),
+              'client_id': (os.getenv('YOUTUBE_CLIENT_ID') or '').strip().strip('﻿'),
+              'client_secret': (os.getenv('YOUTUBE_CLIENT_SECRET') or '').strip().strip('﻿'),
+              'refresh_token': (os.getenv('YOUTUBE_REFRESH_TOKEN') or '').strip().strip('﻿'),
           }
           # Debug (non-secret): lengths + id prefix to catch stale/malformed values
           cid = creds_dict['client_id']
@@ -155,9 +155,9 @@ jobs:
 
           creds_dict = {
               'type': 'authorized_user',
-              'client_id': (os.getenv('YOUTUBE_CLIENT_ID') or '').strip(),
-              'client_secret': (os.getenv('YOUTUBE_CLIENT_SECRET') or '').strip(),
-              'refresh_token': (os.getenv('YOUTUBE_REFRESH_TOKEN') or '').strip(),
+              'client_id': (os.getenv('YOUTUBE_CLIENT_ID') or '').strip().strip('﻿'),
+              'client_secret': (os.getenv('YOUTUBE_CLIENT_SECRET') or '').strip().strip('﻿'),
+              'refresh_token': (os.getenv('YOUTUBE_REFRESH_TOKEN') or '').strip().strip('﻿'),
           }
 
           creds = Credentials.from_authorized_user_info(creds_dict)
