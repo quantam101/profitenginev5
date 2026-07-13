@@ -28,3 +28,4 @@ credentials.json
 # Runtime artifacts (regenerated, not source)
 *.db
 logs/
+.env*
