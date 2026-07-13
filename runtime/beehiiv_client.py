@@ -221,6 +221,10 @@ def publish_post(issue: NewsletterIssue) -> BeehiivResult:
         return BeehiivResult(ok=False, error="BEEHIIV_PUBLICATION_ID not set")
 
     payload: Dict[str, Any] = {
+        # Beehiiv posts API requires "title" (400 NOT_EXIST_REQUIRED_KEY
+        # without it); legacy keys kept for backward/forward compatibility.
+        "title":        issue.subject,
+        "subtitle":     issue.preview[:90],
         "subject":      issue.subject,
         "preview_text": issue.preview[:90],
         "content_html": issue.body_html,
