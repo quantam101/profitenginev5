@@ -23,11 +23,11 @@ jobs:
         id: svc
         run: |
           auth=(-H "Authorization: Bearer ${RENDER_API_KEY}" -H "Content-Type: application/json")
-          existing=$(curl -s "${auth[@]}" "https://api.render.com/v1/services?name=${SERVICE_NAME}&limit=1")
+          existing=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" "https://api.render.com/v1/services?name=${SERVICE_NAME}&limit=1")
           svc_id=$(echo "$existing" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['service']['id'] if d else '')")
           if [ -z "$svc_id" ]; then
-            owner_id=$(curl -s "${auth[@]}" "https://api.render.com/v1/owners?limit=1" | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['owner']['id'])")
-            create=$(curl -s "${auth[@]}" -X POST "https://api.render.com/v1/services" -d "{
+            owner_id=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" "https://api.render.com/v1/owners?limit=1" | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['owner']['id'])")
+            create=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" -X POST "https://api.render.com/v1/services" -d "{
               \"type\": \"web_service\",
               \"name\": \"${SERVICE_NAME}\",
               \"ownerId\": \"${owner_id}\",
@@ -94,10 +94,10 @@ jobs:
         run: |
           auth=(-H "Authorization: Bearer ${RENDER_API_KEY}" -H "Content-Type: application/json")
           svc_id="${{ steps.svc.outputs.svc_id }}"
-          deploy_id=$(curl -s "${auth[@]}" -X POST "https://api.render.com/v1/services/${svc_id}/deploys" -d '{}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))")
+          deploy_id=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" -X POST "https://api.render.com/v1/services/${svc_id}/deploys" -d '{}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))")
           echo "Deploy: $deploy_id"
           for i in $(seq 1 60); do
-            status=$(curl -s "${auth[@]}" "https://api.render.com/v1/services/${svc_id}/deploys/${deploy_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
+            status=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" "https://api.render.com/v1/services/${svc_id}/deploys/${deploy_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
             echo "[$i] $status"
             case "$status" in
               live) break ;;
@@ -105,6 +105,6 @@ jobs:
             esac
             sleep 15
           done
-          url=$(curl -s "${auth[@]}" "https://api.render.com/v1/services/${svc_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('serviceDetails',{}).get('url',''))")
+          url=$(curl -s --retry 3 --retry-all-errors --retry-delay 5 "${auth[@]}" "https://api.render.com/v1/services/${svc_id}" | python3 -c "import json,sys; print(json.load(sys.stdin).get('serviceDetails',{}).get('url',''))")
           echo "Service URL: $url"
           curl -sf --max-time 90 "$url/health" && echo "" && echo "::notice::Runtime healthy at $url — set repo secret RUNTIME_API_URL=$url and Vercel env RUNTIME_API_URL=$url"
