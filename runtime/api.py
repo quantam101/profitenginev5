@@ -390,14 +390,27 @@ async def social_distribute(payload: SocialDistributeRequest) -> Dict[str, Any]:
 
 @app.post("/newsletter/publish")
 def newsletter_publish(payload: NewsletterRequest) -> Dict[str, Any]:
-    """Publish a digest to Beehiiv (income stream 8 — newsletter)."""
-    from .beehiiv_client import publish_digest_from_sections
-    result = publish_digest_from_sections(
-        headline = payload.headline,
-        sections = payload.sections,
-        tags     = payload.tags or ["ai", "automation", "income"],
-        cta_url  = payload.cta_url,
-    )
+    """Publish a digest (income stream 8 — newsletter).
+
+    Primary provider is Resend Broadcasts (free tier). Beehiiv's posts API
+    is Enterprise-gated (403 SEND_API_NOT_ENTERPRISE_PLAN) and only used
+    as a fallback when RESEND_API_KEY is absent.
+    """
+    import os as _os
+    from .beehiiv_client import build_digest_html
+    if _os.environ.get("RESEND_API_KEY", "").strip():
+        from .resend_newsletter import publish_digest
+        html, text = build_digest_html(payload.headline, payload.sections,
+                                       cta_url=payload.cta_url)
+        result = publish_digest(payload.headline, html, text)
+    else:
+        from .beehiiv_client import publish_digest_from_sections
+        result = publish_digest_from_sections(
+            headline = payload.headline,
+            sections = payload.sections,
+            tags     = payload.tags or ["ai", "automation", "income"],
+            cta_url  = payload.cta_url,
+        )
     return {
         "ok":      result.ok,
         "post_id": result.post_id,
@@ -407,13 +420,33 @@ def newsletter_publish(payload: NewsletterRequest) -> Dict[str, Any]:
     }
 
 
+@app.post("/newsletter/subscribe")
+def newsletter_subscribe(payload: Dict[str, str]) -> Dict[str, Any]:
+    """Add a subscriber to the Resend newsletter audience."""
+    email = (payload.get("email") or "").strip()
+    if "@" not in email:
+        return {"ok": False, "error": "valid email required"}
+    from .resend_newsletter import subscribe
+    try:
+        res = subscribe(email, payload.get("first_name", ""))
+        return {"ok": True, "id": res.get("id", "")}
+    except RuntimeError as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 @app.get("/newsletter/stats")
 def newsletter_stats() -> Dict[str, Any]:
-    """Beehiiv publication stats: subscriber count, free/paid breakdown, MRR estimate."""
+    """Newsletter stats: Resend audience (list of record) + legacy Beehiiv numbers."""
     from .beehiiv_client import get_stats, get_subscribers
     stats = get_stats()
     subs  = get_subscribers()
-    return {**stats, "subscribers": subs}
+    out = {**stats, "subscribers": subs}
+    import os as _os
+    if _os.environ.get("RESEND_API_KEY", "").strip():
+        from .resend_newsletter import audience_stats
+        out["resend"] = audience_stats()
+        out["ok"] = bool(out.get("ok")) or bool(out["resend"].get("ok"))
+    return out
 
 
 @app.post("/products/bootstrap")
