@@ -42,7 +42,6 @@ jobs:
           python scripts/generate_shorts.py
           echo "=== generated files ==="
           ls -lh videos/openmontage/ || true
-          "
 
       - name: Test YouTube API connection
         if: ${{ github.event.inputs.dry_run != 'true' }}

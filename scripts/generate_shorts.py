@@ -132,30 +132,46 @@ def _even_words(script: str, total: float) -> list[tuple[float, float, str]]:
     return [(i * per, (i + 1) * per, t) for i, t in enumerate(toks)]
 
 
+_ACCENTS = ["&H00FFFFFF", "&H0037F0FF", "&H007DEF3D", "&H00F0A020"]  # white, yellow, green, blue (BGR)
+
+
 def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float, script: str = "") -> None:
+    """CapCut-style captions: 1-2 words per beat, big/bold, pop-in scale + fade,
+    rotating accent colours. Auto-wrap + margins prevent edge overflow."""
     if not words and script:
         words = _even_words(script, total)
-    style = ("Style: Cap,DejaVu Sans,110,&H00FFFFFF,&H000000FF,&H00101010,&H90000000,"
-             "-1,0,0,0,100,100,0,0,1,7,3,2,90,90,520,1")
+    # Base style: big bold, thick outline + shadow, centered (an5), generous side margins.
+    style = ("Style: Cap,DejaVu Sans,104,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,"
+             "-1,0,0,0,100,100,1,0,1,8,4,5,110,110,0,1")
     header = (
-        "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 2\n\n"
+        "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n"
         "[V4+ Styles]\nFormat: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,"
         "BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,"
         "Shadow,Alignment,MarginL,MarginR,MarginV,Encoding\n" + style + "\n\n"
         "[Events]\nFormat: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text\n")
-    lines = []
+
+    # Group into 1-2 word beats (2 only when both words are short) — CapCut punch.
+    beats: list[tuple[float, float, str]] = []
     chunk: list[tuple[float, float, str]] = []
     for w in words or []:
         chunk.append(w)
-        if len(chunk) >= 3 or w[2].endswith((".", "!", "?", ",")):
-            st, en = chunk[0][0], chunk[-1][1]
-            txt = " ".join(c[2] for c in chunk).upper().replace(",", "").strip()
-            lines.append(f"Dialogue: 0,{_ass_time(st)},{_ass_time(max(en, st + 0.4))},Cap,,0,0,0,,{{\\fad(80,80)}}{txt}")
+        joined = " ".join(c[2] for c in chunk)
+        end_punct = w[2].endswith((".", "!", "?", ",", ";", ":"))
+        if len(chunk) >= 2 or len(joined) >= 11 or end_punct:
+            beats.append((chunk[0][0], chunk[-1][1], joined))
             chunk = []
     if chunk:
-        st, en = chunk[0][0], max(chunk[-1][1], total)
-        txt = " ".join(c[2] for c in chunk).upper().replace(",", "").strip()
-        lines.append(f"Dialogue: 0,{_ass_time(st)},{_ass_time(en)},Cap,,0,0,0,,{{\\fad(80,80)}}{txt}")
+        beats.append((chunk[0][0], max(chunk[-1][1], total), " ".join(c[2] for c in chunk)))
+
+    lines = []
+    for i, (st, en, txt) in enumerate(beats):
+        en = max(en, st + 0.28)
+        col = _ACCENTS[i % len(_ACCENTS)]
+        # anchor an5 (center) at 62% height via \pos; pop-in scale with slight overshoot
+        eff = (f"{{\\an5\\pos(540,1200)\\c{col}&\\fad(60,40)"
+               f"\\fscx52\\fscy52\\t(0,120,\\fscx110\\fscy110)\\t(120,200,\\fscx100\\fscy100)}}")
+        clean = re.sub(r"[,;:]", "", txt).upper().strip()
+        lines.append(f"Dialogue: 0,{_ass_time(st)},{_ass_time(en)},Cap,,0,0,0,,{eff}{clean}")
     ass.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
 
 
