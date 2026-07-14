@@ -111,26 +111,22 @@ jobs:
 
           try:
               creds = Credentials.from_authorized_user_info(creds_dict)
-              if creds.expired:
-                  creds.refresh(Request())
+              # Force a refresh to validate the client_id/secret/refresh_token chain.
+              # Succeeds with any granted scope; videos.insert (next step) needs only
+              # youtube.upload, so we do NOT require a read scope here.
+              creds.refresh(Request())
+              print('✅ YouTube auth verified (access token minted)')
 
-              youtube = build('youtube', 'v3', credentials=creds)
-
-              # Get user info to verify connection
-              request = youtube.channels().list(
-                  part='snippet',
-                  mine=True
-              )
-              response = request.execute()
-
-              if response.get('items'):
-                  channel = response['items'][0]['snippet']
-                  print(f'✅ YouTube connection verified')
-                  print(f'   Channel: {channel.get(\"title\")}')
-              else:
-                  print('⚠️  YouTube connection OK but no channel found')
+              # Best-effort channel readout; skipped quietly if the token is upload-only.
+              try:
+                  youtube = build('youtube', 'v3', credentials=creds)
+                  response = youtube.channels().list(part='snippet', mine=True).execute()
+                  if response.get('items'):
+                      print(f'   Channel: {response[\"items\"][0][\"snippet\"].get(\"title\")}')
+              except Exception as read_err:
+                  print(f'   (channel read skipped — upload-only scope: {read_err})')
           except Exception as e:
-              print(f'❌ YouTube connection failed: {e}')
+              print(f'❌ YouTube auth failed: {e}')
               exit(1)
           "
 
