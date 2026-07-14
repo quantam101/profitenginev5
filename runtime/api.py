@@ -434,6 +434,41 @@ def newsletter_subscribe(payload: Dict[str, str]) -> Dict[str, Any]:
         return {"ok": False, "error": str(exc)}
 
 
+@app.post("/daily-command/opportunity")
+def daily_command_opportunity(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Forward a detected opportunity to Daily Command's approval queue.
+
+    Emits a signed revenue_opportunity.detected event. No-op (skipped)
+    until DC_WEBHOOK_URL + WEBHOOK_SECRET are configured.
+    """
+    from .daily_command_producer import emit_opportunity
+    company = (payload.get("company") or "").strip()
+    if not company:
+        return {"ok": False, "error": "company required"}
+    return emit_opportunity(
+        company=company,
+        grade=payload.get("grade", "C"),
+        external_id=payload.get("external_id"),
+        niche=payload.get("niche"),
+        location=payload.get("location"),
+        pain_signal=payload.get("pain_signal"),
+        recommended_offer=payload.get("recommended_offer"),
+        pricing_model=payload.get("pricing_model"),
+        expected_speed_to_revenue_days=payload.get("expected_speed_to_revenue_days"),
+    )
+
+
+@app.get("/daily-command/ping")
+def daily_command_ping() -> Dict[str, Any]:
+    """Report whether the Daily Command producer is wired."""
+    import os as _os
+    return {
+        "configured": bool(_os.environ.get("DC_WEBHOOK_URL", "").strip()
+                           and _os.environ.get("WEBHOOK_SECRET", "").strip()),
+        "webhook_url": _os.environ.get("DC_WEBHOOK_URL", "") or None,
+    }
+
+
 @app.get("/newsletter/stats")
 def newsletter_stats() -> Dict[str, Any]:
     """Newsletter stats: Resend audience (list of record) + legacy Beehiiv numbers."""

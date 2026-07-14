@@ -75,6 +75,8 @@ jobs:
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DC_WEBHOOK_URL: ${{ secrets.DC_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
         run: |
           python3 - "${{ steps.svc.outputs.svc_id }}" <<'EOF'
           import json, os, sys, urllib.request
@@ -84,7 +86,7 @@ jobs:
                    "TELEGRAM_CHAT_ID","GROQ_API_KEY","GEMINI_API_KEY","ANTHROPIC_API_KEY",
                    "BEEHIIV_API_KEY","BEEHIIV_PUBLICATION_ID",
                    "GITHUB_CONTENT_TOKEN","GITHUB_CONTENT_OWNER","GITHUB_CONTENT_REPO",
-                   "RESEND_API_KEY"]
+                   "RESEND_API_KEY","DC_WEBHOOK_URL","WEBHOOK_SECRET"]
           payload = [{"key": "DB_NAME", "value": os.environ.get("DB_NAME") or "profitengine"}]
           payload += [{"key": n, "value": os.environ[n]} for n in names if os.environ.get(n)]
           req = urllib.request.Request(
