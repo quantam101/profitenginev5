@@ -121,7 +121,20 @@ def _ass_time(s: float) -> str:
     return f"{h:d}:{m:02d}:{sec:05.2f}"
 
 
-def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float) -> None:
+def _even_words(script: str, total: float) -> list[tuple[float, float, str]]:
+    """Fallback timings when edge-tts returns no word boundaries: distribute the
+    script's words evenly across the voiceover duration (leaving a small tail)."""
+    toks = [w for w in re.split(r"\s+", script.strip()) if w]
+    if not toks:
+        return []
+    span = max(total - 0.5, 1.0)
+    per = span / len(toks)
+    return [(i * per, (i + 1) * per, t) for i, t in enumerate(toks)]
+
+
+def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float, script: str = "") -> None:
+    if not words and script:
+        words = _even_words(script, total)
     style = ("Style: Cap,DejaVu Sans,110,&H00FFFFFF,&H000000FF,&H00101010,&H90000000,"
              "-1,0,0,0,100,100,0,0,1,7,3,2,90,90,520,1")
     header = (
@@ -269,7 +282,7 @@ async def make_one(prog: dict) -> dict | None:
     print(f"   voice={voice} duration={dur:.1f}s words={len(words)}")
 
     ass = work / "caps.ass"
-    build_ass(words, ass, dur)
+    build_ass(words, ass, dur, script)
 
     bg = work / "bg.mp4"
     if not fetch_pexels_broll(prog, dur, bg):
