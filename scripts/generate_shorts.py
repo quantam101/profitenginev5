@@ -57,33 +57,78 @@ def esc_drawtext(t: str) -> str:
     return t.replace("\\", "\\\\").replace(":", "\\:").replace("'", "’").replace("%", "\\%")
 
 
-# ── 1. Sales script ────────────────────────────────────────────────────────────
-def gen_script(prog: dict) -> str:
-    key = os.getenv("GROQ_API_KEY", "").strip()
-    ask = (
-        f"Write a high-converting 20-25 second YouTube Shorts voiceover script that sells "
-        f"{prog['product']}, a {prog['angle']}. Rules: open with a scroll-stopping hook in the "
-        f"first sentence, give 2 concrete benefits, end with a clear call to action. "
-        f"Spoken plain text only, no scene directions, no emojis, no hashtags, ~55 words max."
+# ── 1. Sales script (Gemini → Groq → template) ──────────────────────────────────
+def _script_prompt(prog: dict) -> str:
+    return (
+        f"You are a viral retention scriptwriter for YouTube Shorts. Write a 20-25 second "
+        f"voiceover script that sells {prog['product']}, a {prog['angle']}.\n"
+        f"Rules:\n"
+        f"- First sentence is an aggressive open-loop hook (a bold question or pattern interrupt).\n"
+        f"- Then 2 concrete, specific benefits (not vague).\n"
+        f"- End with a punchy call to action.\n"
+        f"- Spoken plain text ONLY. No scene directions, no emojis, no hashtags, no quotes, no markdown.\n"
+        f"- Short punchy sentences. ~55 words total, hard max 65."
     )
-    if key:
+
+
+def _clean_script(txt: str) -> str:
+    return re.sub(r"[\*#`\"]", "", txt).strip()
+
+
+def _gemini_script(prog: dict, key: str) -> str | None:
+    body = json.dumps({
+        "contents": [{"parts": [{"text": _script_prompt(prog)}]}],
+        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 250},
+    }).encode()
+    for model in ("gemini-2.0-flash", "gemini-1.5-flash"):
         try:
-            body = json.dumps({
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": ask}],
-                "temperature": 0.8, "max_tokens": 200,
-            }).encode()
             req = urllib.request.Request(
-                "https://api.groq.com/openai/v1/chat/completions", data=body, method="POST",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}",
+                data=body, method="POST",
+                headers={"Content-Type": "application/json", "User-Agent": "already-here-shorts/1.0"})
             with urllib.request.urlopen(req, timeout=30) as r:
-                txt = json.loads(r.read())["choices"][0]["message"]["content"].strip()
-            txt = re.sub(r"[\*#`\"]", "", txt).strip()
+                d = json.loads(r.read())
+            txt = _clean_script(d["candidates"][0]["content"]["parts"][0]["text"])
             if 40 < len(txt) < 700:
-                print(f"   script via Groq ({len(txt)} chars)")
+                print(f"   script via Gemini/{model} ({len(txt)} chars)")
                 return txt
         except Exception as e:
-            print(f"   Groq script failed ({e}) — using template")
+            print(f"   Gemini/{model} failed ({str(e)[:60]})")
+    return None
+
+
+def _groq_script(prog: dict, key: str) -> str | None:
+    try:
+        body = json.dumps({
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": _script_prompt(prog)}],
+            "temperature": 0.8, "max_tokens": 250,
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions", data=body, method="POST",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            txt = _clean_script(json.loads(r.read())["choices"][0]["message"]["content"])
+        if 40 < len(txt) < 700:
+            print(f"   script via Groq ({len(txt)} chars)")
+            return txt
+    except Exception as e:
+        print(f"   Groq failed ({str(e)[:60]})")
+    return None
+
+
+def gen_script(prog: dict) -> str:
+    gkey = os.getenv("GEMINI_API_KEY", "").strip()
+    if gkey:
+        s = _gemini_script(prog, gkey)
+        if s:
+            return s
+    qkey = os.getenv("GROQ_API_KEY", "").strip()
+    if qkey:
+        s = _groq_script(prog, qkey)
+        if s:
+            return s
+    print("   using template script")
     p, a, cta = prog["product"], prog["angle"], prog["cta"]
     return (f"Still doing this the hard way? {p} is the {a} that top creators swear by. "
             f"It saves you hours every week and pays for itself fast. "
@@ -94,7 +139,7 @@ def gen_script(prog: dict) -> str:
 async def synth_vo(text: str, mp3: Path, voice: str) -> list[tuple[float, float, str]]:
     import edge_tts
     words: list[tuple[float, float, str]] = []
-    comm = edge_tts.Communicate(text, voice=voice, rate="+6%")
+    comm = edge_tts.Communicate(text, voice=voice, rate="+6%", boundary="WordBoundary")
     with open(mp3, "wb") as f:
         async for ch in comm.stream():
             if ch["type"] == "audio":
