@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import threading
+
+import runtime.daily_command_producer as dc_producer
 from runtime.opportunity_intelligence import OpportunityInput, OpportunityIntelligenceEngine, OpportunityStore
 
 
@@ -70,3 +73,62 @@ def test_feedback_loop_updates_local_keyword_weights(tmp_path):
 
     assert deltas
     assert after > before
+
+
+def test_persisted_evaluation_auto_emits_to_daily_command(tmp_path, monkeypatch):
+    monkeypatch.setenv("DC_WEBHOOK_URL", "https://daily-command-os.vercel.app/api/events/webhook")
+    monkeypatch.setenv("WEBHOOK_SECRET", "unit-test-secret")
+
+    emitted: dict = {}
+    done = threading.Event()
+
+    def fake_emit(**kwargs):
+        emitted.update(kwargs)
+        done.set()
+        return {"ok": True}
+
+    monkeypatch.setattr(dc_producer, "emit_opportunity", fake_emit)
+
+    engine = OpportunityIntelligenceEngine(store=OpportunityStore(tmp_path / "oi.db"))
+    evaluation = engine.evaluate(
+        OpportunityInput(
+            source_platform="WorkMarket",
+            source_url="workmarket://assignment/auto-emit-01",
+            raw_text="Network support smart hands AP wireless troubleshooting Phoenix AZ $260 2 hours clear scope",
+            client="Desert Air HVAC",
+            location="Phoenix, AZ 85004",
+            pay_text="$260 fixed",
+            work_type="Network Support",
+            distance_miles=12,
+        )
+    )
+
+    assert done.wait(5), "auto-emit thread never called emit_opportunity"
+    assert emitted["company"] == "Desert Air HVAC"
+    assert emitted["external_id"] == evaluation.signature
+    assert emitted["grade"] == evaluation.grade
+    assert emitted["score"] == evaluation.score
+    assert emitted["decision"] == evaluation.decision
+
+
+def test_unpersisted_or_unconfigured_evaluation_does_not_emit(tmp_path, monkeypatch):
+    monkeypatch.delenv("DC_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
+
+    def fail_emit(**kwargs):
+        raise AssertionError("emit_opportunity must not be called when DC is unwired")
+
+    monkeypatch.setattr(dc_producer, "emit_opportunity", fail_emit)
+
+    engine = OpportunityIntelligenceEngine(store=OpportunityStore(tmp_path / "oi.db"))
+    engine.evaluate(
+        OpportunityInput(
+            source_platform="WorkMarket",
+            source_url="workmarket://assignment/no-emit-01",
+            raw_text="Network support Phoenix AZ $260 2 hours",
+            location="Phoenix, AZ 85004",
+            pay_text="$260 fixed",
+            work_type="Network Support",
+            distance_miles=12,
+        )
+    )

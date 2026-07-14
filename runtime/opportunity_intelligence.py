@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import os
 import re
 import sqlite3
 import tempfile
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -479,7 +481,39 @@ class OpportunityIntelligenceEngine:
         )
         if persist:
             self.store.save(evaluation)
+            self._emit_to_daily_command(evaluation)
         return evaluation
+
+    def _emit_to_daily_command(self, evaluation: OpportunityEvaluation) -> None:
+        """Forward a persisted, non-discarded evaluation to the Daily Command
+        approval queue. Fire-and-forget on a daemon thread so scoring latency is
+        unaffected; the producer itself is fail-soft and no-ops when unwired."""
+        if evaluation.decision == "DISCARD":
+            return
+        if not (os.environ.get("DC_WEBHOOK_URL", "").strip()
+                and os.environ.get("WEBHOOK_SECRET", "").strip()):
+            return
+        try:
+            from .daily_command_producer import emit_opportunity
+        except ImportError:
+            from daily_command_producer import emit_opportunity  # type: ignore[no-redef]
+        kwargs = {
+            "company": evaluation.client or evaluation.source_platform or "unknown",
+            "grade": evaluation.grade,
+            "external_id": evaluation.signature,
+            "niche": evaluation.work_type or None,
+            "location": evaluation.location or None,
+            "pain_signal": ", ".join(evaluation.risk_flags) or None,
+            "recommended_offer": evaluation.exact_next_action,
+            "score": evaluation.score,
+            "decision": evaluation.decision,
+            "pay_text": evaluation.pay_text or None,
+            "wo_number": evaluation.wo_number or None,
+        }
+        threading.Thread(
+            target=emit_opportunity, kwargs=kwargs,
+            name="dc-emit", daemon=True,
+        ).start()
 
     def _score(
         self,
