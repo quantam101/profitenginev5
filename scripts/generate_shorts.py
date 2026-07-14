@@ -195,7 +195,9 @@ def fetch_pexels_broll(prog: dict, duration: float, out: Path) -> bool:
                 continue
             src = sorted(files, key=lambda f: abs(f.get("height", 0) - 1920))[0]["link"]
             cp = out.parent / f"broll_{len(clips)}.mp4"
-            urllib.request.urlretrieve(src, cp)
+            dreq = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(dreq, timeout=90) as resp, open(cp, "wb") as fh:
+                shutil.copyfileobj(resp, fh)
             clips.append(cp)
             if len(clips) >= 3:
                 break
