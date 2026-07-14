@@ -2,8 +2,8 @@ name: Daily Revenue Tracking
 
 on:
   schedule:
-    # Run hourly at the top of every hour for Gumroad checks
-    - cron: '0 * * * *'
+    # Gumroad checks every 4h (was hourly — cut ~540 Actions min/mo)
+    - cron: '0 */4 * * *'
     # Run daily at 9 AM UTC for consolidated report
     - cron: '0 9 * * *'
   workflow_dispatch:
