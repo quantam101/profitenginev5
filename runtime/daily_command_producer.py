@@ -64,8 +64,12 @@ def emit(event_type: str, data: Dict[str, Any], *,
 
 def emit_opportunity(*, company: str, grade: str = "C",
                      external_id: Optional[str] = None, **fields: Any) -> Dict[str, Any]:
-    """Convenience wrapper for revenue_opportunity.detected."""
-    data = {"company": company, "grade": grade, **fields}
+    """Convenience wrapper for revenue_opportunity.detected.
+
+    None-valued fields are dropped: the DC webhook's Zod contract wants
+    optional fields absent, not null (null -> 422 schema validation failed)."""
+    data = {"company": company, "grade": grade,
+            **{k: v for k, v in fields.items() if v is not None}}
     if external_id:
         data["external_id"] = external_id
     return emit("revenue_opportunity.detected", data, idempotency_key=external_id)
@@ -75,8 +79,10 @@ def emit_system_failed(*, service: str, severity: str = "critical",
                        blocking_revenue: bool = True, error: str = "",
                        external_id: Optional[str] = None) -> Dict[str, Any]:
     """Convenience wrapper for revenue_system.failed."""
-    return emit("revenue_system.failed", {
+    data: Dict[str, Any] = {
         "service": service, "severity": severity,
         "blocking_revenue": blocking_revenue, "error": error,
-        "external_id": external_id,
-    }, idempotency_key=external_id)
+    }
+    if external_id:
+        data["external_id"] = external_id
+    return emit("revenue_system.failed", data, idempotency_key=external_id)

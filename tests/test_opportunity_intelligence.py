@@ -111,6 +111,31 @@ def test_persisted_evaluation_auto_emits_to_daily_command(tmp_path, monkeypatch)
     assert emitted["decision"] == evaluation.decision
 
 
+def test_emit_opportunity_drops_null_fields(monkeypatch):
+    """DC's Zod contract 422s on null — optional fields must be absent."""
+    monkeypatch.setenv("DC_WEBHOOK_URL", "https://daily-command-os.vercel.app/api/events/webhook")
+    monkeypatch.setenv("WEBHOOK_SECRET", "unit-test-secret")
+
+    sent = {}
+
+    def fake_emit(event_type, data, **kwargs):
+        sent["event_type"] = event_type
+        sent["data"] = data
+        return {"ok": True}
+
+    monkeypatch.setattr(dc_producer, "emit", fake_emit)
+    dc_producer.emit_opportunity(
+        company="Acme", grade="A", external_id="x1",
+        niche=None, location="Phoenix, AZ", pain_signal=None, score=97.3,
+    )
+
+    assert sent["event_type"] == "revenue_opportunity.detected"
+    assert "niche" not in sent["data"]
+    assert "pain_signal" not in sent["data"]
+    assert sent["data"]["location"] == "Phoenix, AZ"
+    assert sent["data"]["score"] == 97.3
+
+
 def test_unpersisted_or_unconfigured_evaluation_does_not_emit(tmp_path, monkeypatch):
     monkeypatch.delenv("DC_WEBHOOK_URL", raising=False)
     monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
