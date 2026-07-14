@@ -41,15 +41,30 @@ PROGRAMS = [
     {"name": "semrush", "product": "Semrush",
      "angle": "all-in-one SEO and marketing toolkit",
      "keywords": "marketing analytics laptop office",
-     "cta": "Link in the description"},
+     "cta": "Link in the description",
+     "benefits": ["spies on exactly what keywords your competitors rank for",
+                  "finds the low-competition keywords you can actually win",
+                  "audits your whole site for SEO issues in one click",
+                  "tracks your rankings so you know what's working"],
+     "pain": "guessing at SEO and getting nowhere"},
     {"name": "hostinger", "product": "Hostinger",
      "angle": "fast, cheap web hosting",
      "keywords": "website server technology code",
-     "cta": "Grab the deal below"},
+     "cta": "Grab the deal below",
+     "benefits": ["loads your site in under a second so visitors don't bounce",
+                  "costs less than a coffee a month",
+                  "sets up a live site in minutes with one-click installs",
+                  "throws in a free domain and SSL"],
+     "pain": "overpaying for slow, clunky hosting"},
     {"name": "digitalocean", "product": "DigitalOcean",
      "angle": "simple cloud hosting for developers",
      "keywords": "cloud data center servers developer",
-     "cta": "Start free — link below"},
+     "cta": "Start free — link below",
+     "benefits": ["spins up a cloud server in 55 seconds",
+                  "has flat, predictable pricing with no surprise bills",
+                  "scales from a side project to millions of users",
+                  "comes with free credit to start"],
+     "pain": "fighting with overcomplicated, overpriced cloud platforms"},
 ]
 
 
@@ -79,64 +94,102 @@ def _clean_script(txt: str) -> str:
     return re.sub(r"[\*#`\"]", "", txt).strip()
 
 
-def _gemini_script(prog: dict, key: str) -> str | None:
-    body = json.dumps({
-        "contents": [{"parts": [{"text": _script_prompt(prog)}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 250},
-    }).encode()
-    for model in ("gemini-2.0-flash", "gemini-1.5-flash"):
-        try:
-            req = urllib.request.Request(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}",
-                data=body, method="POST",
-                headers={"Content-Type": "application/json", "User-Agent": "already-here-shorts/1.0"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                d = json.loads(r.read())
-            txt = _clean_script(d["candidates"][0]["content"]["parts"][0]["text"])
-            if 40 < len(txt) < 700:
-                print(f"   script via Gemini/{model} ({len(txt)} chars)")
-                return txt
-        except Exception as e:
-            print(f"   Gemini/{model} failed ({str(e)[:60]})")
+# Multi-provider AI chain. Each entry: (label, env-var, url, header-fn, body-fn, parse-fn).
+# Tried in order; any that returns text wins. All optional — templates are the backstop.
+def _openai_style(model):
+    return (lambda k: {"Authorization": f"Bearer {k}"},
+            lambda p: {"model": model, "messages": [{"role": "user", "content": p}],
+                       "temperature": 0.85, "max_tokens": 250},
+            lambda d: d["choices"][0]["message"]["content"])
+
+
+_AI_PROVIDERS = [
+    ("OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions",
+     *_openai_style("meta-llama/llama-3.3-70b-instruct:free")),
+    ("Groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions",
+     *_openai_style("llama-3.3-70b-versatile")),
+    ("DeepSeek", "DEEPSEEK_API_KEY", "https://api.deepseek.com/chat/completions",
+     *_openai_style("deepseek-chat")),
+    ("Gemini", "GEMINI_API_KEY",
+     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+     lambda k: {"x-goog-api-key": k},
+     lambda p: {"contents": [{"parts": [{"text": p}]}], "generationConfig": {"temperature": 0.9}},
+     lambda d: d["candidates"][0]["content"]["parts"][0]["text"]),
+]
+
+
+def _ai_script(prog: dict) -> str | None:
+    prompt = _script_prompt(prog)
+    for label, envk, url, hfn, bfn, pfn in _AI_PROVIDERS:
+        key = os.getenv(envk, "").strip()
+        if not key:
+            continue
+        for attempt in range(2):  # one retry (handles transient 429)
+            try:
+                req = urllib.request.Request(
+                    url, data=json.dumps(bfn(prompt)).encode(), method="POST",
+                    headers={**hfn(key), "Content-Type": "application/json",
+                             "User-Agent": "already-here-shorts/1.0"})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    txt = _clean_script(pfn(json.loads(r.read())))
+                if 40 < len(txt) < 700:
+                    print(f"   script via {label} ({len(txt)} chars)")
+                    return txt
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt == 0:
+                    time.sleep(3)
+                    continue
+                print(f"   {label} failed (HTTP {e.code})")
+                break
+            except Exception as e:
+                print(f"   {label} failed ({str(e)[:50]})")
+                break
     return None
 
 
-def _groq_script(prog: dict, key: str) -> str | None:
-    try:
-        body = json.dumps({
-            "model": "llama-3.3-70b-versatile",
-            "messages": [{"role": "user", "content": _script_prompt(prog)}],
-            "temperature": 0.8, "max_tokens": 250,
-        }).encode()
-        req = urllib.request.Request(
-            "https://api.groq.com/openai/v1/chat/completions", data=body, method="POST",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            txt = _clean_script(json.loads(r.read())["choices"][0]["message"]["content"])
-        if 40 < len(txt) < 700:
-            print(f"   script via Groq ({len(txt)} chars)")
-            return txt
-    except Exception as e:
-        print(f"   Groq failed ({str(e)[:60]})")
-    return None
+# ── Rich template engine (zero external dependency — the unbreakable backstop) ───
+_HOOKS = [
+    "Stop {pain}.",
+    "Still {pain}? Watch this.",
+    "Nobody tells you this about {product}.",
+    "This is why smart people stopped {pain}.",
+    "{product} is the unfair advantage nobody talks about.",
+    "Here's what changed everything for me.",
+    "If you're {pain}, you need to see this.",
+    "I wish I knew about {product} sooner.",
+]
+_CONNECT = ["Here's the deal.", "It's simple.", "Look.", "Here's why.", "Check this out."]
+_CLOSERS = [
+    "Thousands already made the switch.",
+    "It pays for itself fast.",
+    "Do it before your competition does.",
+    "This is the easy button.",
+    "Stop leaving money on the table.",
+]
+
+
+def _template_script(prog: dict) -> str:
+    pain = prog.get("pain", "doing it the hard way")
+    benefits = list(prog.get("benefits", []))
+    random.shuffle(benefits)
+    b = benefits[:2] if len(benefits) >= 2 else benefits or [f"just works"]
+    hook = random.choice(_HOOKS).format(pain=pain, product=prog["product"])
+    body = f"{prog['product']} {b[0]}"
+    if len(b) > 1:
+        body += f", and it {b[1]}"
+    body += "."
+    parts = [hook, random.choice(_CONNECT), body, random.choice(_CLOSERS),
+             f"{prog['cta']} and try it today."]
+    return " ".join(parts)
 
 
 def gen_script(prog: dict) -> str:
-    gkey = os.getenv("GEMINI_API_KEY", "").strip()
-    if gkey:
-        s = _gemini_script(prog, gkey)
-        if s:
-            return s
-    qkey = os.getenv("GROQ_API_KEY", "").strip()
-    if qkey:
-        s = _groq_script(prog, qkey)
-        if s:
-            return s
-    print("   using template script")
-    p, a, cta = prog["product"], prog["angle"], prog["cta"]
-    return (f"Still doing this the hard way? {p} is the {a} that top creators swear by. "
-            f"It saves you hours every week and pays for itself fast. "
-            f"Thousands already switched. {cta} and try it today.")
+    s = _ai_script(prog)
+    if s:
+        return s
+    print("   script via template engine")
+    return _template_script(prog)
 
 
 # ── 2. Voiceover + word timings (edge-tts) ──────────────────────────────────────
