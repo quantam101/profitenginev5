@@ -1,6 +1,11 @@
 name: Autonomous Video Production (YouTube)
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Generate videos only (skip YouTube upload) — for previewing the engine'
+        type: boolean
+        default: false
   schedule:
     - cron: '0 2 * * 0'
 
@@ -25,66 +30,25 @@ jobs:
       - name: Install FFmpeg and dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
           python -m pip install --upgrade pip -qq
-          pip install -q google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp
+          pip install -q edge-tts google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp
 
-      - name: Generate videos with FFmpeg
+      - name: Generate videos (edge-tts VO + captions + motion + music)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: |
-          python -c "
-          import subprocess
-          import json
-          from pathlib import Path
-          from datetime import datetime
-
-          output_dir = Path('./videos/openmontage')
-          output_dir.mkdir(parents=True, exist_ok=True)
-
-          programs = [
-              {'name': 'semrush', 'title': 'Semrush SEO Toolkit Review 2026', 'desc': 'Complete Semrush review'},
-              {'name': 'hostinger', 'title': 'Hostinger Web Hosting Review', 'desc': 'Hostinger hosting review'},
-              {'name': 'digitalocean', 'title': 'DigitalOcean Deployment Review', 'desc': 'DigitalOcean review'},
-          ]
-
-          videos = []
-          for prog in programs:
-              prog_name = prog['name']
-              prog_title = prog['title']
-              prog_desc = prog['desc']
-
-              video_path = output_dir / f'{prog_name}_{datetime.now().strftime(\"%Y%m%d%H%M%S\")}.mp4'
-
-              cmd = [
-                  'ffmpeg', '-y',
-                  '-f', 'lavfi',
-                  '-i', 'color=c=1a1a2e:s=1080x1920:d=15',
-                  '-vf', f'drawtext=text=\"{prog_title}\":fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2',
-                  '-c:v', 'libx264', '-preset', 'ultrafast',
-                  '-pix_fmt', 'yuv420p',
-                  str(video_path)
-              ]
-
-              result = subprocess.run(cmd, capture_output=True, timeout=60)
-              if result.returncode == 0:
-                  size = video_path.stat().st_size
-                  print(f'✅ Generated: {video_path.name} ({size} bytes)')
-                  videos.append({
-                      'program': prog_name,
-                      'title': prog_title,
-                      'description': prog_desc,
-                      'path': str(video_path),
-                      'size_bytes': size
-                  })
-              else:
-                  print(f'❌ Failed: {prog_name}')
-                  print(result.stderr.decode())
-
-          print(f'✅ Campaign: {len(videos)} videos generated')
-          with open('videos_manifest.json', 'w') as f:
-              json.dump(videos, f, indent=2)
+          python scripts/generate_shorts.py
+          echo "=== generated files ==="
+          ls -lh videos/openmontage/ || true
+          for f in videos/openmontage/*.mp4; do
+            [ -f "$f" ] && echo "$f -> $(ffprobe -v quiet -show_entries format=duration:stream=width,height -of csv "$f" 2>/dev/null | tr '\n' ' ')"
+          done
           "
 
       - name: Test YouTube API connection
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -131,6 +95,7 @@ jobs:
           "
 
       - name: Upload to YouTube Shorts
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
