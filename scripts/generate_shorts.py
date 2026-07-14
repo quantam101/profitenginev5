@@ -30,7 +30,11 @@ from pathlib import Path
 W, H = 1080, 1920
 OUT = Path("videos/openmontage")
 TMP = Path("videos/_work")
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT = next((f for f in (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+) if os.path.exists(f)), "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 VOICES = ["en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural"]
 
 PROGRAMS = [
@@ -220,51 +224,84 @@ def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float, sc
     ass.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
 
 
-# ── 4. Background: Pexels B-roll (if key) else animated gradient ─────────────────
-def fetch_pexels_broll(prog: dict, duration: float, out: Path) -> bool:
+# ── 4. Scenes: multi-clip Pexels B-roll with xfade transitions (+ cut times) ─────
+_TRANS = ["slideleft", "circleopen", "fade", "slideup", "smoothright", "wiperight", "zoomin"]
+
+
+def build_scenes(prog: dict, duration: float, out: Path, work: Path) -> list[float]:
+    """Build the background video. With a Pexels key: N ~3s clips stitched with
+    xfade transitions — returns the list of cut (transition-midpoint) timestamps
+    for SFX. Without a key or on any failure: single animated gradient, returns []."""
     key = os.getenv("PEXELS_API_KEY", "").strip()
     if not key:
-        return False
+        gradient_bg(prog, duration, out)
+        return []
     try:
-        q = urllib.parse.quote(prog["keywords"].split()[0] + " " + prog["keywords"].split()[1])
+        X = 0.5  # crossfade seconds
+        n = max(3, min(7, round(duration / 3.0)))
+        q = urllib.parse.quote(" ".join(prog["keywords"].split()[:2]))
         req = urllib.request.Request(
-            f"https://api.pexels.com/videos/search?query={q}&orientation=portrait&per_page=8&size=medium",
+            f"https://api.pexels.com/videos/search?query={q}&orientation=portrait&per_page=15&size=medium",
             headers={"Authorization": key, "User-Agent": "already-here-shorts/1.0"})
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.loads(r.read())
-        clips = []
-        for vid in data.get("videos", [])[:4]:
-            files = [f for f in vid.get("video_files", []) if f.get("height", 0) >= 1080]
-            files = files or vid.get("video_files", [])
+        clips: list[Path] = []
+        for vid in data.get("videos", []):
+            files = [f for f in vid.get("video_files", []) if f.get("height", 0) >= 1080] or vid.get("video_files", [])
             if not files:
                 continue
             src = sorted(files, key=lambda f: abs(f.get("height", 0) - 1920))[0]["link"]
-            cp = out.parent / f"broll_{len(clips)}.mp4"
+            cp = work / f"raw{len(clips)}.mp4"
             dreq = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(dreq, timeout=90) as resp, open(cp, "wb") as fh:
                 shutil.copyfileobj(resp, fh)
             clips.append(cp)
-            if len(clips) >= 3:
+            if len(clips) >= n:
                 break
-        if not clips:
-            return False
-        # scale/crop each to 1080x1920, trim ~5s, concat, loop to cover duration
-        parts = []
+        if len(clips) < 2:
+            gradient_bg(prog, duration, out)
+            return []
+        n = len(clips)
+        seg = (duration + (n - 1) * X) / n  # so total after xfade == duration
+        segs = []
         for i, cp in enumerate(clips):
-            pp = out.parent / f"brolls_{i}.mp4"
-            run(["ffmpeg", "-y", "-t", "5", "-i", str(cp),
+            sp = work / f"seg{i}.mp4"
+            run(["ffmpeg", "-y", "-stream_loop", "-1", "-t", f"{seg:.3f}", "-i", str(cp),
                  "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,fps=30",
-                 "-an", "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(pp)])
-            parts.append(pp)
-        lst = out.parent / "concat.txt"
-        lst.write_text("".join(f"file '{p.name}'\n" for p in parts))
-        run(["ffmpeg", "-y", "-stream_loop", "-1", "-f", "concat", "-safe", "0", "-i", str(lst),
-             "-t", f"{duration:.2f}", "-c:v", "libx264", "-preset", "veryfast",
-             "-pix_fmt", "yuv420p", str(out)], timeout=240)
-        return out.exists() and out.stat().st_size > 10000
+                 "-an", "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(sp)], timeout=120)
+            if not sp.exists():
+                gradient_bg(prog, duration, out)
+                return []
+            segs.append(sp)
+        inputs: list[str] = []
+        for sp in segs:
+            inputs += ["-i", str(sp)]
+        fc, cut_times = [], []
+        prev = "[0:v]"
+        for i in range(1, n):
+            off = i * (seg - X)
+            lbl = "[bg]" if i == n - 1 else f"[x{i}]"
+            fc.append(f"{prev}[{i}:v]xfade=transition={_TRANS[(i - 1) % len(_TRANS)]}:duration={X}:offset={off:.3f}{lbl}")
+            cut_times.append(round(off + X / 2, 3))
+            prev = lbl
+        run(["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(fc), "-map", "[bg]",
+             "-t", f"{duration:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(out)],
+            timeout=240)
+        if out.exists() and out.stat().st_size > 10000:
+            print(f"   B-roll: {n} clips, {len(cut_times)} transitions")
+            return cut_times
+        gradient_bg(prog, duration, out)
+        return []
     except Exception as e:
-        print(f"   Pexels B-roll failed ({e}) — gradient fallback")
-        return False
+        print(f"   Pexels scenes failed ({str(e)[:70]}) — gradient")
+        gradient_bg(prog, duration, out)
+        return []
+
+
+def make_swoosh(out: Path) -> None:
+    run(["ffmpeg", "-y", "-f", "lavfi", "-i", "anoisesrc=d=0.45:c=pink:a=0.8",
+         "-af", "highpass=f=250,lowpass=f=5500,afade=t=in:d=0.06,afade=t=out:st=0.14:d=0.3,volume=1.3",
+         "-ar", "44100", "-ac", "2", str(out)], timeout=60)
 
 
 def gradient_bg(prog: dict, duration: float, out: Path) -> None:
@@ -294,8 +331,9 @@ def music_bed(duration: float, out: Path) -> None:
          "-map", "[a]", "-c:a", "aac", str(out)], timeout=120)
 
 
-# ── 6. Compose ──────────────────────────────────────────────────────────────────
-def compose(bg: Path, vo: Path, ass: Path, music: Path, prog: dict, out: Path, duration: float) -> bool:
+# ── 6. Compose (video + captions/branding + VO/music/swoosh-at-cuts) ─────────────
+def compose(bg: Path, vo: Path, ass: Path, music: Path, swoosh: Path,
+            cut_times: list[float], prog: dict, out: Path, duration: float) -> bool:
     top = esc_drawtext(prog["product"].upper())
     cta = esc_drawtext(prog["cta"].upper())
     ass_path = ass.as_posix().replace(":", "\\:")
@@ -306,11 +344,24 @@ def compose(bg: Path, vo: Path, ass: Path, music: Path, prog: dict, out: Path, d
         f"bordercolor=black@0.7:x=(w-text_w)/2:y=h-230,"
         f"subtitles='{ass_path}'[v]"
     )
+    inputs = ["-i", str(bg), "-i", str(vo), "-i", str(music)]
+    afc = "[1:a]volume=1.0[vo];[2:a]volume=0.5[mu]"
+    mix = "[vo][mu]"
+    n_in = 2
+    use_sfx = bool(cut_times) and swoosh.exists()
+    if use_sfx:
+        inputs += ["-i", str(swoosh)]
+        k = len(cut_times)
+        afc += ";[3:a]asplit=%d%s" % (k, "".join(f"[sw{j}]" for j in range(k)))
+        for j, ct in enumerate(cut_times):
+            ms = int(ct * 1000)
+            afc += f";[sw{j}]adelay={ms}|{ms}[d{j}]"
+            mix += f"[d{j}]"
+            n_in += 1
+    afc += f";{mix}amix=inputs={n_in}:duration=first:dropout_transition=0:normalize=0[a]"
     cmd = [
-        "ffmpeg", "-y",
-        "-i", str(bg), "-i", str(vo), "-i", str(music),
-        "-filter_complex",
-        vf + ";[1:a]volume=1.0[vo];[2:a]volume=0.5[mu];[vo][mu]amix=inputs=2:duration=first:dropout_transition=0[a]",
+        "ffmpeg", "-y", *inputs,
+        "-filter_complex", vf + ";" + afc,
         "-map", "[v]", "-map", "[a]",
         "-t", f"{duration:.2f}",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p",
@@ -348,18 +399,20 @@ async def make_one(prog: dict) -> dict | None:
     build_ass(words, ass, dur, script)
 
     bg = work / "bg.mp4"
-    if not fetch_pexels_broll(prog, dur, bg):
-        gradient_bg(prog, dur, bg)
+    cut_times = build_scenes(prog, dur, bg, work)
     if not bg.exists():
         print("   ❌ background failed")
         return None
 
     music = work / "music.m4a"
     music_bed(dur, music)
+    swoosh = work / "swoosh.wav"
+    if cut_times:
+        make_swoosh(swoosh)
 
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
     out = OUT / f"{name}_{stamp}.mp4"
-    if not compose(bg, vo, ass, music, prog, out, dur):
+    if not compose(bg, vo, ass, music, swoosh, cut_times, prog, out, dur):
         print("   ❌ compose failed")
         return None
     size = out.stat().st_size
