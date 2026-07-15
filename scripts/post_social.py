@@ -22,6 +22,7 @@ import urllib.request
 from pathlib import Path
 
 GRAPH = "https://graph.facebook.com/v21.0"
+GRAPH_IG = "https://graph.instagram.com/v21.0"  # Instagram-Login tokens (IGAA…) only work here
 
 
 def _post(url: str, data: dict) -> dict:
@@ -61,10 +62,11 @@ def post_instagram(video: dict) -> str | None:
     tok = (os.getenv("IG_ACCESS_TOKEN") or os.getenv("FB_PAGE_ACCESS_TOKEN") or "").strip()
     if not (ig and tok and video.get("url")):
         return None
+    base = GRAPH_IG if tok.startswith("IG") else GRAPH
     try:
         caption = f"{video['title']}\n\n{video.get('description', '')[:1800]}"
         # 1) create the Reels container
-        c = _post(f"{GRAPH}/{ig}/media",
+        c = _post(f"{base}/{ig}/media",
                   {"media_type": "REELS", "video_url": video["url"],
                    "caption": caption, "access_token": tok})
         cid = c.get("id")
@@ -74,14 +76,14 @@ def post_instagram(video: dict) -> str | None:
         # 2) poll until the async upload is FINISHED (IG processes the video)
         for _ in range(30):
             time.sleep(6)
-            s = _get(f"{GRAPH}/{cid}?fields=status_code&access_token={urllib.parse.quote(tok)}")
+            s = _get(f"{base}/{cid}?fields=status_code&access_token={urllib.parse.quote(tok)}")
             if s.get("status_code") == "FINISHED":
                 break
             if s.get("status_code") == "ERROR":
                 print("   ❌ Instagram: container processing ERROR")
                 return None
         # 3) publish
-        p = _post(f"{GRAPH}/{ig}/media_publish", {"creation_id": cid, "access_token": tok})
+        p = _post(f"{base}/{ig}/media_publish", {"creation_id": cid, "access_token": tok})
         if p.get("id"):
             print(f"   ✅ Instagram: posted (id={p['id']})")
             return p["id"]

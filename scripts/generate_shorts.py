@@ -392,10 +392,16 @@ def compose(bg: Path, vo: Path, ass: Path, music: Path, swoosh: Path,
     top = esc_drawtext(prog["product"].upper())
     cta = esc_drawtext(prog["cta"].upper())
     ass_path = ass.as_posix().replace(":", "\\:")
+    font = FONT
+    if ":" in font:  # Windows drive colon breaks ffmpeg filter parsing — use a relative copy
+        local_font = TMP / "font.ttf"
+        if not local_font.exists():
+            shutil.copy(FONT, local_font)
+        font = local_font.as_posix()
     vf = (
-        f"[0:v]drawtext=fontfile={FONT}:text='{top}':fontsize=64:fontcolor=white:borderw=4:"
+        f"[0:v]drawtext=fontfile={font}:text='{top}':fontsize=64:fontcolor=white:borderw=4:"
         f"bordercolor=black@0.6:x=(w-text_w)/2:y=150,"
-        f"drawtext=fontfile={FONT}:text='{cta}':fontsize=46:fontcolor=0xFFD54F:borderw=4:"
+        f"drawtext=fontfile={font}:text='{cta}':fontsize=46:fontcolor=0xFFD54F:borderw=4:"
         f"bordercolor=black@0.7:x=(w-text_w)/2:y=h-230,"
         f"subtitles='{ass_path}'[v]"
     )
