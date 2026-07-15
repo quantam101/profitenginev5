@@ -27,8 +27,21 @@ _PROMPT = (
     'product: 2-4 word topic name; angle: what the video teaches, 5-10 words;\n'
     'keywords: 3-5 words for stock-footage search; cta: short call to action;\n'
     'pain: viewer problem as a gerund phrase (e.g. "guessing at SEO");\n'
-    "benefits: array of 4 concrete, specific one-line takeaways."
+    "benefits: array of 4 concrete, specific one-line takeaways;\n"
+    "format: one of sales|tips|secrets|story|diy — pick what fits the topic best."
 )
+
+_FORMAT_HINTS = [("secret", "secrets"), ("story", "story"), ("diy", "diy"),
+                 ("tip", "tips"), ("trick", "tips"), ("hack", "tips"),
+                 ("explained", "tips"), ("news", "tips"), ("update", "tips")]
+
+
+def _guess_format(v: dict) -> str:
+    text = (v["query"] + " " + v["title"]).lower()
+    for needle, fmt in _FORMAT_HINTS:
+        if needle in text:
+            return fmt
+    return "sales"
 
 
 def _slug(t: str) -> str:
@@ -70,6 +83,8 @@ def to_program(v: dict) -> dict:
             print("   ! AI returned unparseable JSON — template fallback")
     if prog is None:
         prog = _fallback(v)
+    if prog.get("format") not in ("sales", "tips", "secrets", "story", "diy"):
+        prog["format"] = _guess_format(v)
     prog["name"] = _slug(prog["product"])
     prog["source"] = {"title": v["title"], "url": v["url"],
                       "views_per_day": v.get("views_per_day")}

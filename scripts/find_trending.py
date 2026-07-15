@@ -33,6 +33,15 @@ QUERIES = [
     "passive income update shorts",
     "newsletter growth shorts",
     "free ebook lead magnet shorts",
+    # tech / AI / tips verticals
+    "tech explained shorts",
+    "new tech gadgets shorts",
+    "ai tools you need shorts",
+    "ai news update shorts",
+    "chatgpt tips shorts",
+    "productivity tips shorts",
+    "tech tips tricks shorts",
+    "coding tips shorts",
 ]
 PER_QUERY = 3          # detail-fetch this many top hits per query
 SEARCH_DEPTH = 25      # flat-search this many results per query

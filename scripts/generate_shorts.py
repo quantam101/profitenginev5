@@ -78,15 +78,38 @@ def esc_drawtext(t: str) -> str:
     return t.replace("\\", "\\\\").replace(":", "\\:").replace("'", "’").replace("%", "\\%")
 
 
-# ── 1. Sales script (Gemini → Groq → template) ──────────────────────────────────
+# ── 1. Script writing (AI chain → template). Format-aware. ──────────────────────
+_FORMAT_BRIEFS = {
+    "sales": ("that sells {product}, a {angle}",
+              "- Then 2 concrete, specific benefits (not vague).\n"
+              "- End with a punchy call to action."),
+    "tips": ("giving 3 rapid-fire, genuinely useful tips about {product} ({angle})",
+             "- Number the tips: First… Second… Third…\n"
+             "- Each tip is one concrete action, not advice-shaped filler.\n"
+             "- End by telling them to follow for more."),
+    "secrets": ("revealing insider secrets about {product} ({angle})",
+                "- Conspiratorial, 'they don't want you to know' tone — but every claim true and specific.\n"
+                "- 2 secrets max, each with the concrete payoff.\n"
+                "- End with an open loop and follow CTA."),
+    "story": ("telling a first-person mini story about {angle} using {product}",
+              "- Arc: struggle → discovery → payoff, in plain spoken language.\n"
+              "- Make it feel personal and specific, not generic.\n"
+              "- End with the one-line lesson and a follow CTA."),
+    "diy": ("walking through how to {angle} yourself, step by step, with {product}",
+            "- Exactly 3 numbered steps, each one concrete action.\n"
+            "- Beginner-friendly: no jargon without a 3-word explanation.\n"
+            "- End with the result they get and a follow CTA."),
+}
+
+
 def _script_prompt(prog: dict) -> str:
+    what, rules = _FORMAT_BRIEFS.get(prog.get("format", "sales"), _FORMAT_BRIEFS["sales"])
     return (
         f"You are a viral retention scriptwriter for YouTube Shorts. Write a 20-25 second "
-        f"voiceover script that sells {prog['product']}, a {prog['angle']}.\n"
+        f"voiceover script {what.format(product=prog['product'], angle=prog['angle'])}.\n"
         f"Rules:\n"
         f"- First sentence is an aggressive open-loop hook (a bold question or pattern interrupt).\n"
-        f"- Then 2 concrete, specific benefits (not vague).\n"
-        f"- End with a punchy call to action.\n"
+        f"{rules}\n"
         f"- Spoken plain text ONLY. No scene directions, no emojis, no hashtags, no quotes, no markdown.\n"
         f"- Short punchy sentences. ~55 words total, hard max 65."
     )
@@ -174,16 +197,30 @@ _CLOSERS = [
 
 def _template_script(prog: dict) -> str:
     pain = prog.get("pain", "doing it the hard way")
+    fmt = prog.get("format", "sales")
     benefits = list(prog.get("benefits", []))
     random.shuffle(benefits)
-    b = benefits[:2] if len(benefits) >= 2 else benefits or [f"just works"]
+    b = benefits[:3] if benefits else ["just works"]
     hook = random.choice(_HOOKS).format(pain=pain, product=prog["product"])
-    body = f"{prog['product']} {b[0]}"
-    if len(b) > 1:
-        body += f", and it {b[1]}"
-    body += "."
-    parts = [hook, random.choice(_CONNECT), body, random.choice(_CLOSERS),
-             f"{prog['cta']} and try it today."]
+    if fmt == "tips" and len(b) >= 3:
+        body = f"First, {b[0]}. Second, {b[1]}. Third, {b[2]}"
+        hook = f"Three {prog['product']} tips nobody shows you."
+    elif fmt == "secrets" and len(b) >= 2:
+        hook = f"Nobody tells you this about {prog['product']}."
+        body = f"Here's the secret: it {b[0]}. And the part they skip — it {b[1]}"
+    elif fmt == "story" and len(b) >= 2:
+        hook = f"I almost gave up on {prog['angle']}."
+        body = f"Then I found {prog['product']}. It {b[0]}. Now it {b[1]}"
+    elif fmt == "diy" and len(b) >= 3:
+        hook = f"Do this yourself — three steps."
+        body = f"Step one: {b[0]}. Step two: {b[1]}. Step three: {b[2]}"
+    else:
+        body = f"{prog['product']} {b[0]}"
+        if len(b) > 1:
+            body += f", and it {b[1]}"
+    parts = [hook, random.choice(_CONNECT), body + ".", random.choice(_CLOSERS),
+             f"{prog['cta']} and try it today." if fmt == "sales"
+             else f"{prog['cta']}."]
     return " ".join(parts)
 
 
