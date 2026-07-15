@@ -519,10 +519,29 @@ async def make_one(prog: dict) -> dict | None:
     return {
         "program": name,
         "title": f"{prog['product']} Review — {prog['angle'].title()} (2026)",
-        "description": (f"{script}\n\n#shorts #{name} #affiliate\n\n"
+        "description": (f"{script}\n\n{link_block(prog)}\n\n#shorts #{name} #affiliate\n\n"
                         "Affiliate disclosure: links may earn a commission at no cost to you."),
         "path": str(out), "size_bytes": size,
     }
+
+
+def link_block(prog: dict) -> str:
+    """The clickable links every description must carry — the whole funnel.
+    Program-specific affiliate URL from AFFILIATE_LINKS (JSON map, env),
+    then our owned links (always present, always monetizable)."""
+    links = {}
+    try:
+        links = json.loads(os.getenv("AFFILIATE_LINKS", "") or "{}")
+    except Exception:
+        pass
+    lines = []
+    url = links.get(prog["name"]) or links.get(prog["product"].lower())
+    if url:
+        lines.append(f"→ Try {prog['product']}: {url}")
+    lines.append("→ Free playbook — The $0 Content Engine: "
+                 "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/")
+    lines.append("→ Our tools & kits: https://alreadyhere.gumroad.com")
+    return "\n".join(lines)
 
 
 async def main() -> None:

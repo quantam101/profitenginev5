@@ -1,0 +1,51 @@
+name: Retro-fix YouTube Video Links
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Comma-separated video IDs (blank = latest production run uploads)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  update-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -q google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+      - name: Pull uploads manifest from latest production run
+        if: ${{ github.event.inputs.ids == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh run list --workflow=autonomous-video-production.yml \
+            --status=success --limit 1 --json databaseId -q '.[0].databaseId')
+          gh run download "$RUN_ID" -n youtube-uploads -D artifacts
+          find artifacts -name 'youtube_uploads.json' -exec cp {} . \;
+
+      - name: Update descriptions
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+        run: |
+          if [ -n "${{ github.event.inputs.ids }}" ]; then
+            python scripts/update_video_links.py --ids "${{ github.event.inputs.ids }}"
+          else
+            python scripts/update_video_links.py
+          fi
