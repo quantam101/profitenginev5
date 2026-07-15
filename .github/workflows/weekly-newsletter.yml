@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 13 * * 1'   # Monday 13:00 UTC — day after Sunday's video production
 
+permissions:
+  contents: read
+  actions: read   # gh run list/download of the production run's artifacts
+
 jobs:
   compose-and-deliver:
     runs-on: ubuntu-latest
