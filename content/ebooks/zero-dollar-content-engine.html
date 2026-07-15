@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The $0 Content Engine</title><style>
+:root{color-scheme:light dark}
+body{max-width:680px;margin:0 auto;padding:2rem 1.2rem 4rem;
+  font:17px/1.65 Georgia,'Times New Roman',serif;color:#1a1a1a;background:#fdfcf8}
+h1{font-size:2rem;line-height:1.2;margin:1rem 0 .3rem}
+h2{font-size:1.35rem;margin:2.2rem 0 .6rem;border-bottom:2px solid #e8e2d4;padding-bottom:.3rem}
+h3{font-size:1.05rem;color:#555;font-weight:normal;font-style:italic;margin:.2rem 0 1rem}
+em{color:#555}
+li{margin:.35rem 0}
+hr{border:none;border-top:1px solid #e8e2d4;margin:2rem 0}
+strong{color:#000}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#f0ece1;
+  padding:.1em .35em;border-radius:4px}
+@media (prefers-color-scheme:dark){
+  body{color:#e8e6e0;background:#181614}
+  h3,em{color:#aaa} strong{color:#fff}
+  h2,hr{border-color:#3a362e} code{background:#2a2721}}
+</style></head><body><h1>The $0 Content Engine</h1>
+<h3>How a one-person company automates Shorts, Reels, and newsletters without paying for a single tool</h3>
+<p><em>By Already Here LLC — the team behind @alreadyherellc</em></p>
+<hr>
+<h2>Why this exists</h2>
+<p>Most &quot;content automation&quot; advice ends with a $300/month software stack. This playbook is different: every tool in it is free, every step actually runs in production at our company today, and nothing here requires you to show your face, hire an editor, or buy credits.</p>
+<p>This is the exact system we use to publish short-form video to YouTube, Instagram, and Facebook on autopilot — trend research included.</p>
+<hr>
+<h2>Chapter 1 — The engine at a glance</h2>
+<p>One pipeline, five stages, zero dollars:</p>
+<ul>
+<li><strong>Mine</strong> — find what&#x27;s already winning in your niches (views-per-day, not raw views)</li>
+<li><strong>Design</strong> — turn each winning topic into a script brief automatically</li>
+<li><strong>Render</strong> — voiceover, captions, B-roll, and music assembled by code</li>
+<li><strong>Publish</strong> — auto-post to YouTube Shorts, Instagram Reels, and Facebook</li>
+<li><strong>Recycle</strong> — repost your own best performers on a schedule</li>
+</ul>
+<p>Each stage is a small script. Each script fails soft: if one breaks, the rest keep running. That&#x27;s the whole architecture secret — no orchestration platform, no Zapier bill.</p>
+<h2>Chapter 2 — Mine what&#x27;s already winning</h2>
+<p>Don&#x27;t guess topics. YouTube tells you what works if you rank search results by <strong>views per day</strong> instead of total views. A 2-year-old video with 1.8M views (~800/day) is a proven evergreen topic; a week-old video with 50k views (~7,000/day) is a rising trend. You want both.</p>
+<p>The free tool: <code>yt-dlp</code> — it reads video metadata (title, views, upload date) from a search query with no API key. Twenty lines of Python turn &quot;ai tools shorts&quot; into a ranked list of topics your audience already rewards.</p>
+<p><strong>The compliance rule that keeps your account alive:</strong> mine the <em>topic</em>, never the video. Re-uploading someone else&#x27;s clip earns copyright strikes. Recreating the topic with your own script and licensed footage is just publishing.</p>
+<h2>Chapter 3 — Scripts that write themselves</h2>
+<p>Two layers, so it never breaks:</p>
+<ul>
+<li><strong>Layer 1 — free AI.</strong> Several providers offer free tiers (Gemini, Groq, OpenRouter&#x27;s free models). Chain them: try one, fall through to the next. Your prompt asks for a 55-word spoken script: hook → substance → call to action.</li>
+<li><strong>Layer 2 — templates.</strong> When every API is down or you have zero keys, a template engine assembles the script from a topic&#x27;s benefit list. Hooks like &quot;Nobody tells you this about X&quot; never expire.</li>
+</ul>
+<p>Give each video a <strong>format</strong>: tips (numbered list), secrets (insider tone), story (struggle → discovery → payoff), DIY (three steps), or sales. Matching format to topic is worth more than any single &quot;viral hook.&quot;</p>
+<h2>Chapter 4 — Studio-grade rendering, free</h2>
+<ul>
+<li><strong>Voiceover:</strong> Microsoft Edge&#x27;s <code>edge-tts</code> — neural voices, word-level timestamps, free, no account.</li>
+<li><strong>Captions:</strong> those word timestamps become perfectly synced, word-by-word captions (the &quot;CapCut look&quot;) rendered by ffmpeg.</li>
+<li><strong>B-roll:</strong> Pexels&#x27; API is free and the footage is licensed for commercial use. Search by your topic keywords, cut every few seconds, add a transition and a swoosh.</li>
+<li><strong>Assembly:</strong> ffmpeg does everything — 1080×1920, captions burned in, music ducked under the voice.</li>
+</ul>
+<p>Render time per video: about a minute. Cost: $0.</p>
+<h2>Chapter 5 — Publish everywhere, automatically</h2>
+<ul>
+<li><strong>YouTube Shorts:</strong> the Data API uploads directly. One OAuth setup, then it&#x27;s hands-free.</li>
+<li><strong>Instagram Reels + Facebook:</strong> Meta&#x27;s Graph API posts video from any public URL. The gotcha nobody documents: Instagram&#x27;s newer tokens only work against <code>graph.instagram.com</code>, not <code>graph.facebook.com</code>. Route by token prefix and both generations work.</li>
+<li><strong>Hosting the video file:</strong> a public GitHub release is a free, stable URL that Instagram will happily fetch.</li>
+</ul>
+<p>Schedule the whole pipeline in GitHub Actions (also free). Ours runs every Sunday at 2am and posts before we wake up.</p>
+<h2>Chapter 6 — The recycle loop</h2>
+<p>Your own back catalog is free inventory. Once a video is 2+ weeks old, its performance is knowable: repost the winner with a fresh caption (&quot;ICYMI:&quot;, &quot;Still true:&quot;). Mark reposts so you never repost a repost. One script, scheduled weekly, compounds your best work forever.</p>
+<h2>Chapter 7 — The numbers that matter</h2>
+<ul>
+<li>Views-per-day beats total views for topic selection</li>
+<li>55 words ≈ 20 seconds — the retention sweet spot for Shorts</li>
+<li>3 concrete tips beat 10 vague ones, every time</li>
+<li>Post consistently for 30 days before judging anything</li>
+</ul>
+<hr>
+<h2>Steal this stack</h2>
+<p>Everything above, itemized: <code>yt-dlp</code> (trend data) · free-tier LLMs (scripts) · <code>edge-tts</code> (voice) · Pexels (footage) · <code>ffmpeg</code> (assembly) · YouTube Data API + Meta Graph API (publishing) · GitHub Actions + Releases (scheduling + hosting). Total monthly cost: <strong>$0.</strong></p>
+<p><strong>Want the running system instead of the parts list?</strong> Follow <strong>@alreadyherellc</strong> on Instagram for the daily build-in-public version — or reach us at dispatch@alreadyherellc.com.</p>
+<p><em>© 2026 Already Here LLC. You&#x27;re welcome to share this guide with attribution. Nothing here is legal advice; platform policies change — read them.</em></p></body></html>
