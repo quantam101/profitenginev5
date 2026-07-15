@@ -1,11 +1,11 @@
 # Daily Revenue Report
 
 **Date:** 2026-07-15
-**Generated:** 2026-07-15T10:57:21.433828
+**Generated:** 2026-07-15T15:35:41.207063
 
 ## Summary
 - **Total Revenue (24h):** $0.00
-- **Active Streams:** 2/6
+- **Active Streams:** 3/6
 
 ## Revenue Breakdown
 | Stream | Revenue |
@@ -17,8 +17,7 @@
 | Affiliates | $0.00 |
 | Trading | $0.00 |
 
-## Errors (4)
-- YOUTUBE_API_KEY not set
-- EMAIL_PLATFORM_API_KEY not set
+## Errors (3)
+- YouTube API error: 403
 - AFFILIATE_API_KEY not set
 - TRADING_API_KEY not set

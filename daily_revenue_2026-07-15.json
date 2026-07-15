@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-15T10:57:20.003708",
+  "timestamp": "2026-07-15T15:35:38.406098",
   "date": "2026-07-15",
   "metrics": {
     "gumroad": {
@@ -92,13 +92,22 @@
       "avg_transaction_value": 0
     },
     "youtube": {},
-    "email": {},
+    "email": {
+      "platform": "beehiiv",
+      "total_subscribers": 1,
+      "premium_subscribers": 0,
+      "avg_open_rate": 0.0,
+      "avg_click_rate": 0.0,
+      "total_sent": 0,
+      "total_clicks": 0,
+      "revenue_from_email": 0
+    },
     "affiliates": {},
     "trading": {}
   },
   "consolidated": {
     "total_revenue_24h": 0,
-    "active_revenue_streams": 2,
+    "active_revenue_streams": 3,
     "revenue_breakdown": {
       "gumroad": 0,
       "stripe": 0,
@@ -110,8 +119,7 @@
     "trading_pnl": 0
   },
   "errors": [
-    "YOUTUBE_API_KEY not set",
-    "EMAIL_PLATFORM_API_KEY not set",
+    "YouTube API error: 403",
     "AFFILIATE_API_KEY not set",
     "TRADING_API_KEY not set"
   ]
