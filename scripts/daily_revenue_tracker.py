@@ -16,7 +16,13 @@ import sys
 GUMROAD_TOKEN = os.getenv("GUMROAD_ACCESS_TOKEN") or os.getenv("GUMROAD_API_KEY")
 STRIPE_KEY = os.getenv("STRIPE_SECRET_KEY")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+YT_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
+YT_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
+YT_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+YT_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "").strip()
 EMAIL_PLATFORM_API = os.getenv("EMAIL_PLATFORM_API_KEY")
+BEEHIIV_API_KEY = os.getenv("BEEHIIV_API_KEY", "").strip()
+BEEHIIV_PUBLICATION_ID = os.getenv("BEEHIIV_PUBLICATION_ID", "").strip()
 AFFILIATE_API_KEY = os.getenv("AFFILIATE_API_KEY")
 TRADING_ACCOUNT_TOKEN = os.getenv("TRADING_API_KEY")
 
@@ -150,38 +156,54 @@ class RevenueTracker:
             return {}
 
     def fetch_youtube_metrics(self) -> Dict[str, Any]:
-        """Fetch YouTube analytics data."""
+        """Fetch YouTube channel statistics via the upload OAuth chain
+        (no separate API key needed). 24h deltas come from comparing
+        against the previous committed daily report."""
         try:
-            if not YOUTUBE_API_KEY:
-                self.errors.append("YOUTUBE_API_KEY not set")
+            if not (YT_CLIENT_ID and YT_CLIENT_SECRET and YT_REFRESH_TOKEN):
+                self.errors.append("YouTube OAuth env not set")
                 return {}
-
-            headers = {"Authorization": f"Bearer {YOUTUBE_API_KEY}"}
-
-            # Fetch channel statistics
-            response = requests.get(
-                "https://www.googleapis.com/youtube/v3/channels",
-                params={"part": "statistics", "mine": True},
-                headers=headers,
-                timeout=10
-            )
-
-            if response.status_code != 200:
+            tok = requests.post(
+                "https://oauth2.googleapis.com/token",
+                data={"client_id": YT_CLIENT_ID, "client_secret": YT_CLIENT_SECRET,
+                      "refresh_token": YT_REFRESH_TOKEN, "grant_type": "refresh_token"},
+                timeout=10)
+            if tok.status_code != 200:
+                self.errors.append(f"YouTube token refresh failed: {tok.status_code}")
+                return {}
+            headers = {"Authorization": f"Bearer {tok.json()['access_token']}"}
+            params = {"part": "statistics"}
+            if YT_CHANNEL_ID:
+                params["id"] = YT_CHANNEL_ID
+            else:
+                params["mine"] = "true"
+            response = requests.get("https://www.googleapis.com/youtube/v3/channels",
+                                    params=params, headers=headers, timeout=10)
+            if response.status_code != 200 or not response.json().get("items"):
                 self.errors.append(f"YouTube API error: {response.status_code}")
                 return {}
-
+            stats = response.json()["items"][0]["statistics"]
             youtube_data = {
-                "revenue_24h": 0,
+                "revenue_24h": 0,  # monetization requires YT Partner Program
+                "total_views": int(stats.get("viewCount", 0)),
+                "subscribers": int(stats.get("subscriberCount", 0)),
+                "video_count": int(stats.get("videoCount", 0)),
                 "views_24h": 0,
-                "watch_time_hours_24h": 0,
-                "subscribers_gained_24h": 0,
-                "channel_stats": {},
-                "top_videos": []
             }
-
-            # Note: YouTube Analytics API requires OAuth and special setup
-            # This is a placeholder for implementation
-
+            # delta vs the most recent previous committed report
+            try:
+                import glob
+                prev_files = sorted(glob.glob("daily_revenue_*.json"))
+                prev_files = [p for p in prev_files
+                              if self.data["date"] not in p]
+                if prev_files:
+                    with open(prev_files[-1]) as f:
+                        prev = json.load(f)["metrics"].get("youtube", {})
+                    if prev.get("total_views"):
+                        youtube_data["views_24h"] = max(
+                            youtube_data["total_views"] - prev["total_views"], 0)
+            except Exception:
+                pass
             return youtube_data
 
         except Exception as e:
@@ -189,26 +211,32 @@ class RevenueTracker:
             return {}
 
     def fetch_email_metrics(self) -> Dict[str, Any]:
-        """Fetch email platform metrics (Mailchimp, ConvertKit, etc.)."""
+        """Fetch newsletter metrics from Beehiiv (falls back to
+        EMAIL_PLATFORM_API_KEY as the bearer if BEEHIIV_API_KEY unset)."""
         try:
-            if not EMAIL_PLATFORM_API:
-                self.errors.append("EMAIL_PLATFORM_API_KEY not set")
+            key = BEEHIIV_API_KEY or (EMAIL_PLATFORM_API or "").strip()
+            if not (key and BEEHIIV_PUBLICATION_ID):
+                self.errors.append("Beehiiv creds not set")
                 return {}
-
-            # Placeholder for email platform integration
-            email_data = {
-                "total_subscribers": 0,
-                "new_subscribers_24h": 0,
-                "unsubscribes_24h": 0,
-                "campaigns_sent_24h": 0,
-                "total_opens_24h": 0,
-                "total_clicks_24h": 0,
-                "avg_open_rate": 0,
-                "avg_click_rate": 0,
-                "revenue_from_email": 0
+            response = requests.get(
+                f"https://api.beehiiv.com/v2/publications/{BEEHIIV_PUBLICATION_ID}",
+                params={"expand[]": "stats"},
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=10)
+            if response.status_code != 200:
+                self.errors.append(f"Beehiiv API error: {response.status_code}")
+                return {}
+            stats = response.json().get("data", {}).get("stats", {})
+            return {
+                "platform": "beehiiv",
+                "total_subscribers": stats.get("active_subscriptions", 0),
+                "premium_subscribers": stats.get("active_premium_subscriptions", 0),
+                "avg_open_rate": stats.get("average_open_rate", 0),
+                "avg_click_rate": stats.get("average_click_rate", 0),
+                "total_sent": stats.get("total_sent", 0),
+                "total_clicks": stats.get("total_clicked", 0),
+                "revenue_from_email": 0,
             }
-
-            return email_data
 
         except Exception as e:
             self.errors.append(f"Email metrics fetch error: {str(e)}")
