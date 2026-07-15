@@ -224,6 +224,13 @@ jobs:
             echo "release create failed — skipping IG/FB posting"
           fi
 
+      - name: Repost own top performer (fails soft)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python scripts/repost_top.py || echo "repost failed — new posts unaffected"
+
       - name: Extract preview frames + contact sheet
         if: always()
         run: |
