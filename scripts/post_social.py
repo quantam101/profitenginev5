@@ -93,6 +93,46 @@ def post_instagram(video: dict) -> str | None:
     return None
 
 
+GRAPH_THREADS = "https://graph.threads.net/v1.0"
+
+
+def _yt_link(program: str) -> str | None:
+    up = Path("youtube_uploads.json")
+    if not up.exists():
+        return None
+    for u in json.loads(up.read_text()):
+        if u.get("program") == program and u.get("video_id"):
+            return f"https://www.youtube.com/shorts/{u['video_id']}"
+    return None
+
+
+def post_threads(video: dict) -> str | None:
+    """Text post with a clickable link — Threads is the only Meta surface
+    where post links are clickable. Activates when THREADS_ACCESS_TOKEN set."""
+    tok = os.getenv("THREADS_ACCESS_TOKEN", "").strip()
+    if not tok:
+        return None
+    try:
+        link = _yt_link(video["program"]) or video.get("url") or ""
+        text = f"{video['title']}\n\n{link}".strip()
+        c = _post(f"{GRAPH_THREADS}/me/threads",
+                  {"media_type": "TEXT", "text": text[:495], "access_token": tok})
+        cid = c.get("id")
+        if not cid:
+            print(f"   ❌ Threads: {c.get('error', {}).get('message', c)}")
+            return None
+        time.sleep(3)
+        p = _post(f"{GRAPH_THREADS}/me/threads_publish",
+                  {"creation_id": cid, "access_token": tok})
+        if p.get("id"):
+            print(f"   ✅ Threads: posted (id={p['id']})")
+            return p["id"]
+        print(f"   ❌ Threads: {p.get('error', {}).get('message', p)}")
+    except Exception as e:
+        print(f"   ❌ Threads: {str(e)[:120]}")
+    return None
+
+
 def main() -> None:
     mf = Path("videos_manifest.json")
     if not mf.exists():
@@ -104,11 +144,14 @@ def main() -> None:
         print(f"▶ posting {v['program']}  (url={'yes' if v.get('url') else 'MISSING'})")
         results.append({"program": v["program"],
                         "facebook": post_facebook(v),
-                        "instagram": post_instagram(v)})
+                        "instagram": post_instagram(v),
+                        "threads": post_threads(v)})
     Path("social_posts.json").write_text(json.dumps(results, indent=2))
     fb = sum(1 for r in results if r["facebook"])
     ig = sum(1 for r in results if r["instagram"])
-    print(f"\n✅ Social: Facebook {fb}/{len(videos)}, Instagram {ig}/{len(videos)}")
+    th = sum(1 for r in results if r["threads"])
+    print(f"\n✅ Social: Facebook {fb}/{len(videos)}, Instagram {ig}/{len(videos)}, "
+          f"Threads {th}/{len(videos)}")
 
 
 if __name__ == "__main__":

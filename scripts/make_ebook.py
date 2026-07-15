@@ -50,6 +50,7 @@ def md_to_html(md: str) -> str:
         s = line.rstrip()
         def inline(t: str) -> str:
             t = html.escape(t)
+            t = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', t)
             t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
             t = re.sub(r"\*(.+?)\*", r"<em>\1</em>", t)
             t = re.sub(r"`(.+?)`", r"<code>\1</code>", t)

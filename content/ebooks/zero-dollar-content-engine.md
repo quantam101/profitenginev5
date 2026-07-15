@@ -79,4 +79,8 @@ Everything above, itemized: `yt-dlp` (trend data) · free-tier LLMs (scripts) ·
 
 **Want the running system instead of the parts list?** Follow **@alreadyherellc** on Instagram for the daily build-in-public version — or reach us at dispatch@alreadyherellc.com.
 
+## Get the weekly issue
+
+Every Monday we publish exactly what the engine shipped and what the data says is working — [read the latest issue](https://quantam101.github.io/content/newsletters/2026-07-15/). To get it in your inbox, [subscribe with one email](mailto:dispatch@alreadyherellc.com?subject=Subscribe&body=Subscribe%20me%20to%20the%20weekly%20issue) — just hit send.
+
 *© 2026 Already Here LLC. You're welcome to share this guide with attribution. Nothing here is legal advice; platform policies change — read them.*
