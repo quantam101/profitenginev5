@@ -32,7 +32,19 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
           python -m pip install --upgrade pip -qq
-          pip install -q edge-tts google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp
+          pip install -q edge-tts google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp yt-dlp
+
+      - name: Mine trending topics (metadata-only, fails soft)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/find_trending.py || echo "trend mining failed — continuing with static programs"
+          if [ -f trending_topics.json ]; then
+            python scripts/trending_to_programs.py 3 || echo "trend conversion failed — continuing"
+          fi
 
       - name: Generate videos (edge-tts VO + captions + motion + music)
         env:
@@ -184,6 +196,34 @@ jobs:
               json.dump(uploads, f, indent=2)
           "
 
+      - name: Publish assets publicly + post to Instagram/Facebook (fails soft)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+        run: |
+          TAG="videos-$(date +%Y%m%d-%H%M%S)"
+          # profitenginev5 is private → host MP4s on the public content repo so IG/FB can fetch them
+          if gh release create "$TAG" videos/openmontage/*.mp4 -R quantam101/content \
+               --title "Video assets $TAG" --notes "Public assets for automated social posting"; then
+            export ASSET_BASE="https://github.com/quantam101/content/releases/download/$TAG"
+            python -c "
+          import json, os
+          from pathlib import Path
+          vids = json.loads(Path('videos_manifest.json').read_text())
+          for v in vids:
+              v['url'] = os.environ['ASSET_BASE'] + '/' + Path(v['path']).name
+          Path('videos_manifest.json').write_text(json.dumps(vids, indent=2))
+          print('urls injected for', len(vids), 'videos')
+          "
+            python scripts/post_social.py || echo "social posting failed — YouTube uploads unaffected"
+          else
+            echo "release create failed — skipping IG/FB posting"
+          fi
+
       - name: Extract preview frames + contact sheet
         if: always()
         run: |
@@ -214,6 +254,9 @@ jobs:
             videos/preview/*.jpg
             videos_manifest.json
             youtube_uploads.json
+            trending_topics.json
+            trending_programs.json
+            social_posts.json
           retention-days: 30
 
       - name: Report results

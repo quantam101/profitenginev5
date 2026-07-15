@@ -29,3 +29,13 @@ credentials.json
 *.db
 logs/
 .env*
+
+# video pipeline artifacts (generated in CI / locally, never committed)
+videos/_work/
+videos/openmontage/
+videos/preview/
+videos_manifest.json
+trending_topics.json
+trending_programs.json
+social_posts.json
+youtube_uploads.json

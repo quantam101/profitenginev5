@@ -120,8 +120,9 @@ _AI_PROVIDERS = [
 ]
 
 
-def _ai_script(prog: dict) -> str | None:
-    prompt = _script_prompt(prog)
+def ai_complete(prompt: str, min_len: int = 40, max_len: int = 700) -> str | None:
+    """Generic completion over the free-provider chain. Returns None if no
+    provider is configured/succeeds — callers must have a template backstop."""
     for label, envk, url, hfn, bfn, pfn in _AI_PROVIDERS:
         key = os.getenv(envk, "").strip()
         if not key:
@@ -134,7 +135,7 @@ def _ai_script(prog: dict) -> str | None:
                              "User-Agent": "already-here-shorts/1.0"})
                 with urllib.request.urlopen(req, timeout=30) as r:
                     txt = _clean_script(pfn(json.loads(r.read())))
-                if 40 < len(txt) < 700:
+                if min_len < len(txt) < max_len:
                     print(f"   script via {label} ({len(txt)} chars)")
                     return txt
                 break
@@ -187,7 +188,7 @@ def _template_script(prog: dict) -> str:
 
 
 def gen_script(prog: dict) -> str:
-    s = _ai_script(prog)
+    s = ai_complete(_script_prompt(prog))
     if s:
         return s
     print("   script via template engine")
@@ -491,15 +492,22 @@ async def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     if not shutil.which("ffmpeg"):
         print("ffmpeg not on PATH", file=sys.stderr); sys.exit(1)
+    programs = list(PROGRAMS)
+    trending = Path("trending_programs.json")
+    if trending.exists():  # produced by find_trending.py → trending_to_programs.py
+        extra = [p for p in json.loads(trending.read_text())
+                 if p.get("name") not in {q["name"] for q in programs}]
+        print(f"+ {len(extra)} trending program(s) merged")
+        programs += extra
     videos = []
-    for prog in PROGRAMS:
+    for prog in programs:
         try:
             v = await make_one(prog)
             if v:
                 videos.append(v)
         except Exception as e:
             print(f"   ❌ {prog['name']} errored: {e}")
-    print(f"\n✅ Campaign: {len(videos)}/{len(PROGRAMS)} videos generated")
+    print(f"\n✅ Campaign: {len(videos)}/{len(programs)} videos generated")
     Path("videos_manifest.json").write_text(json.dumps(videos, indent=2))
     if not videos:
         sys.exit(1)
