@@ -50,7 +50,11 @@ def _api(url: str, headers: dict, body: dict | None = None,
         headers={"Content-Type": "application/json",
                  "User-Agent": "already-here-syndicator/1.0", **headers})
     with urllib.request.urlopen(req, timeout=45) as r:
-        return json.loads(r.read())
+        raw = r.read()
+    try:
+        return json.loads(raw)
+    except ValueError:
+        raise RuntimeError(f"non-JSON response ({raw[:120]!r})") from None
 
 
 def parse_post(path: Path) -> dict | None:
@@ -99,17 +103,24 @@ def devto_publish(posts: list[dict], dry: bool) -> None:
             print(f"dev.to: would publish {p['slug']}")
             continue
         tags = TAGS_BY_CATEGORY.get(p["category"], DEFAULT_TAGS)[0]
-        try:
-            art = _api("https://dev.to/api/articles", {"api-key": key},
-                       {"article": {"title": p["title"], "published": True,
-                                    "body_markdown": p["body"],
-                                    "canonical_url": p["canonical"],
-                                    "description": p["excerpt"][:150],
-                                    "tags": tags}})
-            print(f"dev.to: published {p['slug']} -> {art.get('url')}")
-        except Exception as e:
-            print(f"dev.to: publish failed for {p['slug']} ({str(e)[:150]})")
-        time.sleep(3)  # stay under the write rate limit
+        payload = {"article": {"title": p["title"], "published": True,
+                               "body_markdown": p["body"],
+                               "canonical_url": p["canonical"],
+                               "description": p["excerpt"][:150],
+                               "tags": tags}}
+        for attempt in (1, 2):
+            try:
+                art = _api("https://dev.to/api/articles", {"api-key": key}, payload)
+                print(f"dev.to: published {p['slug']} -> {art.get('url')}")
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt == 1:
+                    print(f"dev.to: rate limited on {p['slug']} — waiting 65s")
+                    time.sleep(65)
+                    continue
+                print(f"dev.to: publish failed for {p['slug']} ({str(e)[:150]})")
+                break
+        time.sleep(35)  # dev.to write limit is ~1 article per 30s
 
 
 def hashnode_publish(posts: list[dict], dry: bool) -> None:
