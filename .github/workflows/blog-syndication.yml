@@ -1,0 +1,46 @@
+name: Blog Syndication (Dev.to + Hashnode)
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (list, do not publish)'
+        required: false
+        default: 'false'
+        type: boolean
+  schedule:
+    - cron: '0 15 * * 2'   # Tuesday 15:00 UTC — after fresh posts land
+
+permissions:
+  contents: read
+
+jobs:
+  syndicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pipeline repo
+        uses: actions/checkout@v4
+
+      - name: Checkout website repo (public)
+        uses: actions/checkout@v4
+        with:
+          repository: quantam101/already-here-llc
+          path: site
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Syndicate posts
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python scripts/syndicate_blog.py --dry-run
+          else
+            python scripts/syndicate_blog.py
+          fi
