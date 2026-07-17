@@ -29,6 +29,7 @@ from generate_shorts import ai_complete  # noqa: E402
 CONTENT_REPO = "quantam101/content"
 PAGES_BASE = "https://quantam101.github.io/content"
 EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/"
+BLUEPRINT_URL = f"{PAGES_BASE}/ebooks/blueprint/"
 
 
 def _load(name: str):
@@ -86,6 +87,9 @@ def compose() -> tuple[str, str]:
         f'<h2>Free playbook</h2><p>Everything we use to run this — voiceovers, '
         f'captions, B-roll, trend research, auto-posting — is free, and the whole '
         f'system is documented in <a href="{EBOOK_URL}">The $0 Content Engine</a>.</p>'
+        f'<p>Ready to build it yourself? The <a href="{BLUEPRINT_URL}">Complete '
+        f'Blueprint</a> has every script, prompt, command, and workflow — the '
+        f'exact build manual for the engine that produced this email.</p>'
         f"<p>Questions or want this built for your business? Reply to this email "
         f"or reach us at dispatch@alreadyherellc.com.</p>"
         f"<p><em>Some links in our content are affiliate links — they may earn "

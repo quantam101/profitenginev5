@@ -79,6 +79,10 @@ Everything above, itemized: `yt-dlp` (trend data) · free-tier LLMs (scripts) ·
 
 **Want the running system instead of the parts list?** Follow **@alreadyherellc** on Instagram for the daily build-in-public version — or reach us at dispatch@alreadyherellc.com.
 
+## Go deeper: the Complete Blueprint
+
+This free guide is the *what* and the *why*. If you want the *exactly how* — the trend-mining code, all 5 script templates with the exact LLM prompts, every ffmpeg filter for the word-synced captions, the full platform token setup (including the two Meta gotchas that cost us days), the complete GitHub Actions workflows, a 30-day launch calendar, and the troubleshooting table for every failure we've hit — that's **[The $0 Content Engine: Complete Blueprint](https://quantam101.github.io/content/ebooks/blueprint/)**. One weekend, $0 in tooling, everything documented.
+
 ## Get the weekly issue
 
 Every Monday we publish exactly what the engine shipped and what the data says is working — [read the latest issue](https://quantam101.github.io/content/newsletters/2026-07-15/). To get it in your inbox, [subscribe with one email](mailto:dispatch@alreadyherellc.com?subject=Subscribe&body=Subscribe%20me%20to%20the%20weekly%20issue) — just hit send.

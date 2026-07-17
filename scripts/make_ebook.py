@@ -6,9 +6,12 @@ repo so GitHub Pages serves it — a free hosted lead magnet.
 Usage:
   python scripts/make_ebook.py content/ebooks/my-book.md            # build HTML next to it
   python scripts/make_ebook.py content/ebooks/my-book.md --publish  # + push to quantam101/content
+  python scripts/make_ebook.py content/ebooks/my-book.md --pdf      # + print PDF via headless Edge/Chrome
 
 Published URL: https://quantam101.github.io/content/ebooks/<slug>/
 Requires `gh` CLI authenticated (or GH_TOKEN) for --publish.
+--pdf produces the paid-product deliverable (e.g. for Gumroad) — keep paid
+books out of --publish, which pushes to the PUBLIC content repo.
 """
 from __future__ import annotations
 
@@ -108,6 +111,41 @@ def publish(html_path: Path, slug: str) -> None:
     print(f"published: {PAGES_BASE}/ebooks/{slug}/")
 
 
+def to_pdf(html_path: Path) -> Path | None:
+    """Print built HTML to PDF with headless Edge/Chrome (free, no deps).
+    Returns the PDF path, or None if no browser binary was found."""
+    import shutil
+    out = html_path.with_suffix(".pdf")
+    candidates = [shutil.which(n) for n in ("msedge", "chrome", "chromium-browser", "chromium")]
+    candidates += [p for p in (
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        "/usr/bin/google-chrome", "/usr/bin/chromium-browser",
+    ) if Path(p).exists()]
+    exe = next((c for c in candidates if c), None)
+    if not exe:
+        print("no Edge/Chrome found — skipping PDF")
+        return None
+    import tempfile
+    import time
+    # plain --headless (not =new) + throwaway profile: =new exits silently
+    # without writing the PDF on Windows Edge when no user-data-dir is given.
+    # Retried once — a still-exiting prior Edge instance can eat the first run.
+    for attempt in (1, 2):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
+            r = subprocess.run([exe, "--headless", "--disable-gpu",
+                                f"--user-data-dir={profile}",
+                                f"--print-to-pdf={out.resolve()}", "--no-pdf-header-footer",
+                                html_path.resolve().as_uri()],
+                               capture_output=True, text=True, timeout=120)
+        if r.returncode == 0 and out.exists():
+            print(f"pdf {out} ({out.stat().st_size // 1024} KB)")
+            return out
+        time.sleep(2)
+    print(f"pdf failed: {(r.stderr or r.stdout)[:300]}")
+    return None
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -117,6 +155,8 @@ def main() -> None:
         print(f"not found: {md_path}")
         sys.exit(1)
     out = build(md_path)
+    if "--pdf" in sys.argv:
+        to_pdf(out)
     if "--publish" in sys.argv:
         publish(out, md_path.stem)
 

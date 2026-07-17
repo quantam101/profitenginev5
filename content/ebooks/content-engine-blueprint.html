@@ -1,0 +1,402 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The $0 Content Engine: Complete Blueprint</title><style>
+:root{color-scheme:light dark}
+body{max-width:680px;margin:0 auto;padding:2rem 1.2rem 4rem;
+  font:17px/1.65 Georgia,'Times New Roman',serif;color:#1a1a1a;background:#fdfcf8}
+h1{font-size:2rem;line-height:1.2;margin:1rem 0 .3rem}
+h2{font-size:1.35rem;margin:2.2rem 0 .6rem;border-bottom:2px solid #e8e2d4;padding-bottom:.3rem}
+h3{font-size:1.05rem;color:#555;font-weight:normal;font-style:italic;margin:.2rem 0 1rem}
+em{color:#555}
+li{margin:.35rem 0}
+hr{border:none;border-top:1px solid #e8e2d4;margin:2rem 0}
+strong{color:#000}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#f0ece1;
+  padding:.1em .35em;border-radius:4px}
+@media (prefers-color-scheme:dark){
+  body{color:#e8e6e0;background:#181614}
+  h3,em{color:#aaa} strong{color:#fff}
+  h2,hr{border-color:#3a362e} code{background:#2a2721}}
+</style></head><body><h1>The $0 Content Engine: Complete Blueprint</h1>
+<h3>Every script, prompt, command, and workflow behind a fully automated short-form content business — built and run in production by a one-person company</h3>
+<p><em>By Already Here LLC — the team behind @alreadyherellc</em></p>
+<hr>
+<h2>What you bought, and what it does</h2>
+<p>This is not a book of ideas. It is the complete build manual for the system that publishes our YouTube Shorts, Instagram Reels, and Facebook videos every week while we sleep — trend research, scriptwriting, voiceover, captions, B-roll, posting, reposting, and the weekly newsletter, end to end, for $0 in tooling.</p>
+<p>The free edition of <em>The $0 Content Engine</em> told you what the five stages are. This blueprint gives you everything the free edition deliberately left out:</p>
+<ul>
+<li>The exact trend-mining code and the scoring formula, ready to paste</li>
+<li>All 5 script format templates with fill-in-the-blank hooks</li>
+<li>The complete LLM prompt chain, including the free-tier fallback order</li>
+<li>The full render pipeline: every ffmpeg filter, every edge-tts flag</li>
+<li>The publishing setup for all three platforms, including the two token gotchas that cost us days</li>
+<li>The complete GitHub Actions workflow files, cron schedules included</li>
+<li>The repost engine rules and the newsletter composer</li>
+<li>A 30-day launch calendar and a troubleshooting table for every failure we&#x27;ve actually hit</li>
+</ul>
+<p>Work through it in order the first time. After that it&#x27;s a reference manual.</p>
+<p><strong>Prerequisites:</strong> a computer with Python 3.10+, a free GitHub account, and about one weekend. No design skills, no camera, no editing software, no subscriptions.</p>
+<hr>
+<h2>Part 1 — Mine what&#x27;s already winning</h2>
+<p>Guessing topics is how channels die. YouTube search results are a free market-research database if you rank them correctly.</p>
+<h3>The metric: views per day</h3>
+<p>Total views lie. A 3-year-old video with 2M views earns ~1,800 views/day — a proven evergreen topic. A 5-day-old video with 40k views earns 8,000/day — a rising trend. Rank by <strong>views ÷ age in days</strong> and both float to the top; stale one-hit wonders sink.</p>
+<h3>The tool: yt-dlp, metadata only</h3>
+<p><code>yt-dlp</code> reads search results without downloading anything and without an API key.</p>
+<p><code>`</code></p>
+<p>pip install yt-dlp</p>
+<p><code>`</code></p>
+<p>The two-phase pattern that keeps it fast:</p>
+<ul>
+<li><strong>Flat search</strong> — pull the top 25 results per niche query with <code>extract_flat: True</code>. This is one cheap request per query and returns title, views, and duration.</li>
+<li><strong>Detail fetch</strong> — for only the top 3 by raw views, fetch the upload date and compute views/day.</li>
+</ul>
+<p><code>`</code>python</p>
+<p>import yt_dlp</p>
+<p>from datetime import datetime, timezone</p>
+<p>def flat_search(query, depth=25, min_s=12, max_s=150):</p>
+<p>    opts = {&quot;quiet&quot;: True, &quot;extract_flat&quot;: True, &quot;skip_download&quot;: True}</p>
+<p>    with yt_dlp.YoutubeDL(opts) as ydl:</p>
+<p>        info = ydl.extract_info(f&quot;ytsearch{depth}:{query}&quot;, download=False)</p>
+<p>    out = []</p>
+<p>    for e in (info or {}).get(&quot;entries&quot;) or []:</p>
+<p>        views, dur = e.get(&quot;view_count&quot;), e.get(&quot;duration&quot;)</p>
+<p>        if not views or not dur or not (min_s &lt;= dur &lt;= max_s):</p>
+<p>            continue          # not a Short, or too new to have data</p>
+<p>        out.append({&quot;id&quot;: e[&quot;id&quot;], &quot;title&quot;: e.get(&quot;title&quot;, &quot;&quot;),</p>
+<p>                    &quot;views&quot;: views, &quot;duration&quot;: dur,</p>
+<p>                    &quot;url&quot;: f&quot;https://www.youtube.com/watch?v={e[&#x27;id&#x27;]}&quot;})</p>
+<p>    return sorted(out, key=lambda x: x[&quot;views&quot;], reverse=True)</p>
+<p>def views_per_day(video):</p>
+<p>    opts = {&quot;quiet&quot;: True, &quot;skip_download&quot;: True}</p>
+<p>    with yt_dlp.YoutubeDL(opts) as ydl:</p>
+<p>        info = ydl.extract_info(video[&quot;url&quot;], download=False)</p>
+<p>    up = info.get(&quot;upload_date&quot;)            # YYYYMMDD</p>
+<p>    if up:</p>
+<p>        age = max((datetime.now(timezone.utc)</p>
+<p>                   - datetime.strptime(up, &quot;%Y%m%d&quot;)</p>
+<p>                     .replace(tzinfo=timezone.utc)).days, 1)</p>
+<p>        video[&quot;views_per_day&quot;] = round(video[&quot;views&quot;] / age)</p>
+<p>    return video</p>
+<p><code>`</code></p>
+<p>The duration window (12–150 seconds) filters out long-form results so you&#x27;re only studying Shorts.</p>
+<h3>Choosing your niche queries</h3>
+<p>Write 10–15 search queries, not 1. Ours mix three buckets — copy the structure, swap the subjects:</p>
+<p>| Bucket | Purpose | Query pattern |</p>
+<p>|---|---|---|</p>
+<p>| Money queries | Topics tied to products you can monetize | <code>{product category} tutorial shorts</code> |</p>
+<p>| Format queries | Proven emotional formats | <code>{topic} secrets shorts</code>, <code>make money {topic} story shorts</code> |</p>
+<p>| Volume queries | Broad niches for reach | <code>ai tools you need shorts</code>, <code>productivity tips shorts</code> |</p>
+<p>Run the miner on a schedule and store results as JSON. Every downstream stage reads from that file — that&#x27;s what makes the pipeline composable.</p>
+<h3>The compliance rule that keeps your channel alive</h3>
+<p><strong>Mine the topic. Never touch the video.</strong> Re-uploading or clipping someone else&#x27;s video earns copyright strikes and reuse-policy demonetization. Recreating the <em>topic</em> with your own script and licensed footage is simply publishing. This one rule is why this system survives when &quot;faceless channel&quot; tutorials get accounts banned.</p>
+<h3>Worksheet: your first mining run</h3>
+<ul>
+<li>List 3 products/affiliate programs you could plausibly promote</li>
+<li>Write 3 money queries, 5 format queries, 4 volume queries</li>
+<li>Run the miner; keep every topic scoring above 500 views/day</li>
+<li>Delete anything you couldn&#x27;t write 3 honest tips about</li>
+<li>The top 5 that survive are your week-one videos</li>
+</ul>
+<hr>
+<h2>Part 2 — Scripts that write themselves</h2>
+<p>A Short&#x27;s script is 55 words. That is not a style choice — 55 spoken words ≈ 20 seconds, the retention sweet spot where completion rate (the metric the algorithm actually rewards) stays high.</p>
+<h3>The two-layer factory</h3>
+<p><strong>Layer 1 — free LLM chain.</strong> Several providers have genuinely free tiers. Chain them in order and fall through on any error:</p>
+<ul>
+<li>Gemini (free API tier)</li>
+<li>Groq (free tier, very fast)</li>
+<li>OpenRouter free models</li>
+</ul>
+<p>Each gets the same prompt. If all three fail — rate limits, outages, no keys — you fall to Layer 2 and the pipeline still ships.</p>
+<p><strong>Layer 2 — the template engine.</strong> A library of fill-in-the-blank structures assembled from the topic&#x27;s benefit list. Templates never rate-limit, never hallucinate, and never expire. Roughly a third of our published videos are pure template output; nobody can tell.</p>
+<h3>The master prompt (Layer 1)</h3>
+<p><code>`</code></p>
+<p>Write a spoken script for a YouTube Short about: {topic}</p>
+<p>Rules:</p>
+<ul>
+<li>Exactly 50-60 words, spoken English, no stage directions</li>
+<li>Structure: HOOK (one arresting sentence) -&gt; SUBSTANCE</li>
+</ul>
+<p>  (2-3 concrete, specific tips or facts) -&gt; CTA (one short sentence)</p>
+<ul>
+<li>The hook must create an information gap or challenge an assumption</li>
+<li>Concrete numbers beat adjectives. &quot;Cut render time to 60 seconds&quot;</li>
+</ul>
+<p>  not &quot;much faster&quot;</p>
+<ul>
+<li>No hashtags, no emojis, no &quot;in this video&quot;</li>
+<li>Reading level: 7th grade</li>
+</ul>
+<p>Format: {format_name} - {format_instruction}</p>
+<p><code>`</code></p>
+<h3>The 5 formats and when to use each</h3>
+<p>Matching format to topic is worth more than any single &quot;viral hook.&quot;</p>
+<p><strong>1. TIPS</strong> — numbered list. For how-to and tool topics.</p>
+<p>&gt; Hook: &quot;Three {topic} tricks nobody shows beginners.&quot; → tip 1 → tip 2 → tip 3 → &quot;Follow for more.&quot;</p>
+<p><strong>2. SECRETS</strong> — insider tone. For industry/money topics.</p>
+<p>&gt; Hook: &quot;Nobody tells you this about {topic}.&quot; → the insider fact → why it&#x27;s hidden → what to do instead → CTA.</p>
+<p><strong>3. STORY</strong> — struggle → discovery → payoff. For make-money and transformation topics.</p>
+<p>&gt; Hook: &quot;I wasted six months on {topic} until this.&quot; → the struggle (1 sentence) → the discovery → the result with a number → CTA.</p>
+<p><strong>4. DIY</strong> — three steps. For build/setup topics.</p>
+<p>&gt; Hook: &quot;Build {thing} in three steps, zero budget.&quot; → step 1 → step 2 → step 3 → &quot;Save this.&quot;</p>
+<p><strong>5. SALES</strong> — problem → agitation → solution. Use at most 1 in 5 videos.</p>
+<p>&gt; Hook: &quot;{Pain point} is costing you {number}.&quot; → agitate → the solution → where to get it.</p>
+<h3>Evergreen hook bank (template Layer 2 fills from these)</h3>
+<ul>
+<li>&quot;Nobody tells you this about ___&quot;</li>
+<li>&quot;Stop doing ___ — do this instead&quot;</li>
+<li>&quot;The ___ mistake that costs beginners ___&quot;</li>
+<li>&quot;I tested ___ so you don&#x27;t have to&quot;</li>
+<li>&quot;Three signs your ___ is broken&quot;</li>
+<li>&quot;___ in 20 seconds&quot;</li>
+</ul>
+<h3>Quality gate before anything renders</h3>
+<ul>
+<li>[ ] 45–65 words when read aloud</li>
+<li>[ ] Hook contains no throat-clearing (&quot;Hey guys, today…&quot; = delete)</li>
+<li>[ ] At least one concrete number or named tool</li>
+<li>[ ] CTA is 6 words or fewer</li>
+<li>[ ] You would not be embarrassed to voice this yourself</li>
+</ul>
+<hr>
+<h2>Part 3 — Studio-grade rendering, free</h2>
+<p>Four ingredients, all free, assembled by one script.</p>
+<h3>Voiceover: edge-tts</h3>
+<p>Microsoft Edge&#x27;s neural voices via the <code>edge-tts</code> Python package — no account, no key, no watermark, and crucially it returns <strong>word-level timestamps</strong> as it synthesizes.</p>
+<p><code>`</code></p>
+<p>pip install edge-tts</p>
+<p><code>`</code></p>
+<p><code>`</code>python</p>
+<p>import edge_tts, asyncio, json</p>
+<p>async def speak(text, out_mp3=&quot;vo.mp3&quot;, voice=&quot;en-US-ChristopherNeural&quot;):</p>
+<p>    words = []</p>
+<p>    tts = edge_tts.Communicate(text, voice, rate=&quot;+8%&quot;)</p>
+<p>    with open(out_mp3, &quot;wb&quot;) as f:</p>
+<p>        async for chunk in tts.stream():</p>
+<p>            if chunk[&quot;type&quot;] == &quot;audio&quot;:</p>
+<p>                f.write(chunk[&quot;data&quot;])</p>
+<p>            elif chunk[&quot;type&quot;] == &quot;WordBoundary&quot;:</p>
+<p>                words.append({&quot;word&quot;: chunk[&quot;text&quot;],</p>
+<p>                              &quot;start&quot;: chunk[&quot;offset&quot;] / 1e7,</p>
+<p>                              &quot;end&quot;: (chunk[&quot;offset&quot;] + chunk[&quot;duration&quot;]) / 1e7})</p>
+<p>    return words</p>
+<p><code>`</code></p>
+<p><code>rate=&quot;+8%&quot;</code> matters: slightly faster than default reads as energetic instead of robotic. Try <code>en-US-ChristopherNeural</code> (male) and <code>en-US-JennyNeural</code> (female); pick one and stay consistent — voice is brand.</p>
+<h3>Captions: the &quot;CapCut look&quot; from those timestamps</h3>
+<p>Word-by-word pop captions are the single highest-impact retention feature, and the word timestamps make them free. Generate an ASS subtitle file where each word gets its own event, styled big/bold/center:</p>
+<p><code>`</code></p>
+<p>[V4+ Styles]</p>
+<p>Style: Word,Arial Black,120,&amp;H00FFFFFF,&amp;H000000FF,&amp;H00000000,&amp;H96000000,-1,0,0,0,100,100,0,0,1,8,4,5,60,60,780,1</p>
+<p>[Events]</p>
+<p>Dialogue: 0,0:00:00.05,0:00:00.38,Word,,0,0,0,,{\fscx70\fscy70\t(0,80,\fscx100\fscy100)}NOBODY</p>
+<p>Dialogue: 0,0:00:00.38,0:00:00.71,Word,,0,0,0,,{\fscx70\fscy70\t(0,80,\fscx100\fscy100)}TELLS</p>
+<p><code>`</code></p>
+<p>The <code>\t(0,80,\fscx100\fscy100)</code> transform is the pop-in scale animation. Write one Dialogue line per word from the timestamp list, uppercase, and ffmpeg burns them in.</p>
+<h3>B-roll: Pexels</h3>
+<p>Pexels&#x27; API is free and every clip is licensed for commercial use, no attribution required (check the license page for the current terms — they&#x27;ve been stable for years).</p>
+<ul>
+<li>Register at pexels.com/api for a key</li>
+<li>Search <code>https://api.pexels.com/videos/search?query={keyword}&amp;orientation=portrait&amp;per_page=5</code></li>
+<li>Pull 3–4 clips per video, matched to keywords extracted from the script</li>
+<li>Cache downloads by keyword so repeat topics cost zero bandwidth</li>
+</ul>
+<h3>Assembly: one ffmpeg command chain</h3>
+<p>Per video: trim each clip to 3–5s, scale/crop to 1080×1920, crossfade between clips, burn captions, duck music under the voice, add a swoosh on each transition.</p>
+<p>The core filter graph (three clips shown):</p>
+<p><code>`</code></p>
+<p>ffmpeg -i clip1.mp4 -i clip2.mp4 -i clip3.mp4 -i vo.mp3 -i music.mp3 \</p>
+<p> -filter_complex &quot;\</p>
+<p> [0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v0];\</p>
+<p> [1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v1];\</p>
+<p> [2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v2];\</p>
+<p> [v0][v1]xfade=transition=fade:duration=0.3:offset=3.7[x1];\</p>
+<p> [x1][v2]xfade=transition=fade:duration=0.3:offset=7.4[xv];\</p>
+<p> [xv]ass=captions.ass[outv];\</p>
+<p> [4:a]volume=0.12[m];[3:a][m]amix=inputs=2:duration=first[outa]&quot; \</p>
+<p> -map &quot;[outv]&quot; -map &quot;[outa]&quot; -t 20 -r 30 -c:v libx264 -preset fast \</p>
+<p> -pix_fmt yuv420p out.mp4</p>
+<p><code>`</code></p>
+<p>Music at <code>volume=0.12</code> under full-volume voice is the mix that sounds professional. Free music: YouTube&#x27;s Audio Library (safe for all platforms) — download a handful, rotate them.</p>
+<p>Render time on an ordinary laptop: about a minute per video.</p>
+<h3>Render checklist</h3>
+<ul>
+<li>[ ] 1080×1920, 30fps, H.264, yuv420p (Instagram rejects odd pixel formats)</li>
+<li>[ ] Duration = voiceover length + 0.5s tail, never over 60s</li>
+<li>[ ] Captions inside the center-safe area (platform UI covers top and bottom ~250px)</li>
+<li>[ ] Audio peaks around −3dB; music never fights the voice</li>
+<li>[ ] Watch one full render per batch before publishing — 20 seconds of QA</li>
+</ul>
+<hr>
+<h2>Part 4 — Publish everywhere, automatically</h2>
+<h3>YouTube Shorts: Data API</h3>
+<p>One-time setup (~20 minutes):</p>
+<ul>
+<li>console.cloud.google.com → create a project → enable <strong>YouTube Data API v3</strong></li>
+<li>OAuth consent screen → External → add your own Google account as a test user</li>
+<li>Credentials → Create OAuth client ID → <strong>Desktop app</strong> → note client ID + secret</li>
+<li>Run a one-time local script to authorize scope <code>https://www.googleapis.com/auth/youtube</code> and capture the <strong>refresh token</strong> — that&#x27;s the credential that lasts</li>
+<li>Store all three as environment secrets: <code>YOUTUBE_CLIENT_ID</code>, <code>YOUTUBE_CLIENT_SECRET</code>, <code>YOUTUBE_REFRESH_TOKEN</code></li>
+</ul>
+<p>Upload with <code>google-api-python-client</code>, category 27 (Education) or 28 (Science &amp; Tech), and put your links in the description (see Part 7). Include <code>#shorts</code> in the title or description. Unverified API projects cap at ~6 uploads/day — far more than you need.</p>
+<p><strong>Gotcha #1:</strong> request the full <code>youtube</code> scope from the start, not just <code>youtube.upload</code>. The upload-only scope can&#x27;t edit descriptions later, and you <em>will</em> want to retro-fix descriptions. We had to re-mint our token to fix six live videos.</p>
+<h3>Instagram Reels + Facebook: Graph API</h3>
+<p>You need: an Instagram <strong>professional</strong> account, a Facebook Page, both linked, and a Meta developer app.</p>
+<ul>
+<li>developers.facebook.com → create an app → add Instagram Graph API + Facebook Login products</li>
+<li>Add your Instagram account as an <strong>Instagram Tester</strong> under App roles → Roles (the invite must be <em>accepted</em> inside Instagram: Settings → Website permissions → Tester invites)</li>
+<li>Graph API Explorer → generate a token with <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code>, <code>pages_manage_posts</code></li>
+<li>Exchange for a long-lived token (60 days) and store as secrets</li>
+</ul>
+<p>Reels publishing is a two-step dance: create a media container with a <strong>public video URL</strong>, poll until <code>status_code=FINISHED</code>, then publish:</p>
+<p><code>`</code></p>
+<p>POST graph.instagram.com/{ig-user-id}/media</p>
+<p>     ?media_type=REELS&amp;video_url={public_url}&amp;caption={caption}</p>
+<p>GET  graph.instagram.com/{container-id}?fields=status_code   (poll ~every 5s)</p>
+<p>POST graph.instagram.com/{ig-user-id}/media_publish?creation_id={container-id}</p>
+<p><code>`</code></p>
+<p><strong>Gotcha #2 (the one nobody documents):</strong> Instagram now issues two token generations. Newer tokens (they start with <code>IG</code>) only work against <strong>graph.instagram.com</strong>; older Page-based tokens only work against <strong>graph.facebook.com</strong>. Route by token prefix and both work. Point a mixed integration at one host and half your calls 400 with misleading errors.</p>
+<p>Facebook Page video posting is one call — <code>POST graph.facebook.com/{page-id}/videos</code> with <code>file_url</code> — using a <strong>Page access token</strong>, which (via the token-debugger &quot;never expires&quot; variety) outlives every other Meta credential. Set it once.</p>
+<h3>Hosting the video file: GitHub Releases</h3>
+<p>Instagram fetches your video from a URL, so you need free, reliable public hosting: attach the MP4s to a <strong>GitHub release</strong>. Release assets have stable direct-download URLs, no bandwidth bill, and the <code>gh</code> CLI uploads them in one line:</p>
+<p><code>`</code></p>
+<p>gh release create shorts-2026-07-12 out1.mp4 out2.mp4 --title &quot;weekly batch&quot;</p>
+<p><code>`</code></p>
+<h3>Fail-soft is the architecture</h3>
+<p>Wrap every platform call so one failure never kills the batch:</p>
+<p><code>`</code>python</p>
+<p>results = {&quot;youtube&quot;: try_youtube(v), &quot;instagram&quot;: try_instagram(v),</p>
+<p>           &quot;facebook&quot;: try_facebook(v)}</p>
+<h1>log failures, publish successes, exit 0 either way</h1>
+<p><code>`</code></p>
+<p>An expired Instagram token should cost you Instagram for a day — not the whole week&#x27;s output. This single pattern is the difference between a system that runs for months and one you babysit.</p>
+<hr>
+<h2>Part 5 — Scheduling: GitHub Actions runs the company</h2>
+<p>GitHub Actions gives private repos 2,000 free minutes/month; our entire weekly pipeline uses under 60.</p>
+<p>The complete weekly workflow:</p>
+<p><code>`</code>yaml</p>
+<p>name: weekly-content</p>
+<p>on:</p>
+<p>  schedule:</p>
+<p>    - cron: &quot;0 2 <em> </em> 0&quot;     # Sundays 02:00 UTC — posts before you wake</p>
+<p>  workflow_dispatch: {}      # manual run button, always include this</p>
+<p>jobs:</p>
+<p>  produce-and-post:</p>
+<p>    runs-on: ubuntu-latest</p>
+<p>    timeout-minutes: 45</p>
+<p>    steps:</p>
+<p>      - uses: actions/checkout@v4</p>
+<p>      - uses: actions/setup-python@v5</p>
+<p>        with: { python-version: &quot;3.12&quot; }</p>
+<p>      - run: sudo apt-get update &amp;&amp; sudo apt-get install -y ffmpeg</p>
+<p>      - run: pip install yt-dlp edge-tts requests google-api-python-client google-auth</p>
+<p>      - name: mine trends</p>
+<p>        run: python scripts/find_trending.py</p>
+<p>      - name: render videos</p>
+<p>        run: python scripts/generate_shorts.py --limit 5</p>
+<p>      - name: host on release</p>
+<p>        env: { GH_TOKEN: &quot;${{ github.token }}&quot; }</p>
+<p>        run: gh release create &quot;shorts-$(date +%F)&quot; out/*.mp4 --title &quot;batch $(date +%F)&quot;</p>
+<p>      - name: publish everywhere</p>
+<p>        env:</p>
+<p>          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}</p>
+<p>          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}</p>
+<p>          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}</p>
+<p>          IG_USER_ID: ${{ secrets.IG_USER_ID }}</p>
+<p>          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}</p>
+<p>          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}</p>
+<p>          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}</p>
+<p>        run: python scripts/post_social.py</p>
+<p><code>`</code></p>
+<p>Our production cadence, copy it or shift it:</p>
+<p>| Job | Cron | What it does |</p>
+<p>|---|---|---|</p>
+<p>| Weekly content | <code>0 2 <em> </em> 0</code> | mine → render → host → post |</p>
+<p>| Repost cycle | <code>0 15 <em> </em> 3</code> | repost best performer 2+ weeks old |</p>
+<p>| Newsletter | <code>0 13 <em> </em> 1</code> | compose + publish Monday issue |</p>
+<p>| Revenue report | <code>30 12 <em> </em> *</code> | daily numbers into the repo |</p>
+<p>Rules that keep Actions healthy: always add <code>workflow_dispatch</code> (you&#x27;ll thank yourself when debugging), always set <code>timeout-minutes</code>, never print secrets, and let every posting step fail soft.</p>
+<hr>
+<h2>Part 6 — The recycle loop and the newsletter</h2>
+<h3>Reposting: your back catalog is free inventory</h3>
+<p>Once a video is 2+ weeks old its performance is knowable. Weekly job:</p>
+<ul>
+<li>Pull your uploads and view counts (one YouTube API call)</li>
+<li>Filter: older than 14 days, not already a repost, above-median views</li>
+<li>Repost the winner to IG + FB with a fresh caption prefix: &quot;ICYMI:&quot;, &quot;Still true:&quot;, &quot;Most-watched this month:&quot;</li>
+<li><strong>Mark it</strong> in a JSON ledger so you never repost a repost</li>
+</ul>
+<p>One good video becomes 4–6 impressions cycles over a year. This is the highest ROI script in the whole system — it creates output with zero new production.</p>
+<h3>The Monday newsletter</h3>
+<p>Every Monday, a script assembles: this week&#x27;s published videos (from the upload ledger), the top 3 trending topics (from the miner — &quot;what the data says is working&quot;), and a standing CTA block. Delivery fails soft: email platform API → static page on GitHub Pages → local HTML artifact. The newsletter is also where warm audiences buy — every issue links your products.</p>
+<p>Fifteen minutes of setup, runs forever, compounds an owned audience — the only audience an algorithm can&#x27;t take away.</p>
+<hr>
+<h2>Part 7 — The money layer</h2>
+<p>Traffic without an offer is a hobby. Stack these four, in this order:</p>
+<h3>1. Affiliate links (day one)</h3>
+<p>Join programs adjacent to your niches. Put links in <strong>every</strong> video description, injected automatically from a JSON map so adding a program updates all future videos:</p>
+<p><code>`</code></p>
+<p>AFFILIATE_LINKS = {&quot;seo-tools&quot;: &quot;https://...&quot;, &quot;hosting&quot;: &quot;https://...&quot;}</p>
+<p><code>`</code></p>
+<p>Description template every video gets:</p>
+<p><code>`</code></p>
+<p>→ Try it: {affiliate link for this video&#x27;s program}</p>
+<p>→ Free playbook — The $0 Content Engine: {lead magnet URL}</p>
+<p>→ Our tools &amp; kits: {store URL}</p>
+<p><code>`</code></p>
+<p><strong>Compliance is not optional:</strong> every piece of content with an affiliate link carries an FTC disclosure line. Bake it into the template so it can&#x27;t be forgotten.</p>
+<h3>2. The free lead magnet (week one)</h3>
+<p>A genuinely useful free guide (the free edition of this book is ours), hosted for $0 on GitHub Pages, linked from every description. Its job: convert anonymous viewers into email subscribers and warm buyers.</p>
+<h3>3. Your paid product (week two — this book is ours)</h3>
+<p>Package your deepest expertise as a $19–39 digital product on Gumroad or Payhip. Free to set up; they take a cut only when you get paid. The formula this book follows, so you can copy it:</p>
+<ul>
+<li>Free edition = the <em>what</em> and the <em>why</em> → builds trust, ranks, gets shared</li>
+<li>Paid edition = the <em>exactly how</em> → every template, command, and gotcha</li>
+<li>Every video description, newsletter issue, and the free edition itself links to the paid edition</li>
+</ul>
+<h3>4. Services (when inbound starts)</h3>
+<p>Once the system visibly works, &quot;build this for my business&quot; emails arrive. A done-for-you setup of this exact pipeline is a $1,500–5,000 engagement. The content engine is its own portfolio.</p>
+<h3>The honest math</h3>
+<p>At $30 with ~10% platform fees you net ~$27. Ten sales/day ≈ $8,100/month net. Getting there is a traffic problem, not a product problem: at a 2% landing-page conversion you need ~500 targeted visitors/day. Automated posting across 3–4 platforms plus reposts plus a newsletter is how you build toward that without buying ads — but expect the curve to take months, not weeks. Everyone selling faster timelines is selling you a timeline.</p>
+<hr>
+<h2>Part 8 — The 30-day launch calendar</h2>
+<p><strong>Week 1 — Foundation.</strong> Install Python, ffmpeg, yt-dlp, edge-tts. Write your niche queries, run the miner. Set up YouTube OAuth. Render your first video by hand and study it. Publish 2 videos.</p>
+<p><strong>Week 2 — Automation.</strong> Wire the full render script. Set up the Meta app, tester invites, tokens. Stand up the GitHub Actions weekly workflow. Publish 3–4 videos, at least one fully hands-free.</p>
+<p><strong>Week 3 — Funnel.</strong> Write your free lead magnet (one afternoon — it&#x27;s the <em>what</em>, not the <em>how</em>). Publish it on GitHub Pages. Add the three-line link block to every description. Start the Monday newsletter. Join 2 affiliate programs.</p>
+<p><strong>Week 4 — Money.</strong> Outline your paid product from questions your audience actually asks. Set up the store and sales page. Launch the repost cycle. Review 30 days of data: kill the worst-performing niche query, double the best.</p>
+<p><strong>The only rule:</strong> post consistently for 30 days before judging anything. Short-form data is noisy; the algorithm tests you before it feeds you.</p>
+<hr>
+<h2>Part 9 — Troubleshooting: every failure we&#x27;ve actually hit</h2>
+<p>| Symptom | Cause | Fix |</p>
+<p>|---|---|---|</p>
+<p>| IG container stuck <code>IN_PROGRESS</code> forever | Video URL not publicly fetchable | Host on a GitHub release; test the URL in an incognito window |</p>
+<p>| IG API 400 with vague OAuth error | Token generation vs. host mismatch | <code>IG…</code> tokens → graph.instagram.com; Page tokens → graph.facebook.com |</p>
+<p>| YouTube upload 403 | OAuth scope too narrow or consent screen unverified | Full <code>youtube</code> scope; add yourself as test user |</p>
+<p>| Can&#x27;t edit old video descriptions | Token minted with upload-only scope | Re-mint refresh token with full <code>youtube</code> scope |</p>
+<p>| edge-tts suddenly silent/erroring | Transient service change | <code>pip install -U edge-tts</code> — fixes it every time |</p>
+<p>| ffmpeg &quot;height not divisible by 2&quot; | Odd crop dimensions | Force even: <code>crop=1080:1920</code>, <code>setsar=1</code> |</p>
+<p>| Captions off-screen on IG | Platform UI overlay | Keep text inside center 60% vertically |</p>
+<p>| Actions job dies at 6h | No timeout, hung API poll | <code>timeout-minutes: 45</code> + bounded poll loops |</p>
+<p>| Reposted a repost | No ledger | Mark reposts in JSON; filter on the marker |</p>
+<p>| One platform down kills the batch | Exceptions bubbling up | Fail-soft wrapper per platform, always exit 0 |</p>
+<p>| Copyright claim | Someone reused source footage | Only Pexels/licensed B-roll — never &quot;found&quot; clips |</p>
+<hr>
+<h2>Appendix — The complete stack, itemized</h2>
+<p>| Function | Tool | Cost |</p>
+<p>|---|---|---|</p>
+<p>| Trend data | yt-dlp | $0 |</p>
+<p>| Scriptwriting | Free-tier LLMs + template engine | $0 |</p>
+<p>| Voiceover | edge-tts | $0 |</p>
+<p>| Captions | Word timestamps + ASS + ffmpeg | $0 |</p>
+<p>| B-roll | Pexels API | $0 |</p>
+<p>| Music | YouTube Audio Library | $0 |</p>
+<p>| Assembly | ffmpeg | $0 |</p>
+<p>| YouTube posting | Data API v3 | $0 |</p>
+<p>| IG/FB posting | Graph API | $0 |</p>
+<p>| Video hosting | GitHub Releases | $0 |</p>
+<p>| Scheduling | GitHub Actions | $0 |</p>
+<p>| Lead magnet + sales page hosting | GitHub Pages | $0 |</p>
+<p>| Store/checkout | Gumroad / Payhip | % of sales only |</p>
+<p>| Newsletter | Beehiiv free tier / static page | $0 |</p>
+<p><strong>Total fixed cost: $0/month.</strong> The only fees you ever pay are a percentage of money you&#x27;ve already made.</p>
+<hr>
+<p><em>Questions, stuck on a step, or want this built for your business? Email dispatch@alreadyherellc.com — a human answers. Follow the build in public at @alreadyherellc.</em></p>
+<p><em>© 2026 Already Here LLC. Licensed for the personal use of the purchaser. Platform policies change — verify current terms. Affiliate links in our content may earn us a commission at no cost to you.</em></p></body></html>
