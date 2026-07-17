@@ -33,10 +33,20 @@ that's what justifies the price.
 
 ## Infrastructure decisions of record
 
-- **Checkout/delivery: Gumroad** (hosting, secure delivery, receipts for ~10%).
-  Stripe Payment Links + webhook fulfillment saves ~7% in fees but requires a
-  delivery server (expiring links) we deliberately don't run. Revisit when
-  gross passes ~$2k/mo — then the fee delta funds the Render backend work.
+- **Checkout/delivery: Gumroad now, Stripe later — two-channel plan.**
+  Phase 1 (now): Gumroad is launch + delivery + merchant of record for ~10%.
+  Phase 3 (gated): Stripe Managed Payments storefront on an owned domain
+  (e.g. products.alreadyherellc.com) as the permanent API-first store —
+  products/prices/payment-links created programmatically, webhook fulfillment
+  with expiring download links, Gumroad demoted to secondary marketplace.
+  **Gates before Phase 3 starts:** (1) first product validated on Gumroad
+  (≥10 sales or ~$2k/mo gross in sight — the fee delta funds the build),
+  (2) Stripe keys rotated first (see SECURITY_ROTATION_REQUIRED.md — the
+  current secret key was in the exposed .env), (3) Managed Payments
+  eligibility/pricing confirmed inside the Stripe dashboard, (4) delivery
+  service lands on the existing Render backend, not new infrastructure.
+  Never a Gumroad browser-robot: no stable API underneath, breaks on UI
+  changes, and a half-published product is worse than a manual step.
 - **Orchestration: GitHub Actions**, not n8n — no server to keep alive, free
   minutes cover the whole pipeline, fail-soft steps already proven.
 - **Writing: our own production experience** — never bulk LLM generation
