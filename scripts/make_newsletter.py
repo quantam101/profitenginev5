@@ -6,10 +6,12 @@ source-specific calls to action, refuses to silently reuse stale content, and
 falls back to an honest "no verified new opportunities" notice instead of
 repeating generic marketing copy.
 
-Delivery order (fails soft):
-  1. Beehiiv draft API
-  2. GitHub Pages issue page
-  3. newsletter.html artifact of record
+Delivery:
+  1. Resend broadcast to the newsletter audience (RESEND_API_KEY) — the
+     actual email send. Beehiiv's create-post API is Enterprise-only
+     (403 SEND_API_NOT_ENTERPRISE_PLAN) and is no longer attempted.
+  2. GitHub Pages issue page — permanent web archive, always attempted.
+  3. newsletter.html artifact of record, always written.
 
 Usage: python scripts/make_newsletter.py [--no-page]
 """
@@ -29,17 +31,20 @@ from pathlib import Path
 from typing import Any, Iterable
 
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))  # for the runtime pkg
 from generate_shorts import ai_complete  # noqa: E402
 
 CONTENT_REPO = "quantam101/content"
 PAGES_BASE = "https://quantam101.github.io/content"
-EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/"
-BLUEPRINT_URL = f"{PAGES_BASE}/ebooks/blueprint/"
-WEBSITE_URL = "https://alreadyherellc.com"
-AI_SERVICE_URL = f"{WEBSITE_URL}/ai-agent"
-RFQ_URL = f"{WEBSITE_URL}/rfq"
-DISPATCH_URL = f"{WEBSITE_URL}/dispatch"
-AUTOWORKS_URL = f"{WEBSITE_URL}/autoworks"
+_UTM = "utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest"
+EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/?{_UTM}"
+BLUEPRINT_URL = f"{PAGES_BASE}/ebooks/blueprint/?{_UTM}"
+WEBSITE_URL = "https://www.alreadyherellc.com"
+AI_SERVICE_URL = f"{WEBSITE_URL}/ai-agent?{_UTM}"
+RFQ_URL = f"{WEBSITE_URL}/rfq?{_UTM}"
+DISPATCH_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
+# no /autoworks page exists yet — route AutoWorks CTAs to the dispatch page
+AUTOWORKS_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
 
 ARTIFACT_GROUPS: dict[str, tuple[str, ...]] = {
     "Revenue opportunities": (
@@ -268,30 +273,20 @@ def compose() -> tuple[str, str, str]:
     return subject, "\n".join(body), fingerprint
 
 
-def try_beehiiv(subject: str, body: str) -> bool:
-    key = os.getenv("BEEHIIV_API_KEY", "").strip()
-    pub = os.getenv("BEEHIIV_PUBLICATION_ID", "").strip()
-    if not (key and pub):
-        print("no Beehiiv credentials — skipping API")
+def try_resend(subject: str, body: str) -> bool:
+    """Send the issue as a Resend broadcast (the real email delivery)."""
+    if not os.getenv("RESEND_API_KEY", "").strip():
+        print("no RESEND_API_KEY — email send skipped")
         return False
     try:
-        req = urllib.request.Request(
-            f"https://api.beehiiv.com/v2/publications/{pub}/posts",
-            data=json.dumps({"title": subject, "body_content": body,
-                             "status": "draft"}).encode(),
-            method="POST",
-            headers={"Authorization": f"Bearer {key}",
-                     "Content-Type": "application/json",
-                     "User-Agent": "already-here-newsletter/2.0"},
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            data = json.loads(response.read())
-        print(f"beehiiv draft created: {data.get('data', {}).get('preview_url', data)}")
-        return True
-    except urllib.error.HTTPError as exc:
-        print(f"beehiiv API unavailable (HTTP {exc.code}: {exc.read()[:200]!r}) — falling back")
+        from runtime.resend_newsletter import publish_digest
+        result = publish_digest(subject, body)
+        if result.ok:
+            print(f"resend broadcast sent: id={result.post_id}")
+            return True
+        print(f"resend broadcast failed: {result.error[:200]}")
     except Exception as exc:
-        print(f"beehiiv API failed ({str(exc)[:100]}) — falling back")
+        print(f"resend send failed ({str(exc)[:150]})")
     return False
 
 
@@ -332,8 +327,11 @@ def main() -> None:
     print(f"subject: {subject}")
     print(f"fingerprint: {fingerprint}")
     print("newsletter.html written")
-    if not try_beehiiv(subject, body) and "--no-page" not in sys.argv:
-        publish_page(page)
+    sent = try_resend(subject, body)
+    if "--no-page" not in sys.argv:
+        publish_page(page)   # web archive, regardless of email outcome
+    if not sent:
+        print("::warning::issue was NOT emailed — page archive only")
 
 
 if __name__ == "__main__":
