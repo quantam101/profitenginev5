@@ -47,8 +47,12 @@ def _api(url: str, headers: dict, body: dict | None = None,
     req = urllib.request.Request(
         url, data=json.dumps(body).encode() if body is not None else None,
         method=method or ("POST" if body is not None else "GET"),
-        headers={"Content-Type": "application/json",
-                 "User-Agent": "already-here-syndicator/1.0", **headers})
+        headers={"Content-Type": "application/json", "Accept": "application/json",
+                 # Cloudflare on gql.hashnode.com serves HTML challenges to
+                 # script-looking agents; a browser-style UA passes
+                 "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                "Chrome/126.0 Safari/537.36"), **headers})
     with urllib.request.urlopen(req, timeout=45) as r:
         raw = r.read()
     try:
