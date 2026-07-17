@@ -19,6 +19,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 EBOOK = "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/"
+BLUEPRINT = "https://quantam101.github.io/content/ebooks/blueprint/"
 STORE = "https://alreadyhere.gumroad.com"
 
 
@@ -31,6 +32,7 @@ def link_block(program: str) -> str:
     if links.get(program):
         lines.append(f"→ Try it: {links[program]}")
     lines.append(f"→ Free playbook — The $0 Content Engine: {EBOOK}")
+    lines.append(f"→ The Complete Blueprint (full build manual): {BLUEPRINT}")
     lines.append(f"→ Our tools & kits: {STORE}")
     return "\n".join(lines)
 

@@ -540,6 +540,8 @@ def link_block(prog: dict) -> str:
         lines.append(f"→ Try {prog['product']}: {url}")
     lines.append("→ Free playbook — The $0 Content Engine: "
                  "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/")
+    lines.append("→ The Complete Blueprint (full build manual): "
+                 "https://quantam101.github.io/content/ebooks/blueprint/")
     lines.append("→ Our tools & kits: https://alreadyhere.gumroad.com")
     return "\n".join(lines)
 
