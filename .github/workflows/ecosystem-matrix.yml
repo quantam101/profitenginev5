@@ -82,15 +82,21 @@ jobs:
                    "Token", "alreadyhere-site", "stabilitycapitalos",
                    "roadkingstransport"]
 
-          def fetch(url, headers=None, timeout=90):
+          def fetch(url, headers=None, timeout=90, retries=1):
               req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
-              try:
-                  with urllib.request.urlopen(req, timeout=timeout) as r:
-                      return r.read().decode(errors="replace"), r.status
-              except urllib.error.HTTPError as e:
-                  return e.read().decode(errors="replace"), e.code
-              except Exception as e:
-                  return str(e), 0
+              for attempt in range(retries + 1):
+                  try:
+                      with urllib.request.urlopen(req, timeout=timeout) as r:
+                          return r.read().decode(errors="replace"), r.status
+                  except urllib.error.HTTPError as e:
+                      # retry transient 5xx once (serverless cold starts flap)
+                      if 500 <= e.code < 600 and attempt < retries:
+                          import time as _t; _t.sleep(10); continue
+                      return e.read().decode(errors="replace"), e.code
+                  except Exception as e:
+                      if attempt < retries:
+                          import time as _t; _t.sleep(10); continue
+                      return str(e), 0
 
           def check_endpoint(item):
               name, url, expect = item

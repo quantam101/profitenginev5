@@ -65,8 +65,13 @@ def gumroad_products() -> list[dict]:
             headers={"User-Agent": "already-here-digest/1.0"})
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.loads(r.read())
-        return [p for p in data.get("products", [])
-                if p.get("published") and p.get("short_url")]
+        products = data.get("products", [])
+        # missing "published" key must not hide live products (the public
+        # product pages 200 even when the API omits the flag)
+        live = [p for p in products
+                if p.get("short_url") and p.get("published", True) is not False]
+        print(f"gumroad: {len(live)}/{len(products)} products usable for spotlight")
+        return live
     except Exception as e:
         print(f"gumroad fetch failed ({str(e)[:80]}) — skipping product spotlight")
         return []
