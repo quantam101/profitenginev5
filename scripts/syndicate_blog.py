@@ -142,7 +142,14 @@ def hashnode_publish(posts: list[dict], dry: bool) -> None:
         edges = (d.get("data") or {}).get("publication", {}).get("posts", {}).get("edges", [])
         have = {e["node"]["title"] for e in edges}
     except Exception as e:
-        print(f"hashnode: listing failed ({str(e)[:120]}) — skipped")
+        if "non-JSON" in str(e):
+            # gql.hashnode.com 301s non-Pro accounts to the announcement page:
+            # the free API tier was removed in 2026; access requires a paid
+            # Pro plan, which the $0-cost policy forbids.
+            print("hashnode: API is now Pro-plan-gated (paid) — skipped "
+                  "under the max_cost_usd:0 policy")
+        else:
+            print(f"hashnode: listing failed ({str(e)[:120]}) — skipped")
         return
     mut = ("mutation($input: PublishPostInput!){ publishPost(input:$input){ "
            "post{ url } } }")
