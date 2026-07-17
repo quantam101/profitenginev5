@@ -15,7 +15,7 @@ jobs:
   hourly-check:
     name: Hourly Gumroad Check
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
@@ -101,6 +101,14 @@ jobs:
           TRADING_API_KEY: ${{ secrets.TRADING_API_KEY }}
         run: |
           python3 scripts/daily_revenue_tracker.py
+
+      - name: Sync Gumroad buyers to newsletter (post-purchase nurture)
+        env:
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+          BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+          BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
+        run: |
+          python3 scripts/gumroad_buyers_to_beehiiv.py --days 7
 
       - name: Upload tracking report
         uses: actions/upload-artifact@v4
