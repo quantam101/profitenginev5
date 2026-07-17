@@ -99,19 +99,28 @@ _FORMAT_BRIEFS = {
             "- Exactly 3 numbered steps, each one concrete action.\n"
             "- Beginner-friendly: no jargon without a 3-word explanation.\n"
             "- End with the result they get and a follow CTA."),
+    "micro": ("telling a two-beat micro story about {angle} with {product}",
+              "- Beat 1: one short setup sentence — a struggle or a bold claim.\n"
+              "- Beat 2: the twist or payoff, concrete and specific.\n"
+              "- Write it so the ending loops naturally back into the first line "
+              "(micro Shorts win on replays).\n"
+              "- No CTA sentence — the caption and description do that job."),
 }
 
 
 def _script_prompt(prog: dict) -> str:
-    what, rules = _FORMAT_BRIEFS.get(prog.get("format", "sales"), _FORMAT_BRIEFS["sales"])
+    fmt = prog.get("format", "sales")
+    what, rules = _FORMAT_BRIEFS.get(fmt, _FORMAT_BRIEFS["sales"])
+    secs, words = ("5-7", "~16 words total, hard max 20") if fmt == "micro" \
+        else ("20-25", "~55 words total, hard max 65")
     return (
-        f"You are a viral retention scriptwriter for YouTube Shorts. Write a 20-25 second "
+        f"You are a viral retention scriptwriter for YouTube Shorts. Write a {secs} second "
         f"voiceover script {what.format(product=prog['product'], angle=prog['angle'])}.\n"
         f"Rules:\n"
         f"- First sentence is an aggressive open-loop hook (a bold question or pattern interrupt).\n"
         f"{rules}\n"
         f"- Spoken plain text ONLY. No scene directions, no emojis, no hashtags, no quotes, no markdown.\n"
-        f"- Short punchy sentences. ~55 words total, hard max 65."
+        f"- Short punchy sentences. {words}."
     )
 
 
@@ -201,6 +210,10 @@ def _template_script(prog: dict) -> str:
     benefits = list(prog.get("benefits", []))
     random.shuffle(benefits)
     b = benefits[:3] if benefits else ["just works"]
+    if fmt == "micro":
+        # two beats, ~14 words, loop-friendly — skip the connectors/closers
+        b0 = " ".join(b[0].split()[:6])
+        return f"I kept {pain}. Then {prog['product']} — {b0}. Every time."
     hook = random.choice(_HOOKS).format(pain=pain, product=prog["product"])
     if fmt == "tips" and len(b) >= 3:
         body = f"First, {b[0]}. Second, {b[1]}. Third, {b[2]}"
@@ -331,7 +344,8 @@ def build_scenes(prog: dict, duration: float, out: Path, work: Path) -> list[flo
         return []
     try:
         X = 0.5  # crossfade seconds
-        n = max(3, min(7, round(duration / 3.0)))
+        # micro shorts (<10s) look frantic with 3+ cuts — cap at 2 clips there
+        n = max(2 if duration < 10 else 3, min(7, round(duration / 3.0)))
         q = urllib.parse.quote(" ".join(prog["keywords"].split()[:2]))
         req = urllib.request.Request(
             f"https://api.pexels.com/videos/search?query={q}&orientation=portrait&per_page=15&size=medium",
@@ -518,7 +532,9 @@ async def make_one(prog: dict) -> dict | None:
     print(f"   ✅ {out.name} ({size//1024} KB, {dur:.0f}s)")
     return {
         "program": name,
-        "title": f"{prog['product']} Review — {prog['angle'].title()} (2026)",
+        "title": (f"{prog['product']} — {prog['angle'].title()} #Shorts"
+                  if prog.get("format") in ("story", "micro")
+                  else f"{prog['product']} Review — {prog['angle'].title()} (2026)"),
         "description": (f"{script}\n\n{link_block(prog)}\n\n#shorts #{name} #affiliate\n\n"
                         "Affiliate disclosure: links may earn a commission at no cost to you."),
         "path": str(out), "size_bytes": size,

@@ -140,7 +140,7 @@ Rules:
 Format: {format_name} - {format_instruction}
 ```
 
-### The 5 formats and when to use each
+### The 6 formats and when to use each
 
 Matching format to topic is worth more than any single "viral hook."
 
@@ -158,6 +158,9 @@ Matching format to topic is worth more than any single "viral hook."
 
 **5. SALES** — problem → agitation → solution. Use at most 1 in 5 videos.
 > Hook: "{Pain point} is costing you {number}." → agitate → the solution → where to get it.
+
+**6. MICRO** — a 5–7 second two-beat story (~14–18 words), written so the ending loops back into the first line. Loop replays push retention past 100%, the strongest signal Shorts rewards. Two rules that change at this length: max 2 B-roll clips (more looks frantic), and no spoken CTA — the description does that job. Keep one micro in every batch as a standing experiment.
+> Beat 1: "I kept {pain}." → Beat 2: "{Product} — {concrete payoff}. Every time."
 
 ### Evergreen hook bank (template Layer 2 fills from these)
 

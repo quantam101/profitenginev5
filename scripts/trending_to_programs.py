@@ -28,7 +28,8 @@ _PROMPT = (
     'keywords: 3-5 words for stock-footage search; cta: short call to action;\n'
     'pain: viewer problem as a gerund phrase (e.g. "guessing at SEO");\n'
     "benefits: array of 4 concrete, specific one-line takeaways;\n"
-    "format: one of sales|tips|secrets|story|diy — pick what fits the topic best."
+    "format: one of sales|tips|secrets|story|diy|micro — pick what fits the topic best "
+    "(micro = a 5-7 second two-beat loopable story; only for the punchiest topics)."
 )
 
 _FORMAT_HINTS = [("secret", "secrets"), ("story", "story"), ("diy", "diy"),
@@ -83,7 +84,7 @@ def to_program(v: dict) -> dict:
             print("   ! AI returned unparseable JSON — template fallback")
     if prog is None:
         prog = _fallback(v)
-    if prog.get("format") not in ("sales", "tips", "secrets", "story", "diy"):
+    if prog.get("format") not in ("sales", "tips", "secrets", "story", "diy", "micro"):
         prog["format"] = _guess_format(v)
     prog["name"] = _slug(prog["product"])
     prog["source"] = {"title": v["title"], "url": v["url"],
@@ -106,6 +107,11 @@ def main() -> None:
         seen.add(p["name"])
         print(f"* {p['product']}  ({p['name']})")
         programs.append(p)
+    # every batch ships one micro experiment: loopable 5-7s Shorts earn >100%
+    # retention, so we always keep one in rotation to gather comparison data
+    if programs and not any(p.get("format") == "micro" for p in programs):
+        programs[-1]["format"] = "micro"
+        print(f"  (micro slot -> {programs[-1]['product']})")
     Path("trending_programs.json").write_text(json.dumps(programs, indent=2))
     print(f"\nok {len(programs)} programs -> trending_programs.json")
     if not programs:

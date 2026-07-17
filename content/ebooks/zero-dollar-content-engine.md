@@ -41,7 +41,7 @@ Two layers, so it never breaks:
 - **Layer 1 — free AI.** Several providers offer free tiers (Gemini, Groq, OpenRouter's free models). Chain them: try one, fall through to the next. Your prompt asks for a 55-word spoken script: hook → substance → call to action.
 - **Layer 2 — templates.** When every API is down or you have zero keys, a template engine assembles the script from a topic's benefit list. Hooks like "Nobody tells you this about X" never expire.
 
-Give each video a **format**: tips (numbered list), secrets (insider tone), story (struggle → discovery → payoff), DIY (three steps), or sales. Matching format to topic is worth more than any single "viral hook."
+Give each video a **format**: tips (numbered list), secrets (insider tone), story (struggle → discovery → payoff), DIY (three steps), sales — or micro, a 5–7 second two-beat story built to loop (replays push retention past 100%, which the algorithm loves). Matching format to topic is worth more than any single "viral hook."
 
 ## Chapter 4 — Studio-grade rendering, free
 

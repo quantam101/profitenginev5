@@ -38,7 +38,7 @@ This is the complete build manual for the content engine we run in production at
 
 WHAT YOU GET (9 parts + appendix, PDF, lifetime updates):
 • The trend-mining code and the views-per-day scoring formula, ready to paste
-• All 5 script formats with fill-in-the-blank hooks + the exact LLM prompt chain (free-tier fallback order included)
+• All 6 script formats with fill-in-the-blank hooks + the exact LLM prompt chain (free-tier fallback order included) — including the 5-second loopable micro-story format
 • The full render pipeline: every ffmpeg filter, the "CapCut look" caption technique, the edge-tts settings that don't sound robotic
 • Publishing setup for YouTube, Instagram Reels, and Facebook — including the two Meta token gotchas that cost us days of debugging
 • The complete GitHub Actions workflows with our real cron schedule
