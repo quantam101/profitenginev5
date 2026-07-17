@@ -67,6 +67,38 @@ PROGRAMS = [
                   "scales from a side project to millions of users",
                   "comes with free credit to start"],
      "pain": "fighting with overcomplicated, overpriced cloud platforms"},
+    # ── B2B field-ops programs — market our own Arizona coverage retainers.
+    #    "link" overrides the affiliate funnel in link_block/description.
+    {"name": "az-smart-hands", "product": "Already Here Field Coverage",
+     "angle": "Arizona smart hands on demand",
+     "keywords": "data center technician server rack cables",
+     "cta": "Reserve coverage — link below",
+     "benefits": ["puts vetted hands in any Phoenix data center within your SLA",
+                  "photo-documents every ticket so remote teams see the work",
+                  "bills a flat $200 minimum — no travel surprises",
+                  "covers rack and stack, swaps, and vendor escort statewide"],
+     "pain": "flying a tech to Phoenix for a 30-minute cable swap",
+     "link": "https://www.alreadyherellc.com/arizona-field-coverage"},
+    {"name": "az-msp-coverage", "product": "Already Here Field Coverage",
+     "angle": "Arizona coverage for MSPs",
+     "keywords": "IT technician office network installation",
+     "cta": "Reserve coverage — link below",
+     "benefits": ["gives your MSP an Arizona bench without an Arizona hire",
+                  "guarantees 24-48 hour onsite response on retainer",
+                  "white-labels under your ticketing and your brand",
+                  "starts at $2,000 a month with 20 onsite hours included"],
+     "pain": "losing Arizona clients because you can't get onsite",
+     "link": "https://www.alreadyherellc.com/arizona-field-coverage"},
+    {"name": "az-field-dispatch", "product": "Already Here Field Coverage",
+     "angle": "field dispatch across Arizona",
+     "keywords": "van technician driving tools jobsite",
+     "cta": "Reserve coverage — link below",
+     "benefits": ["dispatches POS, printer, network, and CCTV work statewide",
+                  "quotes 42 productized services at fixed prices",
+                  "answers dispatch requests the same business day",
+                  "reserves capacity monthly so you're never in the queue"],
+     "pain": "juggling five one-off contractors across one state",
+     "link": "https://www.alreadyherellc.com/arizona-field-coverage"},
 ]
 
 
@@ -557,8 +589,11 @@ async def make_one(prog: dict) -> dict | None:
         "title": (f"{prog['product']} — {prog['angle'].title()} #Shorts"
                   if prog.get("format") in ("story", "micro")
                   else f"{prog['product']} Review — {prog['angle'].title()} (2026)"),
-        "description": (f"{script}\n\n{link_block(prog)}\n\n#shorts #{name} #affiliate\n\n"
-                        "Affiliate disclosure: links may earn a commission at no cost to you."),
+        "description": (
+            f"{script}\n\n{link_block(prog)}\n\n#shorts #fieldservice #arizona #{name}"
+            if prog.get("link") else
+            f"{script}\n\n{link_block(prog)}\n\n#shorts #{name} #affiliate\n\n"
+            "Affiliate disclosure: links may earn a commission at no cost to you."),
         "path": str(out), "size_bytes": size,
     }
 
@@ -566,7 +601,16 @@ async def make_one(prog: dict) -> dict | None:
 def link_block(prog: dict) -> str:
     """The clickable links every description must carry — the whole funnel.
     Program-specific affiliate URL from AFFILIATE_LINKS (JSON map, env),
-    then our owned links (always present, always monetizable)."""
+    then our owned links (always present, always monetizable).
+    B2B programs (with a "link" key) advertise our own service instead."""
+    if prog.get("link"):
+        return "\n".join([
+            f"→ Reserve Arizona field coverage: {prog['link']}",
+            "→ Full service catalog (fixed prices): "
+            "https://www.alreadyherellc.com/services-catalog",
+            "→ Dispatch a request: https://www.alreadyherellc.com/dispatch",
+            "Questions: dispatch@alreadyherellc.com",
+        ])
     links = {}
     try:
         links = json.loads(os.getenv("AFFILIATE_LINKS", "") or "{}")
