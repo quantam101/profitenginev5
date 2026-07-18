@@ -99,6 +99,62 @@ PRODUCT_CATALOG: List[Dict[str, Any]] = [
         "tags":        ["seo", "programmatic", "templates", "blogging", "ai"],
         "url_suffix":  "programmatic-seo-starter-kit",
     },
+    # ── Bookable field services (Arizona) — checkout online, fulfillment
+    #    scheduled by dispatch. Priced per 2026 MSP-assessment benchmarks
+    #    ($1,500–$5,000 standalone assessments).
+    {
+        "name":        "Phoenix Network Health Assessment (On-Site)",
+        "price":       75000,          # $750.00
+        "description": (
+            "Book a professional on-site network assessment anywhere in the "
+            "Phoenix metro. A field engineer reviews your switching, cabling, "
+            "rack condition, Wi-Fi coverage, and ISP handoff, and you receive "
+            "a findings report with photo documentation and a prioritized fix "
+            "list within 3 business days of the visit. How it works: after "
+            "checkout, Already Here LLC contacts you within 1 business day to "
+            "schedule (visits typically within 5 business days). Full refund "
+            "if we cannot schedule your site. Details and our published rate "
+            "card: https://www.alreadyherellc.com/services-catalog — "
+            "questions: dispatch@alreadyherellc.com."
+        ),
+        "tags":        ["network-assessment", "phoenix", "arizona", "it-services", "field-service"],
+        "url_suffix":  "phoenix-network-assessment",
+    },
+    {
+        "name":        "Arizona Infrastructure Assessment (Full Site, On-Site)",
+        "price":       150000,         # $1,500.00
+        "description": (
+            "A comprehensive one-day on-site technology assessment for one "
+            "Arizona site: network, power and racks, endpoints, wiring "
+            "closets, and physical security (cameras and access control). "
+            "Deliverables: an executive report, full photo documentation, an "
+            "asset snapshot, and a prioritized remediation roadmap you can "
+            "hand to any vendor. After checkout we contact you within 1 "
+            "business day to schedule; full refund if we cannot schedule "
+            "your site. Rate card and scope details: "
+            "https://www.alreadyherellc.com/services-catalog — "
+            "questions: dispatch@alreadyherellc.com."
+        ),
+        "tags":        ["infrastructure", "assessment", "arizona", "phoenix", "it-audit"],
+        "url_suffix":  "arizona-infrastructure-assessment",
+    },
+    {
+        "name":        "Smart Hands Half-Day Block — Phoenix (4 Hours On-Site)",
+        "price":       40000,          # $400.00
+        "description": (
+            "Four hours of directed on-site technical work in the Phoenix "
+            "metro under your remote team's guidance: rack and stack, cable "
+            "moves, device swaps, equipment verification, data center smart "
+            "hands. Every visit includes a work log and photo documentation. "
+            "After checkout we contact you within 1 business day to schedule "
+            "(same-week visits are typical). Full refund if we cannot "
+            "schedule. Full 42-service catalog: "
+            "https://www.alreadyherellc.com/services-catalog — "
+            "questions: dispatch@alreadyherellc.com."
+        ),
+        "tags":        ["smart-hands", "phoenix", "data-center", "field-service", "arizona"],
+        "url_suffix":  "phoenix-smart-hands-half-day",
+    },
 ]
 
 
