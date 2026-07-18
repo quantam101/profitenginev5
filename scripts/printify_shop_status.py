@@ -109,7 +109,8 @@ def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
             f"Available shops: {available}. Update the PRINTIFY_SHOP_ID secret "
             f"to silence this note.")
 
-    products = _request(f"/shops/{config.shop_id}/products.json?limit=100", config)
+    # Printify API rejects limit>50 (error 8150) since 2026
+    products = _request(f"/shops/{config.shop_id}/products.json?limit=50", config)
     product_rows = products.get("data", []) if isinstance(products, dict) else []
     published = [
         product for product in product_rows
