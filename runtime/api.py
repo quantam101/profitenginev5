@@ -681,8 +681,11 @@ def pod_status(request: Request) -> Dict[str, Any]:
     .github/workflows/eaos-pod-render.yml so port 22 stays untouched."""
     import os
     import subprocess
+    from pathlib import Path
     _check_webhook_token(request)
-    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    # default to the deployed app root (works on Render/Docker and locally);
+    # the old /home/opc/... default died with the OCI host
+    repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
     script = os.path.join(repo_dir, "scripts", "printify_shop_status.py")
     try:
         proc = subprocess.run(
@@ -708,8 +711,9 @@ async def pod_push(request: Request) -> Dict[str, Any]:
     import os
     import shutil
     import subprocess
+    from pathlib import Path
     _check_webhook_token(request)
-    repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
+    repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
     target_sku = request.query_params.get("target_sku", "")
     render_dir = os.path.join(repo_dir, "datacenter", "pod_factory", "render_cache")
     os.makedirs(render_dir, exist_ok=True)
