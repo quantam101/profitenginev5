@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime.eaos.image_factory import SKU_CATALOG
-from runtime.eaos.printify_client import push_product
+from runtime.eaos.printify_client import _request_json, _resolve_shop_id, push_product
 
 
 async def _run() -> int:
@@ -28,8 +28,26 @@ async def _run() -> int:
         print(f"[Printify] ERROR: target SKU {target_sku!r} was not found in SKU_CATALOG")
         return 1
 
+    # dedupe against what's already live — the weekly cron should be a
+    # cheap no-op once the catalog is published, not a 50MB re-upload
+    shop_id = _resolve_shop_id(shop_id, token)
+    existing_titles: set[str] = set()
+    try:
+        listing = _request_json(f"/shops/{shop_id}/products.json?limit=50", token)
+        rows = listing.get("data", []) if isinstance(listing, dict) else []
+        existing_titles = {str(p.get("title", "")).strip().lower() for p in rows}
+        print(f"[Printify] shop {shop_id} has {len(rows)} existing products")
+    except Exception as exc:
+        print(f"[Printify] listing failed ({exc}) - pushing without dedupe")
+
     pushed = 0
+    skipped = 0
     for item in catalog:
+        live_title = str(item.get("etsy_title") or item.get("title") or "").strip().lower()
+        if live_title and live_title in existing_titles:
+            skipped += 1
+            print(f"[Printify] {item['sku']} already live, skipping")
+            continue
         img_path = render_dir / f"{item['sku']}_artwork.png"
         if not img_path.exists():
             print(f"[Printify] {item['sku']} - artwork not found at {img_path}, skipping")
@@ -54,9 +72,9 @@ async def _run() -> int:
         else:
             print(f"[Printify] {item['sku']} push failed")
 
-    print(f"Done: {pushed}/{len(catalog)} products pushed to Printify")
-    if pushed != len(catalog):
-        print(f"[Printify] ERROR: expected {len(catalog)} pushes, got {pushed}")
+    print(f"Done: {pushed} pushed, {skipped} already live, of {len(catalog)} catalog items")
+    if pushed + skipped != len(catalog):
+        print(f"[Printify] ERROR: {len(catalog) - pushed - skipped} item(s) neither live nor pushed")
         return 1
     return 0
 
