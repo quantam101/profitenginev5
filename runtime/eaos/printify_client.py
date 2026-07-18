@@ -130,11 +130,30 @@ def _build_product_payload(
     }
 
 
+def _resolve_shop_id(shop_id: str, token: str) -> str:
+    """Validate shop_id against the account; fall back to the first shop
+    when the configured value is stale (auto-heals slug/pre-migration ids)."""
+    try:
+        shops = _request_json("/shops.json", token)
+    except Exception as exc:
+        logger.warning("[Printify] shop listing failed (%s) - using configured id", exc)
+        return shop_id
+    if not isinstance(shops, list) or not shops:
+        return shop_id
+    if any(str(s.get("id")) == shop_id for s in shops):
+        return shop_id
+    resolved = str(shops[0].get("id", "")).strip()
+    logger.warning("[Printify] configured shop id %r not in account - using %s (%s)",
+                   shop_id, resolved, shops[0].get("title"))
+    return resolved or shop_id
+
+
 async def push_product(file_path: str, meta: Dict[str, Any], token: str) -> bool:
     shop_id = os.environ.get("PRINTIFY_SHOP_ID", "").strip() or str(meta.get("shop_id", "")).strip()
     if not shop_id:
         logger.error("[Printify] PRINTIFY_SHOP_ID not set - cannot push product")
         return False
+    shop_id = _resolve_shop_id(shop_id, token)
 
     img_id = _upload_image(file_path, token)
     if not img_id:

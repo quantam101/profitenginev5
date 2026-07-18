@@ -93,8 +93,21 @@ def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
     if not isinstance(shops, list):
         raise RuntimeError("Unexpected Printify shops response")
     shop = next((item for item in shops if str(item.get("id")) == config.shop_id), None)
+    resolved_note = None
     if not shop:
-        raise RuntimeError(f"PRINTIFY_SHOP_ID {config.shop_id} was not found in this Printify account")
+        available = [{"id": item.get("id"), "title": item.get("title") or item.get("name")} for item in shops]
+        if not shops:
+            raise RuntimeError(
+                f"PRINTIFY_SHOP_ID {config.shop_id} not found and the account has no shops")
+        # auto-heal: configured id is stale (e.g. a slug, or pre-migration
+        # value) — fall back to the account's first shop and say so
+        shop = shops[0]
+        config = PrintifyConfig(token=config.token, shop_id=str(shop.get("id")))
+        resolved_note = (
+            f"configured PRINTIFY_SHOP_ID was not found; auto-resolved to "
+            f"{shop.get('id')} ({shop.get('title') or shop.get('name')}). "
+            f"Available shops: {available}. Update the PRINTIFY_SHOP_ID secret "
+            f"to silence this note.")
 
     products = _request(f"/shops/{config.shop_id}/products.json?limit=100", config)
     product_rows = products.get("data", []) if isinstance(products, dict) else []
@@ -106,6 +119,7 @@ def fetch_status(config: PrintifyConfig) -> dict[str, Any]:
     disconnected = platform in {"", "disconnected", "none", "null"}
     return {
         "ok": True,
+        "shop_id_note": resolved_note,
         "shop": {
             "id": shop.get("id"),
             "title": shop.get("title") or shop.get("name"),
