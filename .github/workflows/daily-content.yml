@@ -23,6 +23,14 @@ on:
         options:
           - 'false'
           - 'true'
+      force_publish:
+        description: 'Publish even if a post already exists today (bypass same-day guard)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 # Queue concurrent runs instead of racing — combined with the same-day guard
 # in publish_article.py this makes double-dispatches publish exactly one post.
@@ -71,6 +79,7 @@ jobs:
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
+          FORCE_PUBLISH: ${{ github.event.inputs.force_publish }}
           PYTHONUTF8: "1"
           # EAOS Social credentials - add these secrets to enable each platform
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
