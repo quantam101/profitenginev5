@@ -16,10 +16,12 @@ Required env vars:
     GITHUB_CONTENT_REPO    — e.g. content
 Optional:
     GITHUB_CONTENT_BRANCH  — default: main
-    GITHUB_CONTENT_DIR     — default: posts
+    GITHUB_CONTENT_DIR     — default: _posts (must be the Jekyll posts dir so
+                             the feed, sitemap, and blog index pick posts up)
     DEVTO_API_KEY          — from dev.to/settings/extensions
     ARTICLE_TOPIC          — override the default topic
     CONTENT_VERIFY_ONLY    — true to verify credentials without publishing
+    FORCE_PUBLISH          — true to publish even if a post already exists today
     GMAOS_GROQ_MODEL       — default: llama-3.3-70b-versatile
 """
 from __future__ import annotations
@@ -51,7 +53,7 @@ GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
 GH_REPO = os.getenv("GITHUB_CONTENT_REPO", "content").strip()
 GH_BRANCH = os.getenv("GITHUB_CONTENT_BRANCH", "main").strip()
-GH_DIR = os.getenv("GITHUB_CONTENT_DIR", "posts").strip()
+GH_DIR = os.getenv("GITHUB_CONTENT_DIR", "_posts").strip()
 DEVTO_KEY = os.getenv("DEVTO_API_KEY", "").strip()
 HASHNODE_KEY = os.getenv("HASHNODE_API_KEY", "").strip()
 HASHNODE_PUB_ID = os.getenv("HASHNODE_PUBLICATION_ID", "").strip()
@@ -60,6 +62,9 @@ MEDIUM_AUTHOR_ID = os.getenv("MEDIUM_AUTHOR_ID", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 AMAZON_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20").strip()
 VERIFY_ONLY = os.getenv("CONTENT_VERIFY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
+FORCE_PUBLISH = os.getenv("FORCE_PUBLISH", "").strip().lower() in {"1", "true", "yes", "on"}
+# Public site base for canonical URLs — the github.io copy canonicalizes here.
+SITE_BASE = os.getenv("CONTENT_SITE_BASE", "https://www.alreadyherellc.com/content").rstrip("/")
 
 _CMDOS_BASE = os.getenv("CMDOS_BASE_URL", "https://app.alreadyherellc.com").rstrip("/")
 
@@ -514,9 +519,29 @@ def publish_github(filename: str, content: str, commit_msg: str) -> str:
     r.raise_for_status()
     html_url = r.json().get("content", {}).get("html_url", "")
     print(f"[OK] Published to GitHub Pages: {html_url}")
-    pages_url = f"https://{GH_OWNER}.github.io/{GH_REPO}"
-    # Jekyll permalink: pretty — posts render as /posts/slug/
-    return f"{pages_url}/posts/{filename.replace('.md', '')}/"
+    # Jekyll permalink is /posts/:title/ — :title is the filename WITHOUT the
+    # date prefix, so 2026-07-19-my-post.md renders at /posts/my-post/.
+    slug = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", filename.replace(".md", ""))
+    return f"{SITE_BASE}/posts/{slug}/"
+
+
+def _todays_post_exists(date_str: str) -> bool:
+    """Same-day guard: true if a post dated date_str already exists in GH_DIR."""
+    if not GH_TOKEN:
+        return False
+    try:
+        r = httpx.get(
+            f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}/contents/{GH_DIR}",
+            headers=_gh_headers(),
+            params={"ref": GH_BRANCH},
+            timeout=30,
+        )
+        if r.status_code != 200:
+            return False
+        return any(item.get("name", "").startswith(date_str) for item in r.json())
+    except Exception as exc:
+        print(f"[WARN] same-day check skipped: {exc}")
+        return False
 
 
 # ── Dev.to publish ─────────────────────────────────────────────────────────────
@@ -649,11 +674,16 @@ def main() -> None:
         verify_publish_configuration()
         return
 
-    topic = _default_topic()
-    article = generate_article(topic)
-
     now = datetime.now(tz=timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
+
+    if not FORCE_PUBLISH and _todays_post_exists(date_str):
+        print(f"[SKIP] A post dated {date_str} already exists in {GH_DIR} — "
+              "not publishing again today (set FORCE_PUBLISH=true to override).")
+        return
+
+    topic = _default_topic()
+    article = generate_article(topic)
     slug = article.get("slug", article["title"][:50].lower().replace(" ", "-"))
     # Sanitize slug
     slug = re.sub(r"[^a-z0-9-]", "", slug)[:60].strip("-")

@@ -24,6 +24,12 @@ on:
           - 'false'
           - 'true'
 
+# Queue concurrent runs instead of racing — combined with the same-day guard
+# in publish_article.py this makes double-dispatches publish exactly one post.
+concurrency:
+  group: daily-content
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Generate and publish article
@@ -54,7 +60,7 @@ jobs:
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content
           GITHUB_CONTENT_BRANCH: main
-          GITHUB_CONTENT_DIR: posts
+          GITHUB_CONTENT_DIR: _posts
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
@@ -95,12 +101,3 @@ jobs:
           echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
           echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
           echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
-          echo "Video generation: Triggered on OCI server" >> $GITHUB_STEP_SUMMARY
-
-      - name: Trigger OCI video generation
-        if: success()
-        run: |
-          echo "Notifying OCI server to generate video..."
-          # OCI will pick up the new article and generate video automatically
-          # via cron job (runs every 10 minutes after articles publish)
-          echo "✅ OCI server will generate and post video within 10 minutes"

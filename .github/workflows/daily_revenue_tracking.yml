@@ -2,9 +2,9 @@ name: Daily Revenue Tracking
 
 on:
   schedule:
-    # Gumroad checks every 4h (was hourly — cut ~540 Actions min/mo)
-    - cron: '0 */4 * * *'
-    # Run daily at 9 AM UTC for consolidated report
+    # Run daily at 9 AM UTC for consolidated report.
+    # (The 4-hourly Gumroad log-only check was dropped 2026-07-19 — it produced
+    # no artifacts and burned ~270 Actions min/mo; run it via dispatch if needed.)
     - cron: '0 9 * * *'
   workflow_dispatch:
 
@@ -15,7 +15,7 @@ jobs:
   hourly-check:
     name: Hourly Gumroad Check
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 

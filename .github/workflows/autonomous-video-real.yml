@@ -1,8 +1,9 @@
 name: Autonomous Video Generation (Real)
+# Schedule removed 2026-07-19: this duplicated autonomous-video-production.yml's
+# Sunday 02:00 UTC cron (both uploaded to YouTube at the same time). The fuller
+# production workflow keeps the cron; this one stays dispatch-only as a fallback.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * 0'
 
 env:
   PYTHON_VERSION: '3.11'

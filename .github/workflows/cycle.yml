@@ -51,7 +51,7 @@ jobs:
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content
           GITHUB_CONTENT_BRANCH: main
-          GITHUB_CONTENT_DIR: posts
+          GITHUB_CONTENT_DIR: _posts
         run: |
           python -c "
           import asyncio, json, os, time, hashlib, datetime

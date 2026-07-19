@@ -37,11 +37,11 @@ No partial "looks good" status is acceptable.
 
 ## Architecture
 
-- **Frontend/API**: Next.js 14 on Vercel → `profitengine-tau.vercel.app`
-- **Runtime**: Python FastAPI (Docker) on OCI `129.146.236.177`
-- **Content**: GitHub Pages → `quantam101.github.io/content`
+- **Frontend/API**: Next.js 14 on Vercel → production URL `app.alreadyherellc.com` (Vercel project `profitenginev5`; note: non-browser user agents get a 403 from the bot filter — use a browser UA when smoke-testing)
+- **Runtime**: hosted on Render (OCI box `129.146.236.177` is DEAD — decommissioned 2026-07-12; never target it)
+- **Content**: GitHub Pages (`quantam101/content` repo, Jekyll) → served at `www.alreadyherellc.com/content/*`; posts live in `_posts/` (NOT `posts/` — files outside `_posts` don't appear in the feed or blog index)
 - **CI/CD**: GitHub Actions → auto-deploy on push to `main`
-- **Content pipeline**: GitHub Actions cron `07:05 UTC` daily
+- **Content pipeline**: GitHub Actions cron `07:05 UTC` daily (`daily-content.yml`; publishes at most one post per day — `FORCE_PUBLISH=true` overrides)
 
 ## Key Constraints
 - `max_cost_usd: 0` — no paid LLM calls allowed
@@ -57,9 +57,7 @@ No partial "looks good" status is acceptable.
 - Affiliate links injected via `AFFILIATE_LINKS` env var (JSON map)
 
 ## Server Access
-- OCI server: `opc@129.146.236.177`
-- Deploy key (public): `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions`
-- Add via OCI Console → Instance → Edit → SSH keys
+- The OCI server (`opc@129.146.236.177`) is permanently dead as of 2026-07-12 — do not SSH, deploy, or health-check against it. Customer-facing services run on Vercel + Render.
 
 ## Context Mesh Engine — Token Optimization Rules
 
