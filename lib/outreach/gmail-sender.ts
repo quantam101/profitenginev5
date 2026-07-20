@@ -1,3 +1,4 @@
+import tls from 'node:tls';
 import type { OutreachMessage } from './types';
 
 let tokenCache: { accessToken: string; expiresAt: number } | undefined;
@@ -13,6 +14,19 @@ function headerValue(value: string, field: string) {
 
 function addresses(values?: string[]) {
   return values?.filter(Boolean).map((value) => headerValue(value, 'recipient')).join(', ') ?? '';
+}
+
+function buildMime(message: OutreachMessage, from: string) {
+  const lines = [
+    `From: ${headerValue(from, 'from')}`,
+    `To: ${addresses(message.recipients.to)}`,
+    ...(message.recipients.cc?.length ? [`Cc: ${addresses(message.recipients.cc)}`] : []),
+    ...(message.recipients.bcc?.length ? [`Bcc: ${addresses(message.recipients.bcc)}`] : []),
+    `Subject: ${headerValue(message.subject, 'subject')}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+  ];
+  return `${lines.join('\r\n')}\r\n\r\n${message.body.replace(/\r?\n/g, '\r\n')}`;
 }
 
 async function accessToken() {
@@ -34,20 +48,8 @@ async function accessToken() {
   return data.access_token;
 }
 
-export async function sendGmailMessage(message: OutreachMessage) {
-  const from = process.env.GMAIL_FROM_ADDRESS;
-  if (!from) throw new Error('GMAIL_FROM_ADDRESS is not configured');
-
-  const lines = [
-    `From: ${headerValue(from, 'from')}`,
-    `To: ${addresses(message.recipients.to)}`,
-    ...(message.recipients.cc?.length ? [`Cc: ${addresses(message.recipients.cc)}`] : []),
-    ...(message.recipients.bcc?.length ? [`Bcc: ${addresses(message.recipients.bcc)}`] : []),
-    `Subject: ${headerValue(message.subject, 'subject')}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
-  ];
-  const raw = encodeBase64Url(`${lines.join('\r\n')}\r\n\r\n${message.body}`);
+async function sendViaGmailApi(message: OutreachMessage, from: string) {
+  const raw = encodeBase64Url(buildMime(message, from));
   const token = await accessToken();
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -57,4 +59,75 @@ export async function sendGmailMessage(message: OutreachMessage) {
   });
   if (!response.ok) throw new Error(`Gmail send failed: ${response.status} ${(await response.text()).slice(0, 500)}`);
   return (await response.json()) as { id: string; threadId?: string };
+}
+
+function smtpSend(message: OutreachMessage, user: string, password: string, from: string) {
+  return new Promise<{ id: string }>((resolve, reject) => {
+    const socket = tls.connect({ host: 'smtp.gmail.com', port: 465, servername: 'smtp.gmail.com', rejectUnauthorized: true });
+    socket.setTimeout(30_000);
+    let buffer = '';
+    let waiter: ((line: string) => void) | undefined;
+
+    const fail = (error: Error) => {
+      socket.destroy();
+      reject(error);
+    };
+
+    socket.on('error', fail);
+    socket.on('timeout', () => fail(new Error('Gmail SMTP connection timed out')));
+    socket.on('data', (chunk) => {
+      buffer += chunk.toString('utf8');
+      const lines = buffer.split('\r\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (/^\d{3} /.test(line) && waiter) {
+          const current = waiter;
+          waiter = undefined;
+          current(line);
+        }
+      }
+    });
+
+    const command = (value: string, expected: number[]) => new Promise<string>((resolveCommand, rejectCommand) => {
+      waiter = (line) => {
+        const code = Number(line.slice(0, 3));
+        if (expected.includes(code)) resolveCommand(line);
+        else rejectCommand(new Error(`Gmail SMTP rejected command (${line})`));
+      };
+      if (value) socket.write(`${value}\r\n`);
+    });
+
+    void (async () => {
+      try {
+        await command('', [220]);
+        await command('EHLO profitengine.alreadyherellc.com', [250]);
+        await command('AUTH LOGIN', [334]);
+        await command(Buffer.from(user).toString('base64'), [334]);
+        await command(Buffer.from(password).toString('base64'), [235]);
+        await command(`MAIL FROM:<${headerValue(from, 'from')}>`, [250]);
+        const recipients = [...message.recipients.to, ...(message.recipients.cc ?? []), ...(message.recipients.bcc ?? [])];
+        for (const recipient of recipients) await command(`RCPT TO:<${headerValue(recipient, 'recipient')}>`, [250, 251]);
+        await command('DATA', [354]);
+        const mime = buildMime(message, from).replace(/^\./gm, '..');
+        await command(`${mime}\r\n.`, [250]);
+        await command('QUIT', [221]);
+        socket.end();
+        resolve({ id: `smtp-${Date.now()}` });
+      } catch (error) {
+        fail(error instanceof Error ? error : new Error(String(error)));
+      }
+    })();
+  });
+}
+
+export async function sendGmailMessage(message: OutreachMessage) {
+  const oauthReady = Boolean(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN);
+  const smtpUser = process.env.GMAIL_USER;
+  const smtpPassword = process.env.GMAIL_APP_PASSWORD;
+  const from = process.env.GMAIL_FROM_ADDRESS ?? smtpUser;
+  if (!from) throw new Error('GMAIL_FROM_ADDRESS or GMAIL_USER is not configured');
+
+  if (oauthReady) return sendViaGmailApi(message, from);
+  if (smtpUser && smtpPassword) return smtpSend(message, smtpUser, smtpPassword, from);
+  throw new Error('Gmail credentials are not configured (OAuth or GMAIL_USER/GMAIL_APP_PASSWORD required)');
 }
