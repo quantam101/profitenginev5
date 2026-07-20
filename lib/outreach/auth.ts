@@ -7,8 +7,8 @@ function safeEqual(left: string, right: string) {
 }
 
 export function requireOutreachAdmin(request: Request) {
-  const configured = process.env.OUTREACH_ADMIN_TOKEN;
-  if (!configured) throw new Error('OUTREACH_ADMIN_TOKEN is not configured');
+  const configured = process.env.OUTREACH_ADMIN_TOKEN ?? process.env.PROFITENGINE_WEBHOOK_TOKEN;
+  if (!configured) throw new Error('OUTREACH_ADMIN_TOKEN or PROFITENGINE_WEBHOOK_TOKEN is not configured');
 
   const authorization = request.headers.get('authorization') ?? '';
   const supplied = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
