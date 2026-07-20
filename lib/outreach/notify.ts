@@ -12,7 +12,7 @@ async function postJson(url: string, payload: unknown) {
 
 export async function notifyOutreach(event: string, message: OutreachMessage) {
   const jobs: Promise<unknown>[] = [];
-  const slackWebhook = process.env.SLACK_OUTREACH_WEBHOOK_URL;
+  const slackWebhook = process.env.SLACK_OUTREACH_WEBHOOK_URL ?? process.env.PROFITENGINE_SLACK_WEBHOOK_URL;
   const zapierWebhook = process.env.ZAPIER_OUTREACH_WEBHOOK_URL;
 
   if (slackWebhook) {
