@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
-const RUNTIME_BASE = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+const RUNTIME_BASE = getRuntimeBase();
 
 const FALLBACK_CATALOG = {
   ok: true,

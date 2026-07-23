@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 const EDGE_SECRET = process.env.PROFITENGINE_EDGE_WEBHOOK_SECRET ?? '';
-const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+const RUNTIME = getRuntimeBase();
 
 function verifySignature(rawBody: string, signature: string | null) {
   if (!EDGE_SECRET || !signature) return false;

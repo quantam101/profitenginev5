@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 /**
  * Analytics Sync API
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Fetch analytics from runtime
-    const runtimeUrl = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+    const runtimeUrl = getRuntimeBase();
 
     const analyticsResponse = await fetch(`${runtimeUrl}/analytics`, {
       method: 'GET',

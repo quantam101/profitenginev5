@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 const meshAgents = [
   'offer-scout',
@@ -15,7 +16,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 export function GET() {
   const verifiedRevenueUsd = Number(process.env.VERIFIED_REVENUE_USD ?? 0);
   const thresholdUsd = 25_000;
-  const runtimeUrl = process.env.RUNTIME_API_URL ?? null;
+  const runtimeUrl = getRuntimeBase(process.env.RUNTIME_API_URL);
 
   return NextResponse.json(
     {
@@ -83,7 +84,7 @@ export function GET() {
  *   threshold   number  optional  Quorum fraction 0.5-1.0 (default 0.67).
  */
 export async function POST(request: Request) {
-  const runtimeUrl = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+  const runtimeUrl = getRuntimeBase();
 
   let body: {
     objective?: string;

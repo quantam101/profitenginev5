@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getCacheHeaders } from '@/app/lib/cache';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 export const revalidate = 300;
 
-const RUNTIME_BASE = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+const RUNTIME_BASE = getRuntimeBase();
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';

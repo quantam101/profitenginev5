@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 /**
  * Analytics Dashboard API
@@ -48,7 +49,7 @@ interface DashboardData {
 export async function GET(request: NextRequest): Promise<NextResponse<DashboardData>> {
   try {
     // Fetch from OCI analytics logs
-    const analyticsUrl = process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com/analytics';
+    const analyticsUrl = `${getRuntimeBase()}/analytics`;
 
     // Fallback: Generate mock data for demonstration
     const dashboardData: DashboardData = {

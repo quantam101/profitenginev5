@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getRuntimeBase } from '@/app/lib/runtime';
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
-const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+const RUNTIME = getRuntimeBase();
 
 /**
  * GET /api/video
