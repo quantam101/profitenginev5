@@ -124,6 +124,7 @@ The article should be 800-1200 words, include:
 - 5-7 sections with practical examples
 - A conclusion with a clear CTA
 - Natural keyword placement for SEO
+- A short \"Recommended tools\" section (when relevant) with [AFFILIATE:keyword] tokens for the tools you mention. Valid tokens: [AFFILIATE:Hostinger], [AFFILIATE:DigitalOcean], [AFFILIATE:Amazon], [AFFILIATE:Complete Automation Bundle], [AFFILIATE:AI Business Prompt Pack], [AFFILIATE:Programmatic SEO Starter Kit], [AFFILIATE:Social Media Content Engine], [AFFILIATE:POD Design Prompt Bundle]. Do not invent tokens not in that list.
 - No unresolved tokens or filler text; publish real, useful content"""
 
 
@@ -275,12 +276,24 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
+DEFAULT_AFFILIATE_LINKS: Dict[str, str] = {
+    "Hostinger": "https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE",
+    "DigitalOcean": "https://m.do.co/c/alreadyhere20",
+    "Amazon": "https://www.amazon.com?tag=alreadyhere-20",
+    "Complete Automation Bundle": "https://alreadyhere.gumroad.com/l/fsbseb",
+    "AI Business Prompt Pack": "https://alreadyhere.gumroad.com/l/grsiib",
+    "Programmatic SEO Starter Kit": "https://alreadyhere.gumroad.com/l/azdev",
+    "Social Media Content Engine": "https://alreadyhere.gumroad.com/l/dyiyh",
+    "POD Design Prompt Bundle": "https://alreadyhere.gumroad.com/l/zwztrcc",
+}
+
+
 def _inject_affiliates(body: str) -> str:
     """Replace [AFFILIATE:keyword] tokens with markdown links, then strip unresolved tokens."""
     try:
-        affiliate_map: Dict[str, str] = json.loads(AFFILIATE_LINKS_JSON)
+        affiliate_map: Dict[str, str] = {**DEFAULT_AFFILIATE_LINKS, **json.loads(AFFILIATE_LINKS_JSON)}
     except json.JSONDecodeError:
-        affiliate_map = {}
+        affiliate_map = DEFAULT_AFFILIATE_LINKS
     for keyword, url in affiliate_map.items():
         body = body.replace(f"[AFFILIATE:{keyword}]", f"[{keyword}]({url})")
     # Strip any remaining unresolved affiliate tokens.
