@@ -70,11 +70,22 @@ jobs:
           def check_content_freshness():
               body, code = fetch("https://quantam101.github.io/content/")
               if code != 200: return ("content pipeline", f"HTTP {code}", False)
-              dates = sorted(set(re.findall(r"posts/(\d{4}-\d{2}-\d{2})", body)))
-              if not dates: return ("content pipeline", "no posts found", False)
-              newest = datetime.date.fromisoformat(dates[-1])
+
+              # Jekyll/Minima renders post dates as <span class="post-meta">Jul 23, 2026</span>.
+              # The old posts/YYYY-MM-DD URL regex stopped matching after the content
+              # site switched to permalink: /posts/:title/.
+              date_texts = re.findall(r'<span class="post-meta">([A-Za-z]{3} \d{1,2}, \d{4})</span>', body)
+              if not date_texts:
+                  return ("content pipeline", "no posts found", False)
+
+              try:
+                  parsed = [datetime.datetime.strptime(d, "%b %d, %Y").date() for d in date_texts]
+              except ValueError:
+                  return ("content pipeline", "unparseable post dates", False)
+
+              newest = max(parsed)
               age = (TODAY - newest).days
-              return ("content pipeline", f"newest post {dates[-1]} ({age}d old)", age <= 1)
+              return ("content pipeline", f"newest post {newest} ({age}d old)", age <= 1)
 
           # ── repo CI status via GitHub API ────────────────────────────
           REPOS = ["profitenginev5", "content", "already-here-llc",
