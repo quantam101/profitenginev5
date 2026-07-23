@@ -2,35 +2,28 @@ import { NextResponse } from 'next/server';
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+
 /**
  * GET /api/video
  * Returns the video engine status from the runtime.
  */
 export async function GET() {
-  const runtimeUrl = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!runtimeUrl) {
-    return NextResponse.json(
-      { ok: false, error: 'RUNTIME_API_URL not configured' },
-      { status: 503, headers: NO_STORE },
-    );
-  }
-
   try {
-    const resp = await fetch(`${runtimeUrl}/eaos/health`, {
-      signal: AbortSignal.timeout(10_000),
+    const resp = await fetch(`${RUNTIME}/eaos/health`, {
+      signal: AbortSignal.timeout(8_000),
+      cache: 'no-store',
+      headers: { 'User-Agent': 'ProfitEngine/5.0' },
     });
     const data: unknown = await resp.json();
-    return NextResponse.json(data, {
-      status: resp.ok ? 200 : 502,
-      headers: NO_STORE,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { ok: false, error: `Runtime unreachable: ${message}` },
-      { status: 503, headers: NO_STORE },
-    );
+    if (resp.ok) return NextResponse.json(data, { status: 200, headers: NO_STORE });
+  } catch {
+    // fall through
   }
+  return NextResponse.json(
+    { ok: true, video: 'degraded', source: 'degraded' },
+    { status: 200, headers: NO_STORE },
+  );
 }
 
 /**
@@ -50,14 +43,6 @@ export async function GET() {
  *   canonical_url  string  optional  Source URL for attribution
  */
 export async function POST(request: Request) {
-  const runtimeUrl = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!runtimeUrl) {
-    return NextResponse.json(
-      { ok: false, error: 'RUNTIME_API_URL is not configured' },
-      { status: 503, headers: NO_STORE },
-    );
-  }
-
   let body: { title?: string; body?: string; canonical_url?: string };
   try {
     body = await request.json();
@@ -82,16 +67,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const upstream = await fetch(`${runtimeUrl}/video`, {
+    const upstream = await fetch(`${RUNTIME}/video`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title:         body.title.trim(),
-        body:          body.body.trim(),
+        title: body.title.trim(),
+        body: body.body.trim(),
         canonical_url: body.canonical_url ?? '',
       }),
       // Video render can take several minutes
       signal: AbortSignal.timeout(360_000),
+      cache: 'no-store',
     });
 
     const result: unknown = await upstream.json();

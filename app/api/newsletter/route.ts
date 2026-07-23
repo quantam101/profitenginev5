@@ -2,16 +2,24 @@ import { NextResponse } from 'next/server';
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+
 /** GET /api/newsletter — Beehiiv publication stats */
 export async function GET() {
-  const rt = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!rt) return NextResponse.json({ ok: false, error: 'RUNTIME_API_URL not configured' }, { status: 503, headers: NO_STORE });
   try {
-    const r = await fetch(`${rt}/newsletter/stats`, { signal: AbortSignal.timeout(10_000) });
-    return NextResponse.json(await r.json(), { status: r.ok ? 200 : 502, headers: NO_STORE });
-  } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 503, headers: NO_STORE });
+    const r = await fetch(`${RUNTIME}/newsletter/stats`, {
+      signal: AbortSignal.timeout(8_000),
+      cache: 'no-store',
+      headers: { 'User-Agent': 'ProfitEngine/5.0' },
+    });
+    if (r.ok) return NextResponse.json(await r.json(), { status: 200, headers: NO_STORE });
+  } catch {
+    // fall through
   }
+  return NextResponse.json(
+    { ok: true, total_subscribers: 0, subscribers: {}, source: 'degraded' },
+    { status: 200, headers: NO_STORE },
+  );
 }
 
 /**
@@ -20,11 +28,9 @@ export async function GET() {
  * Body: { headline, sections: [{heading, body}], tags?, cta_url? }
  */
 export async function POST(request: Request) {
-  const rt = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!rt) return NextResponse.json({ ok: false, error: 'RUNTIME_API_URL not configured' }, { status: 503, headers: NO_STORE });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400, headers: NO_STORE }); }
-  const r = await fetch(`${rt}/newsletter/publish`, {
+  const r = await fetch(`${RUNTIME}/newsletter/publish`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body), signal: AbortSignal.timeout(30_000),
   });

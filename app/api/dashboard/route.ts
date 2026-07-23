@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
-async function runtimeFetch(path: string, timeoutMs = 5000) {
+async function runtimeFetch(path: string, timeoutMs = 8000) {
   const res = await fetch(`${RUNTIME}${path}`, {
     cache: 'no-store',
     signal: AbortSignal.timeout(timeoutMs),
@@ -52,7 +52,6 @@ export async function GET() {
     const agentDist = (metricsData.agent_distribution ?? {}) as Record<string, number>;
     const cycles = ((cyclesData.cycles ?? []) as CycleRecord[]);
 
-    // ── Pipeline stage health (derived from tier distribution + success rate) ──
     const rate = successRate > 0 ? Math.round(successRate) : null;
     const pipeline = {
       trends: 100,
@@ -63,7 +62,6 @@ export async function GET() {
       lcc: rate ?? 100,
     };
 
-    // ── Activity feed from real cycle records ──────────────────────────────
     const activity =
       cycles.length > 0
         ? cycles.slice(0, 8).map((c) => ({
@@ -71,9 +69,8 @@ export async function GET() {
             message: `${c.agent_id}: ${(c.objective_excerpt ?? '').slice(0, 60)}`,
             ago: c.iso_timestamp ? timeAgo(c.iso_timestamp) : 'recently',
           }))
-        : null; // null → useData merge keeps mock activity
+        : null;
 
-    // ── Agent fleet from distribution, most-recent agent marked busy ──────
     const lastAgentId = cycles[0]?.agent_id ?? null;
     const knownAgents = Object.keys(agentDist).length > 0 ? Object.keys(agentDist) : null;
     const agents = knownAgents
@@ -82,9 +79,8 @@ export async function GET() {
           label: id,
           status: id === lastAgentId ? 'busy' : 'idle',
         }))
-      : null; // null → useData merge keeps mock agents
+      : null;
 
-    // ── Content/24h: count successful cycles with iso_timestamp in last 24h ─
     const oneDayAgo = Date.now() - 86_400_000;
     const content24h =
       cycles.length > 0
@@ -96,10 +92,8 @@ export async function GET() {
           ).length
         : null;
 
-    // ── Uptime: derive from first-ever cycle timestamp if available ────────
     const uptime: string | null = (() => {
       if (!metricsData.last_cycle_iso) return null;
-      // Use oldest cycle in this window as a proxy for "started"
       const oldest = cycles[cycles.length - 1];
       if (!oldest?.iso_timestamp) return null;
       const elapsedMs = Date.now() - new Date(oldest.iso_timestamp).getTime();
@@ -108,35 +102,46 @@ export async function GET() {
       return `${h}h ${m}m`;
     })();
 
-    // ── aiOpsPerCycle: total AI operations run, or null (keeps mock 2196) ──
     const aiOpsPerCycle = totalCycles > 0 ? totalCycles : null;
 
-    // Build response — only include fields with real values.
-    // Fields set to null are filtered in useData merge, preserving mock values.
     const payload: Record<string, unknown> = {
       engineRunning: Boolean(health.ok),
       healthScore: successRate > 0 ? Math.round(successRate) : health.ok ? 94 : 0,
       dlqItems: 0,
       tokensToday: 0,
       pipeline,
-      // Conditionally include dynamic fields
       ...(aiOpsPerCycle !== null && { aiOpsPerCycle }),
       ...(content24h !== null && { content24h }),
       ...(uptime !== null && { uptime }),
       ...(agents !== null && { agents }),
       ...(activity !== null && { activity }),
-      // Tier + agent distribution for the System view
       tierDistribution: tierDist,
       totalCycles,
       successfulCycles,
       avgDurationMs: Number(metricsData.avg_duration_ms ?? 0),
       lastCycleIso: metricsData.last_cycle_iso ?? null,
+      source: 'runtime_live',
     };
 
     return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-store', 'x-data-source': 'live' },
     });
   } catch {
-    return NextResponse.json({ error: 'runtime_unreachable' }, { status: 502 });
+    return NextResponse.json(
+      {
+        engineRunning: false,
+        healthScore: 0,
+        dlqItems: 0,
+        tokensToday: 0,
+        pipeline: { trends: 100, generate: 87, seo: 92, affiliate: 100, publish: 94, lcc: 100 },
+        totalCycles: 0,
+        successfulCycles: 0,
+        avgDurationMs: 0,
+        lastCycleIso: null,
+        tierDistribution: {},
+        source: 'degraded',
+      },
+      { headers: { 'Cache-Control': 'no-store', 'x-data-source': 'degraded' } },
+    );
   }
 }

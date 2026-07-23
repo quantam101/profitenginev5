@@ -2,19 +2,21 @@ import { NextResponse } from 'next/server';
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
-/**
- * GET /api/income
- * Aggregate revenue dashboard across all 10 income streams.
- */
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
+
 export async function GET() {
-  const runtimeUrl = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!runtimeUrl) {
-    return NextResponse.json({ ok: false, error: 'RUNTIME_API_URL not configured' }, { status: 503, headers: NO_STORE });
-  }
   try {
-    const resp = await fetch(`${runtimeUrl}/income/summary`, { signal: AbortSignal.timeout(15_000) });
-    return NextResponse.json(await resp.json(), { status: resp.ok ? 200 : 502, headers: NO_STORE });
-  } catch (err) {
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 503, headers: NO_STORE });
+    const resp = await fetch(`${RUNTIME}/income/summary`, {
+      signal: AbortSignal.timeout(8_000),
+      cache: 'no-store',
+      headers: { 'User-Agent': 'ProfitEngine/5.0' },
+    });
+    if (resp.ok) return NextResponse.json(await resp.json(), { status: 200, headers: NO_STORE });
+  } catch {
+    // fall through to degraded fallback
   }
+  return NextResponse.json(
+    { ok: true, streams: {}, total_usd: 0, source: 'degraded' },
+    { status: 200, headers: NO_STORE },
+  );
 }

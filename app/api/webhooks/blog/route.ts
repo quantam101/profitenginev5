@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hasWebhookAccess } from '../../../../lib/webhookAuth';
 import { createBlogProof } from '../../../../lib/proofPublish';
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
 interface BlogPayload {
   title: string;

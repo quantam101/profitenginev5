@@ -83,13 +83,7 @@ export function GET() {
  *   threshold   number  optional  Quorum fraction 0.5-1.0 (default 0.67).
  */
 export async function POST(request: Request) {
-  const runtimeUrl = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!runtimeUrl) {
-    return NextResponse.json(
-      { ok: false, error: 'RUNTIME_API_URL is not configured' },
-      { status: 503, headers: NO_STORE },
-    );
-  }
+  const runtimeUrl = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
   let body: {
     objective?: string;

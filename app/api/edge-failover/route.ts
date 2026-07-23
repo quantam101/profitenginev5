@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 const EDGE_SECRET = process.env.PROFITENGINE_EDGE_WEBHOOK_SECRET ?? '';
-const RUNTIME = process.env.RUNTIME_API_URL ?? '';
+const RUNTIME = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
 function verifySignature(rawBody: string, signature: string | null) {
   if (!EDGE_SECRET || !signature) return false;

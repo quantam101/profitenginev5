@@ -39,8 +39,7 @@ export async function GET() {
  * Body: { text, title?, url?, platforms? }
  */
 export async function POST(request: Request) {
-  const rt = process.env.RUNTIME_API_URL?.replace(/\/$/, '');
-  if (!rt) return NextResponse.json({ ok: false, error: 'RUNTIME_API_URL not configured' }, { status: 503, headers: NO_STORE });
+  const rt = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400, headers: NO_STORE }); }
   const r = await fetch(`${rt}/social/distribute`, {
