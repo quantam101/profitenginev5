@@ -10,7 +10,11 @@ import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable
