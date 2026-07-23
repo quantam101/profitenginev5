@@ -131,5 +131,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ error: 'oracle_unreachable' }, { status: 502 });
+  return NextResponse.json(
+    {
+      _source: 'degraded',
+      engineRunning: liveHealth >= 80,
+      publishedPosts: ghStats.postCount,
+      lastPublished: ghStats.lastTitle,
+      lastPublishedDate: ghStats.lastDate,
+      contentSite: CONTENT_SITE,
+      content24h: ghStats.postCount,
+      healthScore: liveHealth,
+      uptime: 'pipeline active',
+      tokensToday: 0,
+    },
+    { headers: { 'Cache-Control': 'no-store', 'x-data-source': 'degraded' } },
+  );
 }
