@@ -7,6 +7,7 @@ const RUNTIME_BASE = (process.env.RUNTIME_API_URL || 'https://profitengine-runti
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';
+const GH_POSTS_DIR = process.env.GITHUB_CONTENT_DIR ?? '_posts';
 const CONTENT_SITE = `https://${GH_OWNER}.github.io/${GH_REPO}`;
 
 async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T | null> {
@@ -87,7 +88,7 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
     };
     if (GH_TOKEN) headers['Authorization'] = `token ${GH_TOKEN}`;
     const res = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/posts?per_page=100`,
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_POSTS_DIR)}?per_page=100`,
       { headers, next: { revalidate: 300 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return { postCount: 0, lastTitle: '', lastDate: '' };

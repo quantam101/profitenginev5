@@ -6,6 +6,7 @@ Generates ACTUAL MP4 videos and uploads to REAL affiliate platforms.
 import asyncio
 import os
 import logging
+import shutil
 import subprocess
 import json
 from datetime import datetime
@@ -29,8 +30,9 @@ class RealVideoGenerator:
             video_path = self.output_dir / f"{program}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
 
             # REAL FFmpeg command - creates actual video file
+            ffmpeg = shutil.which("ffmpeg") or "/usr/bin/ffmpeg"
             cmd = [
-                "ffmpeg", "-y",
+                ffmpeg, "-y",
                 "-f", "lavfi",
                 "-i", "color=c=1a1a2e:s=1080x1920:d=15",  # 15 sec real video
                 "-vf", f"drawtext=text='{title}':fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2",
@@ -40,7 +42,7 @@ class RealVideoGenerator:
                 str(video_path),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            result = subprocess.run(cmd, capture_output=True, timeout=60)  # noqa: S603
 
             if result.returncode == 0 and video_path.exists():
                 logger.info(f"✅ Real video generated: {video_path} ({video_path.stat().st_size} bytes)")
