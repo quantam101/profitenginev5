@@ -46,12 +46,13 @@ type NewsletterStats = {
 };
 
 async function fetchRuntimeSnapshot(): Promise<Record<string, unknown> | null> {
+  const timeoutMs = 30_000;
   const [health, income, metrics, products, newsletter] = await Promise.all([
-    fetchJson<RuntimeHealth>(`${RUNTIME_BASE}/health`),
-    fetchJson<IncomeSummary>(`${RUNTIME_BASE}/income/summary`),
-    fetchJson<Metrics>(`${RUNTIME_BASE}/metrics`),
-    fetchJson<ProductsRevenue>(`${RUNTIME_BASE}/products/revenue`),
-    fetchJson<NewsletterStats>(`${RUNTIME_BASE}/newsletter/stats`),
+    fetchJson<RuntimeHealth>(`${RUNTIME_BASE}/health`, timeoutMs),
+    fetchJson<IncomeSummary>(`${RUNTIME_BASE}/income/summary`, timeoutMs),
+    fetchJson<Metrics>(`${RUNTIME_BASE}/metrics`, timeoutMs),
+    fetchJson<ProductsRevenue>(`${RUNTIME_BASE}/products/revenue`, timeoutMs),
+    fetchJson<NewsletterStats>(`${RUNTIME_BASE}/newsletter/stats`, timeoutMs),
   ]);
 
   if (!health?.ok && !income?.ok && !products?.ok && !newsletter?.ok) {
@@ -107,7 +108,7 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
 }
 
 async function fetchHealthScore(): Promise<number> {
-  const health = await fetchJson<{ healthScore?: number; ok?: boolean }>(`${RUNTIME_BASE}/health`, 5000);
+  const health = await fetchJson<{ healthScore?: number; ok?: boolean }>(`${RUNTIME_BASE}/health`, 30_000);
   if (typeof health?.healthScore === 'number') return health.healthScore;
   return health?.ok ? 100 : 0;
 }
