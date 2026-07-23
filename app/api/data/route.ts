@@ -3,44 +3,81 @@ import { getCacheHeaders } from '@/app/lib/cache';
 
 export const revalidate = 300;
 
-const ORACLE = process.env.ORACLE_API_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://app.alreadyherellc.com';
+const RUNTIME_BASE = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';
 const CONTENT_SITE = `https://${GH_OWNER}.github.io/${GH_REPO}`;
 
-/** Try the runtime/oracle API first (fastest, richest data). */
-async function tryOracle(): Promise<Record<string, unknown> | null> {
+async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T | null> {
   try {
-    const res = await fetch(`${ORACLE}/api/status`, {
+    const res = await fetch(url, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
-    const d = await res.json() as Record<string, unknown>;
-    const lc = (d.lastCycle as Record<string, number>) ?? {};
-    const tok = (d.tokens as Record<string, number>) ?? {};
-    const ht = (d.lastHealth as Record<string, unknown>) ?? {};
-    const mem = (ht.memory as Record<string, number>) ?? {};
-    const upSec = (d.uptime as number) ?? 0;
-    const h = Math.floor(upSec / 3600);
-    const m = Math.floor((upSec % 3600) / 60);
-    return {
-      _source: 'oracle_live',
-      engineRunning: !!(d.ok),
-      uptime: `${h}h ${m}m`,
-      healthScore: (d.intelligenceReport as Record<string, number>)?.healthScore ?? 20,
-      tokensToday: Math.round(((tok.total as number) ?? 0) / 1000),
-      content24h: (lc.generated as number) ?? 0,
-      totalCycles: (d.totalCycles as number) ?? 0,
-      memUsedPct: (mem.usedPct as number) ?? 0,
-    };
+    return (await res.json()) as T;
   } catch {
     return null;
   }
 }
 
-/** Pull real published-post count from GitHub Pages content repo. */
+type RuntimeHealth = { ok?: boolean; service?: string; mode?: string };
+type IncomeSummary = {
+  ok?: boolean;
+  streams?: Record<string, unknown>;
+};
+type Metrics = {
+  total_cycles?: number;
+  successful_cycles?: number;
+  success_rate_pct?: number;
+  last_cycle_iso?: string | null;
+};
+type ProductsRevenue = {
+  ok?: boolean;
+  products?: number;
+  month_revenue_usd?: number;
+  catalog?: unknown[];
+};
+type NewsletterStats = {
+  ok?: boolean;
+  total_subscribers?: number;
+  subscribers?: Record<string, unknown>;
+};
+
+async function fetchRuntimeSnapshot(): Promise<Record<string, unknown> | null> {
+  const [health, income, metrics, products, newsletter] = await Promise.all([
+    fetchJson<RuntimeHealth>(`${RUNTIME_BASE}/health`),
+    fetchJson<IncomeSummary>(`${RUNTIME_BASE}/income/summary`),
+    fetchJson<Metrics>(`${RUNTIME_BASE}/metrics`),
+    fetchJson<ProductsRevenue>(`${RUNTIME_BASE}/products/revenue`),
+    fetchJson<NewsletterStats>(`${RUNTIME_BASE}/newsletter/stats`),
+  ]);
+
+  if (!health?.ok && !income?.ok && !products?.ok && !newsletter?.ok) {
+    return null;
+  }
+
+  const healthScore = health?.ok ? 100 : 0;
+
+  return {
+    _source: 'runtime_live',
+    engineRunning: health?.ok ?? false,
+    service: health?.service ?? 'profitengine-runtime',
+    mode: health?.mode ?? 'strict_zero_spend',
+    healthScore,
+    uptime: 'runtime active',
+    tokensToday: 0,
+    totalCycles: metrics?.total_cycles ?? 0,
+    successRatePct: metrics?.success_rate_pct ?? 0,
+    lastCycleIso: metrics?.last_cycle_iso ?? null,
+    incomeStreams: income?.streams ?? {},
+    products,
+    newsletter,
+    contentSite: CONTENT_SITE,
+  };
+}
+
 async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: string; lastDate: string }> {
   try {
     const headers: Record<string, string> = {
@@ -69,45 +106,28 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
   }
 }
 
-/**
- * Fetch real health score by calling our own /api/health endpoint.
- * Uses the incoming request's Host header so it works in every environment
- * (localhost dev, Docker on OCI, Vercel) without env var configuration.
- */
-async function fetchHealthScore(requestHost: string): Promise<number> {
-  try {
-    // Use https for non-localhost hosts (production); http for local dev
-    const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
-    const base = isLocal ? `http://${requestHost}` : `https://${requestHost}`;
-    const res = await fetch(`${base}/api/health`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return 100;
-    const d = await res.json() as Record<string, unknown>;
-    return typeof d.healthScore === 'number' ? d.healthScore : 100;
-  } catch {
-    return 100;
-  }
+async function fetchHealthScore(): Promise<number> {
+  const health = await fetchJson<{ healthScore?: number; ok?: boolean }>(`${RUNTIME_BASE}/health`, 5000);
+  if (typeof health?.healthScore === 'number') return health.healthScore;
+  return health?.ok ? 100 : 0;
 }
 
-export async function GET(request: NextRequest) {
-  const host = request.headers.get('host') ?? 'app.alreadyherellc.com';
-  const [oracle, ghStats, liveHealth] = await Promise.all([
-    tryOracle(),
+export async function GET(_request: NextRequest) {
+  const [runtime, ghStats, runtimeHealth] = await Promise.all([
+    fetchRuntimeSnapshot(),
     fetchGitHubStats(),
-    fetchHealthScore(host),
+    fetchHealthScore(),
   ]);
 
-  if (oracle) {
+  if (runtime) {
     return NextResponse.json(
       {
-        ...oracle,
-        healthScore: (oracle.healthScore as number) > 20 ? oracle.healthScore : liveHealth,
-        contentSite: CONTENT_SITE,
+        ...runtime,
+        healthScore: runtimeHealth,
         publishedPosts: ghStats.postCount,
         lastPublished: ghStats.lastTitle,
         lastPublishedDate: ghStats.lastDate,
+        content24h: ghStats.postCount,
       },
       { headers: getCacheHeaders('SHORT') },
     );
@@ -123,7 +143,7 @@ export async function GET(request: NextRequest) {
         lastPublishedDate: ghStats.lastDate,
         contentSite: CONTENT_SITE,
         content24h: ghStats.postCount,
-        healthScore: liveHealth,
+        healthScore: runtimeHealth,
         uptime: 'pipeline active',
         tokensToday: 0,
       },
@@ -134,13 +154,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       _source: 'degraded',
-      engineRunning: liveHealth >= 80,
+      engineRunning: runtimeHealth >= 80,
       publishedPosts: ghStats.postCount,
       lastPublished: ghStats.lastTitle,
       lastPublishedDate: ghStats.lastDate,
       contentSite: CONTENT_SITE,
       content24h: ghStats.postCount,
-      healthScore: liveHealth,
+      healthScore: runtimeHealth,
       uptime: 'pipeline active',
       tokensToday: 0,
     },
