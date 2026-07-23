@@ -2,7 +2,7 @@
 Shared inference cascade — single entry point for all agent AI calls.
 
 Tier order (lowest cost first):
-  0. LM Studio    — local OpenAI-compatible server (localhost:1234), no key needed
+  0. LM Studio    — local OpenAI-compatible server (lmstudio:1234), no key needed
   1. Ollama local — local Llama/Gemma/Mistral on CPU/GPU, no key needed
   2. Groq Cloud   — free tier, 700+ tok/s, llama-3.3-70b-versatile
   3. HuggingFace  — free cloud inference API, thousands of open models

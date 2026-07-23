@@ -13,7 +13,7 @@ services:
       --appendonly yes
       --requirepass ${REDIS_PASSWORD}
       --port 6379
-      --bind 127.0.0.1
+      --bind 0.0.0.0
       --maxmemory 1gb
       --maxmemory-policy allkeys-lru
       --save 300 1

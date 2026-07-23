@@ -1,13 +1,13 @@
 """
 LM Studio gateway — local OpenAI-compatible inference server.
 
-LM Studio runs at localhost:1234 (default) and serves any GGUF model
+LM Studio runs at lmstudio:1234 (default) and serves any GGUF model
 via the OpenAI Chat Completions API.  No API key required.
 
 Priority: highest — free, private, zero latency overhead.
 
 Environment variables:
-  LM_STUDIO_BASE_URL   — base URL  (default: http://localhost:1234/v1)
+  LM_STUDIO_BASE_URL   — base URL  (default: http://lmstudio:1234/v1)
   LM_STUDIO_MODEL      — model name to request (default: local-model)
   LM_STUDIO_ENABLED    — "true"/"1"/"yes" to force-enable without BASE_URL
   GMAOS_LMS_TIMEOUT    — request timeout in seconds (default: 120)
@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-_DEFAULT_BASE_URL = "http://localhost:1234/v1"
+_DEFAULT_BASE_URL = "http://lmstudio:1234/v1"
 _DEFAULT_MODEL = "local-model"
 _DEFAULT_TIMEOUT = 120
 
