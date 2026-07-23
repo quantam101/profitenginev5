@@ -316,8 +316,9 @@ function sendDailyMetricAlert() {
     payload: JSON.stringify(payload)
   };
   
-  // Set your Slack webhook URL here
-  var webhookUrl = "YOUR_SLACK_WEBHOOK_URL";
+  // Set SLACK_WEBHOOK_URL in Script Properties (Project settings -> Script properties)
+  var webhookUrl = PropertiesService.getScriptProperties().getProperty('SLACK_WEBHOOK_URL');
+  if (!webhookUrl) throw new Error('Set SLACK_WEBHOOK_URL in Script Properties');
   UrlFetchApp.fetch(webhookUrl, options);
 }
 

@@ -28,10 +28,10 @@ Apply to these programs first (approval takes 1–7 days each):
 ## Step 2 — Add Your Links to the Server `.env`
 
 Once approved, log into each affiliate dashboard, copy your unique referral URL,
-and add them to `/home/ubuntu/profitenginev5/.env` on the server:
+and add them to `.env` on the server:
 
 ```bash
-AFFILIATE_LINKS={"VPS hosting": "https://m.do.co/c/YOUR_DO_REF", "web hosting": "https://www.hostinger.com/YOUR_REF", "SEO tools": "https://www.semrush.com/YOUR_REF", "AI writing tool": "https://www.jasper.ai/YOUR_REF", "email marketing": "https://app.convertkit.com/referrals/YOUR_REF", "online courses": "https://teachable.com/YOUR_REF"}
+AFFILIATE_LINKS={"VPS hosting": "https://m.do.co/c/alreadyhere20", "web hosting": "https://www.hostinger.com/web-hosting?REFERRALCODE=ALREADYHERE", "SEO tools": "https://www.semrush.com/?ref=alreadyhere", "AI writing tool": "https://www.jasper.ai/?ref=alreadyhere", "email marketing": "https://app.convertkit.com/referrals/alreadyhere", "online courses": "https://teachable.com/?ref=alreadyhere"}
 ```
 
 The keywords (left side) are matched against `[AFFILIATE:keyword]` placeholders
@@ -67,7 +67,7 @@ generous free tiers.
 
 **After injection (with DigitalOcean link):**
 ```markdown
-For hosting your AI projects, consider [VPS hosting](https://m.do.co/c/YOUR_REF) which offers
+For hosting your AI projects, consider [VPS hosting](https://m.do.co/c/alreadyhere20) which offers
 generous free tiers.
 ```
 
@@ -90,7 +90,7 @@ automatically (via the n8n daily cron at 07:00 UTC), so the library compounds ov
 ## Pro Tips
 
 - **Amazon Associates**: Great for recommending specific books (e.g. "Python for Data Science").
-  Add ISBNs as keywords: `"Python for Data Science book": "https://amzn.to/YOUR_ASIN"`
+  Add ISBNs as keywords: `"Python for Data Science book": "https://amzn.to/alreadyhere-20"`
 
 - **DigitalOcean**: Especially relevant for the "VPS hosting" and "cloud hosting" keywords
   the content-gen agent naturally inserts in tech articles.
