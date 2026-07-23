@@ -101,7 +101,7 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Run contract tests
         env:
-          MONGO_URL: "mongodb://mongo:27017"
+          MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
         run: python -m pytest backend/tests/test_distillation.py -v
 
@@ -128,7 +128,7 @@ jobs:
           npm ci --include=dev
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://mongo:27017"
+          MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
         run: |
           cd /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
@@ -160,7 +160,7 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://mongo:27017"
+          MONGO_URL: "mongodb://localhost:27017"
           DB_NAME: "profitengine_ci"
         run: |
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
