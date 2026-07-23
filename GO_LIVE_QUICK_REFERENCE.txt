@@ -11,14 +11,14 @@ CRITICAL URLS (Bookmark These)
 ================================================================================
 
 FRONTEND (Vercel)
-  Production: https://profitengine-tau.vercel.app
-  Dashboard: https://profitengine-tau.vercel.app/dashboard
-  Health: https://profitengine-tau.vercel.app/health
+  Production: https://app.alreadyherellc.com
+  Dashboard: https://app.alreadyherellc.com/dashboard
+  Health: https://app.alreadyherellc.com/api/health
 
-BACKEND (OCI)
-  API Root: http://129.146.236.177:8001
-  Health: http://129.146.236.177:8001/api/health
-  Revenue: http://129.146.236.177:8001/api/revenue-ledger
+BACKEND (Render)
+  API Root: https://profitengine-runtime.onrender.com
+  Health: https://profitengine-runtime.onrender.com/health
+  Revenue: https://profitengine-runtime.onrender.com/income/summary
 
 MONITORING
   GitHub Actions: https://github.com/quantam101/profitenginev5/actions
@@ -30,8 +30,8 @@ DAILY CHECKS (Takes 5 minutes)
 ================================================================================
 
 1. SYSTEM HEARTBEAT
-   [ ] Frontend responds (curl profitengine-tau.vercel.app/health)
-   [ ] Backend responds (curl 129.146.236.177:8001/api/health)
+   [ ] Frontend responds (curl https://app.alreadyherellc.com/api/health)
+   [ ] Backend responds (curl https://profitengine-runtime.onrender.com/health)
    [ ] No recent GitHub Actions failures
 
 2. REVENUE TRACKING
@@ -51,13 +51,13 @@ EMERGENCY CONTACTS & FALLBACKS
 ================================================================================
 
 If Frontend Down (Vercel):
-  → OCI health check passes? System OK, wait 5 min (auto-redeploy)
-  → OCI health check fails? Backend down, trigger manual deploy via GitHub Actions
+  → Backend health check passes? System OK, wait 5 min (auto-redeploy)
+  → Backend health check fails? Trigger manual deploy via GitHub Actions
 
-If Backend Down (OCI):
+If Backend Down (Render):
   → Vercel frontend still live? Switch dashboard to read-only mode
-  → SSH to OCI (ssh opc@129.146.236.177) to investigate
-  → Restart Docker: docker compose restart backend
+  → Check Render service status at https://dashboard.render.com
+  → Restart via Render dashboard or trigger a GitHub Actions deploy
   → If persistent: Scale to Vercel-only mode (backend calls disabled)
 
 If MongoDB Down:
@@ -67,7 +67,7 @@ If MongoDB Down:
 
 If Revenue Not Tracking:
   → Check Stripe webhook log in dashboard
-  → Verify STRIPE_WEBHOOK_SECRET in OCI .env (rotated 2026-06-19)
+  → Verify STRIPE_WEBHOOK_SECRET in Render env (rotated 2026-06-19)
   → Rerun income-streams.yml manually if needed:
      GitHub Actions → income-streams.yml → Run workflow → Dispatch
 
@@ -118,7 +118,7 @@ Step 1: Record 5 Videos (1 hour)
 Step 2: Upload to YouTube (30 min)
   Channel: quantam101 (your YouTube channel)
   Settings: Unlisted → Public after playlist ready
-  Description: Include links to profitengine-tau.vercel.app
+  Description: Include links to app.alreadyherellc.com
   Monetization: Enable ads (YouTube Partner Program)
 
 Step 3: Publish & Syndicate (30 min)
@@ -139,7 +139,7 @@ KEY NUMBERS TO REMEMBER
 
 System IPs & Ports:
   Frontend: Vercel (geo-distributed, no fixed IP)
-  Backend: 129.146.236.177:8001
+  Backend: https://profitengine-runtime.onrender.com
   Database: MongoDB Atlas (cloud-managed, no IP needed)
 
 Revenue Streams (6 Active):
@@ -161,7 +161,7 @@ Monthly Targets (Conservative):
 Team Contacts:
   Owner: Stephen Franklin (dispatch@alreadyherellc.com)
   GitHub: quantam101
-  OCI: opc@129.146.236.177
+  Render: https://dashboard.render.com
 
 API Keys Status:
   Total Configured: 52
@@ -178,8 +178,8 @@ Test Frontend:
   npm run healthcheck      # Quick system health check
 
 Test Backend:
-  curl http://129.146.236.177:8001/api/health  # Backend alive?
-  curl http://129.146.236.177:8001/api/revenue-ledger?from=2026-06-25
+  curl https://profitengine-runtime.onrender.com/health  # Backend alive?
+  curl https://profitengine-runtime.onrender.com/income/summary
 
 Run Full Test Suite:
   npm test                 # Unit + integration + AI-gateway
@@ -191,7 +191,7 @@ Deploy a Change:
   git commit -m "your message"
   git push origin main     # Auto-deploys to Vercel
   → GitHub Actions runs ci:all → deploy.yml triggers
-  → Backend container restarted on OCI
+  → Backend container restarted on Render
   → Frontend redeployed to Vercel
   → Status: https://github.com/quantam101/profitenginev5/actions
 
@@ -200,7 +200,7 @@ CRITICAL FILE LOCATIONS
 ================================================================================
 
 Configuration:
-  .env (OCI backend — NOT in git)
+  .env (Render backend — NOT in git)
   .env.example (reference)
   docker-compose.yml (full stack definition)
   Caddyfile (reverse proxy routing)
@@ -208,7 +208,7 @@ Configuration:
 Secrets Management:
   GitHub Secrets: 52 keys (API tokens, webhook secrets)
   Vercel Secrets: ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
-  OCI Vault: Backup copies of all keys (request via GitHub Actions)
+  Secret store: Backup copies of all keys (request via GitHub Actions)
 
 Revenue Pipeline:
   scripts/content_factory_run.py (content generation)
@@ -227,12 +227,12 @@ SUCCESS METRICS (What to Measure)
 
 System Uptime:
   Target: 99.9% (acceptable downtime: ~7 minutes/month)
-  Monitored: OCI health every 30s, Vercel autodeploy on push
+  Monitored: Render health every 30s, Vercel autodeploy on push
 
 Revenue Velocity:
   Baseline Target: $180K/month (conservative)
   Tracking: income-streams.yml daily snapshots
-  Dashboard: profitengine-tau.vercel.app/dashboard
+  Dashboard: app.alreadyherellc.com/dashboard
 
 User Acquisition:
   YouTube → YouTube subscribers (target: +1K/month)

@@ -31,7 +31,7 @@
 ## Option 2: Move CI/CD to OCI Server (Recommended Alternative)
 
 **Time:** 15 minutes  
-**Cost:** Free (uses existing OCI server at 129.146.236.177)  
+**Cost:** Free (uses existing OCI server at $AH_POS_HOST)  
 **Effort:** Low
 
 ### How It Works
@@ -41,7 +41,7 @@ Instead of GitHub Actions, run daily sync directly on OCI server via cron job.
 
 ```bash
 # SSH to OCI server
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # Create script: /home/opc/ah-pos-sync.sh
 cat > /home/opc/ah-pos-sync.sh << 'EOF'
@@ -80,17 +80,17 @@ crontab -l
 
 ```bash
 # 1. Copy code to OCI server
-scp -r ah-pos opc@129.146.236.177:/home/opc/profitenginev5/
+scp -r ah-pos $AH_POS_USER@$AH_POS_HOST:/home/opc/profitenginev5/
 
 # 2. Install Python dependencies
-ssh opc@129.146.236.177 << 'EOF'
+ssh $AH_POS_USER@$AH_POS_HOST << 'EOF'
 cd /home/opc/profitenginev5/ah-pos
 python -m pip install -r requirements.txt
 EOF
 
 # 3. Create PostgreSQL on OCI (local or managed)
 # Run schema initialization
-ssh opc@129.146.236.177 << 'EOF'
+ssh $AH_POS_USER@$AH_POS_HOST << 'EOF'
 psql -U postgres -d postgres < /home/opc/profitenginev5/ah-pos/database/00_init_schema.sql
 EOF
 
@@ -364,7 +364,7 @@ Only if you need multi-region failover or advanced orchestration.
 
 ### Short-term (This Week)
 **Option 2: OCI Cron Job**
-- Zero cost (already have server at 129.146.236.177)
+- Zero cost (already have server at $AH_POS_HOST)
 - 15 minutes to set up
 - More reliable than GitHub Actions
 - Full control over scheduling
@@ -390,7 +390,7 @@ Only if you need multi-region failover or advanced orchestration.
 ### 1-Minute Setup
 ```bash
 # SSH to OCI
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # Create daily sync script
 cat > /home/opc/run-ah-pos-sync.sh << 'EOF'

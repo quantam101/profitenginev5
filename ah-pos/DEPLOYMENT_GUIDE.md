@@ -37,7 +37,7 @@ Complete step-by-step instructions for deploying AH-POS to production on OCI or 
 # Use OCI Console → MySQL HeatWave → Create DB System
 
 # Or use self-hosted PostgreSQL on OCI Compute:
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # Install PostgreSQL
 sudo yum install -y postgresql-server
@@ -93,7 +93,7 @@ EOF
 #### On OCI:
 ```bash
 # Edit security list to allow PostgreSQL from GitHub Actions
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 sudo firewall-cmd --permanent --add-service=postgresql
 sudo firewall-cmd --reload
 ```

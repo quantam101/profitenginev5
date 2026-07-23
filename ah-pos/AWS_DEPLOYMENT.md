@@ -108,14 +108,14 @@ sudo apt-get install -y python3.11 python3-pip git postgresql-client
 
 # Clone repository
 cd /home/ubuntu
-git clone https://github.com/YOUR_USERNAME/profitenginev5.git
+git clone https://github.com/quantam101/profitenginev5.git
 cd profitenginev5/ah-pos
 
 # Install Python dependencies
 pip install -r requirements.txt
 
 # Set environment variables
-export DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/$DB_NAME"
+export DATABASE_URL="postgresql://postgres:$DB_PASSWORD@$DB_HOST:5432/$DB_NAME"
 export PYTHONUNBUFFERED=1
 ```
 
@@ -125,10 +125,10 @@ export PYTHONUNBUFFERED=1
 
 ```bash
 # From EC2, run:
-psql postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/ah_pos < database/00_init_schema.sql
+psql postgresql://postgres:$DB_PASSWORD@$DB_HOST:5432/ah_pos < database/00_init_schema.sql
 
 # Verify
-psql postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/ah_pos -c "\dt"
+psql postgresql://postgres:$DB_PASSWORD@$DB_HOST:5432/ah_pos -c "\dt"
 # Should show 16 tables
 ```
 
@@ -144,7 +144,7 @@ cd /home/ubuntu/profitenginev5/ah-pos
 python backend/ingest_past_performance.py --file data/sample_past_performance.csv
 
 # Verify
-psql postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/ah_pos -c "SELECT COUNT(*) FROM past_performance_contracts"
+psql postgresql://postgres:$DB_PASSWORD@$DB_HOST:5432/ah_pos -c "SELECT COUNT(*) FROM past_performance_contracts"
 # Should show: 10
 ```
 
@@ -157,7 +157,7 @@ psql postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/ah_pos -c "SELECT COUNT(*
 python backend/scrape_sam_gov.py
 
 # Verify
-psql postgresql://postgres:YOUR_PASSWORD@$DB_HOST:5432/ah_pos -c "SELECT COUNT(*) FROM solicitations"
+psql postgresql://postgres:$DB_PASSWORD@$DB_HOST:5432/ah_pos -c "SELECT COUNT(*) FROM solicitations"
 # Should show: 50+
 ```
 
@@ -264,7 +264,7 @@ sudo apt-get install -y python3.11 python3-pip git postgresql-client
 
 # Clone repo
 cd /home/ubuntu
-[ -d profitenginev5 ] || git clone https://github.com/YOUR_USERNAME/profitenginev5.git
+[ -d profitenginev5 ] || git clone https://github.com/quantam101/profitenginev5.git
 cd profitenginev5/ah-pos
 
 # Install dependencies

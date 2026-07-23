@@ -20,7 +20,7 @@ bash SETUP_OCI_CRON.sh
 ```
 
 What it does:
-- ✅ Copies code to OCI (129.146.236.177)
+- ✅ Copies code to OCI ($AH_POS_HOST)
 - ✅ Creates daily sync script
 - ✅ Installs Python dependencies
 - ✅ Sets up 3 cron jobs (06:00, 12:00, 18:00 UTC)
@@ -30,7 +30,7 @@ What it does:
 ### Step 3: Verify It's Running
 ```bash
 # SSH to OCI
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # Check cron jobs
 crontab -l | grep "run-ah-pos-sync"
@@ -100,7 +100,7 @@ See `CI_CD_ALTERNATIVES.md` for GitLab CI, CircleCI, AWS Lambda, etc.
 
 ## Prerequisites
 
-✅ SSH access to 129.146.236.177 (you have this)  
+✅ SSH access to $AH_POS_HOST (you have this)  
 ✅ PostgreSQL database created (instruction below)  
 ✅ Python 3.11 on OCI (pre-installed on most OCI images)  
 
@@ -108,7 +108,7 @@ See `CI_CD_ALTERNATIVES.md` for GitLab CI, CircleCI, AWS Lambda, etc.
 
 ```bash
 # SSH to OCI
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # Install PostgreSQL (if needed)
 sudo yum install -y postgresql-server
@@ -134,7 +134,7 @@ psql -U ah_pos_user -d ah_pos < /path/to/database/00_init_schema.sql
 
 ```bash
 # SSH to OCI
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 
 # View today's logs
 tail -f /var/log/ah-pos/sync-$(date +%Y%m%d).log
@@ -172,7 +172,7 @@ sudo systemctl restart cron
 ### Python dependencies missing
 ```bash
 # SSH to OCI and reinstall
-ssh opc@129.146.236.177
+ssh $AH_POS_USER@$AH_POS_HOST
 cd /home/opc/profitenginev5/ah-pos
 python -m pip install -r requirements.txt
 ```

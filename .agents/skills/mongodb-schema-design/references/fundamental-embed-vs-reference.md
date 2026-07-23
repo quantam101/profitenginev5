@@ -46,11 +46,11 @@ tags: schema, embedding, referencing, relationships, fundamentals, one-to-one, o
 ```javascript
 {
   _id: "user123",
-  email: "alice@example.com",
+  email: "alice@alreadyherellc.invalid",
   createdAt: ISODate("2024-01-01"),
   profile: {
     name: "Alice Smith",
-    avatar: "https://cdn.example.com/alice.jpg",
+    avatar: "https://cdn.alreadyherellc.com/alice.jpg",
     bio: "Developer building cool things"
   }
 }
