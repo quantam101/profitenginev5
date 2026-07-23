@@ -15,6 +15,7 @@ async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T | null> {
     const res = await fetch(url, {
       cache: 'no-store',
       signal: AbortSignal.timeout(timeoutMs),
+      headers: { 'User-Agent': 'ProfitEngine/5.0' },
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -24,10 +25,7 @@ async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T | null> {
 }
 
 type RuntimeHealth = { ok?: boolean; service?: string; mode?: string };
-type IncomeSummary = {
-  ok?: boolean;
-  streams?: Record<string, unknown>;
-};
+type IncomeSummary = { ok?: boolean; streams?: Record<string, unknown> };
 type Metrics = {
   total_cycles?: number;
   successful_cycles?: number;
@@ -40,14 +38,10 @@ type ProductsRevenue = {
   month_revenue_usd?: number;
   catalog?: unknown[];
 };
-type NewsletterStats = {
-  ok?: boolean;
-  total_subscribers?: number;
-  subscribers?: Record<string, unknown>;
-};
+type NewsletterStats = { ok?: boolean; total_subscribers?: number; subscribers?: Record<string, unknown> };
 
 async function fetchRuntimeSnapshot(): Promise<Record<string, unknown> | null> {
-  const timeoutMs = 30_000;
+  const timeoutMs = 15_000;
   const [health, income, metrics, products, newsletter] = await Promise.all([
     fetchJson<RuntimeHealth>(`${RUNTIME_BASE}/health`, timeoutMs),
     fetchJson<IncomeSummary>(`${RUNTIME_BASE}/income/summary`, timeoutMs),
@@ -56,18 +50,16 @@ async function fetchRuntimeSnapshot(): Promise<Record<string, unknown> | null> {
     fetchJson<NewsletterStats>(`${RUNTIME_BASE}/newsletter/stats`, timeoutMs),
   ]);
 
-  if (!health?.ok && !income?.ok && !products?.ok && !newsletter?.ok) {
+  if (!health?.ok) {
     return null;
   }
 
-  const healthScore = health?.ok ? 100 : 0;
-
   return {
     _source: 'runtime_live',
-    engineRunning: health?.ok ?? false,
-    service: health?.service ?? 'profitengine-runtime',
-    mode: health?.mode ?? 'strict_zero_spend',
-    healthScore,
+    engineRunning: true,
+    service: health.service ?? 'profitengine-runtime',
+    mode: health.mode ?? 'strict_zero_spend',
+    healthScore: 100,
     uptime: 'runtime active',
     tokensToday: 0,
     totalCycles: metrics?.total_cycles ?? 0,
@@ -108,24 +100,16 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
   }
 }
 
-async function fetchHealthScore(): Promise<number> {
-  const health = await fetchJson<{ healthScore?: number; ok?: boolean }>(`${RUNTIME_BASE}/health`, 30_000);
-  if (typeof health?.healthScore === 'number') return health.healthScore;
-  return health?.ok ? 100 : 0;
-}
-
 export async function GET(_request: NextRequest) {
-  const [runtime, ghStats, runtimeHealth] = await Promise.all([
+  const [runtime, ghStats] = await Promise.all([
     fetchRuntimeSnapshot(),
     fetchGitHubStats(),
-    fetchHealthScore(),
   ]);
 
   if (runtime) {
     return NextResponse.json(
       {
         ...runtime,
-        healthScore: runtimeHealth,
         publishedPosts: ghStats.postCount,
         lastPublished: ghStats.lastTitle,
         lastPublishedDate: ghStats.lastDate,
@@ -145,7 +129,7 @@ export async function GET(_request: NextRequest) {
         lastPublishedDate: ghStats.lastDate,
         contentSite: CONTENT_SITE,
         content24h: ghStats.postCount,
-        healthScore: runtimeHealth,
+        healthScore: 0,
         uptime: 'pipeline active',
         tokensToday: 0,
       },
@@ -156,13 +140,13 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json(
     {
       _source: 'degraded',
-      engineRunning: runtimeHealth >= 80,
+      engineRunning: false,
       publishedPosts: ghStats.postCount,
       lastPublished: ghStats.lastTitle,
       lastPublishedDate: ghStats.lastDate,
       contentSite: CONTENT_SITE,
       content24h: ghStats.postCount,
-      healthScore: runtimeHealth,
+      healthScore: 0,
       uptime: 'pipeline active',
       tokensToday: 0,
     },
