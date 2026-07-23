@@ -6,7 +6,7 @@ Free — get an integration token at https://medium.com/me/settings → Integrat
 Set MEDIUM_API_KEY and MEDIUM_AUTHOR_ID in your server .env.
 
 To find your author ID:
-  curl -H 'Authorization: Bearer YOUR_KEY' https://api.medium.com/v1/me | python3 -m json.tool
+  curl -H "Authorization: Bearer $MEDIUM_API_KEY" https://api.medium.com/v1/me | python3 -m json.tool
   Look for the "id" field.
 """
 from __future__ import annotations
