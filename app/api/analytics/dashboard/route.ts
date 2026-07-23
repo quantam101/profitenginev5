@@ -48,7 +48,7 @@ interface DashboardData {
 export async function GET(request: NextRequest): Promise<NextResponse<DashboardData>> {
   try {
     // Fetch from OCI analytics logs
-    const analyticsUrl = process.env.OCI_ANALYTICS_URL || 'https://api.profitengine.alreadyherellc.com/analytics';
+    const analyticsUrl = process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com/analytics';
 
     // Fallback: Generate mock data for demonstration
     const dashboardData: DashboardData = {

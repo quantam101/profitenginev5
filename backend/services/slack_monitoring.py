@@ -335,7 +335,7 @@ async def test_slack_briefings():
     from motor.motor_asyncio import AsyncIOMotorClient
 
     # Mock database
-    mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+    mongo_url = os.environ.get("MONGO_URL", "mongodb://mongo:27017")
     client = AsyncIOMotorClient(mongo_url)
     db = client["profitengine_test"]
 

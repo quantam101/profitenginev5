@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch analytics from OCI
-    const ociHost = process.env.OCI_HOST || '129.146.236.177';
+    // Fetch analytics from runtime
+    const runtimeUrl = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
-    const analyticsResponse = await fetch(`http://${ociHost}:8000/analytics`, {
+    const analyticsResponse = await fetch(`${runtimeUrl}/analytics`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.OCI_API_TOKEN}`,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (!analyticsResponse?.ok) {
       return NextResponse.json({
-        error: 'OCI analytics unavailable',
+        error: 'Runtime analytics unavailable',
         fallback: true,
       }, { status: 202 });
     }
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const data = await analyticsResponse.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Failed to fetch OCI analytics:', error);
+    console.error('Failed to fetch runtime analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

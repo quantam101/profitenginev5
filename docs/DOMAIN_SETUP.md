@@ -7,7 +7,7 @@ Set it in your `.env` file before deploying:
 
 ```bash
 # .env
-SITE_DOMAIN=profitengine.alreadyherellc.com
+SITE_DOMAIN=alreadyherellc.com
 ACME_EMAIL=ops@alreadyherellc.com
 ```
 
@@ -16,7 +16,7 @@ to resolve the domain at runtime. No code changes are needed per deployment.
 
 ## Production Domain
 
-Target runtime: Oracle Cloud Infrastructure Always Free
+Target runtime: Render (or your chosen host)
 Reverse proxy: Caddy
 
 ## Recommended DNS Model
@@ -108,11 +108,11 @@ docker-compose.yml       Uses ${SITE_DOMAIN} env var
 ```txt
 [ ] Confirm domain registrar access
 [ ] Decide registrar DNS or Cloudflare Free DNS
-[ ] Create OCI Always Free A1 instance
-[ ] Record OCI public IP
+[ ] Create a host (e.g., Render web service or cloud VM)
+[ ] Record the host public IP
 [ ] Add DNS records (A + CNAMEs)
 [ ] Copy .env.example to .env on server
-[ ] Set SITE_DOMAIN=profitengine.alreadyherellc.com in .env
+[ ] Set SITE_DOMAIN=alreadyherellc.com in .env
 [ ] Set ACME_EMAIL=ops@alreadyherellc.com in .env
 [ ] Replace server-side passwords in .env
 [ ] Run docker compose up -d --build

@@ -53,13 +53,13 @@ After that, every `git push` auto-deploys via GitHub Actions.
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF5IOnsqRDtbUYu5WQfLaAjAQmc+zKrlK6TDafDgO0Ij profitengine-deploy@github-actions
 ```
 
-### Option A — OCI Console (easiest, 2 minutes)
+### Option A — Cloud provider console (easiest, 2 minutes)
 1. Go to https://cloud.oracle.com → sign in
-2. Compute → Instances → click your instance (IP: 129.146.236.177)
+2. Compute → Instances → click your instance (IP: $DEPLOY_HOST)
 3. Click **Edit** (top right)
 4. Under **SSH keys** → **Add SSH keys** → paste the key above
 5. Click **Save changes**
-6. Go to GitHub → Actions → **Deploy to OCI Server** → **Run workflow**
+6. Go to GitHub → Actions → **Deploy to server** → **Run workflow**
 
 ### Option B — Bitwarden re-auth (if you prefer SSH)
 ```powershell
@@ -69,7 +69,7 @@ docker exec -it local-operator bash
 bw login   # enter your Bitwarden email + master password
 bw list items --search "OCI" | python3 -c "import json,sys; [print(i['login']['password']) for i in json.loads(sys.stdin.read()) if 'key' in i.get('name','').lower()]"
 # Copy the private key, save to ~/.ssh/oci_key, chmod 600
-# Then SSH: ssh -i ~/.ssh/oci_key opc@129.146.236.177
+# Then SSH: ssh -i ~/.ssh/oci_key opc@$DEPLOY_HOST
 # Once in: paste the bootstrap one-liner from Option C
 ```
 
@@ -110,16 +110,16 @@ To add a secret: GitHub → repo → Settings → Secrets → Actions → New se
 ## Post-Deploy (after server is up)
 
 - [ ] Run `bash scripts/setup-n8n.sh` on server to activate n8n workflows
-- [ ] Verify n8n dashboard at https://app.profitengine.alreadyherellc.com
+- [ ] Verify n8n dashboard at https://app.alreadyherellc.com
 - [ ] Verify `/api/health` returns 100/100
 - [ ] HTTPS certificates issued by Caddy (auto, wait ~60s after first deploy)
-- [ ] Confirm only ports 22, 80, 443 are open in OCI Security List
+- [ ] Confirm only ports 22, 80, 443 are open in your cloud firewall/security group
 
 ---
 
 ## Domain / DNS
 
-- [ ] `SITE_DOMAIN` set in `.env` (default: `profitengine.alreadyherellc.com`)
-- [ ] A records: `@`, `app`, `api` → 129.146.236.177
+- [ ] `SITE_DOMAIN` set in `.env` (default: `alreadyherellc.com`)
+- [ ] A records: `@`, `app`, `api` → $DEPLOY_HOST
 - [ ] Caddy is running and HTTPS certificates are issued
 - [ ] n8n not publicly exposed until `N8N_BASIC_AUTH_ACTIVE=true` confirmed

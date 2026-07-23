@@ -336,7 +336,7 @@ class EdgeStorageManager:
 
 # ── AI inference agent (local Ollama) ─────────────────────────────────────────
 
-_OLLAMA_BASE  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+_OLLAMA_BASE  = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434/v1")
 _OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")  # llama3.2 confirmed installed
 
 _SYSTEM_PROMPT = (

@@ -96,7 +96,7 @@ fi
 echo ""
 echo "── Health Check ──"
 sleep 2
-curl -s --max-time 10 http://localhost:8000/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print('LOCAL HEALTH:', d)" 2>/dev/null || echo "local health check failed"
+curl -s --max-time 10 http://127.0.0.1:8000/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print('LOCAL HEALTH:', d)" 2>/dev/null || echo "local health check failed"
 curl -s --max-time 10 "https://${TOKENFORGE_DOMAIN}/api/health" | python3 -c "import json,sys; d=json.load(sys.stdin); print('PUBLIC HEALTH:', d)" 2>/dev/null || echo "public health check failed (SSL may still need Caddy restart on ${SERVER_IP})"
 
 echo ""

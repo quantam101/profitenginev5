@@ -3,13 +3,13 @@ import { getCacheHeaders } from '@/app/lib/cache';
 
 export const revalidate = 300;
 
-const ORACLE = process.env.ORACLE_API_URL ?? 'http://localhost:3000';
+const ORACLE = process.env.ORACLE_API_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://app.alreadyherellc.com';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';
 const CONTENT_SITE = `https://${GH_OWNER}.github.io/${GH_REPO}`;
 
-/** Try the OCI/local oracle API first (fastest, richest data). */
+/** Try the runtime/oracle API first (fastest, richest data). */
 async function tryOracle(): Promise<Record<string, unknown> | null> {
   try {
     const res = await fetch(`${ORACLE}/api/status`, {
@@ -92,7 +92,7 @@ async function fetchHealthScore(requestHost: string): Promise<number> {
 }
 
 export async function GET(request: NextRequest) {
-  const host = request.headers.get('host') ?? 'localhost:3000';
+  const host = request.headers.get('host') ?? 'app.alreadyherellc.com';
   const [oracle, ghStats, liveHealth] = await Promise.all([
     tryOracle(),
     fetchGitHubStats(),

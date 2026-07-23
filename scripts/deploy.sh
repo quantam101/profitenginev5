@@ -78,7 +78,7 @@ docker compose up -d --remove-orphans
 log "Waiting for runtime to become healthy …"
 max_wait=60
 elapsed=0
-until docker compose exec -T runtime curl -sf http://localhost:8080/health > /dev/null 2>&1; do
+until docker compose exec -T runtime curl -sf http://127.0.0.1:8080/health > /dev/null 2>&1; do
   sleep 2
   elapsed=$((elapsed + 2))
   if [[ $elapsed -ge $max_wait ]]; then
@@ -92,7 +92,7 @@ log "Runtime is healthy."
 # ── wait for web health ────────────────────────────────────────────────────
 log "Waiting for web (Next.js) to become healthy …"
 elapsed=0
-until docker compose exec -T web curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
+until docker compose exec -T web curl -sf http://127.0.0.1:3000/api/health > /dev/null 2>&1; do
   sleep 2
   elapsed=$((elapsed + 2))
   if [[ $elapsed -ge $max_wait ]]; then
@@ -121,6 +121,6 @@ log "║  Site:           https://$DOMAIN"
 log "║  Command center: https://app.$DOMAIN"
 log "║  Runtime API:    https://api.$DOMAIN"
 log "║  Status page:    https://status.$DOMAIN"
-log "║  Runtime health: docker compose exec runtime curl http://localhost:8080/health"
+log "║  Runtime health: docker compose exec runtime curl http://127.0.0.1:8080/health"
 log "║  Logs:           docker compose logs -f"
 log "╚══════════════════════════════════════════════════════════╝"
