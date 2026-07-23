@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-OCI Server: Video Generation + Multi-Platform Upload
-Runs on OCI Always Free tier (129.146.236.177)
+Video Generation + Multi-Platform Upload
 - Lightweight: FFmpeg slideshow only (no Wan, no heavy models)
 - Triggered by GitHub Actions webhook or cron job
 - Generates video and auto-posts to all platforms

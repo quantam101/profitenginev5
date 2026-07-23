@@ -15,20 +15,20 @@
 #    → Connect (serial console or VNC)
 #    → Paste this ENTIRE script when prompted, press Enter
 #
-#  METHOD B — OCI Cloud Shell (if instance is on public subnet):
-#    Open Cloud Shell (>_ in OCI Console top bar)
-#    → ssh opc@129.146.236.177   (if your OCI Cloud Shell key is in authorized_keys)
+#  METHOD B — Cloud provider shell (if instance is on public subnet):
+#    Open the provider cloud shell
+#    → ssh <user>@<server-ip>   (if your cloud shell key is in authorized_keys)
 #    → Paste this script
 #
 #  METHOD C — Any machine with any working SSH key:
-#    ssh -i YOUR_KEY opc@129.146.236.177
+#    ssh -i <your-key> <user>@<server-ip>
 #    → Paste this script
 #
 #  Fill in your API keys below before running.
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-# ── YOUR KEYS (fill these in before running) ──────────────────────
+# ── API KEYS (fill these in before running) ──────────────────────
 # Keys are in your Bitwarden vault and in GitHub Actions secrets.
 # Find them in: Downloads/COMPLETE_SETUP.sh  or  GitHub → Settings → Secrets
 GROQ_API_KEY="${GROQ_API_KEY:?GROQ_API_KEY is required}"
@@ -115,7 +115,7 @@ log ""
 log "╔══════════════════════════════════════════════════════════════╗"
 log "║  FIRST BOOT COMPLETE                                         ║"
 log "╠══════════════════════════════════════════════════════════════╣"
-log "║  Dashboard: http://129.146.236.177:3000                       ║"
-log "║  Health:    http://129.146.236.177:3000/api/health            ║"
+log "║  Dashboard: http://<server-ip>:3000                            ║"
+log "║  Health:    http://<server-ip>:3000/api/health                 ║"
 log "║  CI/CD:     every git push to main auto-deploys now          ║"
 log "╚══════════════════════════════════════════════════════════════╝"

@@ -10,7 +10,7 @@ STORE_LINKS = {
     "etsy": "https://www.etsy.com/shop/AlreadyHereLLC",
     "printify": "https://fly-culture-shop.printify.me",
     "shopify": "https://flydesignvault.com",
-    "profitengine": "https://profitengine-tau.vercel.app",
+    "profitengine": "https://app.alreadyherellc.com",
 }
 
 

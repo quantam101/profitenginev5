@@ -254,14 +254,14 @@ jobs:
       - name: Canary smoke — runtime API reachable
         run: |
           STATUS=$(curl -sf --max-time 10 \
-            "https://api.profitengine.alreadyherellc.com/health" \
+            "https://profitengine-runtime.onrender.com/health" \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null \
             || echo "unreachable")
           echo "Runtime health: $STATUS"
           if [ "$STATUS" = "ok" ]; then
             echo "::notice::Runtime API healthy"
           else
-            echo "::warning::Runtime API unreachable — OCI server may be down"
+            echo "::warning::Runtime API unreachable — Render service may be down"
           fi
 
       - name: Canary smoke — distillation status

@@ -1,6 +1,7 @@
 #!/bin/bash
-# TokenForge server full setup — run via OCI Run Command or serial console
-# Server: 129.146.236.177
+# TokenForge server full setup — run on the target host (set SERVER_IP and TOKENFORGE_DOMAIN first)
+SERVER_IP="${SERVER_IP:-}"
+TOKENFORGE_DOMAIN="${TOKENFORGE_DOMAIN:-app.alreadyherellc.com}"
 set -e
 
 echo "=== TokenForge Server Setup ==="
@@ -96,7 +97,7 @@ echo ""
 echo "── Health Check ──"
 sleep 2
 curl -s --max-time 10 http://localhost:8000/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print('LOCAL HEALTH:', d)" 2>/dev/null || echo "local health check failed"
-curl -s --max-time 10 https://api.alreadyherellc.com/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print('PUBLIC HEALTH:', d)" 2>/dev/null || echo "public health check failed (SSL may still need Caddy restart on 129.146.236.177)"
+curl -s --max-time 10 "https://${TOKENFORGE_DOMAIN}/api/health" | python3 -c "import json,sys; d=json.load(sys.stdin); print('PUBLIC HEALTH:', d)" 2>/dev/null || echo "public health check failed (SSL may still need Caddy restart on ${SERVER_IP})"
 
 echo ""
 echo "=== Setup complete: $(date) ==="

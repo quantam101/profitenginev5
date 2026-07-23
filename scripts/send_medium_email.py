@@ -22,7 +22,7 @@ body = (
     "Medium is the final distribution channel we want to activate.\n\n"
     "Details:\n"
     "- Company: Already Here LLC\n"
-    "- Website: https://profitengine.alreadyherellc.com\n"
+    "- Website: https://app.alreadyherellc.com\n"
     "- Use case: Automated cross-posting of original long-form articles (1,000-1,500 words) "
     "on AI tools, passive income, and developer productivity\n"
     "- Scopes needed: basicProfile, publishPost\n"
@@ -38,7 +38,7 @@ body = (
     "Stephen\n"
     "Already Here LLC\n"
     "dispatch@alreadyherellc.com\n"
-    "https://profitengine.alreadyherellc.com"
+    "https://app.alreadyherellc.com"
 )
 
 

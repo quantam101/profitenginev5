@@ -1,6 +1,7 @@
 #!/bin/bash
 # Real-time Post Monitor with Direct Links
-# Watch OCI logs and display posts with clickable links
+# Watch remote server logs and display posts with clickable links
+# Usage: MONITOR_HOST=<server-ip> MONITOR_SSH_KEY=~/.ssh/key ./monitor-posts.sh
 
 echo "════════════════════════════════════════════════════════════════"
 echo "  PROFITENGINE v5 - REAL-TIME POST MONITOR"
@@ -9,8 +10,10 @@ echo ""
 echo "Watching for posts... (Ctrl+C to stop)"
 echo ""
 
-# SSH into OCI and stream logs with real-time filtering
-ssh -i ~/.ssh/cmdos_deploy_key ubuntu@129.146.236.177 << 'EOF' &
+# SSH into the target server and stream logs with real-time filtering
+MONITOR_HOST="${MONITOR_HOST:?set MONITOR_HOST env var}"
+MONITOR_SSH_KEY="${MONITOR_SSH_KEY:-~/.ssh/cmdos_deploy_key}"
+ssh -i "$MONITOR_SSH_KEY" "ubuntu@${MONITOR_HOST}" << 'EOF' &
 
 LOGFILE="/home/ubuntu/video_generation.log"
 

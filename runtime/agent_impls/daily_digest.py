@@ -57,7 +57,7 @@ CORRECTIONS_PATH = os.getenv("GMAOS_CORRECTIONS_PATH", "/data/corrections.jsonl"
 GMAIL_USER       = os.getenv("GMAIL_USER", "")
 GMAIL_PASSWORD   = os.getenv("GMAIL_APP_PASSWORD", "")
 ALERT_EMAIL      = os.getenv("ALERT_EMAIL", "")
-DASHBOARD_URL    = os.getenv("APP_PUBLIC_URL", "https://profitengine.alreadyherellc.com")
+DASHBOARD_URL    = os.getenv("APP_PUBLIC_URL", "https://app.alreadyherellc.com")
 
 TELEGRAM_API = "https://api.telegram.org"
 STRIPE_API   = "https://api.stripe.com/v1"

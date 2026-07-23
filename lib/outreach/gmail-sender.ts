@@ -100,7 +100,7 @@ function smtpSend(message: OutreachMessage, user: string, password: string, from
     void (async () => {
       try {
         await command('', [220]);
-        await command('EHLO profitengine.alreadyherellc.com', [250]);
+        await command('EHLO app.alreadyherellc.com', [250]);
         await command('AUTH LOGIN', [334]);
         await command(Buffer.from(user).toString('base64'), [334]);
         await command(Buffer.from(password).toString('base64'), [235]);
