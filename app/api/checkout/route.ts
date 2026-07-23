@@ -88,8 +88,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/checkout`,
+      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/payment/cancel`,
       ...(email && { customer_email: email }),
       metadata: {
         tool,

@@ -242,7 +242,7 @@ Current skip reason: Phase 1 & 2 already achieve -80% cost reduction
 **Test the optimizations:**
 ```bash
 # Check edge headers
-curl -I https://profitengine-tau.vercel.app/
+curl -I https://app.alreadyherellc.com/
 
 # Expected headers:
 X-Content-Type-Options: nosniff
@@ -250,7 +250,7 @@ X-Frame-Options: DENY
 Cache-Control: (varies by endpoint)
 
 # Test API caching
-curl https://profitengine-tau.vercel.app/api/health
+curl https://app.alreadyherellc.com/api/health
 # Second call should return in <10ms (cached)
 ```
 

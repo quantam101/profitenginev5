@@ -326,7 +326,7 @@ Before Deploying:
   ☐ Set SLACK_BOT_TOKEN in GitHub Secrets
   ☐ Set SLACK_REVENUE_CHANNEL in GitHub Secrets (or use default)
   ☐ Create .github/workflows/daily-slack-updates.yml
-  ☐ Test locally with sample data (--dry-run)
+  ☐ Test locally with test data (--dry-run)
   ☐ Wire database queries to get_*_data() functions
   ☐ Test first real post manually
   ☐ Verify message appears in Slack

@@ -167,7 +167,7 @@ A: After project completion or major milestone. Quarterly minimum to stay curren
 
 **Connection String (MySQL Workbench)**:
 ```
-Host: [YOUR_HOST]
+Host: $MYSQL_HOST
 Port: 3306
 Username: proposal_writer
 Database: federal_past_performance
@@ -175,11 +175,12 @@ Database: federal_past_performance
 
 **Connection String (Python)**:
 ```python
+import os
 import mysql.connector
 conn = mysql.connector.connect(
-    host="[YOUR_HOST]",
+    host=os.environ["MYSQL_HOST"],
     user="proposal_writer",
-    password="[PASSWORD]",
+    password=os.environ["MYSQL_PASSWORD"],
     database="federal_past_performance"
 )
 cursor = conn.cursor()

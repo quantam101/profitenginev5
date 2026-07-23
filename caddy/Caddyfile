@@ -2,9 +2,8 @@
   email {$ACME_EMAIL}
 }
 
-# Bare-IP health probe — CI and monitoring can hit http://129.146.236.177/health
-# without needing a TLS cert or DNS. Caddy handles this on port 80 only.
-# NOTE: the catch-all redir MUST be inside a handle {} block so Caddy treats it
+# Port 80 health probe for CI and monitoring.
+# The catch-all redir MUST be inside a handle {} block so Caddy treats it
 # as "else" — a bare redir fires before handle matches in Caddy v2.
 :80 {
   handle /health {
@@ -43,30 +42,18 @@ app.{$SITE_DOMAIN} {
 
 api.{$SITE_DOMAIN} {
   encode gzip zstd
-  reverse_proxy runtime:8080
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "strict-origin-when-cross-origin"
-  }
-}
-
-api.alreadyherellc.com {
-  encode gzip zstd
-
-  # Route Stripe webhook to backend
+  # Route Stripe webhooks to the Node backend
   handle_path /stripe/* {
     reverse_proxy backend:8001
   }
 
-  # Route runtime/agent API calls
+  # Route runtime/agent API calls to the Python FastAPI service
   handle_path /runtime/* {
     reverse_proxy runtime:8080
   }
 
-  # Default: ProfitEngine backend (payments, health, agents)
+  # Default: backend (payments, health, agents)
   handle {
     reverse_proxy backend:8001
   }
@@ -76,11 +63,10 @@ api.alreadyherellc.com {
     X-Content-Type-Options "nosniff"
     X-Frame-Options "DENY"
     Referrer-Policy "strict-origin-when-cross-origin"
-    Access-Control-Allow-Origin "https://forge.alreadyherellc.com"
   }
 }
 
-backend.alreadyherellc.com {
+backend.{$SITE_DOMAIN} {
   encode gzip zstd
 
   handle_path /taylor/* {
@@ -113,7 +99,7 @@ taylor.{$SITE_DOMAIN} {
     X-Content-Type-Options "nosniff"
     X-Frame-Options "DENY"
     Referrer-Policy "strict-origin-when-cross-origin"
-    Permissions-Policy "camera=(), geolocation=(), payment=()"
+    Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
   }
 }
 

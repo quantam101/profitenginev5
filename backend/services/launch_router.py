@@ -90,8 +90,8 @@ async def _h_create_checkout(
     db: AsyncIOMotorDatabase, stripe: StripeFactory,
 ) -> dict:
     pkg = _validate_checkout_request(body)
-    success_url = f"{body.origin_url.rstrip('/')}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{body.origin_url.rstrip('/')}/#pricing"
+    success_url = f"{body.origin_url.rstrip('/')}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{body.origin_url.rstrip('/')}/payment/cancel"
     metadata = _build_checkout_metadata(body, pkg)
     try:
         session = await stripe(request).create_checkout_session(

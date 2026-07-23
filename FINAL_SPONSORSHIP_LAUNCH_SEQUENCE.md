@@ -258,7 +258,7 @@ Finalize 3 email variants (Tier 1/2/3), create personalization matrix, validate 
 - [ ] **Task 2.11**: Final Edits & Approval
   - Fix flagged emails
   - Ensure: Subject lines are compelling, CTAs are clear, signatures are consistent
-  - Get approval from Stephen Franklin (if available) on 2-3 sample emails
+  - Get approval from Stephen Franklin (if available) on 2-3 template emails
   - **Duration**: 30 minutes
 
 - [ ] **Task 2.12**: Prepare Launch Package

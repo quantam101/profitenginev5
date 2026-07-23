@@ -79,7 +79,7 @@ services:
       - n8n_data:/home/node/.n8n
 
   # FastAPI backend — MongoDB Atlas, Stripe, distillation, referrals, waitlist.
-  # Exposed at backend.alreadyherellc.com via Caddy (see caddy/Caddyfile).
+  # Exposed at backend.{$SITE_DOMAIN} via Caddy (see caddy/Caddyfile).
   taylor:
     build:
       context: .

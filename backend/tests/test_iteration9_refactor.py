@@ -32,7 +32,7 @@ class TestLaunchRouterRefactor:
     def test_checkout_session_invalid_package_400(self):
         r = requests.post(
             f"{BASE_URL}/api/checkout/session",
-            json={"package_id": "bogus", "origin_url": "https://example.com"},
+            json={"package_id": "bogus", "origin_url": "https://alreadyherellc.invalid"},
             timeout=15,
         )
         assert r.status_code == 400
@@ -50,7 +50,7 @@ class TestLaunchRouterRefactor:
             f"{BASE_URL}/api/checkout/session",
             json={
                 "package_id": "studio_monthly",
-                "origin_url": "https://example.com",
+                "origin_url": "https://alreadyherellc.invalid",
             },
             timeout=20,
         )
@@ -115,7 +115,7 @@ class TestLaunchRouterRefactor:
     def test_subscriptions_me_unknown(self):
         r = requests.get(
             f"{BASE_URL}/api/subscriptions/me",
-            params={"email": "noone@example.com"},
+            params={"email": "noone@alreadyherellc.invalid"},
             timeout=15,
         )
         assert r.status_code == 200

@@ -106,14 +106,14 @@ cp "$REPO_DIR/*.md" "$BACKUP_DIR/config/" 2>/dev/null || true
 echo -e "${GREEN}✅ Configuration backed up${NC}"
 
 echo -e "${YELLOW}[6/8] Creating metadata...${NC}"
-cat > "$BACKUP_DIR/BACKUP_MANIFEST.txt" << 'MANIFEST'
+cat > "$BACKUP_DIR/BACKUP_MANIFEST.txt" << MANIFEST
 PROFITENGINE v5 - BACKUP MANIFEST
 ==================================
 
-Timestamp: TIMESTAMP_PLACEHOLDER
+Timestamp: $TIMESTAMP
 Repository: https://github.com/quantam101/profitenginev5
-Server: OCI Always Free (129.146.236.177)
-Frontend: https://profitengine-tau.vercel.app
+Server: Render (profitengine-runtime.onrender.com)
+Frontend: https://app.alreadyherellc.com
 
 CONTENTS:
 ---------

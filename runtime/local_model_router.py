@@ -3,7 +3,7 @@ Routing tier selection for the GMAOS execution core.
 
 Tier cascade (lowest cost first):
   DETERMINISTIC_LOCAL  — rule-based, zero AI cost (simple / low-risk)
-  LM_STUDIO            — local OpenAI-compatible server (LM Studio localhost:1234)
+  LM_STUDIO            — local OpenAI-compatible server (LM Studio, set LM_STUDIO_BASE_URL)
   LOCAL_MODEL          — Ollama local inference, free forever
   GROQ_CLOUD           — free tier, 700+ tok/s, Llama-3.3-70b
   HUGGINGFACE          — free cloud inference, many open models
@@ -44,14 +44,12 @@ class LocalModelRouter:
     _THRESH_CLAUDE        = float(os.getenv("GMAOS_THRESH_CLAUDE",        "0.90"))
 
     def _lmstudio_enabled(self) -> bool:
-        if os.getenv("LM_STUDIO_BASE_URL", "").strip():
-            return True
-        return os.getenv("LM_STUDIO_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+        return bool(os.getenv("LM_STUDIO_BASE_URL", "").strip())
 
     def route(self, complexity_score: float) -> ModelRoute:
         local_enabled  = os.getenv("GMAOS_LOCAL_MODEL_ENABLED", "false").lower() == "true"
-        local_endpoint = os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT", "http://localhost:11434")
-        lms_url        = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+        local_endpoint = os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT", "http://ollama:11434")
+        lms_url        = os.getenv("LM_STUDIO_BASE_URL", "")
         groq_key       = bool(os.getenv("GROQ_API_KEY", ""))
         claude_key     = bool(os.getenv("ANTHROPIC_API_KEY", ""))
 

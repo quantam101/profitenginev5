@@ -47,7 +47,7 @@ class TestCheckoutSession:
             "package_id": "studio_monthly",
             "origin_url": BASE_URL,
             "referral_code": "TEST_PYTEST",
-            "email": "TEST_pytest@example.com",
+            "email": "TEST_pytest@alreadyherellc.invalid",
         }
         r = client.post(f"{BASE_URL}/api/checkout/session", json=payload)
         assert r.status_code == 200, r.text
@@ -114,7 +114,7 @@ class TestReferral:
 class TestSubscriptions:
     def test_none_for_unknown_email(self, client):
         r = client.get(f"{BASE_URL}/api/subscriptions/me",
-                       params={"email": "TEST_nobody@example.com"})
+                       params={"email": "TEST_nobody@alreadyherellc.invalid"})
         assert r.status_code == 200
         d = r.json()
         assert not d["active"]

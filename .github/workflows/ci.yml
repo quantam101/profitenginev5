@@ -50,12 +50,10 @@ jobs:
         run: npm run test:ai-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
       - name: Skill gateway test
         run: npm run test:skill-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
       - name: Opportunity intelligence test
         run: npm run test:opportunity
         env:
@@ -66,7 +64,6 @@ jobs:
           npm run eval:skill-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
       - name: Runtime security scan
         run: |
           python - <<'PY'
@@ -104,9 +101,8 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Run contract tests
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://mongo:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
         run: python -m pytest backend/tests/test_distillation.py -v
 
   e2e:
@@ -132,9 +128,8 @@ jobs:
           npm ci --include=dev
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://mongo:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
         run: |
           cd /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
@@ -165,9 +160,8 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://mongo:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
         run: |
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
           for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done

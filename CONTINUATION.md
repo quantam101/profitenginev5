@@ -109,7 +109,7 @@ C:\Users\alrea\profitengine-ed25519.pub    # public key
 
 ```powershell
 # Trigger deploy (uses current GH_TOKEN session)
-$env:GH_TOKEN = "YOUR_GITHUB_PAT_HERE"
+$env:GH_TOKEN = (Read-Host "GitHub PAT")
 gh workflow run deploy.yml -R quantam101/profitenginev5 --ref main
 gh run watch --repo quantam101/profitenginev5
 
@@ -119,8 +119,8 @@ gh workflow run docker-guard.yml -R quantam101/profitenginev5 --ref main
 
 ```powershell
 # Update a GitHub secret (example: DEVTO_API_KEY)
-$env:GH_TOKEN = "YOUR_GITHUB_PAT_HERE"
-gh secret set DEVTO_API_KEY --body "your-key-here" -R quantam101/profitenginev5
+$env:GH_TOKEN = (Read-Host "GitHub PAT")
+gh secret set DEVTO_API_KEY --body (Read-Host "Dev.to API key") -R quantam101/profitenginev5
 ```
 
 ---

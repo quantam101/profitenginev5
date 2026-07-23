@@ -134,7 +134,7 @@ python backend/scrape_sam_gov.py
 **Start:**
 ```bash
 docker-compose up -d
-# Access pgAdmin: localhost:5050 (admin@example.com / admin)
+# Access pgAdmin: localhost:5050 (admin@alreadyherellc.invalid / admin)
 ```
 
 ### 7. Documentation

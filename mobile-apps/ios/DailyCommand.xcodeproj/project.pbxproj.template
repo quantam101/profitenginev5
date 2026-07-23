@@ -1,7 +1,8 @@
 // Xcode Project Configuration Template
 // Run: xcodebuild -project DailyCommand.xcodeproj -scheme DailyCommand -configuration Debug
 
-DEVELOPMENT_TEAM = YOUR_TEAM_ID
+// Replace with your 10-character Apple Team ID
+DEVELOPMENT_TEAM = 0000000000
 PRODUCT_BUNDLE_IDENTIFIER = com.dailycommand.ios
 SWIFT_VERSION = 5.9
 IPHONEOS_DEPLOYMENT_TARGET = 14.0
@@ -14,7 +15,7 @@ DEBUG_INFORMATION_FORMAT = dwarf
 ENABLE_TESTABILITY = YES
 
 // Signing (update with your Apple Developer account)
-DEVELOPMENT_TEAM[sdk=iphoneos*] = YOUR_TEAM_ID
+DEVELOPMENT_TEAM[sdk=iphoneos*] = 0000000000
 CODE_SIGN_STYLE = Automatic
 PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = match Development com.dailycommand.ios
 

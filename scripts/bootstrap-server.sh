@@ -166,10 +166,10 @@ upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 [[ -n "${RESEND_API_KEY:-}"         ]] && upsert_env RESEND_API_KEY         "${RESEND_API_KEY}"
 
 # Taylor voice agent / Twilio / Stripe Checkout links
-upsert_env TAYLOR_SERVER_URL              "${TAYLOR_SERVER_URL:-https://backend.alreadyherellc.com/taylor}"
+upsert_env TAYLOR_SERVER_URL              "${TAYLOR_SERVER_URL:-https://profitengine-runtime.onrender.com}"
 upsert_env TAYLOR_DB_PATH                 "${TAYLOR_DB_PATH:-/data/taylor.db}"
-upsert_env TAYLOR_PAYMENT_SUCCESS_URL     "${TAYLOR_PAYMENT_SUCCESS_URL:-https://alreadyherellc.com/payment-success}"
-upsert_env TAYLOR_PAYMENT_CANCEL_URL      "${TAYLOR_PAYMENT_CANCEL_URL:-https://alreadyherellc.com/payment-cancelled}"
+upsert_env TAYLOR_PAYMENT_SUCCESS_URL     "${TAYLOR_PAYMENT_SUCCESS_URL:-https://www.alreadyherellc.com/payment/success}"
+upsert_env TAYLOR_PAYMENT_CANCEL_URL      "${TAYLOR_PAYMENT_CANCEL_URL:-https://www.alreadyherellc.com/payment/cancel}"
 upsert_env OLLAMA_API_KEY                 "${OLLAMA_API_KEY:-ollama}"
 [[ -n "${STRIPE_SECRET_KEY:-}"                 ]] && upsert_env STRIPE_SECRET_KEY                 "${STRIPE_SECRET_KEY}"
 [[ -n "${TWILIO_ACCOUNT_SID:-}"                ]] && upsert_env TWILIO_ACCOUNT_SID                "${TWILIO_ACCOUNT_SID}"

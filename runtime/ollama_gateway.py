@@ -6,8 +6,8 @@ Calls the Ollama native chat API at:
 
 Environment variables:
   GMAOS_LOCAL_MODEL_ENABLED   — "true" to activate (default: false)
-  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (default: http://localhost:11434)
-                                 Docker: set to http://ollama:11434
+  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (default: http://ollama:11434)
+                                 Local dev: set to http://localhost:11434
   GMAOS_LOCAL_MODEL_NAME      — model tag (default: llama3.1:8b)
   GMAOS_LOCAL_MODEL_TIMEOUT   — per-request timeout seconds (default: 120)
 
@@ -31,7 +31,7 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-_DEFAULT_BASE_URL = "http://localhost:11434"
+_DEFAULT_BASE_URL = "http://ollama:11434"
 _DEFAULT_MODEL = "llama3.1:8b"
 _DEFAULT_TIMEOUT = 120
 

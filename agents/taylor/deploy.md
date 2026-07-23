@@ -80,7 +80,7 @@ pm2 save
 ```
 
 Option C — Vercel (serverless):
-Deploy as a Python serverless function at profitengine-tau.vercel.app/api/taylor
+Deploy as a Python serverless function at app.alreadyherellc.com/api/taylor
 
 ---
 

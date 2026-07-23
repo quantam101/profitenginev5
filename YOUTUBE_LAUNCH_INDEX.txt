@@ -246,12 +246,12 @@ EXTERNAL LINKS (ALL MUST BE ACTIVE)
 ================================================================================
 
 PRIMARY (Business):
-  https://profitengine-tau.vercel.app
+  https://app.alreadyherellc.com
   Status: Required in all 5 video descriptions
   Test: Click link, verify dashboard loads
 
 SECONDARY (Revenue):
-  https://gumroad.com/profitengine
+  https://alreadyhere.gumroad.com/
   Status: Required in all 5 video descriptions
   Test: Click link, verify product page loads
 

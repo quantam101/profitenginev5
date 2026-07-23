@@ -125,11 +125,11 @@ tier_router:
 
 # ── Sovereign Core integration ────────────────────────────────────────────────
 sovereign:
-  redis_host: "127.0.0.1"          # env: ENTERPRISE_REDIS_HOST
+  redis_host: "state_cache"        # env: ENTERPRISE_REDIS_HOST
   redis_port: 6379                 # env: ENTERPRISE_REDIS_PORT
   semantic_match_floor: 0.96      # env: SEMANTIC_MATCH_FLOOR
   local_complexity_threshold: 0.50 # complexity ≤ this → Ollama local swarm
-  local_swarm_url: "http://localhost:11434/v1/chat/completions"  # env: LOCAL_SWARM_URL
+  local_swarm_url: "http://ollama:11434/v1/chat/completions"  # override via LOCAL_SWARM_URL
   # Fallback when Redis unavailable: in-process LRU
   mem_cache_max: 200
   mem_cache_ttl_hours: 1

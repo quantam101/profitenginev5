@@ -21,7 +21,7 @@ Mirroring a relational schema 1:1 — e.g. separate `customers`, `addresses`, `p
 {
   _id: "cust123",
   name: "Alice Smith",
-  email: "alice@example.com",
+  email: "alice@alreadyherellc.invalid",
   addresses: [
     { type: "home", street: "123 Main", city: "Boston", zip: "02101" },
     { type: "work", street: "456 Oak", city: "Boston", zip: "02102" }

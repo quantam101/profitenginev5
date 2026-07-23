@@ -138,9 +138,9 @@ ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
 
 **Expected Output**: 30+ indexes across tables
 
-### Step 6: Test Sample Data
+### Step 6: Test Example Data
 
-Verify the 5 sample contracts loaded:
+Verify the 5 example contracts loaded:
 
 ```sql
 SELECT COUNT(*) AS total_contracts FROM past_performance_contracts;

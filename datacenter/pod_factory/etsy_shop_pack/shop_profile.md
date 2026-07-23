@@ -37,6 +37,6 @@ Because items are made to order, returns and exchanges are not accepted for size
 1. Confirm Printify store is connected to Etsy.
 2. Push products from Printify or create Etsy listings using `etsy_listings.csv`.
 3. Set production partner as Printify in Etsy listing settings.
-4. Check titles, tags, pricing, shipping profiles, and mockups.
+4. Check titles, tags, pricing, shipping profiles, and product previews.
 5. Publish the first 8 listings.
 6. Add store links to Already Here social/content CTAs.

@@ -96,8 +96,8 @@ async def _create_stripe_checkout(
     phone_number: str,
 ) -> dict[str, str]:
     secret_key = _env("STRIPE_SECRET_KEY")
-    success_url = _env("TAYLOR_PAYMENT_SUCCESS_URL", "https://alreadyherellc.com/payment-success")
-    cancel_url = _env("TAYLOR_PAYMENT_CANCEL_URL", "https://alreadyherellc.com/payment-cancelled")
+    success_url = _env("TAYLOR_PAYMENT_SUCCESS_URL", "https://www.alreadyherellc.com/payment/success")
+    cancel_url = _env("TAYLOR_PAYMENT_CANCEL_URL", "https://www.alreadyherellc.com/payment/cancel")
     if not secret_key:
         raise RuntimeError("STRIPE_SECRET_KEY is not configured")
     if amount_in_cents < 50:

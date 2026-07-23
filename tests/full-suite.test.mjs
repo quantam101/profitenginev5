@@ -205,7 +205,7 @@ async function runSmoke(runtimeOk, backendOk) {
 
     // POST waitlist
     try {
-      const email = `smoke-test-${Date.now()}@example.com`;
+      const email = `smoke-test-${Date.now()}@alreadyherellc.invalid`;
       const r = await fetchJSON(`${BACKEND_URL}/api/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

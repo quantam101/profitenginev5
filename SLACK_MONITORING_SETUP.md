@@ -593,7 +593,7 @@ Adjust `cron` expressions accordingly.
 
 ### Metrics not updating
 
-The templates include mock data. To show real metrics:
+The templates include placeholder metrics. To show real metrics:
 
 1. Update `_fetch_*_metrics()` methods in `slack_monitoring.py`
 2. Query your database (MongoDB, PostgreSQL, etc.)

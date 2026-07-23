@@ -47,8 +47,7 @@ class NewsCatalystScanner:
             "economic_calendar": []
         }
 
-        # In production: would call finnhub API
-        # Example: https://finnhub.io/api/v1/news?category=earnings&token=YOUR_API_KEY
+        # In production: would call finnhub API with FINNHUB_API_KEY.
 
         catalysts["earnings_announcements"] = [
             {

@@ -50,7 +50,7 @@ That's literally all you need. No credit card required for ProfitEngine itself."
 
 **[0:45–2:30] PART 1: NAVIGATING THE DASHBOARD (105 seconds)**
 
-"Alright, let's open ProfitEngine Pro. Go to profitengine-tau.vercel.app—link in the description.
+"Alright, let's open ProfitEngine Pro. Go to app.alreadyherellc.com—link in the description.
 
 When you first log in, you'll see the Command Center. This is your mission control for everything. On the left sidebar, you've got five main sections:
 

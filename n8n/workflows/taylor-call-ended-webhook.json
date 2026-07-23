@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "url": "={{ ($env.TAYLOR_SERVER_URL || 'http://runtime:8001') + '/events/call-ended' }}",
+        "url": "={{ ($env.TAYLOR_SERVER_URL || 'https://profitengine-runtime.onrender.com') + '/events/call-ended' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

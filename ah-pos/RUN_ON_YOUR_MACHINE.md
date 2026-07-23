@@ -136,7 +136,7 @@ start proposal_draft.html     # Windows
 
 ```
 URL: http://localhost:5050
-Email: admin@example.com
+Email: admin@alreadyherellc.invalid
 Password: admin
 ```
 

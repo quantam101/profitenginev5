@@ -332,7 +332,7 @@ Use these for critical situations. Include in the `alerts` array.
   "type": "section",
   "text": {
     "type": "mrkdwn",
-    "text": ":red_circle: Error rate increased to 2.1% (threshold: 1%)\nServer logs: https://logs.example.com/live"
+    "text": ":red_circle: Error rate increased to 2.1% (threshold: 1%)\nServer logs: https://dashboard.render.com"
   }
 }
 ```

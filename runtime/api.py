@@ -169,8 +169,8 @@ async def create_checkout(req: CheckoutRequest) -> Dict[str, Any]:
                 }
             ],
             mode="payment",
-            success_url="https://www.alreadyherellc.com/success",
-            cancel_url="https://www.alreadyherellc.com/checkout",
+            success_url="https://www.alreadyherellc.com/payment/success?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="https://www.alreadyherellc.com/payment/cancel",
             customer_email=req.email,
             metadata={"tool": req.tool, "tier": req.tier},
         )

@@ -23,7 +23,7 @@ docker-compose logs postgres | grep "ready to accept"
 
 ✅ **What's running:**
 - PostgreSQL 16 on localhost:5432
-- pgAdmin 4 on localhost:5050 (admin@example.com / admin)
+- pgAdmin 4 on localhost:5050 (admin@alreadyherellc.invalid / admin)
 - Python backend ready
 
 ---
@@ -194,7 +194,7 @@ EOF
 **pgAdmin** (graphical database manager):
 ```
 URL: http://localhost:5050
-Email: admin@example.com
+Email: admin@alreadyherellc.invalid
 Password: admin
 ```
 

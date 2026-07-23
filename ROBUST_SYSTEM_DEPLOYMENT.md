@@ -254,7 +254,7 @@ Daily P&L: -$50
 
 Circuit Breaker Analysis:
 ├─ Win rate (50%) = at threshold
-├─ 12 trades = sample size sufficient
+├─ 12 trades = trade count sufficient
 ├─ Decision: Raise confidence to 95% ONLY
 
 Next day Monday:

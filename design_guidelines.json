@@ -62,7 +62,7 @@
     },
     "playground": {
       "style": "Split-pane code editor layout. Left: Source A & Source B (tabs), Right: AST Merged Output. JetBrains Mono font inside.",
-      "accents": "Neon green line numbers, active tab glow, mock diff logic displaying AST merging.",
+      "accents": "Neon green line numbers, active tab glow, simulated diff logic displaying AST merging.",
       "container": "Border-collapse style layout. Background pure black or very dark gray, 1px border (#2A2A2A)."
     },
     "cards": {
@@ -108,7 +108,7 @@
   "instructions_to_main_agent": [
     "Strictly follow the Electric & Neon (Terminal/Hacker) aesthetic. NO PURPLE, no rounded-xl or rounded-full for layout containers.",
     "Use standard HTML/Tailwind for marketing layout. Do not over-rely on Shadcn for layout containers as they are too rigid for creative marketing pages.",
-    "Make the Playground functional using React state or simple mock merging to show AST functionality live.",
+    "Make the Playground functional using React state or simple simulated merging to show AST functionality live.",
     "Add a global CSS noise overlay or inline SVG noise to give it a gritty terminal feel.",
     "Ensure 'Space Mono' is used for all major section headings, and 'JetBrains Mono' for body copy and code blocks.",
     "Include a live counter for 'stats' (files merged, developers joined) with simple JS interval logic or framer-motion.",

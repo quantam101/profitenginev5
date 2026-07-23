@@ -579,7 +579,7 @@ WHERE OBJECT_SCHEMA = 'federal_past_performance';
    - Verify counts match source system
 
 4. **Test Queries**:
-   - Run sample queries (included in schema)
+   - Run example queries (included in schema)
    - Benchmark performance
    - Adjust indexes if needed
 

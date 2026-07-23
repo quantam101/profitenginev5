@@ -108,7 +108,7 @@ Execute a **systematic 7-day sponsorship outreach campaign** to 16-20 qualified 
 
 ### Step 1: Alignment (30 min)
 - [ ] VP Marketing reads `SPONSORSHIP_CEO_BRIEFING.md`
-- [ ] Approve 3 sample emails (Tier 1/2/3 templates)
+- [ ] Approve 3 template emails (Tier 1/2/3)
 - [ ] Confirm team assignments (you = calls, manager = execution)
 - [ ] Block calendar: June 30-July 4 (Week 2 calls)
 

@@ -32,7 +32,7 @@ cd4f012 🔒 COMPLETE SECURITY SETUP: Local + GitHub + Vercel + Docker
   ```
 
 ### ✅ Vercel Deployment
-- **URL:** https://profitengine-tau.vercel.app
+- **URL:** https://app.alreadyherellc.com
 - **Status:** Live and auto-deploying
 - **Features:**
   - ✅ Security headers configured
