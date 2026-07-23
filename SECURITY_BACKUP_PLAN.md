@@ -135,8 +135,8 @@ gh secret list --repo quantam101/profitenginev5 | grep -E "OCI_|TWITTER|TIKTOK|L
 # Set these in Vercel Console → Settings → Environment Variables
 
 # API endpoints
-NEXT_PUBLIC_API_URL=https://profitengine-tau.vercel.app
-PROFITENGINE_URL=https://profitengine-tau.vercel.app
+NEXT_PUBLIC_API_URL=https://app.alreadyherellc.com
+PROFITENGINE_URL=https://app.alreadyherellc.com
 
 # Social credentials (if needed on frontend)
 NEXT_PUBLIC_TWITTER_HANDLE=@alreadyherellc
