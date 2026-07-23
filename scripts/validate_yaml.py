@@ -5,7 +5,10 @@ from pathlib import Path
 import sys
 
 import yaml
-from jsonschema import Draft202012Validator
+try:
+    from jsonschema import Draft202012Validator
+except ImportError:
+    from jsonschema import Draft7Validator as Draft202012Validator
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
