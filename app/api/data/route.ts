@@ -41,7 +41,7 @@ type ProductsRevenue = {
 type NewsletterStats = { ok?: boolean; total_subscribers?: number; subscribers?: Record<string, unknown> };
 
 async function fetchRuntimeSnapshot(): Promise<Record<string, unknown> | null> {
-  const timeoutMs = 15_000;
+  const timeoutMs = 25_000;
   const [health, income, metrics, products, newsletter] = await Promise.all([
     fetchJson<RuntimeHealth>(`${RUNTIME_BASE}/health`, timeoutMs),
     fetchJson<IncomeSummary>(`${RUNTIME_BASE}/income/summary`, timeoutMs),
