@@ -2,8 +2,10 @@ name: LC&C Self-Improvement Loop
 
 on:
   schedule:
-    # Daily at 03:00 UTC
-    - cron: '0 3 * * *'
+    # Weekly, Monday 03:00 UTC. Reduced from daily: this optimization loop
+    # measures CTR uplift over time, so weekly cadence is sufficient and it
+    # is a 20-min-capable job — daily was a large minute drain for little gain.
+    - cron: '0 3 * * 1'
   workflow_dispatch:
     inputs:
       agent_id:

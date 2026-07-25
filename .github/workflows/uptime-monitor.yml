@@ -1,7 +1,7 @@
 name: Uptime Monitor
 on:
   schedule:
-    - cron: '0 */6 * * *'    # every 6h — low-cost GitHub backup; UptimeRobot (free) is the 5-min primary
+    - cron: '0 8 * * *'    # once daily — low-cost GitHub backup; UptimeRobot (free) is the 5-min primary
   workflow_dispatch:
 
 jobs:

@@ -2,8 +2,10 @@ name: Run Profit Cycle
 
 on:
   schedule:
-    # Every 6 hours
-    - cron: '0 */6 * * *'
+    # Twice daily (08:00 + 20:00 UTC). Reduced from every-6h: this is a
+    # 20-min-capable trend-scan+publish job and the content repo's same-day
+    # guard makes extra runs no-ops. 2x/day preserves production, halves burn.
+    - cron: '0 8,20 * * *'
   workflow_dispatch:
 
 concurrency:
