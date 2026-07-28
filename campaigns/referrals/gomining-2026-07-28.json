@@ -1,0 +1,49 @@
+{
+  "campaign_id": "gomining-referral-2026-07-28",
+  "campaign_type": "referral_crypto_mining",
+  "owner": "Stephen Franklin / Already Here LLC",
+  "status": "approval_gated",
+  "approval_required": true,
+  "created_date": "2026-07-28",
+  "landing_path": "/resources/gomining",
+  "risk_controls": {
+    "requires_referral_disclosure": true,
+    "requires_crypto_risk_disclosure": true,
+    "no_guaranteed_returns": true,
+    "no_passive_income_guarantee": true,
+    "no_personalized_financial_advice": true,
+    "no_bulk_cold_dm": true,
+    "allowed_only_where_referral_links_are_permitted": true,
+    "manual_publish_approval_required": true
+  },
+  "referral_code": "LNO_q",
+  "referral_url": "https://gomining.com/?ref=LNO_q",
+  "offer_claim": "5% cashback on the qualifying first miner purchase, subject to GoMining terms and eligibility.",
+  "activation_instruction": "Enter referral code LNO_q in the GoMining profile within 30 days of account creation and before the first qualifying miner or card purchase.",
+  "primary_copy": "Explore digital Bitcoin mining without purchasing and operating mining hardware directly. Use referral code LNO_q during eligible GoMining onboarding to seek 5% cashback on a qualifying first miner purchase, subject to current GoMining terms. Add the code in your profile within 30 days of account creation and before the first qualifying purchase. Already Here LLC may receive referral compensation. Cryptocurrency and mining-related products involve material risk, fees, price volatility, operational dependencies, and no guaranteed return.",
+  "short_copy": "GoMining referral code: LNO_q. Eligible new users may receive 5% cashback on a qualifying first miner purchase, subject to current terms. Add the code within 30 days and before the first qualifying purchase. Referral disclosure: Already Here LLC may receive compensation. Crypto involves risk; returns are not guaranteed.",
+  "hashtags": [
+    "BitcoinMining",
+    "DigitalMining",
+    "BitcoinEducation",
+    "CryptoRisk",
+    "AlreadyHereLLC"
+  ],
+  "preferred_channels": [
+    "Already Here LLC website resources section",
+    "LinkedIn personal/company post",
+    "Facebook personal/company page",
+    "X / Threads",
+    "Instagram and TikTok bio or educational post where link rules allow",
+    "Telegram or WhatsApp only to opted-in or personally known contacts",
+    "Reddit or Discord only where community rules permit referral links",
+    "Email newsletter only to opted-in contacts"
+  ],
+  "tracking": {
+    "track_landing_page_views": true,
+    "track_outbound_clicks": true,
+    "track_referral_code_copies": true,
+    "track_signups_if_partner_reporting_is_available": true,
+    "track_referral_reward_separately_from operating_revenue": true
+  }
+}
