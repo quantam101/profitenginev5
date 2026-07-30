@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       pageCount: Math.ceil(result.total / result.limit),
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    console.error('[revenue-os] revenue-plays list error:', err);
+    return NextResponse.json({ ok: false, error: 'Internal server error' }, { status: 500 });
   }
 }

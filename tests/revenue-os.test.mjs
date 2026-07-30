@@ -91,6 +91,22 @@ test('calculateMetrics computes ticket and recurring estimates', () => {
   assert.equal(typeof metrics.monthlyRecurringPotential, 'number');
 });
 
+test('calculateOverallScore falls back to derived values when scoreInputs are missing', () => {
+  const score = calculateOverallScore({
+    estimatedTicketValue: { minimum: 100, maximum: 200, unit: 'project' },
+    timeToRevenueDays: 10,
+    costRequired: 0,
+    profitPotential: 0.8,
+    stackingFit: 0.9,
+    recurringPotential: 0.7,
+    liabilityScore: 0.5,
+    databaseValueScore: 0.6,
+  });
+  assert.equal(typeof score, 'number');
+  assert.ok(Number.isFinite(score));
+  assert.ok(score >= 0 && score <= 100);
+});
+
 // 4. Seed importer (dry-run, no DB)
 await testAsync('dry-run import reports 65 records without touching DB', async () => {
   const summary = await importRevenueOsSeed({ dryRun: true });
@@ -132,6 +148,20 @@ if (!mongoUri) {
     assert.equal(result.total, 65);
     assert.equal(result.records.length, 10);
     assert.ok(result.records[0].overallScore >= 0);
+  });
+
+  await testAsync('findRevenuePlays paginates consistently and clamps large limits', async () => {
+    const page1 = await findRevenuePlays({ limit: 10, page: 1 });
+    const page2 = await findRevenuePlays({ limit: 10, page: 2 });
+    const largeLimit = await findRevenuePlays({ limit: 500, page: 1 });
+
+    assert.equal(page1.records.length, 10);
+    assert.equal(page2.records.length, 10);
+    assert.notEqual(page1.records[0].recordId, page2.records[0].recordId);
+    assert.equal(page1.page, 1);
+    assert.equal(page2.page, 2);
+    assert.equal(largeLimit.limit, 100);
+    assert.ok(largeLimit.records.length <= 100);
   });
 
   await testAsync('getRevenuePlayByRecordId returns RP-001', async () => {
