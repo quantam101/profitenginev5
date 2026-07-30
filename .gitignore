@@ -6,7 +6,8 @@ tsconfig.tsbuildinfo
 
 # GMAOS / EAOS
 __pycache__/
-/data/
+/data/*
+!/data/revenue-os/
 datacenter/*.db
 *.sqlite3
 backups/
