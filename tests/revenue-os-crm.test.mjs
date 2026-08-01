@@ -16,7 +16,8 @@ import { getDashboardSummary } from '../lib/revenue-os/services/dashboard.servic
 import { getDb, closeClient } from '../lib/mongodb.mjs';
 
 process.env.REVENUE_OS_ENABLED = 'true';
-process.env.MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/revenue-os-test';
+process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/revenue-os-test';
+process.env.MONGODB_DB = 'revenue-os-test';
 
 function test(name, fn) {
   try {
@@ -54,8 +55,8 @@ await testAsync('setup clears CRM collections', async () => {
 });
 
 await testAsync('normalizeDomain extracts clean domain', async () => {
-  assert.equal(normalizeDomain('https://www.example.com/path'), 'example.com');
-  assert.equal(normalizeDomain('example.com'), 'example.com');
+  assert.equal(normalizeDomain('https://www.acme-test.invalid/path'), 'acme-test.invalid');
+  assert.equal(normalizeDomain('acme-test.invalid'), 'acme-test.invalid');
 });
 
 let companyId = '';
@@ -63,7 +64,7 @@ await testAsync('createCompany persists normalized duplicate key', async () => {
   const company = await createCompany({
     legalName: 'Acme Test Corp',
     displayName: 'Acme Test',
-    website: 'https://www.acmetest.example.com',
+    website: 'https://www.acme-test.invalid',
     industry: 'Commercial Facilities',
     companyType: 'Mid-Market',
     locations: [{ city: 'Phoenix', state: 'AZ', zipCode: '85004' }],
@@ -71,7 +72,7 @@ await testAsync('createCompany persists normalized duplicate key', async () => {
   });
   companyId = String(company._id);
   assert.ok(company._id);
-  assert.equal(company.domain, 'acmetest.example.com');
+  assert.equal(company.domain, 'acme-test.invalid');
   assert.equal(company.qualificationStatus, 'Prospect');
   const expectedKey = `domain:${company.domain}`;
   assert.equal(company.duplicateKey, expectedKey);
@@ -91,14 +92,14 @@ await testAsync('createContact links to company and normalizes email', async () 
     companyId,
     fullName: 'Jane Smith',
     title: 'Facilities Manager',
-    email: 'JANE.SMITH@EXAMPLE.COM',
+    email: 'JANE.SMITH@ACME-TEST.INVALID',
     phone: '555-0100',
     preferredChannel: 'email',
   });
   contactId = String(contact._id);
   assert.ok(contact._id);
   assert.equal(String(contact.companyId), companyId);
-  assert.equal(contact.email, 'jane.smith@example.com');
+  assert.equal(contact.email, 'jane.smith@acme-test.invalid');
   const reloaded = await getContactById(contact._id);
   assert.equal(reloaded?.fullName, 'Jane Smith');
 });
@@ -115,7 +116,7 @@ await testAsync('createOpportunity computes weightedValue', async () => {
     recurringMonthlyValue: 500,
     probability: 0.6,
     nextAction: 'Research buyer contact path',
-    assignedTo: 'devin@example.com',
+    assignedTo: 'devin@acme-test.invalid',
   });
   opportunityId = String(opportunity._id);
   assert.ok(opportunity._id);
@@ -125,7 +126,7 @@ await testAsync('createOpportunity computes weightedValue', async () => {
 
 await testAsync('onOpportunityCreated schedules first follow-up and logs an activity', async () => {
   const opportunity = await getOpportunityById(opportunityId);
-  const followUp = await onOpportunityCreated(opportunity, 'devin@example.com');
+  const followUp = await onOpportunityCreated(opportunity, 'devin@acme-test.invalid');
   assert.ok(followUp);
   assert.match(followUp.summary, /Review new target/);
 
@@ -147,7 +148,7 @@ await testAsync('advanceOpportunityStage moves to next stage and creates follow-
   const before = await getOpportunityById(opportunityId);
   assert.equal(before.stage, 'Research');
 
-  const result = await advanceOpportunityStage(opportunityId, 'devin@example.com');
+  const result = await advanceOpportunityStage(opportunityId, 'devin@acme-test.invalid');
   assert.ok(result.ok);
   assert.equal(result.previousStage, 'Research');
   assert.equal(result.nextStage, 'Qualified');
@@ -158,7 +159,7 @@ await testAsync('advanceOpportunityStage moves to next stage and creates follow-
 });
 
 await testAsync('setOpportunityStage jumps to target and schedules follow-up', async () => {
-  const result = await setOpportunityStage(opportunityId, 'Outreach Approved', 'devin@example.com');
+  const result = await setOpportunityStage(opportunityId, 'Outreach Approved', 'devin@acme-test.invalid');
   assert.ok(result.ok);
   assert.equal(result.previousStage, 'Qualified');
   assert.equal(result.nextStage, 'Outreach Approved');
@@ -170,7 +171,7 @@ await testAsync('setOpportunityStage jumps to target and schedules follow-up', a
 await testAsync('completeFollowUp marks task completed', async () => {
   const open = await findFollowUps({ entityId: opportunityId, status: 'OPEN', limit: 1 });
   assert.ok(open.total > 0);
-  const completed = await completeFollowUp(open.records[0]._id, 'devin@example.com');
+  const completed = await completeFollowUp(open.records[0]._id, 'devin@acme-test.invalid');
   assert.equal(completed.status, 'COMPLETED');
   assert.ok(completed.completedAt);
 });
@@ -220,7 +221,7 @@ await testAsync('advanceOpportunityStage moves Negotiation to Won', async () => 
     probability: 0.8,
     nextAction: 'Close deal',
   });
-  const result = await advanceOpportunityStage(opp._id, 'devin@example.com');
+  const result = await advanceOpportunityStage(opp._id, 'devin@acme-test.invalid');
   assert.ok(result.ok);
   assert.equal(result.previousStage, 'Negotiation');
   assert.equal(result.nextStage, 'Won');

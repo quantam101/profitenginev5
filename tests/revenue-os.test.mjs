@@ -15,6 +15,9 @@ const root = path.resolve(__dirname, '..');
 const seedText = fs.readFileSync(path.join(root, 'data/revenue-os/revenue-plays.seed.json'), 'utf8');
 const seedJson = JSON.parse(seedText);
 
+process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/revenue-os-test';
+process.env.MONGODB_DB = 'revenue-os-test';
+
 function test(name, fn) {
   try {
     fn();

@@ -19,7 +19,8 @@ import { getDb, closeClient } from '../lib/mongodb.mjs';
 
 process.env.REVENUE_OS_ENABLED = 'true';
 process.env.REVENUE_OS_AI_ENABLED = 'true';
-process.env.MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/revenue-os-test';
+process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/revenue-os-test';
+process.env.MONGODB_DB = 'revenue-os-test';
 
 function test(name, fn) {
   try {
@@ -72,7 +73,7 @@ await testAsync('create test company and contact', async () => {
     locations: [{ city: 'Phoenix', state: 'AZ', zipCode: '85004' }],
   });
   companyId = String(company._id);
-  const contact = await createContact({ companyId: company._id, fullName: 'Test User', email: 'test@example.com' });
+  const contact = await createContact({ companyId: company._id, fullName: 'Test User', email: 'test@acme-test.invalid' });
   contactId = String(contact._id);
 });
 
