@@ -14,11 +14,14 @@ description: How to set up and run an authenticated local end-to-end test of the
 ## Required environment variables for `npm run dev`
 
 ```bash
-MONGODB_URI="mongodb://127.0.0.1:27017/profitengine"
+MONGODB_URI="mongodb://127.0.0.1:27017/revenue-os-test"
+MONGODB_DB="revenue-os-test"
 NEXTAUTH_SECRET="dev-secret-for-local-test-only"
+NEXTAUTH_URL="http://localhost:3000"
 GOOGLE_CLIENT_ID="local-test.google-client-id"
 GOOGLE_CLIENT_SECRET="local-test.google-client-secret"
 REVENUE_OS_ENABLED=true
+REVENUE_OS_IMPORT_ENABLED=true
 # For the AI Advisor and Integrations smoke tests:
 REVENUE_OS_AI_ENABLED=true
 GMAOS_LOCAL_MODEL_ENABLED=false   # forces template fallback; avoids calling Ollama
@@ -30,11 +33,14 @@ REVENUE_OS_ZAPIER_ENABLED=false   # keep disabled to avoid outbound Zapier webho
 
 ```bash
 cd /home/ubuntu/repos/profitenginev5
-MONGODB_URI="mongodb://127.0.0.1:27017/profitengine" \
+MONGODB_URI="mongodb://127.0.0.1:27017/revenue-os-test" \
+MONGODB_DB="revenue-os-test" \
 NEXTAUTH_SECRET="dev-secret-for-local-test-only" \
+NEXTAUTH_URL="http://localhost:3000" \
 GOOGLE_CLIENT_ID="local-test.google-client-id" \
 GOOGLE_CLIENT_SECRET="local-test.google-client-secret" \
 REVENUE_OS_ENABLED=true \
+REVENUE_OS_IMPORT_ENABLED=true \
 REVENUE_OS_AI_ENABLED=true \
 GMAOS_LOCAL_MODEL_ENABLED=false \
 REVENUE_OS_SLACK_ENABLED=false \
@@ -69,6 +75,8 @@ cd /home/ubuntu/repos/profitenginev5
 node /tmp/make-token.mjs
 ```
 
+If the script is placed outside the repo and cannot resolve `next-auth`, move it into the repo root temporarily, run it, then delete it.
+
 ### 2. Set the cookie in Chrome
 
 Open `http://localhost:3000/revenue-os`, then in the browser console run:
@@ -101,13 +109,20 @@ The cookie name is `next-auth.session-token` when `NEXTAUTH_URL` is not HTTPS.
 7. Test negative cases with `curl`:
    - `GET /api/revenue-os/dashboard/summary` without the cookie → `401 Unauthorized`.
    - `GET /api/revenue-os/dashboard/summary` with `REVENUE_OS_ENABLED=false` → `404 Revenue OS is not enabled`.
-8. Run `npm run lint`, `npm run typecheck`, `npm run security:scan`, and `MONGODB_DB=revenue-os-test npm run test:revenue-os`.
+8. Seed `revenue-os-test` with the 65 revenue plays before the UI tests (if the collection is empty):
+   ```bash
+   MONGODB_URI="mongodb://127.0.0.1:27017/revenue-os-test" \
+   MONGODB_DB="revenue-os-test" \
+   REVENUE_OS_ENABLED=true REVENUE_OS_IMPORT_ENABLED=true \
+   npm run revenue-os:seed
+   ```
+9. Run `npm run lint`, `npm run typecheck`, `npm run security:scan`, and `MONGODB_DB=revenue-os-test MONGODB_URI="mongodb://127.0.0.1:27017/revenue-os-test" npm run test:revenue-os`.
 
 ## Automated test run
 
 ```bash
 cd /home/ubuntu/repos/profitenginev5
-MONGODB_DB=revenue-os-test MONGODB_URI="mongodb://127.0.0.1:27017/profitengine" \
+MONGODB_DB="revenue-os-test" MONGODB_URI="mongodb://127.0.0.1:27017/revenue-os-test" \
   npm run test:revenue-os
 ```
 
@@ -115,12 +130,13 @@ MONGODB_DB=revenue-os-test MONGODB_URI="mongodb://127.0.0.1:27017/profitengine" 
 
 ## Notes
 
-- The `Create Opportunity` form uses a native `<button type="submit">`. Some automation click tools emit `pointerdown`/`pointerup` without a native `click` event, so the form may not submit. If this happens, use `document.querySelector('form button[type=submit]').click()` or `document.querySelector('form').requestSubmit()` from the console as a workaround. The `Advance`, `Complete`, and AI Advisor queue buttons have explicit React `onClick` handlers and generally respond to automation clicks; if a queue button does not fire, `button.click()` from the console is a reliable fallback.
+- The `Create Opportunity` form uses a native `<button type="submit">`. Some automation click tools emit `pointerdown`/`pointerup` without a native `click` event, so the form may not submit. If this happens, use `document.querySelector('form button[type=submit]').click()` or `document.querySelector('form').requestSubmit()` from the console as a workaround. The `Add Company`, `Add Contact`, `Advance`, `Complete`, and AI Advisor queue buttons sometimes also fail under synthetic pointer events; `button.click()` from the console is a reliable fallback.
 - `lib/mongodb.mjs` derives the database name from `MONGODB_DB`/`DB_NAME` first, then from the database segment in `MONGODB_URI`, and finally falls back to `profitengine`.
 - `GMAOS_LOCAL_MODEL_ENABLED=false` forces `ai-advisor.mjs` to use its local template fallback, so no network call is made to Ollama.
 - When Slack/Zapier are disabled (no webhook URL or secret), the adapter services persist a local `SKIPPED`/`DISABLED` log record and do not perform an outbound `fetch`.
 - If `npm run build` is run while `next dev` is serving, delete the `.next` directory before restarting `next dev` to avoid stale/missing server chunks.
-- Revenue play seed data comes from the existing `revenue_plays` collection; keep it intact or re-seed if cleared.
+- Revenue play seed data comes from the existing `revenue_plays` collection; keep it intact or re-seed with `npm run revenue-os:seed` when using the `revenue-os-test` database.
+- Confirm no outbound network calls by checking `ss -tnp | grep next-server` and verifying only MongoDB and the local Next.js port are listed.
 
 ## Devin Secrets Needed
 
