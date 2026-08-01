@@ -158,3 +158,72 @@ export interface SeedImportSummary {
   errors: string[];
   dryRun: boolean;
 }
+
+export type FollowUpStatus = 'OPEN' | 'COMPLETED' | 'SNOOZED' | 'CANCELLED';
+
+export interface FollowUpTask {
+  _id?: ObjectId | string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play';
+  entityId: ObjectId | string;
+  type: string;
+  summary: string;
+  dueDate: Date;
+  status: FollowUpStatus;
+  assignedTo?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SavedView {
+  _id?: ObjectId | string;
+  name: string;
+  entityType: string;
+  filters: Record<string, unknown>;
+  sortBy: string;
+  order: 'asc' | 'desc';
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DashboardSummary {
+  activeOpportunities: number;
+  weightedPipelineValue: number;
+  monthlyRecurringPotential: number;
+  followUpsDueToday: number;
+  fastCashOpportunities: number;
+  averageOpportunityScore: number;
+  revenueWonThisMonth: number;
+  revenueTargetProgress: number;
+  topRecommendedActions: RecommendedAction[];
+  pipelineByStage: Record<string, { count: number; value: number }>;
+  highestScoringRevenuePlays: RevenuePlaySummary[];
+  followUpsDue: FollowUpTaskSummary[];
+}
+
+export interface RecommendedAction {
+  title: string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play';
+  entityId?: string;
+  reason: string;
+  score?: number;
+  estimatedValue?: number;
+}
+
+export interface RevenuePlaySummary {
+  recordId: string;
+  revenuePlayName: string;
+  lane: string;
+  overallScore: number;
+  location: string;
+}
+
+export interface FollowUpTaskSummary {
+  id: string;
+  entityType: string;
+  summary: string;
+  dueDate: string;
+  priority: string;
+}
