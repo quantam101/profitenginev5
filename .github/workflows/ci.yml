@@ -14,6 +14,13 @@ jobs:
   pre_merge:
     name: "Stage 1 — pre-merge (lint, unit, types)"
     runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -66,6 +73,8 @@ jobs:
         run: npm run test:revenue-os
         env:
           CI: "true"
+          MONGO_URL: "mongodb://localhost:27017"
+          MONGODB_DB: "profitengine_ci"
       - name: Gateway evals
         run: |
           npm run eval:ai-gateway

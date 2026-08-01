@@ -20,3 +20,12 @@ pre { white-space:pre-wrap; overflow:auto; background:#030712; border:1px solid 
 .status-blocked span { color:var(--blocked); }
 .status-locked span { color:var(--locked); }
 .status-review span { color:var(--review); }
+.play-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 16px; }
+.play-card { border:1px solid var(--border); background:rgba(14,23,38,.9); border-radius:8px; padding:18px; }
+.play-card h3 { margin:0 0 8px; font-size:16px; }
+.error { color: var(--blocked); }
+button.primary { background: var(--action); border: none; border-radius: 8px; padding: 10px 16px; color: var(--bg); cursor: pointer; }
+button.secondary { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); cursor: pointer; }
+input, select { background: rgba(14,23,38,.9); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 14px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; align-items: flex-end; }
+.form-row input, .form-row select { min-width: 160px; }

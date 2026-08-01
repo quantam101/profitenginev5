@@ -158,3 +158,125 @@ export interface SeedImportSummary {
   errors: string[];
   dryRun: boolean;
 }
+
+export type FollowUpStatus = 'OPEN' | 'COMPLETED' | 'SNOOZED' | 'CANCELLED';
+
+export interface FollowUpTask {
+  _id?: ObjectId | string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play';
+  entityId: ObjectId | string;
+  type: string;
+  summary: string;
+  dueDate: Date;
+  status: FollowUpStatus;
+  assignedTo?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SavedView {
+  _id?: ObjectId | string;
+  name: string;
+  entityType: string;
+  filters: Record<string, unknown>;
+  sortBy: string;
+  order: 'asc' | 'desc';
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DashboardSummary {
+  activeOpportunities: number;
+  weightedPipelineValue: number;
+  monthlyRecurringPotential: number;
+  followUpsDueToday: number;
+  fastCashOpportunities: number;
+  averageOpportunityScore: number;
+  revenueWonThisMonth: number;
+  revenueTargetProgress: number;
+  topRecommendedActions: RecommendedAction[];
+  pipelineByStage: Record<string, { count: number; value: number }>;
+  highestScoringRevenuePlays: RevenuePlaySummary[];
+  followUpsDue: FollowUpTaskSummary[];
+}
+
+export interface RecommendedAction {
+  title: string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play';
+  entityId?: string;
+  reason: string;
+  score?: number;
+  estimatedValue?: number;
+}
+
+export interface RevenuePlaySummary {
+  recordId: string;
+  revenuePlayName: string;
+  lane: string;
+  overallScore: number;
+  location: string;
+}
+
+export interface FollowUpTaskSummary {
+  id: string;
+  entityType: string;
+  summary: string;
+  dueDate: string;
+  priority: string;
+}
+
+export type AIActionType =
+  | 'intro_email'
+  | 'follow_up_email'
+  | 'capability_statement'
+  | 'call_script'
+  | 'proposal_summary'
+  | 'sow_draft'
+  | 'ranking'
+  | 'data_quality_flag';
+
+export type AIActionStatus =
+  | 'Draft'
+  | 'Needs Review'
+  | 'Approved'
+  | 'Rejected'
+  | 'Executed'
+  | 'Expired';
+
+export interface AIAction {
+  _id?: ObjectId | string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play' | 'system';
+  entityId?: ObjectId | string;
+  actionType: AIActionType;
+  content: string;
+  status: AIActionStatus;
+  metadata: Record<string, unknown>;
+  createdBy: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OpportunityRanking {
+  opportunityId: string;
+  title: string;
+  stage: string;
+  expectedRevenue: number;
+  startupRequirements: string[];
+  recommendedNextAction: string;
+  reason: string;
+  score: number;
+}
+
+export interface DataQualityFlag {
+  entityType: string;
+  entityId: string;
+  issue: string;
+  severity: 'low' | 'medium' | 'high';
+  suggestedFix: string;
+}
