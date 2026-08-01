@@ -40,6 +40,8 @@ jobs:
         run: npm run typecheck
       - name: Validate YAML
         run: npm run validate:yaml
+      - name: Validate Revenue OS seed
+        run: npm run validate:revenue-os
       - name: Unit tests
         run: npm run test:unit
       - name: Health contract test
@@ -58,6 +60,10 @@ jobs:
           GROQ_API_KEY: "stub-groq-ci-key"
       - name: Opportunity intelligence test
         run: npm run test:opportunity
+        env:
+          CI: "true"
+      - name: Revenue OS tests
+        run: npm run test:revenue-os
         env:
           CI: "true"
       - name: Gateway evals

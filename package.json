@@ -12,7 +12,7 @@
     "content:factory": "python scripts/content_factory_run.py --campaign campaigns/referrals/acorns-2026-06-09.json --output generated-content",
     "autopublish:gate": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-09",
     "autopublish:gate:launch": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-23 --strict",
-    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate",
+    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:revenue-os",
     "test:unit": "python -m pytest code_merger/tests/ -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:ai-gateway": "node tests/ai-gateway.test.mjs",
@@ -20,6 +20,7 @@
     "test:opportunity": "python -m pytest tests/test_opportunity_intelligence.py -q",
     "test:content-factory": "python -m pytest tests/test_content_factory.py -q",
     "test:autopublish-gate": "python -m pytest tests/test_autopublish_gate.py -q",
+    "test:revenue-os": "node tests/revenue-os.test.mjs",
     "test:runtime": "python -m pytest -q",
     "test:full": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs --skip-live",
     "test:full:live": "python -m pytest tests/test_full_suite.py -v && node tests/full-suite.test.mjs",
@@ -30,12 +31,14 @@
     "eval:ai-gateway": "node scripts/eval-ai-gateway.mjs",
     "eval:skill-gateway": "node scripts/eval-skill-gateway.mjs",
     "validate:yaml": "python scripts/validate_yaml.py",
+    "validate:revenue-os": "node scripts/validate-revenue-os-seed.mjs",
+    "revenue-os:seed": "node scripts/revenue-os-seed.mjs",
     "security:scan": "python scripts/security_check.py",
     "security:audit": "npm audit --audit-level=critical --omit=dev",
     "agents:parallel": "node scripts/run-parallel-agents.mjs",
     "agents:opportunity": "python scripts/opportunity_intelligence_run.py",
     "edge:replay": "python scripts/edge_failover_replay.py",
-    "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run eval:ai-gateway && npm run eval:skill-gateway && npm run security:scan && npm run build",
+    "ci:all": "npm run lint && npm run typecheck && npm run validate:yaml && npm run validate:revenue-os && npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:revenue-os && npm run eval:ai-gateway && npm run eval:skill-gateway && npm run security:scan && npm run build",
     "ci:security": "npm run security:audit && npm run security:scan",
     "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",
     "healthcheck": "node scripts/agent-healthcheck.mjs"
@@ -46,7 +49,8 @@
     "next-auth": "^4.24.14",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "stripe": "^22.2.0"
+    "stripe": "^22.2.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "22.10.10",
