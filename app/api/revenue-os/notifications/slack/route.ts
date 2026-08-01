@@ -23,15 +23,27 @@ const slackSchema = z.object({
 
 const RATE_LIMIT_MAX = 30;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_ACTORS = 1000;
 const rateLimitMap = new Map<string, number[]>();
 
 function checkRateLimit(actor: string) {
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW_MS;
   const timestamps = rateLimitMap.get(actor)?.filter((t) => t > windowStart) || [];
-  if (timestamps.length >= RATE_LIMIT_MAX) return false;
+  if (timestamps.length >= RATE_LIMIT_MAX) {
+    if (timestamps.length === 0) rateLimitMap.delete(actor);
+    return false;
+  }
   timestamps.push(now);
-  rateLimitMap.set(actor, timestamps);
+  if (timestamps.length === 0) {
+    rateLimitMap.delete(actor);
+  } else {
+    rateLimitMap.set(actor, timestamps);
+  }
+  if (rateLimitMap.size > RATE_LIMIT_MAX_ACTORS) {
+    const first = rateLimitMap.keys().next().value;
+    if (first !== undefined) rateLimitMap.delete(first);
+  }
   return true;
 }
 
