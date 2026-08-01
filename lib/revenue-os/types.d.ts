@@ -227,3 +227,56 @@ export interface FollowUpTaskSummary {
   dueDate: string;
   priority: string;
 }
+
+export type AIActionType =
+  | 'intro_email'
+  | 'follow_up_email'
+  | 'capability_statement'
+  | 'call_script'
+  | 'proposal_summary'
+  | 'sow_draft'
+  | 'ranking'
+  | 'data_quality_flag';
+
+export type AIActionStatus =
+  | 'Draft'
+  | 'Needs Review'
+  | 'Approved'
+  | 'Rejected'
+  | 'Executed'
+  | 'Expired';
+
+export interface AIAction {
+  _id?: ObjectId | string;
+  entityType: 'opportunity' | 'company' | 'contact' | 'revenue_play' | 'system';
+  entityId?: ObjectId | string;
+  actionType: AIActionType;
+  content: string;
+  status: AIActionStatus;
+  metadata: Record<string, unknown>;
+  createdBy: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OpportunityRanking {
+  opportunityId: string;
+  title: string;
+  stage: string;
+  expectedRevenue: number;
+  startupRequirements: string[];
+  recommendedNextAction: string;
+  reason: string;
+  score: number;
+}
+
+export interface DataQualityFlag {
+  entityType: string;
+  entityId: string;
+  issue: string;
+  severity: 'low' | 'medium' | 'high';
+  suggestedFix: string;
+}

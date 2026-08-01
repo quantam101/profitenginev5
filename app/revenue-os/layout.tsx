@@ -18,6 +18,8 @@ export default function RevenueOsLayout({ children }: { children: ReactNode }) {
           <Link href="/revenue-os/contacts">Contacts</Link>
           <Link href="/revenue-os/opportunities">Opportunities</Link>
           <Link href="/revenue-os/follow-ups">Follow-Ups</Link>
+          <Link href="/revenue-os/ai">AI Advisor</Link>
+          <Link href="/revenue-os/integrations">Integrations</Link>
         </nav>
       </div>
       {children}
