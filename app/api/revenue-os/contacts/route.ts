@@ -8,11 +8,11 @@ import type { Contact } from '@/lib/revenue-os/types';
 
 const contactCreateSchema = z.object({
   companyId: z.string().min(1),
-  fullName: z.string().min(1).optional(),
-  title: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  preferredChannel: z.string().optional(),
+  fullName: z.string().min(1).optional().or(z.literal('')),
+  title: z.string().optional().or(z.literal('')),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  preferredChannel: z.string().optional().or(z.literal('')),
   contactStatus: z.string().optional().default('Active'),
   consentStatus: z.string().optional().default('Unknown'),
   source: z.string().optional().default('manual'),

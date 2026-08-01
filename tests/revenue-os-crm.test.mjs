@@ -208,6 +208,26 @@ test('calculateNextFollowUpDate respects stage rules', () => {
   assert.equal(outreach.getTime(), date.getTime());
 });
 
+await testAsync('advanceOpportunityStage moves Negotiation to Won', async () => {
+  const opp = await createOpportunity({
+    revenuePlayId: 'RP-001',
+    companyId,
+    contactIds: [contactId],
+    title: 'Negotiation win test',
+    stage: 'Negotiation',
+    estimatedValue: 25000,
+    recurringMonthlyValue: 1000,
+    probability: 0.8,
+    nextAction: 'Close deal',
+  });
+  const result = await advanceOpportunityStage(opp._id, 'devin@example.com');
+  assert.ok(result.ok);
+  assert.equal(result.previousStage, 'Negotiation');
+  assert.equal(result.nextStage, 'Won');
+  const reloaded = await getOpportunityById(opp._id);
+  assert.equal(reloaded.stage, 'Won');
+});
+
 await closeClient().catch(() => {});
 
 console.log('revenue-os-crm tests done');

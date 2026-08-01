@@ -25,4 +25,13 @@ export function getOpportunityById(id: string | import('mongodb').ObjectId): Pro
 export function createOpportunity(doc: Partial<Opportunity>): Promise<Opportunity>;
 export function updateOpportunity(id: string | import('mongodb').ObjectId, updates: Partial<Opportunity>): Promise<Opportunity | null>;
 export function updateOpportunityStage(id: string | import('mongodb').ObjectId, stage: string): Promise<Opportunity | null>;
-export function countOpportunitiesByStage(): Promise<Record<string, number>>;
+export interface DashboardStats {
+  activeOpportunities: number;
+  weightedPipelineValue: number;
+  monthlyRecurringPotential: number;
+  averageOpportunityScore: number;
+  fastCashOpportunities: number;
+}
+
+export function countOpportunitiesByStage(): Promise<Record<string, { count: number; value: number }>>;
+export function aggregateDashboardStats(): Promise<DashboardStats>;

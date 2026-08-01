@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { z } from 'zod';
 import { advanceOpportunityStage, setOpportunityStage } from '@/lib/revenue-os/services/pipeline.service.mjs';
-import type { OpportunityStage } from '@/lib/revenue-os/types';
+
+const stageSchema = z.object({
+  stage: z.enum([
+    'Research', 'Qualified', 'Approval Needed', 'Outreach Approved', 'Contacted',
+    'Conversation', 'Proposal', 'Negotiation', 'Won', 'Lost', 'On Hold',
+  ] as const).optional(),
+});
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (process.env.REVENUE_OS_ENABLED !== 'true') {
@@ -14,18 +21,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  let body: { stage?: OpportunityStage } = {};
+
+  let body;
   try {
     body = await request.json();
   } catch {
     body = {};
   }
 
+  const parse = stageSchema.safeParse(body);
+  if (!parse.success) {
+    return NextResponse.json({ ok: false, error: parse.error.issues.map((i) => i.message).join(', ') }, { status: 400 });
+  }
+
   const actor = session.user.email || session.user.name || 'unknown';
 
   try {
-    const result = body.stage
-      ? await setOpportunityStage(id, body.stage, actor)
+    const result = parse.data.stage
+      ? await setOpportunityStage(id, parse.data.stage, actor)
       : await advanceOpportunityStage(id, actor);
 
     if (!result.ok) {

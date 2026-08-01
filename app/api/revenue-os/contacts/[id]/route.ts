@@ -7,11 +7,11 @@ import { createActivity } from '@/lib/revenue-os/repositories/activity.repositor
 import type { Contact } from '@/lib/revenue-os/types';
 
 const contactUpdateSchema = z.object({
-  fullName: z.string().min(1).optional(),
-  title: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  preferredChannel: z.string().optional(),
+  fullName: z.string().min(1).optional().or(z.literal('')),
+  title: z.string().optional().or(z.literal('')),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  preferredChannel: z.string().optional().or(z.literal('')),
   contactStatus: z.string().optional(),
   consentStatus: z.string().optional(),
 }).partial();
