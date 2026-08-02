@@ -122,7 +122,7 @@ async function runSeedDryRun() {
 async function runSeedImport() {
   const summary = await importRevenueOsSeed({ dryRun: false });
   log(`Import result: ${JSON.stringify(summary)}`);
-  if (summary.errors.length > 0 || summary.inserted + summary.updated !== 65) {
+  if (summary.errors.length > 0 || summary.inserted + summary.updated + summary.unchanged !== 65) {
     exit('Seed import did not complete as expected.', 1);
   }
   await createActivity({

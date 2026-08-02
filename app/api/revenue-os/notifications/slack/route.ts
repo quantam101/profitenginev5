@@ -4,12 +4,48 @@ import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { sendSlackNotification, isSlackEnabled } from '@/lib/revenue-os/services/slack.mjs';
 
+const slackTextObjectSchema = z.object({
+  type: z.enum(['mrkdwn', 'plain_text']),
+  text: z.string().min(1).max(3000),
+}).strict();
+
+const slackBlockSchema = z.object({
+  type: z.literal('section'),
+  text: slackTextObjectSchema,
+}).strict();
+
 const slackSchema = z.object({
-  notificationType: z.string().min(1),
-  channel: z.string().optional(),
-  text: z.string().min(1),
-  blocks: z.array(z.record(z.unknown())).optional(),
-});
+  notificationType: z.string().min(1).max(64),
+  channel: z.string().min(1).max(64).optional(),
+  text: z.string().min(1).max(4000),
+  blocks: z.array(slackBlockSchema).max(5).optional(),
+}).strict();
+
+const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_ACTORS = 1000;
+const rateLimitMap = new Map<string, number[]>();
+
+function checkRateLimit(actor: string) {
+  const now = Date.now();
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
+  const timestamps = rateLimitMap.get(actor)?.filter((t) => t > windowStart) || [];
+  if (timestamps.length >= RATE_LIMIT_MAX) {
+    if (timestamps.length === 0) rateLimitMap.delete(actor);
+    return false;
+  }
+  timestamps.push(now);
+  if (timestamps.length === 0) {
+    rateLimitMap.delete(actor);
+  } else {
+    rateLimitMap.set(actor, timestamps);
+  }
+  if (rateLimitMap.size > RATE_LIMIT_MAX_ACTORS) {
+    const first = rateLimitMap.keys().next().value;
+    if (first !== undefined) rateLimitMap.delete(first);
+  }
+  return true;
+}
 
 export async function POST(request: Request) {
   if (process.env.REVENUE_OS_ENABLED !== 'true') {
@@ -33,6 +69,10 @@ export async function POST(request: Request) {
   }
 
   const actor = session.user.email || session.user.name || 'unknown';
+
+  if (!checkRateLimit(actor)) {
+    return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+  }
 
   try {
     const result = await sendSlackNotification({ ...parse.data, actor });
