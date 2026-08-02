@@ -4,7 +4,10 @@ import { MongoClient } from 'mongodb';
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
-const seedPath = process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json';
+const seedPaths = (process.env.REVENUE_OS_SEED_PATHS || process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json,data/revenue-os/revenue-plays.seed.v1.1.json')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB || 'profitenginev5';
 const collectionName = process.env.REVENUE_OS_COLLECTION || 'revenue_plays';
@@ -14,17 +17,30 @@ if (!uri) {
   process.exit(1);
 }
 
-const raw = await fs.readFile(seedPath, 'utf8');
-const seed = JSON.parse(raw);
-if (!Array.isArray(seed.records) || seed.records.length !== seed.record_count) {
-  throw new Error(`Seed record count mismatch: declared ${seed.record_count}, found ${seed.records?.length ?? 0}`);
+const datasets = [];
+for (const seedPath of seedPaths) {
+  const raw = await fs.readFile(seedPath, 'utf8');
+  const seed = JSON.parse(raw);
+  if (!Array.isArray(seed.records) || seed.records.length !== seed.record_count) {
+    throw new Error(`Seed record count mismatch in ${seedPath}: declared ${seed.record_count}, found ${seed.records?.length ?? 0}`);
+  }
+  datasets.push({ ...seed, seedPath });
 }
 
 const ids = new Set();
-for (const record of seed.records) {
-  if (!record.id) throw new Error('Every seed record requires id');
-  if (ids.has(record.id)) throw new Error(`Duplicate seed id: ${record.id}`);
-  ids.add(record.id);
+const records = [];
+for (const dataset of datasets) {
+  for (const record of dataset.records) {
+    if (!record.id) throw new Error(`Every seed record requires id (${dataset.seedPath})`);
+    if (ids.has(record.id)) throw new Error(`Duplicate seed id across datasets: ${record.id}`);
+    ids.add(record.id);
+    records.push({
+      ...record,
+      seed_schema_version: dataset.schema_version,
+      seed_dataset: dataset.dataset,
+      seed_generated_at: new Date(dataset.generated_at),
+    });
+  }
 }
 
 const client = new MongoClient(uri, { maxPoolSize: 5, serverSelectionTimeoutMS: 10000 });
@@ -44,15 +60,12 @@ try {
   );
 
   const now = new Date();
-  const operations = seed.records.map((record) => ({
+  const operations = records.map((record) => ({
     updateOne: {
       filter: { id: record.id },
       update: {
         $set: {
           ...record,
-          seed_schema_version: seed.schema_version,
-          seed_dataset: seed.dataset,
-          seed_generated_at: new Date(seed.generated_at),
           seed_updated_at: now,
           updated_at: now,
         },
@@ -72,9 +85,10 @@ try {
       mode: 'dry-run',
       database: dbName,
       collection: collectionName,
-      seed_records: seed.records.length,
+      datasets: datasets.map(({ dataset, schema_version, record_count, seedPath }) => ({ dataset, schema_version, record_count, seedPath })),
+      seed_records: records.length,
       matching_existing_records: existing,
-      potential_new_records: seed.records.length - existing,
+      potential_new_records: records.length - existing,
       changes_applied: false,
     }, null, 2));
     process.exitCode = 0;
@@ -82,9 +96,8 @@ try {
     const result = await collection.bulkWrite(operations, { ordered: true });
     await audit.insertOne({
       event_type: 'REVENUE_OS_SEED_IMPORT',
-      dataset: seed.dataset,
-      schema_version: seed.schema_version,
-      record_count: seed.records.length,
+      datasets: datasets.map(({ dataset, schema_version, record_count, seedPath }) => ({ dataset, schema_version, record_count, seedPath })),
+      record_count: records.length,
       matched_count: result.matchedCount,
       modified_count: result.modifiedCount,
       upserted_count: result.upsertedCount,
@@ -96,7 +109,8 @@ try {
       mode: 'write',
       database: dbName,
       collection: collectionName,
-      seed_records: seed.records.length,
+      datasets: datasets.length,
+      seed_records: records.length,
       matched_count: result.matchedCount,
       modified_count: result.modifiedCount,
       upserted_count: result.upsertedCount,
