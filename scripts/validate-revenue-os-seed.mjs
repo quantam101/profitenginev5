@@ -4,6 +4,7 @@ import path from 'node:path';
 const seedPaths = [
   path.resolve('data/revenue-os/revenue-plays.seed.json'),
   path.resolve('data/revenue-os/revenue-plays.seed.v1.1.json'),
+  path.resolve('data/revenue-os/revenue-plays.seed.v1.2.json'),
 ];
 
 const required = [
@@ -45,11 +46,16 @@ for (const seedPath of seedPaths) {
   }
 }
 
-if (records.length !== 70) errors.push(`combined records length must be 70, got ${records.length}`);
+if (records.length !== 75) errors.push(`combined records length must be 75, got ${records.length}`);
+
+for (let number = 1; number <= 75; number += 1) {
+  const expectedId = `RP-${String(number).padStart(3, '0')}`;
+  if (!ids.has(expectedId)) errors.push(`missing sequential id ${expectedId}`);
+}
 
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);
 }
 
-console.log(`Validated ${records.length} Revenue OS seed records across ${seedPaths.length} datasets.`);
+console.log(`Validated ${records.length} sequential Revenue OS seed records across ${seedPaths.length} datasets.`);
