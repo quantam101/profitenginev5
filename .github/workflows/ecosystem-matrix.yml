@@ -47,7 +47,7 @@ jobs:
               ("backend (render)",    "https://profitengine-api-6cwb.onrender.com/api/health",   "json:ok"),
               ("runtime (render)",    "https://profitengine-runtime.onrender.com/health",        "json:ok"),
               ("tokenforge (render)", "https://tokenforge-api.onrender.com/api/health",          "json:ok"),
-              ("frontend dashboard",  "https://profitenginev5.vercel.app/api/dashboard",         "2xx"),
+              ("frontend dashboard",  "https://profitenginev5.vercel.app/dashboard",               "2xx"),
               ("www site",            "https://www.alreadyherellc.com",                          "2xx"),
               ("forge redirect stub", "https://forge.alreadyherellc.com",                        "2xx"),
               ("roadkings client",    "https://roadkingstransport.us",                           "2xx"),
@@ -68,9 +68,11 @@ jobs:
               return ("mongo persistence", m, m == "configured")
 
           def check_content_freshness():
-              body, code = fetch("https://quantam101.github.io/content/")
+              # The Jekyll feed is the source of truth for post dates; published
+              # permalinks in the home page no longer contain YYYY-MM-DD.
+              body, code = fetch("https://quantam101.github.io/content/feed.xml")
               if code != 200: return ("content pipeline", f"HTTP {code}", False)
-              dates = sorted(set(re.findall(r"posts/(\d{4}-\d{2}-\d{2})", body)))
+              dates = sorted(set(re.findall(r"<published>(\d{4}-\d{2}-\d{2})T", body)))
               if not dates: return ("content pipeline", "no posts found", False)
               newest = datetime.date.fromisoformat(dates[-1])
               age = (TODAY - newest).days
