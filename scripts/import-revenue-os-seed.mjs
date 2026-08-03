@@ -4,7 +4,7 @@ import { MongoClient } from 'mongodb';
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
-const seedPaths = (process.env.REVENUE_OS_SEED_PATHS || process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json,data/revenue-os/revenue-plays.seed.v1.1.json')
+const seedPaths = (process.env.REVENUE_OS_SEED_PATHS || process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json,data/revenue-os/revenue-plays.seed.v1.1.json,data/revenue-os/revenue-plays.seed.v1.2.json')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
@@ -41,6 +41,15 @@ for (const dataset of datasets) {
       seed_generated_at: new Date(dataset.generated_at),
     });
   }
+}
+
+if (records.length !== 75) {
+  throw new Error(`Expected 75 combined Revenue OS seed records, found ${records.length}`);
+}
+
+for (let number = 1; number <= 75; number += 1) {
+  const expectedId = `RP-${String(number).padStart(3, '0')}`;
+  if (!ids.has(expectedId)) throw new Error(`Missing sequential Revenue OS seed id: ${expectedId}`);
 }
 
 const client = new MongoClient(uri, { maxPoolSize: 5, serverSelectionTimeoutMS: 10000 });
