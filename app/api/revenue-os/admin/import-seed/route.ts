@@ -133,7 +133,6 @@ export async function POST(request: Request) {
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       upsertedCount: result.upsertedCount,
-      acknowledged: result.acknowledged,
     });
   } catch (error) {
     console.error('Revenue OS seed import failed', error);

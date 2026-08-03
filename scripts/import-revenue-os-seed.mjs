@@ -123,7 +123,6 @@ try {
       matched_count: result.matchedCount,
       modified_count: result.modifiedCount,
       upserted_count: result.upsertedCount,
-      acknowledged: result.acknowledged,
     }, null, 2));
   }
 } finally {
