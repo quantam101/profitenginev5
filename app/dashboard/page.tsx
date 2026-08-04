@@ -1,76 +1,679 @@
-﻿﻿'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
-interface Stream{name:string;status:string;health:number;revenue30d:number;today:number;trend:string}
-interface Agent{id:string;label:string;status:string}
-interface Activity{type:string;message:string;ago:string}
-interface Data{todayProfit:number;ratePerHour:number;activeStreams:number;totalStreams:number;revenue30d:number;revenueMoM:number;content24h:number;aiOpsPerCycle:number;uptime:string;healthScore:number;tokensToday:number;dlqItems:number;engineRunning:boolean;publishedPosts?:number;lastPublished?:string;lastPublishedDate?:string;contentSite?:string;totalCycles?:number;memUsedPct?:number;streams:Stream[];agents:Agent[];activity:Activity[];pipeline:{trends:number;generate:number;seo:number;affiliate:number;publish:number;lcc:number}}
-const MOCK:Data={todayProfit:33.09,ratePerHour:120.95,activeStreams:6,totalStreams:6,revenue30d:1451.16,revenueMoM:23,content24h:15,aiOpsPerCycle:2196,uptime:'0h 39m',healthScore:94,tokensToday:284,dlqItems:0,engineRunning:true,pipeline:{trends:100,generate:87,seo:92,affiliate:100,publish:94,lcc:100},streams:[{name:'AI Blog Network',status:'running',health:94,revenue30d:260.10,today:122.30,trend:'up'},{name:'Faceless Videos',status:'running',health:88,revenue30d:204.78,today:118.88,trend:'up'},{name:'Print-on-Demand A',status:'running',health:79,revenue30d:185.69,today:120.49,trend:'up'},{name:'Print-on-Demand B',status:'running',health:82,revenue30d:185.80,today:120.60,trend:'down'},{name:'Affiliate Links',status:'running',health:97,revenue30d:332.97,today:121.37,trend:'up'},{name:'Social Automation',status:'running',health:85,revenue30d:168.63,today:115.83,trend:'up'},{name:'SEO Content Farm',status:'running',health:91,revenue30d:312.43,today:123.13,trend:'up'}],agents:[{id:'trendScanner',label:'trendScanner',status:'busy'},{id:'contentGen',label:'contentGen',status:'idle'},{id:'seoAgent',label:'seoAgent',status:'idle'},{id:'affiliateLinker',label:'affiliateLinker',status:'busy'},{id:'socialAgent',label:'socialAgent',status:'busy'},{id:'earningsAgent',label:'earningsAgent',status:'busy'},{id:'healthAgent',label:'healthAgent',status:'idle'},{id:'podAgent',label:'podAgent',status:'busy'},{id:'revenueAgent',label:'revenueAgent',status:'busy'},{id:'websiteAgent',label:'websiteAgent',status:'idle'}],activity:[{type:'trends',message:'Trend scan: 12 new niches found',ago:'48m ago'},{type:'social',message:'Reddit scheduled: r/passive_income',ago:'35m ago'},{type:'merch',message:'Printify order fulfilled: $18.40 margin',ago:'29m ago'},{type:'lcc',message:'LC&C: prompt seo_title rewritten (+8% CTR)',ago:'18m ago'},{type:'blog',message:'SEO article published: Dev.to + Hashnode',ago:'11m ago'}]};
-const NAV=[{id:'overview',label:'Operations',icon:'⚡',group:'Core'},{id:'revenue',label:'Revenue',icon:'💰',group:'Core'},{id:'streams',label:'Streams',icon:'📡',group:'Core'},{id:'agents',label:'Agent Fleet',icon:'🤖',group:'Engine'},{id:'pipeline',label:'Pipeline',icon:'🔄',group:'Engine'},{id:'activity',label:'Live Activity',icon:'📊',group:'Engine'},{id:'advisor',label:'AI Advisor',icon:'🧠',group:'Tools'},{id:'system',label:'System',icon:'🖥️',group:'Tools'}] as const;
-type SID=typeof NAV[number]['id'];
-function useData(){const[data,setData]=useState<Data>(MOCK);const[connected,setConnected]=useState(false);const[ts,setTs]=useState(new Date());const go=useCallback(async()=>{try{const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(j&&!j.error){setData(prev=>({...prev,...Object.fromEntries(Object.entries(j).filter(([,v])=>v!=null))}));setConnected(true);}}catch{setConnected(false);}setTs(new Date());},[]);useEffect(()=>{go();const t=setInterval(go,15000);return()=>clearInterval(t);},[go]);return{data,connected,ts};}
-function Card({label,value,sub,color='#00ff88'}:{label:string;value:string;sub?:string;color?:string}){return(<div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:'14px 16px',position:'relative',overflow:'hidden'}}><div style={{position:'absolute',top:0,left:0,width:3,height:'100%',background:color}}/><p style={{color:'#555',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase' as const,margin:'0 0 6px',fontWeight:600}}>{label}</p><p style={{color:'#f0f0f0',fontSize:22,fontWeight:700,margin:0,fontFamily:'monospace'}}>{value}</p>{sub&&<p style={{color:color,fontSize:11,margin:'3px 0 0',opacity:0.85}}>{sub}</p>}</div>);}
-function HBar({value}:{value:number}){const c=value>=90?'#00ff88':value>=75?'#ffcc00':'#ff4444';return(<div style={{display:'flex',alignItems:'center',gap:8}}><div style={{flex:1,height:5,background:'#1e1e1e',borderRadius:3,overflow:'hidden'}}><div style={{width:value+'%',height:'100%',background:c}}/></div><span style={{color:c,fontSize:10,width:32,textAlign:'right' as const,fontFamily:'monospace'}}>{value}%</span></div>);}
-function PBar({label,value}:{label:string;value:number}){const c=value>=95?'#00ff88':value>=80?'#ffcc00':'#ff4444';return(<div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}><span style={{color:'#666',fontSize:11,width:76,flexShrink:0}}>{label}</span><div style={{flex:1,height:5,background:'#1a1a1a',borderRadius:3,overflow:'hidden'}}><div style={{width:value+'%',height:'100%',background:c}}/></div><span style={{color:c,fontSize:10,width:32,textAlign:'right' as const,fontFamily:'monospace'}}>{value}%</span></div>);}
-function Overview({data}:{data:Data}){return(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{color:'#f0f0f0',margin:0,fontSize:18,fontWeight:700}}>Operations</h2><span style={{color:'#00ff88',fontSize:11,fontFamily:'monospace',background:'#00ff8810',border:'1px solid #00ff8830',padding:'4px 12px',borderRadius:20}}>{data.engineRunning?'● ENGINE RUNNING':'○ PAUSED'}</span></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:10,marginBottom:18}}><Card label="Today Profit" value={'$'+data.todayProfit.toFixed(2)} sub={'+$'+data.ratePerHour+'/hr'} color="#00ff88"/><Card label="Revenue 30D" value={'$'+data.revenue30d.toFixed(2)} sub={'+'+data.revenueMoM+'% MoM'} color="#00aaff"/><Card label="Streams" value={data.activeStreams+'/'+data.totalStreams} sub="all running" color="#aa00ff"/><Card label="Content/24H" value={String(data.content24h)} sub="6 platforms" color="#ff6600"/><Card label="AI Ops/Cycle" value={data.aiOpsPerCycle.toLocaleString()} sub="self-improving" color="#ff0088"/><Card label="Uptime" value={data.uptime} sub={'health '+data.healthScore+'/100'} color="#00ffcc"/></div><div style={{display:'flex',gap:10,flexWrap:'wrap' as const}}>{[{l:'Run Cycle',c:'#00ff88'},{l:'Self-Improve',c:'#00aaff'},{l:'Pause All',c:'#ff4444'},{l:'Resume All',c:'#ffcc00'}].map(({l,c})=>(<button key={l} onClick={()=>fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:l})}).catch(()=>{})} style={{padding:'9px 18px',borderRadius:7,border:'1px solid '+c+'40',background:c+'12',color:c,cursor:'pointer',fontSize:12,fontWeight:600}}>{l}</button>))}</div><div style={{marginTop:18,background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:18}}><p style={{color:'#444',fontSize:10,margin:'0 0 14px',textTransform:'uppercase' as const,letterSpacing:'0.1em',fontWeight:600}}>Pipeline</p><PBar label="Trends" value={data.pipeline.trends}/><PBar label="Generate" value={data.pipeline.generate}/><PBar label="SEO/A-B" value={data.pipeline.seo}/><PBar label="Affiliate" value={data.pipeline.affiliate}/><PBar label="Publish" value={data.pipeline.publish}/><PBar label="LC&C" value={data.pipeline.lcc}/></div><div style={{marginTop:14,background:'#111',border:'1px solid #1e1e1e',borderRadius:8,overflow:'hidden'}}><p style={{color:'#444',fontSize:10,margin:0,textTransform:'uppercase' as const,letterSpacing:'0.1em',fontWeight:600,padding:'12px 18px 8px'}}>Recent Activity</p>{data.activity.slice(0,5).map((item,i)=>{const col=({'trends':'#00aaff','social':'#aa00ff','merch':'#ff6600','lcc':'#00ff88','blog':'#ffcc00'} as Record<string,string>)[item.type]??'#666';return(<div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',borderBottom:i<Math.min(data.activity.length,5)-1?'1px solid #141414':'none'}}><span style={{padding:'2px 9px',borderRadius:20,fontSize:10,fontWeight:700,background:col+'20',color:col,border:'1px solid '+col+'40',flexShrink:0}}>{item.type}</span><span style={{color:'#ccc',fontSize:12,flex:1}}>{item.message}</span><span style={{color:'#444',fontSize:10,flexShrink:0,fontFamily:'monospace'}}>{item.ago}</span></div>);})}</div></div>);}
-function Revenue({data}:{data:Data}){const mx=Math.max(...data.streams.map(s=>s.revenue30d));return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>Revenue</h2><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:10,marginBottom:18}}><Card label="Total 30D" value={'$'+data.revenue30d.toFixed(2)} sub={'+'+data.revenueMoM+'% MoM'} color="#00ff88"/><Card label="Today" value={'$'+data.todayProfit.toFixed(2)} sub={'$'+data.ratePerHour+'/hr'} color="#00aaff"/></div><div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:18}}><p style={{color:'#444',fontSize:10,margin:'0 0 14px',textTransform:'uppercase' as const,letterSpacing:'0.1em',fontWeight:600}}>Revenue by Stream — 30 days</p>{data.streams.map(s=>(<div key={s.name} style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}><span style={{color:'#777',fontSize:11,width:150,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const}}>{s.name}</span><div style={{flex:1,height:7,background:'#1a1a1a',borderRadius:4,overflow:'hidden'}}><div style={{width:((s.revenue30d/mx)*100)+'%',height:'100%',background:'linear-gradient(90deg,#00ff88,#00aaff)'}}/></div><span style={{color:'#ccc',fontSize:11,width:55,textAlign:'right' as const,fontFamily:'monospace'}}>${s.revenue30d.toFixed(0)}</span><span style={{color:s.trend==='up'?'#00ff88':'#ff4444',fontSize:12}}>{s.trend==='up'?'▲':'▼'}</span></div>))}</div></div>);}
-function Streams({data}:{data:Data}){return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>Stream Health</h2><div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,overflow:'hidden'}}><table style={{width:'100%',borderCollapse:'collapse' as const}}><thead><tr style={{borderBottom:'1px solid #1a1a1a'}}>{['Stream','Status','Health','30d Rev','Today','Trend'].map(h=>(<th key={h} style={{color:'#444',fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase' as const,padding:'11px 14px',textAlign:'left' as const}}>{h}</th>))}</tr></thead><tbody>{data.streams.map((s,i)=>(<tr key={s.name} style={{borderBottom:i<data.streams.length-1?'1px solid #141414':'none'}}><td style={{color:'#ddd',fontSize:12,padding:'10px 14px',fontWeight:500}}>{s.name}</td><td style={{padding:'10px 14px'}}><span style={{padding:'2px 9px',borderRadius:20,fontSize:10,fontWeight:700,background:'#00ff8812',color:'#00ff88',border:'1px solid #00ff8830'}}>{s.status}</span></td><td style={{padding:'10px 14px',minWidth:120}}><HBar value={s.health}/></td><td style={{color:'#aaa',fontSize:11,padding:'10px 14px',fontFamily:'monospace'}}>${s.revenue30d.toFixed(2)}</td><td style={{color:'#00ff88',fontSize:11,padding:'10px 14px',fontFamily:'monospace',fontWeight:700}}>+${s.today.toFixed(2)}</td><td style={{color:s.trend==='up'?'#00ff88':'#ff4444',fontSize:14,padding:'10px 14px'}}>{s.trend==='up'?'▲':'▼'}</td></tr>))}</tbody></table></div></div>);}
-function Agents({data}:{data:Data}){return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>Agent Fleet</h2><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(185px,1fr))',gap:8}}>{data.agents.map(a=>(<div key={a.id} style={{display:'flex',alignItems:'center',gap:10,background:'#111',border:'1px solid '+(a.status==='busy'?'#00ff8820':'#1e1e1e'),borderRadius:8,padding:'11px 14px'}}><div style={{width:9,height:9,borderRadius:'50%',background:a.status==='busy'?'#00ff88':'#222',boxShadow:a.status==='busy'?'0 0 8px #00ff8870':'none',flexShrink:0}}/><div><p style={{color:'#ddd',fontSize:12,margin:0,fontWeight:600}}>{a.label}</p><p style={{color:a.status==='busy'?'#00ff88':'#444',fontSize:10,margin:'1px 0 0',fontFamily:'monospace'}}>● {a.status}</p></div></div>))}</div></div>);}
-function Pipeline({data}:{data:Data}){return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>Pipeline</h2><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(145px,1fr))',gap:8,marginBottom:18}}>{[{l:'RAM Cache(L1)',v:'LIVE',c:'#00ff88',s:'~40% token save'},{l:'Disk Cache(L2)',v:'LIVE',c:'#00ff88',s:'persistent'},{l:'UCB1 Bandit',v:'ARMED',c:'#ffcc00',s:'auto-select'},{l:'Dead-letter Q',v:data.dlqItems===0?'EMPTY':String(data.dlqItems),c:'#00aaff',s:data.dlqItems+' items'},{l:'LC&C Guard',v:'ACTIVE',c:'#00ff88',s:'30min interval'}].map(c=>(<div key={c.l} style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:'12px 14px'}}><p style={{color:'#444',fontSize:9,margin:'0 0 5px',textTransform:'uppercase' as const,letterSpacing:'0.08em',fontWeight:700}}>{c.l}</p><p style={{color:c.c,fontSize:15,fontWeight:700,margin:'0 0 3px',fontFamily:'monospace'}}>{c.v}</p><p style={{color:'#444',fontSize:10,margin:0}}>{c.s}</p></div>))}</div><div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:18}}><p style={{color:'#444',fontSize:10,margin:'0 0 14px',textTransform:'uppercase' as const,letterSpacing:'0.1em',fontWeight:600}}>Stages</p><PBar label="Trends" value={data.pipeline.trends}/><PBar label="Generate" value={data.pipeline.generate}/><PBar label="SEO/A-B" value={data.pipeline.seo}/><PBar label="Affiliate" value={data.pipeline.affiliate}/><PBar label="Publish" value={data.pipeline.publish}/><PBar label="LC&C" value={data.pipeline.lcc}/></div></div>);}
-function Activity({data}:{data:Data}){const tc:Record<string,string>={trends:'#00aaff',social:'#aa00ff',merch:'#ff6600',lcc:'#00ff88',blog:'#ffcc00',system:'#666'};return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>Live Activity</h2><div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,overflow:'hidden'}}>{data.activity.map((item,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:i<data.activity.length-1?'1px solid #141414':'none'}}><span style={{padding:'2px 9px',borderRadius:20,fontSize:10,fontWeight:700,background:(tc[item.type]??'#666')+'20',color:tc[item.type]??'#666',border:'1px solid '+(tc[item.type]??'#666')+'40',flexShrink:0}}>{item.type}</span><span style={{color:'#ccc',fontSize:12,flex:1}}>{item.message}</span><span style={{color:'#444',fontSize:10,flexShrink:0,fontFamily:'monospace'}}>{item.ago}</span></div>))}</div></div>);}
-function Advisor(){const[msgs,setMsgs]=useState<{role:'user'|'assistant';text:string}[]>([{role:'assistant',text:'ProfitEngine v5.0 online. 10 agents, 6 streams, VHLL, LC&C active. Ask anything.'}]);const[input,setInput]=useState('');const[loading,setLoading]=useState(false);const ref=useRef<HTMLDivElement>(null);useEffect(()=>{ref.current?.scrollIntoView({behavior:'smooth'});},[msgs]);const send=async()=>{if(!input.trim()||loading)return;const msg=input.trim();setInput('');setLoading(true);setMsgs(m=>[...m,{role:'user',text:msg}]);try{const r=await fetch('/api/advisor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});const d=await r.json();setMsgs(m=>[...m,{role:'assistant',text:d.reply??'No response.'}]);}catch{setMsgs(m=>[...m,{role:'assistant',text:'Error — check ANTHROPIC_API_KEY in Vercel env vars.'}]);}setLoading(false);};return(<div style={{display:'flex',flexDirection:'column' as const,minHeight:400}}><h2 style={{color:'#f0f0f0',margin:'0 0 4px',fontSize:18,fontWeight:700}}>AI Advisor</h2><p style={{color:'#444',fontSize:11,margin:'0 0 14px'}}>claude-sonnet-4 · LC&C context</p><div style={{flex:1,overflowY:'auto' as const,background:'#0c0c0c',borderRadius:8,border:'1px solid #1a1a1a',padding:14,display:'flex',flexDirection:'column' as const,gap:8,minHeight:260}}>{msgs.map((m,i)=>(<div key={i} style={{display:'flex',gap:8}}><span style={{width:24,height:24,borderRadius:'50%',background:m.role==='assistant'?'#00ff8812':'#00aaff12',border:'1px solid '+(m.role==='assistant'?'#00ff8828':'#00aaff28'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0,marginTop:1}}>{m.role==='assistant'?'🧠':'👤'}</span><p style={{color:m.role==='assistant'?'#c0c0c0':'#e0e0e0',fontSize:12,margin:0,lineHeight:1.6,background:m.role==='assistant'?'#131313':'#0d1218',padding:'9px 13px',borderRadius:7,flex:1}}>{m.text}</p></div>))}{loading&&<p style={{color:'#444',fontSize:12,margin:0,paddingLeft:32}}>Thinking…</p>}<div ref={ref}/></div><div style={{display:'flex',gap:8,marginTop:10}}><input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Ask about streams, agents, revenue…" style={{flex:1,background:'#111',border:'1px solid #1e1e1e',borderRadius:7,padding:'9px 13px',color:'#e0e0e0',fontSize:12,outline:'none',fontFamily:'inherit'}}/><button onClick={send} disabled={loading||!input.trim()} style={{padding:'9px 18px',borderRadius:7,background:'#00ff8818',border:'1px solid #00ff8838',color:'#00ff88',cursor:'pointer',fontSize:12,fontWeight:700}}>Send</button></div></div>);}
-function System({data}:{data:Data}){return(<div><h2 style={{color:'#f0f0f0',margin:'0 0 18px',fontSize:18,fontWeight:700}}>System</h2><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(170px,1fr))',gap:10,marginBottom:14}}><Card label="Health Score" value={data.healthScore+'/100'} color="#00ff88"/><Card label="Uptime" value={data.uptime} color="#00aaff"/><Card label="Tokens Today" value={data.tokensToday+'K'} color="#aa00ff"/><Card label="DLQ Items" value={String(data.dlqItems)} color={data.dlqItems===0?'#00ff88':'#ff4444'}/>{data.publishedPosts!=null&&<Card label="Published Posts" value={String(data.publishedPosts)} sub={data.lastPublishedDate??''} color="#ff6600"/>}{data.totalCycles!=null&&<Card label="Total Cycles" value={data.totalCycles.toLocaleString()} color="#ffcc00"/>}{data.memUsedPct!=null&&<Card label="RAM Usage" value={data.memUsedPct+'%'} color={data.memUsedPct>85?'#ff4444':'#00aaff'}/>}</div>{data.contentSite&&<div style={{background:'#111',border:'1px solid #1e1e1e',borderRadius:8,padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{color:'#444',fontSize:11,textTransform:'uppercase' as const,letterSpacing:'0.08em',fontWeight:700}}>Content Site</span><a href={data.contentSite} target="_blank" rel="noopener noreferrer" style={{color:'#00aaff',fontSize:12,textDecoration:'none',fontFamily:'monospace'}}>{data.contentSite.replace('https://','')}</a></div>}</div>);}
-export default function Dashboard(){
-  const[active,setActive]=useState<SID>('overview');
-  const[open,setOpen]=useState(true);
-  const{data,connected,ts}=useData();
-  const groups=[...new Set(NAV.map(n=>n.group))];
-  function Section(){
-    if(active==='overview')return<Overview data={data}/>;
-    if(active==='revenue')return<Revenue data={data}/>;
-    if(active==='streams')return<Streams data={data}/>;
-    if(active==='agents')return<Agents data={data}/>;
-    if(active==='pipeline')return<Pipeline data={data}/>;
-    if(active==='activity')return<Activity data={data}/>;
-    if(active==='advisor')return<Advisor/>;
-    if(active==='system')return<System data={data}/>;
-    return null;
-  }
-  return(<>
-    <style>{`*{box-sizing:border-box}body{margin:0;background:#080810;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1e1e1e;border-radius:2px}`}</style>
-    <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
-      <aside style={{width:open?218:52,flexShrink:0,background:'#0d0d18',borderRight:'1px solid #141420',display:'flex',flexDirection:'column' as const,transition:'width 0.2s',overflow:'hidden'}}>
-        <div style={{padding:'14px 12px',borderBottom:'1px solid #141420',display:'flex',alignItems:'center',gap:9}}>
-          <span style={{width:28,height:28,borderRadius:7,background:'linear-gradient(135deg,#6d28d9,#00aaff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>⚡</span>
-          {open&&<div><p style={{color:'#f0f0f0',fontSize:12,fontWeight:700,margin:0,whiteSpace:'nowrap' as const}}>ProfitEngine</p><p style={{color:'#444',fontSize:9,margin:0,whiteSpace:'nowrap' as const}}>v5.0 · LC&C ARMED</p></div>}
+'use client';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import styles from './dashboard.module.css';
+
+interface Stream {
+  name: string;
+  status: string;
+  health: number;
+  revenue30d: number;
+  today: number;
+  trend: string;
+}
+
+interface Agent {
+  id: string;
+  label: string;
+  status: string;
+}
+
+interface Activity {
+  type: string;
+  message: string;
+  ago: string;
+}
+
+interface Data {
+  todayProfit: number;
+  ratePerHour: number;
+  activeStreams: number;
+  totalStreams: number;
+  revenue30d: number;
+  revenueMoM: number;
+  content24h: number;
+  aiOpsPerCycle: number;
+  uptime: string;
+  healthScore: number;
+  tokensToday: number;
+  dlqItems: number;
+  engineRunning: boolean;
+  publishedPosts?: number;
+  lastPublished?: string;
+  lastPublishedDate?: string;
+  contentSite?: string;
+  totalCycles?: number;
+  successfulCycles?: number;
+  avgDurationMs?: number;
+  lastCycleIso?: string;
+  memUsedPct?: number;
+  tierDistribution?: Record<string, number>;
+  streams: Stream[];
+  agents: Agent[];
+  activity: Activity[];
+  pipeline: {
+    trends: number;
+    generate: number;
+    seo: number;
+    affiliate: number;
+    publish: number;
+    lcc: number;
+  };
+}
+
+const MOCK: Data = {
+  todayProfit: 33.09,
+  ratePerHour: 120.95,
+  activeStreams: 6,
+  totalStreams: 6,
+  revenue30d: 1451.16,
+  revenueMoM: 23,
+  content24h: 15,
+  aiOpsPerCycle: 2196,
+  uptime: '0h 39m',
+  healthScore: 94,
+  tokensToday: 284,
+  dlqItems: 0,
+  engineRunning: true,
+  pipeline: { trends: 100, generate: 87, seo: 92, affiliate: 100, publish: 94, lcc: 100 },
+  streams: [
+    { name: 'AI Blog Network', status: 'running', health: 94, revenue30d: 260.1, today: 122.3, trend: 'up' },
+    { name: 'Faceless Videos', status: 'running', health: 88, revenue30d: 204.78, today: 118.88, trend: 'up' },
+    { name: 'Print-on-Demand A', status: 'running', health: 79, revenue30d: 185.69, today: 120.49, trend: 'up' },
+    { name: 'Print-on-Demand B', status: 'running', health: 82, revenue30d: 185.8, today: 120.6, trend: 'down' },
+    { name: 'Affiliate Links', status: 'running', health: 97, revenue30d: 332.97, today: 121.37, trend: 'up' },
+    { name: 'Social Automation', status: 'running', health: 85, revenue30d: 168.63, today: 115.83, trend: 'up' },
+    { name: 'SEO Content Farm', status: 'running', health: 91, revenue30d: 312.43, today: 123.13, trend: 'up' },
+  ],
+  agents: [
+    { id: 'trendScanner', label: 'trendScanner', status: 'busy' },
+    { id: 'contentGen', label: 'contentGen', status: 'idle' },
+    { id: 'seoAgent', label: 'seoAgent', status: 'idle' },
+    { id: 'affiliateLinker', label: 'affiliateLinker', status: 'busy' },
+    { id: 'socialAgent', label: 'socialAgent', status: 'busy' },
+    { id: 'earningsAgent', label: 'earningsAgent', status: 'busy' },
+    { id: 'healthAgent', label: 'healthAgent', status: 'idle' },
+    { id: 'podAgent', label: 'podAgent', status: 'busy' },
+    { id: 'revenueAgent', label: 'revenueAgent', status: 'busy' },
+    { id: 'websiteAgent', label: 'websiteAgent', status: 'idle' },
+  ],
+  activity: [
+    { type: 'trends', message: 'Trend scan: 12 new niches found', ago: '48m ago' },
+    { type: 'social', message: 'Reddit scheduled: r/passive_income', ago: '35m ago' },
+    { type: 'merch', message: 'Printify order fulfilled: $18.40 margin', ago: '29m ago' },
+    { type: 'lcc', message: 'LC&C: prompt seo_title rewritten (+8% CTR)', ago: '18m ago' },
+    { type: 'blog', message: 'SEO article published: Dev.to + Hashnode', ago: '11m ago' },
+  ],
+};
+
+const NAV = [
+  { id: 'overview', label: 'Operations', abbr: 'OPS', group: 'Command' },
+  { id: 'revenue', label: 'Revenue', abbr: 'REV', group: 'Command' },
+  { id: 'streams', label: 'Streams', abbr: 'STR', group: 'Command' },
+  { id: 'agents', label: 'Agent Fleet', abbr: 'FLT', group: 'Engine' },
+  { id: 'pipeline', label: 'Pipeline', abbr: 'PLN', group: 'Engine' },
+  { id: 'activity', label: 'Live Activity', abbr: 'LOG', group: 'Engine' },
+  { id: 'advisor', label: 'AI Advisor', abbr: 'AI', group: 'Tools' },
+  { id: 'system', label: 'System', abbr: 'SYS', group: 'Tools' },
+] as const;
+
+type SID = (typeof NAV)[number]['id'];
+
+const TYPE_COLORS: Record<string, string> = {
+  trends: '#00aaff',
+  social: '#aa00ff',
+  merch: '#ff6600',
+  lcc: '#00ff88',
+  blog: '#ffcc00',
+  system: '#6f8299',
+};
+
+function useData() {
+  const [data, setData] = useState<Data>(MOCK);
+  const [connected, setConnected] = useState(false);
+  const [ts, setTs] = useState<Date | null>(null);
+
+  const go = useCallback(async () => {
+    try {
+      const r = await fetch('/api/data', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`status ${r.status}`);
+      const j = (await r.json()) as Partial<Data>;
+      if (j && !('error' in j)) {
+        setData((prev) => ({
+          ...prev,
+          ...Object.fromEntries(Object.entries(j).filter(([, v]) => v != null)),
+        }));
+        setConnected(true);
+      } else {
+        setConnected(false);
+      }
+    } catch {
+      setConnected(false);
+    }
+    setTs(new Date());
+  }, []);
+
+  useEffect(() => {
+    go();
+    const t = setInterval(go, 15000);
+    return () => clearInterval(t);
+  }, [go]);
+
+  return { data, connected, ts };
+}
+
+function useCommand() {
+  const [pending, setPending] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: 'good' | 'bad' | 'neutral' } | null>(null);
+
+  const send = useCallback(async (command: string) => {
+    if (pending) return;
+    setPending(command);
+    try {
+      const r = await fetch('/api/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setToast({ message: `${command}: acknowledged`, tone: 'good' });
+    } catch (e) {
+      setToast({ message: `${command}: failed — ${e instanceof Error ? e.message : 'network'}`, tone: 'bad' });
+    } finally {
+      setPending(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }, [pending]);
+
+  return { pending, send, toast };
+}
+
+function scoreColor(value: number): string {
+  if (value >= 90) return '#00d084';
+  if (value >= 75) return '#ffb020';
+  return '#ff4d4d';
+}
+
+function stageState(value: number): string {
+  if (value >= 95) return 'ARMED';
+  if (value >= 80) return 'READY';
+  return 'DEGRADED';
+}
+
+function cn(...parts: (string | false | undefined)[]) {
+  return parts.filter(Boolean).join(' ');
+}
+
+function Kpi({ label, value, sub, accent = '#00d084' }: { label: string; value: string; sub?: string; accent?: string }) {
+  return (
+    <div className={styles.kpi} style={{ ['--accent' as string]: accent }}>
+      <p className={styles.kpiLabel}>{label}</p>
+      <p className={styles.kpiValue}>{value}</p>
+      {sub && <p className={styles.kpiSub}>{sub}</p>}
+    </div>
+  );
+}
+
+function Progress({ label, value }: { label: string; value: number }) {
+  const color = scoreColor(value);
+  return (
+    <div className={styles.barRow}>
+      <span className={styles.barLabel}>{label}</span>
+      <div className={styles.barTrack}>
+        <div className={styles.barFill} style={{ width: `${value}%`, ['--c' as string]: color }} />
+      </div>
+      <span className={styles.barValue} style={{ ['--c' as string]: color }}>{value}%</span>
+    </div>
+  );
+}
+
+function HBar({ value }: { value: number }) {
+  const color = scoreColor(value);
+  return (
+    <div className={styles.barRow}>
+      <div className={styles.barTrack}>
+        <div className={styles.barFill} style={{ width: `${value}%`, ['--c' as string]: color }} />
+      </div>
+      <span className={styles.barValue} style={{ ['--c' as string]: color }}>{value}%</span>
+    </div>
+  );
+}
+
+function StageCard({ label, value }: { label: string; value: number }) {
+  const color = scoreColor(value);
+  const state = stageState(value);
+  return (
+    <div className={styles.stageCard} style={{ ['--accent' as string]: color }}>
+      <p className={styles.stageName}>{label}</p>
+      <p className={styles.stageState}>{state}</p>
+      <p className={styles.stageSub}>{value}%</p>
+    </div>
+  );
+}
+
+function Feed({ items }: { items: Activity[] }) {
+  return (
+    <div className={styles.feed}>
+      {items.map((item, i) => {
+        const color = TYPE_COLORS[item.type] ?? '#6f8299';
+        return (
+          <div key={i} className={styles.feedItem}>
+            <span className={styles.badge} style={{ color, borderColor: `${color}55`, background: `${color}10` }}>
+              {item.type}
+            </span>
+            <span className={styles.feedMsg}>{item.message}</span>
+            <span className={styles.feedTime}>{item.ago}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Overview({ data, pending, send }: { data: Data; pending: string | null; send: (c: string) => void }) {
+  const intent = data.engineRunning ? 'RUN AUTONOMOUS PROFIT CYCLE' : 'ALL OPERATIONS PAUSED';
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Operations</h2>
+        <span className={cn(styles.engineBadge, data.engineRunning ? styles.engineRunning : styles.enginePaused)}>
+          {data.engineRunning ? '● ENGINE RUNNING' : '○ PAUSED'}
+        </span>
+      </div>
+
+      <div className={styles.intentPanel}>
+        <div>
+          <p className={styles.intentLabel}>Declared Intent (VHLL)</p>
+          <p className={styles.intentValue}>{intent}</p>
         </div>
-        <nav style={{flex:1,overflowY:'auto' as const,padding:'6px 0'}}>
-          {groups.map(group=>(<div key={group}>
-            {open&&<p style={{color:'#2a2a3a',fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase' as const,margin:'12px 12px 4px'}}>{group}</p>}
-            {NAV.filter(n=>n.group===group).map(item=>{
-              const on=active===item.id;
-              return(<button key={item.id} onClick={()=>setActive(item.id)} title={item.label}
-                style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:open?'8px 12px':'9px 0',justifyContent:open?'flex-start':'center',background:on?'rgba(109,40,217,0.1)':'transparent',border:'none',borderLeft:open?'2px solid '+(on?'#7c3aed':'transparent'):'none',color:on?'#a78bfa':'#555',cursor:'pointer',textAlign:'left' as const,whiteSpace:'nowrap' as const,transition:'all 0.12s'}}>
-                <span style={{fontSize:14,flexShrink:0}}>{item.icon}</span>
-                {open&&<span style={{fontSize:12,fontWeight:on?700:400}}>{item.label}</span>}
-              </button>);
-            })}
-          </div>))}
-        </nav>
-        <button onClick={()=>setOpen(o=>!o)} style={{margin:8,padding:6,borderRadius:6,background:'#111',border:'1px solid #1e1e1e',color:'#444',cursor:'pointer',fontSize:12}}>{open?'◀':'▶'}</button>
-      </aside>
-      <div style={{flex:1,display:'flex',flexDirection:'column' as const,overflow:'hidden'}}>
-        <header style={{padding:'10px 20px',borderBottom:'1px solid #141420',display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0d0d18',flexShrink:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{color:'#00ff88',fontSize:18,fontWeight:700,fontFamily:'monospace'}}>${data.todayProfit.toFixed(2)}</span>
-            <span style={{color:'#444',fontSize:11}}>+${data.ratePerHour}/hr · {data.activeStreams} streams live</span>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:10,fontFamily:'monospace',color:connected?'#00ff88':'#ff6600'}}>{connected?'● LIVE':'◌ DEMO'}</span>
-            <span style={{color:'#2a2a3a',fontSize:10,fontFamily:'monospace'}}>{ts.toLocaleTimeString()}</span>
-          </div>
-        </header>
-        <main style={{flex:1,overflowY:'auto' as const,padding:20}}><Section/></main>
+        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+          <p className={styles.intentLabel}>Health</p>
+          <p className={styles.intentValue} style={{ color: scoreColor(data.healthScore) }}>{data.healthScore}/100</p>
+        </div>
+      </div>
+
+      <div className={styles.grid3}>
+        <Kpi label="Today Profit" value={`$${data.todayProfit.toFixed(2)}`} sub={`+$${data.ratePerHour}/hr`} accent="#00d084" />
+        <Kpi label="Revenue 30D" value={`$${data.revenue30d.toFixed(2)}`} sub={`+${data.revenueMoM}% MoM`} accent="#5aa2ff" />
+        <Kpi label="Streams" value={`${data.activeStreams}/${data.totalStreams}`} sub="all running" accent="#aa00ff" />
+        <Kpi label="Content/24H" value={String(data.content24h)} sub="6 platforms" accent="#ff6600" />
+        <Kpi label="AI Ops/Cycle" value={data.aiOpsPerCycle.toLocaleString()} sub="self-improving" accent="#ff0088" />
+        <Kpi label="Uptime" value={data.uptime} sub={`health ${data.healthScore}/100`} accent="#00d0ff" />
+      </div>
+
+      <div className={styles.cmdBar}>
+        {[
+          { label: 'Run Cycle', tone: styles.cmdGreen },
+          { label: 'Self-Improve', tone: styles.cmdBlue },
+          { label: 'Pause All', tone: styles.cmdRed },
+          { label: 'Resume All', tone: styles.cmdAmber },
+        ].map((c) => (
+          <button
+            key={c.label}
+            disabled={Boolean(pending)}
+            className={cn(styles.cmdBtn, c.tone, pending === c.label ? styles.cmdPending : undefined)}
+            onClick={() => send(c.label)}
+          >
+            {pending === c.label ? 'EXECUTING...' : c.label.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.panel}>
+        <p className={styles.panelTitle}>Pipeline Readiness</p>
+        <div className={styles.stageGrid}>
+          <StageCard label="Trends" value={data.pipeline.trends} />
+          <StageCard label="Generate" value={data.pipeline.generate} />
+          <StageCard label="SEO/A-B" value={data.pipeline.seo} />
+          <StageCard label="Affiliate" value={data.pipeline.affiliate} />
+          <StageCard label="Publish" value={data.pipeline.publish} />
+          <StageCard label="LC&C" value={data.pipeline.lcc} />
+        </div>
+      </div>
+
+      <div className={styles.panel}>
+        <p className={styles.panelTitle}>Live Activity</p>
+        <Feed items={data.activity.slice(0, 8)} />
       </div>
     </div>
-  </>);
+  );
+}
+
+function Revenue({ data }: { data: Data }) {
+  const max = useMemo(() => Math.max(...data.streams.map((s) => s.revenue30d)), [data.streams]);
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Revenue</h2>
+      </div>
+      <div className={styles.grid3}>
+        <Kpi label="Total 30D" value={`$${data.revenue30d.toFixed(2)}`} sub={`+${data.revenueMoM}% MoM`} accent="#00d084" />
+        <Kpi label="Today" value={`$${data.todayProfit.toFixed(2)}`} sub={`$${data.ratePerHour}/hr`} accent="#5aa2ff" />
+        <Kpi label="Streams Active" value={`${data.activeStreams}/${data.totalStreams}`} sub="revenue-generating" accent="#aa00ff" />
+      </div>
+      <div className={styles.panel}>
+        <p className={styles.panelTitle}>Revenue by Stream — 30 days</p>
+        {data.streams.map((s) => (
+          <div key={s.name} className={styles.barRow}>
+            <span className={styles.barLabel} style={{ width: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+            <div className={styles.barTrack}>
+              <div className={styles.barFill} style={{ width: `${(s.revenue30d / max) * 100}%` }} />
+            </div>
+            <span className={cn(styles.barValue, s.trend === 'up' ? styles.trendUp : styles.trendDown)} style={{ width: 70 }}>
+              ${s.revenue30d.toFixed(0)} {s.trend === 'up' ? '▲' : '▼'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Streams({ data }: { data: Data }) {
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Stream Health</h2>
+      </div>
+      <div className={styles.panel}>
+        <table className={styles.dataTable}>
+          <thead>
+            <tr>
+              {['Stream', 'Status', 'Health', '30d Rev', 'Today', 'Trend'].map((h) => (
+                <th key={h}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.streams.map((s) => (
+              <tr key={s.name}>
+                <td>{s.name}</td>
+                <td>
+                  <span className={styles.badge} style={{ color: '#00d084', borderColor: '#00d08455', background: '#00d08410' }}>
+                    {s.status}
+                  </span>
+                </td>
+                <td style={{ minWidth: 140 }}><HBar value={s.health} /></td>
+                <td className={styles.mono}>${s.revenue30d.toFixed(2)}</td>
+                <td className={styles.mono} style={{ color: '#00d084' }}>+${s.today.toFixed(2)}</td>
+                <td className={cn(s.trend === 'up' ? styles.trendUp : styles.trendDown)}>{s.trend === 'up' ? '▲' : '▼'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Agents({ data }: { data: Data }) {
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Agent Fleet</h2>
+      </div>
+      <div className={styles.agentGrid}>
+        {data.agents.map((a) => (
+          <div key={a.id} className={cn(styles.agentCard, a.status === 'busy' ? styles.agentCardBusy : styles.agentCardIdle)}>
+            <span className={cn(styles.led, a.status === 'busy' ? styles.ledBusy : styles.ledIdle)} aria-hidden="true" />
+            <div>
+              <p className={styles.agentName}>{a.label}</p>
+              <p className={styles.agentStatus}>{a.status}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Pipeline({ data }: { data: Data }) {
+  const tiers = data.tierDistribution ? Object.entries(data.tierDistribution) : [];
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Pipeline</h2>
+      </div>
+      <div className={styles.stageGrid}>
+        <StageCard label="Trends" value={data.pipeline.trends} />
+        <StageCard label="Generate" value={data.pipeline.generate} />
+        <StageCard label="SEO/A-B" value={data.pipeline.seo} />
+        <StageCard label="Affiliate" value={data.pipeline.affiliate} />
+        <StageCard label="Publish" value={data.pipeline.publish} />
+        <StageCard label="LC&C" value={data.pipeline.lcc} />
+      </div>
+      <div className={styles.panel}>
+        <p className={styles.panelTitle}>Stage Integrity</p>
+        <Progress label="Trends" value={data.pipeline.trends} />
+        <Progress label="Generate" value={data.pipeline.generate} />
+        <Progress label="SEO/A-B" value={data.pipeline.seo} />
+        <Progress label="Affiliate" value={data.pipeline.affiliate} />
+        <Progress label="Publish" value={data.pipeline.publish} />
+        <Progress label="LC&C" value={data.pipeline.lcc} />
+      </div>
+      {tiers.length > 0 && (
+        <div className={styles.panel}>
+          <p className={styles.panelTitle}>Tier Distribution</p>
+          <div className={styles.grid3}>
+            {tiers.map(([name, count]) => (
+              <Kpi key={name} label={name} value={String(count)} accent="#5aa2ff" />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Activity({ data }: { data: Data }) {
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Live Activity</h2>
+      </div>
+      <div className={styles.panel}>
+        <Feed items={data.activity} />
+      </div>
+    </div>
+  );
+}
+
+function Advisor() {
+  const [msgs, setMsgs] = useState<{ role: 'user' | 'assistant'; text: string }[]>([
+    { role: 'assistant', text: 'ProfitEngine v5.0 online. 10 agents, 6 streams, VHLL, LC&C active. Ask anything.' },
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [msgs]);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const msg = input.trim();
+    setInput('');
+    setLoading(true);
+    setMsgs((m) => [...m, { role: 'user', text: msg }]);
+    try {
+      const r = await fetch('/api/advisor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+      const d = (await r.json()) as { reply?: string };
+      setMsgs((m) => [...m, { role: 'assistant', text: d.reply ?? 'No response.' }]);
+    } catch {
+      setMsgs((m) => [...m, { role: 'assistant', text: 'Error — check ANTHROPIC_API_KEY in Vercel env vars.' }]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className={styles.advisor}>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>AI Advisor</h2>
+        <span className={styles.muted}>claude-sonnet-4 · LC&C context</span>
+      </div>
+      <div className={styles.chat}>
+        {msgs.map((m, i) => (
+          <div key={i} className={styles.msg}>
+            <span className={cn(styles.msgAvatar, m.role === 'assistant' ? styles.msgBot : styles.msgUser)}>{m.role === 'assistant' ? 'AI' : 'OP'}</span>
+            <div className={styles.msgBody}>{m.text}</div>
+          </div>
+        ))}
+        {loading && <p className={styles.muted} style={{ paddingLeft: 36 }}>Thinking...</p>}
+        <div ref={ref} />
+      </div>
+      <div className={styles.inputRow}>
+        <input
+          className={styles.input}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          placeholder="Enter a command or question..."
+          aria-label="AI Advisor input"
+        />
+        <button className={styles.sendBtn} onClick={send} disabled={loading || !input.trim()}>
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function System({ data }: { data: Data }) {
+  return (
+    <div>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>System</h2>
+      </div>
+      <div className={styles.grid3}>
+        <Kpi label="Health Score" value={`${data.healthScore}/100`} accent={scoreColor(data.healthScore)} />
+        <Kpi label="Uptime" value={data.uptime} accent="#5aa2ff" />
+        <Kpi label="Tokens Today" value={`${data.tokensToday}K`} accent="#aa00ff" />
+        <Kpi label="DLQ Items" value={String(data.dlqItems)} accent={data.dlqItems === 0 ? '#00d084' : '#ff4d4d'} />
+        {data.publishedPosts != null && <Kpi label="Published Posts" value={String(data.publishedPosts)} sub={data.lastPublishedDate ?? ''} accent="#ff6600" />}
+        {data.totalCycles != null && <Kpi label="Total Cycles" value={data.totalCycles.toLocaleString()} accent="#ffb020" />}
+        {data.avgDurationMs != null && <Kpi label="Avg Duration" value={`${data.avgDurationMs}ms`} accent="#00d0ff" />}
+        {data.memUsedPct != null && <Kpi label="RAM Usage" value={`${data.memUsedPct}%`} accent={data.memUsedPct > 85 ? '#ff4d4d' : '#5aa2ff'} />}
+      </div>
+      {data.contentSite && (
+        <div className={styles.panel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span className={styles.panelTitle} style={{ margin: 0 }}>Content Site</span>
+          <a className={styles.link} href={data.contentSite} target="_blank" rel="noopener noreferrer">
+            {data.contentSite.replace('https://', '')}
+          </a>
+        </div>
+      )}
+      {data.lastCycleIso && (
+        <div className={styles.panel}>
+          <p className={styles.panelTitle}>Last Cycle</p>
+          <p className={styles.mono}>{data.lastCycleIso}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [active, setActive] = useState<SID>('overview');
+  const [open, setOpen] = useState(true);
+  const { data, connected, ts } = useData();
+  const { pending, send, toast } = useCommand();
+
+  const groups = useMemo(() => [...new Set(NAV.map((n) => n.group))], []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const idx = Number(e.key) - 1;
+      if (idx >= 0 && idx < NAV.length) {
+        setActive(NAV[idx].id);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  function Section() {
+    if (active === 'overview') return <Overview data={data} pending={pending} send={send} />;
+    if (active === 'revenue') return <Revenue data={data} />;
+    if (active === 'streams') return <Streams data={data} />;
+    if (active === 'agents') return <Agents data={data} />;
+    if (active === 'pipeline') return <Pipeline data={data} />;
+    if (active === 'activity') return <Activity data={data} />;
+    if (active === 'advisor') return <Advisor />;
+    if (active === 'system') return <System data={data} />;
+    return null;
+  }
+
+  return (
+    <div className={styles.dashboard}>
+      <aside className={styles.sidebar} style={{ width: open ? 220 : 56 }}>
+        <div className={styles.brand}>
+          <div className={styles.brandMark}>PE</div>
+          {open && (
+            <div className={styles.brandText}>
+              <p className={styles.brandTitle}>ProfitEngine</p>
+              <p className={styles.brandSub}>v5.0 · LC&C ARMED</p>
+            </div>
+          )}
+        </div>
+        <nav className={styles.nav}>
+          {groups.map((group) => (
+            <div key={group}>
+              {open && <p className={styles.groupLabel}>{group}</p>}
+              {NAV.filter((n) => n.group === group).map((item) => {
+                const isActive = active === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActive(item.id)}
+                    title={item.label}
+                    className={cn(styles.navItem, isActive ? styles.navItemActive : undefined)}
+                  >
+                    <span className={styles.navIcon}>{item.abbr}</span>
+                    {open && <span>{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        <button onClick={() => setOpen((o) => !o)} className={styles.collapseBtn} aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}>
+          {open ? '◀' : '▶'}
+        </button>
+      </aside>
+
+      <div className={styles.main}>
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <span className={styles.classification}>UNCLASSIFIED // ASI · VHLL · LC&C ARMED</span>
+            <span className={styles.profitReadout}>${data.todayProfit.toFixed(2)}</span>
+            <span className={styles.readoutSub}>+${data.ratePerHour}/hr · {data.activeStreams} streams live</span>
+          </div>
+          <div className={styles.headerRight}>
+            <span className={styles.statusText}>
+              <span className={cn(styles.statusDot, connected ? styles.statusDotLive : styles.statusDotDemo)} />
+              {connected ? 'LIVE' : 'DEMO'}
+            </span>
+            <span className={styles.clock}>{ts ? ts.toLocaleTimeString() : '--:--:--'}</span>
+          </div>
+        </header>
+
+        <main className={styles.content}>
+          <Section />
+        </main>
+      </div>
+
+      {toast && (
+        <div
+          className={styles.toast}
+          style={{
+            borderLeftColor: toast.tone === 'good' ? '#00d084' : toast.tone === 'bad' ? '#ff4d4d' : '#00d0ff',
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
+    </div>
+  );
 }

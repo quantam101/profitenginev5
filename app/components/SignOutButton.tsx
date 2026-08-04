@@ -2,23 +2,12 @@
 
 import { signOut } from 'next-auth/react';
 
-export default function SignOutButton() {
+export default function SignOutButton({ className }: { className?: string }) {
   return (
     <button
+      type="button"
       onClick={() => signOut({ callbackUrl: '/' })}
-      style={{
-        padding: '6px 14px',
-        background: 'transparent',
-        border: '1px solid #26364f',
-        borderRadius: 999,
-        color: '#9fb0c6',
-        fontSize: 12,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        transition: 'border-color .15s, color .15s',
-      }}
-      onMouseOver={e => { e.currentTarget.style.borderColor = '#5aa2ff'; e.currentTarget.style.color = '#eef5ff'; }}
-      onMouseOut={e => { e.currentTarget.style.borderColor = '#26364f'; e.currentTarget.style.color = '#9fb0c6'; }}
+      className={className}
     >
       Sign out
     </button>

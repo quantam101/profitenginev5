@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         contentSite: CONTENT_SITE,
         content24h: ghStats.postCount,
         healthScore: liveHealth,
-        uptime: 'pipeline active',
+        uptime: '0h 0m',
         tokensToday: 0,
       },
       { headers: { 'Cache-Control': 'no-store', 'x-data-source': 'github' } },

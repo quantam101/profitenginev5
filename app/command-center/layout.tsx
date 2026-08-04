@@ -2,45 +2,32 @@ import Image from 'next/image';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import SignOutButton from '@/app/components/SignOutButton';
+import styles from './layout.module.css';
 
 export default async function CommandCenterLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
   return (
     <>
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
-        borderBottom: '1px solid #26364f',
-        background: 'rgba(14,23,38,.95)',
-        backdropFilter: 'blur(8px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        fontFamily: 'Arial, Helvetica, sans-serif',
-      }}>
-        <div style={{ color: '#eef5ff', fontSize: 14, fontWeight: 700, letterSpacing: -0.3 }}>
-          PROFIT<span style={{ color: '#5aa2ff' }}>ENGINE</span>
-          <span style={{ color: '#9fb0c6', fontSize: 11, marginLeft: 8 }}>Command Center</span>
+      <nav className={styles.nav}>
+        <div className={styles.brand}>
+          PROFIT<span className={styles.brandAccent}>ENGINE</span>
+          <span className={styles.brandSub}>Command Center</span>
         </div>
         {session?.user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className={styles.user}>
             {session.user.image && (
               <Image
                 src={session.user.image}
                 alt={session.user.name ?? 'User'}
                 width={28}
                 height={28}
-                style={{ borderRadius: '50%', border: '1px solid #26364f' }}
+                style={{ borderRadius: '50%', border: '1px solid #1f2a3a' }}
                 priority={false}
               />
             )}
-            <span style={{ color: '#9fb0c6', fontSize: 13 }}>
-              {session.user.email}
-            </span>
-            <SignOutButton />
+            <span className={styles.email}>{session.user.email}</span>
+            <SignOutButton className={styles.signOut} />
           </div>
         )}
       </nav>
