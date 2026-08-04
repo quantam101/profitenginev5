@@ -2,15 +2,13 @@
 
 ## Scope
 
-This seed package contains 80 sequential Revenue OS opportunity records:
+This seed package contains 85 sequential Revenue OS opportunity records:
 
 - `RP-001` through `RP-065` in `data/revenue-os/revenue-plays.seed.json`
 - `RP-066` through `RP-070` in `data/revenue-os/revenue-plays.seed.v1.2.json`
 - `RP-071` through `RP-075` in `data/revenue-os/revenue-plays.seed.v1.1.json`
 - `RP-076` through `RP-080` in `data/revenue-os/revenue-plays.seed.v1.4.json`
 - `RP-081` through `RP-085` in `data/revenue-os/revenue-plays.seed.v1.3.json`
-
-The current branch includes 80 records because RP-076 through RP-080 have not yet been committed as a seed file. Until that file is added, validation intentionally fails rather than silently accepting a numbering gap.
 
 The records are version-controlled strategy and research data. They are not verified company or contact records.
 
@@ -24,8 +22,8 @@ npm run validate:revenue-os
 
 Validation requires:
 
-- exactly 80 records across all configured datasets;
-- sequential IDs from `RP-001` through `RP-080` for the currently configured importer;
+- exactly 85 records across all datasets;
+- sequential IDs from `RP-001` through `RP-085`;
 - no duplicates;
 - all required fields;
 - opportunity score equal to the sum of score inputs.
@@ -49,7 +47,7 @@ Default collection: `revenue_plays`
 
 The importer:
 
-- loads the configured seed datasets;
+- loads all five datasets;
 - rejects duplicate or missing sequential IDs;
 - creates required indexes;
 - performs idempotent upserts by `id`;
