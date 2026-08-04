@@ -4,7 +4,7 @@ import { MongoClient } from 'mongodb';
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
-const seedPaths = (process.env.REVENUE_OS_SEED_PATHS || process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json,data/revenue-os/revenue-plays.seed.v1.1.json,data/revenue-os/revenue-plays.seed.v1.2.json')
+const seedPaths = (process.env.REVENUE_OS_SEED_PATHS || process.env.REVENUE_OS_SEED_PATH || 'data/revenue-os/revenue-plays.seed.json,data/revenue-os/revenue-plays.seed.v1.1.json,data/revenue-os/revenue-plays.seed.v1.2.json,data/revenue-os/revenue-plays.seed.v1.3.json')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
@@ -43,11 +43,11 @@ for (const dataset of datasets) {
   }
 }
 
-if (records.length !== 75) {
-  throw new Error(`Expected 75 combined Revenue OS seed records, found ${records.length}`);
+if (records.length !== 80) {
+  throw new Error(`Expected 80 combined Revenue OS seed records, found ${records.length}`);
 }
 
-for (let number = 1; number <= 75; number += 1) {
+for (let number = 1; number <= 80; number += 1) {
   const expectedId = `RP-${String(number).padStart(3, '0')}`;
   if (!ids.has(expectedId)) throw new Error(`Missing sequential Revenue OS seed id: ${expectedId}`);
 }
