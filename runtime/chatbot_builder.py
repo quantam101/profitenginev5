@@ -260,7 +260,7 @@ def _create_openassistant_bot(
     # Generate a stable bot ID from business name
     bot_id = hashlib.sha256(f"{business_name}:{niche}".encode()).hexdigest()[:16]
 
-    runtime_url = os.environ.get("RUNTIME_API_URL", "https://backend.alreadyherellc.com/runtime")
+    runtime_url = os.environ.get("RUNTIME_API_URL", "https://profitengine-runtime.onrender.com")
 
     embed_code = (
         f'<!-- {business_name} AI Assistant - Powered by Already Here LLC -->\n'
@@ -313,7 +313,7 @@ def _create_openassistant_bot(
 
 def _create_custom_widget(business_name: str, niche: str) -> Dict[str, Any]:
     bot_id     = hashlib.md5(f"{business_name}{niche}".encode(), usedforsecurity=False).hexdigest()[:12]
-    runtime_url = os.environ.get("RUNTIME_API_URL", "https://backend.alreadyherellc.com/runtime")
+    runtime_url = os.environ.get("RUNTIME_API_URL", "https://profitengine-runtime.onrender.com")
     embed_code = (
         f'<script src="{runtime_url}/widget.js" '
         f'data-bot="{bot_id}" '

@@ -15,7 +15,7 @@ interface DispatchPayload {
   submittedAt: string;
 }
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = process.env.RUNTIME_API_URL ?? 'https://profitengine-runtime.onrender.com';
 
 export async function POST(req: NextRequest) {
   if (!hasWebhookAccess(req)) {

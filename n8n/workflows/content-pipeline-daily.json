@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "url": "http://runtime:8080/execute",
+        "url": "https://profitengine-runtime.onrender.com/execute",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -81,7 +81,7 @@
     },
     {
       "parameters": {
-        "url": "http://runtime:8080/execute",
+        "url": "https://profitengine-runtime.onrender.com/execute",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

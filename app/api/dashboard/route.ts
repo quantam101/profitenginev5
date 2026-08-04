@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = process.env.RUNTIME_API_URL ?? 'https://profitengine-runtime.onrender.com';
 
 async function runtimeFetch(path: string, timeoutMs = 5000) {
   const res = await fetch(`${RUNTIME}${path}`, {

@@ -612,7 +612,7 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
-    # Hashnode uses Authorization: Bearer <token> as of their v2 API migration
+    # Hashnode requires an Authorization: Bearer header containing your API token.
     # follow_redirects=True so 301 redirects are followed automatically
     auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else f"Bearer {HASHNODE_KEY}"
     r = httpx.post(

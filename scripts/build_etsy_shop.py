@@ -5,7 +5,7 @@ import csv
 import json
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -53,7 +53,7 @@ def _listing_rows() -> list[dict[str, str]]:
 def _write_shop_profile() -> None:
     profile = f"""# Already Here LLC Etsy Shop Pack
 
-Generated: {datetime.now(UTC).isoformat()}
+Generated: {datetime.now(timezone.utc).isoformat()}
 
 ## Shop Positioning
 
@@ -103,7 +103,7 @@ def build() -> None:
     rows = _listing_rows()
 
     (PACK_DIR / "etsy_listings.json").write_text(
-        json.dumps({"generated_at": datetime.now(UTC).isoformat(), "items": rows}, indent=2),
+        json.dumps({"generated_at": datetime.now(timezone.utc).isoformat(), "items": rows}, indent=2),
         encoding="utf-8",
     )
     with (PACK_DIR / "etsy_listings.csv").open("w", newline="", encoding="utf-8") as f:

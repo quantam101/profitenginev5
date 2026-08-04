@@ -55,8 +55,8 @@ def main() -> None:
             tok = exchange(cid, secret, urllib.parse.unquote(code), "http://localhost")
         rt = tok.get("refresh_token")
         if rt:
-            print(f"REFRESH_TOKEN:\n{rt}\n\nStore it: "
-                  f"gh secret set YOUTUBE_REFRESH_TOKEN --body '<token>'")
+            print(f"REFRESH_TOKEN:\n{rt}\n\n"
+                  "Store it as a GitHub secret named YOUTUBE_REFRESH_TOKEN.")
         else:
             print(f"no refresh_token in response: {tok}")
             sys.exit(1)

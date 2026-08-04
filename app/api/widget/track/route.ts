@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   // If there's a referral code, forward to the existing /referral/track endpoint
   // on the Python runtime so it gets credited in the same DB as organic referrals.
   if (ref) {
-    const runtimeUrl = process.env.ORACLE_URL ?? 'http://runtime:8080';
+    const runtimeUrl = process.env.ORACLE_URL ?? 'https://profitengine-runtime.onrender.com';
     try {
       await fetch(`${runtimeUrl}/referral/track`, {
         method: 'POST',

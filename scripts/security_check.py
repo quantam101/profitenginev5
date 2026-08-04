@@ -54,14 +54,16 @@ def _header(title: str) -> None:
 # -- layer 1: ruff S-rules ------------------------------------------------------
 
 def check_ruff() -> list[str]:
-    # S101 (assert in tests), S110/S112 (try/except-pass/continue), and
-    # S310 (urllib URL-scheme audit) are intentional patterns in this codebase.
+    # S101 (assert in tests), S110/S112 (try/except-pass/continue),
+    # S310 (urllib URL-scheme audit), S603/S607 (intentional subprocess calls
+    # in scripts/runtime), and S311 (non-cryptographic randomness for video
+    # generation) are accepted patterns in this codebase.
     # Extend-ignore them so the scan focuses on real credential/injection risks.
-    _header("ruff (S -- bandit security rules, --extend-ignore S101,S110,S112,S310)")
+    _header("ruff (S -- bandit security rules, --extend-ignore S101,S110,S112,S310,S603,S607,S311)")
     code, out = _run(
         "ruff", "check",
         "--select", "S",
-        "--extend-ignore", "S101,S110,S112,S310",
+        "--extend-ignore", "S101,S110,S112,S310,S603,S607,S311",
         "backend/", "runtime/", "scripts/",
     )
     if code == -1:

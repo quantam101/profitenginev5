@@ -3,7 +3,7 @@ import { getCacheHeaders } from '@/app/lib/cache';
 
 export const revalidate = 300;
 
-const ORACLE = process.env.ORACLE_API_URL ?? 'http://localhost:3000';
+const ORACLE = process.env.ORACLE_API_URL ?? 'https://profitengine-runtime.onrender.com';
 const GH_TOKEN = process.env.GITHUB_CONTENT_TOKEN ?? '';
 const GH_OWNER = process.env.GITHUB_CONTENT_OWNER ?? 'quantam101';
 const GH_REPO = process.env.GITHUB_CONTENT_REPO ?? 'content';
@@ -49,7 +49,7 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
     };
     if (GH_TOKEN) headers['Authorization'] = `token ${GH_TOKEN}`;
     const res = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/posts?per_page=100`,
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/_posts?per_page=100`,
       { headers, next: { revalidate: 300 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return { postCount: 0, lastTitle: '', lastDate: '' };
