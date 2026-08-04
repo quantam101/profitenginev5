@@ -69,16 +69,24 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
   }
 }
 
+function selfOrigin(requestHost: string | null): string | undefined {
+  // Vercel provides the authoritative deployment domain; use it in production
+  // so we don't make SSRF-prone self-calls based on the client Host header.
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) return `https://${vercelUrl}`;
+  if (requestHost) {
+    const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
+    return `${isLocal ? 'http' : 'https'}://${requestHost}`;
+  }
+  return undefined;
+}
+
 /**
  * Fetch real health score by calling our own /api/health endpoint.
- * Uses the incoming request's Host header so it works in every environment
- * (localhost dev, Docker on OCI, Vercel) without env var configuration.
  */
-async function fetchHealthScore(requestHost: string): Promise<number> {
+async function fetchHealthScore(base: string | undefined): Promise<number> {
+  if (!base) return 100;
   try {
-    // Use https for non-localhost hosts (production); http for local dev
-    const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
-    const base = isLocal ? `http://${requestHost}` : `https://${requestHost}`;
     const res = await fetch(`${base}/api/health`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(5000),
@@ -92,11 +100,10 @@ async function fetchHealthScore(requestHost: string): Promise<number> {
 }
 
 export async function GET(request: NextRequest) {
-  const host = request.headers.get('host') ?? 'localhost:3000';
   const [oracle, ghStats, liveHealth] = await Promise.all([
     tryOracle(),
     fetchGitHubStats(),
-    fetchHealthScore(host),
+    fetchHealthScore(selfOrigin(request.headers.get('host'))),
   ]);
 
   if (oracle) {

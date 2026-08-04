@@ -17,7 +17,7 @@ class AnalyticsPusher:
     """Push analytics from OCI logs to Vercel dashboard"""
 
     def __init__(self):
-        self.dashboard_url = os.getenv('DASHBOARD_URL', 'https://profitengine-tau.vercel.app/api/analytics/sync')
+        self.dashboard_url = os.getenv('DASHBOARD_URL', 'https://app.alreadyherellc.com/api/analytics/sync')
         self.dashboard_token = os.getenv('DASHBOARD_API_TOKEN', '')
         self.analytics_log = "/home/ubuntu/analytics.log"
         self.revenue_log = "/home/ubuntu/revenue_attribution.json"

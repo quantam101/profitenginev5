@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Analytics Sync API
- * Syncs data from OCI server to dashboard
- * Called by cron job every minute
+ * Syncs data from the live Render runtime to the dashboard.
+ * Called by cron job every minute.
  */
 
 export async function POST(request: NextRequest) {
@@ -29,20 +29,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch analytics from OCI
-    const ociHost = process.env.OCI_HOST || '129.146.236.177';
+    const runtimeUrl = (process.env.RUNTIME_API_URL || 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
-    const analyticsResponse = await fetch(`http://${ociHost}:8000/analytics`, {
+    const analyticsResponse = await fetch(`${runtimeUrl}/analytics`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.OCI_API_TOKEN}`,
+        'Authorization': `Bearer ${process.env.RUNTIME_API_TOKEN || ''}`,
       },
       cache: 'no-store',
     }).catch(() => null);
 
     if (!analyticsResponse?.ok) {
       return NextResponse.json({
-        error: 'OCI analytics unavailable',
+        error: 'runtime analytics unavailable',
         fallback: true,
       }, { status: 202 });
     }
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     const data = await analyticsResponse.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Failed to fetch OCI analytics:', error);
+    console.error('Failed to fetch runtime analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }
