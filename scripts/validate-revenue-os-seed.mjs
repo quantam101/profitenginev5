@@ -6,6 +6,7 @@ const seedPaths = [
   path.resolve('data/revenue-os/revenue-plays.seed.v1.1.json'),
   path.resolve('data/revenue-os/revenue-plays.seed.v1.2.json'),
   path.resolve('data/revenue-os/revenue-plays.seed.v1.3.json'),
+  path.resolve('data/revenue-os/revenue-plays.seed.v1.4.json'),
 ];
 
 const required = [
@@ -47,9 +48,9 @@ for (const seedPath of seedPaths) {
   }
 }
 
-if (records.length !== 80) errors.push(`combined records length must be 80, got ${records.length}`);
+if (records.length !== 85) errors.push(`combined records length must be 85, got ${records.length}`);
 
-for (let number = 1; number <= 80; number += 1) {
+for (let number = 1; number <= 85; number += 1) {
   const expectedId = `RP-${String(number).padStart(3, '0')}`;
   if (!ids.has(expectedId)) errors.push(`missing sequential id ${expectedId}`);
 }
