@@ -71,7 +71,7 @@ export async function GET() {
             message: `${c.agent_id}: ${(c.objective_excerpt ?? '').slice(0, 60)}`,
             ago: c.iso_timestamp ? timeAgo(c.iso_timestamp) : 'recently',
           }))
-        : null; // null → useData merge keeps mock activity
+        : null; // null → useData merge keeps demo activity
 
     // ── Agent fleet from distribution, most-recent agent marked busy ──────
     const lastAgentId = cycles[0]?.agent_id ?? null;
@@ -82,7 +82,7 @@ export async function GET() {
           label: id,
           status: id === lastAgentId ? 'busy' : 'idle',
         }))
-      : null; // null → useData merge keeps mock agents
+      : null; // null → useData merge keeps demo agents
 
     // ── Content/24h: count successful cycles with iso_timestamp in last 24h ─
     const oneDayAgo = Date.now() - 86_400_000;
@@ -108,11 +108,11 @@ export async function GET() {
       return `${h}h ${m}m`;
     })();
 
-    // ── aiOpsPerCycle: total AI operations run, or null (keeps mock 2196) ──
+    // ── aiOpsPerCycle: total AI operations run, or null (keeps demo 2196) ──
     const aiOpsPerCycle = totalCycles > 0 ? totalCycles : null;
 
     // Build response — only include fields with real values.
-    // Fields set to null are filtered in useData merge, preserving mock values.
+    // Fields set to null are filtered in useData merge, preserving demo values.
     const payload: Record<string, unknown> = {
       engineRunning: Boolean(health.ok),
       healthScore: successRate > 0 ? Math.round(successRate) : health.ok ? 94 : 0,

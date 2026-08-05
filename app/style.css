@@ -1,20 +1,76 @@
 :root {
   color-scheme: dark;
-  --bg: #05070a;
-  --panel: #0b0f17;
-  --panel-raised: #101520;
-  --border: #1f2a3a;
-  --border-subtle: #141b26;
-  --text: #e6eef7;
-  --muted: #6f8299;
-  --dim: #3a4b5f;
-  --action: #00d0ff;
-  --pass: #00d084;
-  --blocked: #ff4d4d;
-  --locked: #ffb020;
-  --review: #7c3aed;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
+  /* C2 / command-center token set */
+  --c2-bg: #05070a;
+  --c2-panel: #0b0f17;
+  --c2-raised: #101520;
+  --c2-border: #1f2a3a;
+  --c2-border-subtle: #141b26;
+  --c2-text: #e6eef7;
+  --c2-muted: #6f8299;
+  --c2-dim: #3a4b5f;
+  --c2-green: #00d084;
+  --c2-amber: #ffb020;
+  --c2-red: #ff4d4d;
+  --c2-cyan: #00d0ff;
+  --c2-violet: #7c3aed;
+  --c2-blue: #5aa2ff;
+  --c2-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --c2-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
+  /* Legacy alias set — keeps existing pages and components on the same palette */
+  --bg: var(--c2-bg);
+  --panel: var(--c2-panel);
+  --panel-raised: var(--c2-raised);
+  --border: var(--c2-border);
+  --border-subtle: var(--c2-border-subtle);
+  --text: var(--c2-text);
+  --muted: var(--c2-muted);
+  --dim: var(--c2-dim);
+  --action: var(--c2-cyan);
+  --pass: var(--c2-green);
+  --blocked: var(--c2-red);
+  --locked: var(--c2-amber);
+  --review: var(--c2-violet);
+  --font-sans: var(--c2-font-sans);
+  --font-mono: var(--c2-font-mono);
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+  --c2-bg: #f7f9fc;
+  --c2-panel: #ffffff;
+  --c2-raised: #eef1f6;
+  --c2-border: #d5dce6;
+  --c2-border-subtle: #e8ecf2;
+  --c2-text: #0b1218;
+  --c2-muted: #5a6675;
+  --c2-dim: #9aa5b1;
+  --c2-green: #087c4a;
+  --c2-amber: #b56d08;
+  --c2-red: #c71c1c;
+  --c2-cyan: #005b7f;
+  --c2-violet: #5b21b6;
+  --c2-blue: #1755a6;
+}
+
+html[data-theme='high-contrast'] {
+  color-scheme: dark;
+  --c2-bg: #000000;
+  --c2-panel: #0a0a0a;
+  --c2-raised: #111111;
+  --c2-border: #00ffff;
+  --c2-border-subtle: #005555;
+  --c2-text: #ffffff;
+  --c2-muted: #aaddff;
+  --c2-dim: #00aaaa;
+  --c2-green: #00ff00;
+  --c2-amber: #ffff00;
+  --c2-red: #ff0000;
+  --c2-cyan: #00ffff;
+  --c2-violet: #ff00ff;
+  --c2-blue: #00ccff;
 }
 
 * { box-sizing: border-box; }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ThemeToggle from '../components/ThemeToggle';
 import styles from './dashboard.module.css';
 
 interface Stream {
@@ -61,7 +62,7 @@ interface Data {
   };
 }
 
-const MOCK: Data = {
+const DEFAULT_DATA: Data = {
   todayProfit: 33.09,
   ratePerHour: 120.95,
   activeStreams: 6,
@@ -129,7 +130,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 function useData() {
-  const [data, setData] = useState<Data>(MOCK);
+  const [data, setData] = useState<Data>(DEFAULT_DATA);
   const [connected, setConnected] = useState(false);
   const [ts, setTs] = useState<Date | null>(null);
 
@@ -155,20 +156,89 @@ function useData() {
 
   useEffect(() => {
     go();
-    const t = setInterval(go, 15000);
-    return () => clearInterval(t);
+
+    if (typeof window === 'undefined' || !('EventSource' in window)) {
+      const t = setInterval(go, 8000);
+      return () => clearInterval(t);
+    }
+
+    const es = new EventSource('/api/events');
+    es.addEventListener('refresh', go);
+    return () => es.close();
   }, [go]);
 
   return { data, connected, ts };
 }
 
+interface CommandLogEntry {
+  id: string;
+  command: string;
+  status: 'pending' | 'success' | 'error';
+  message?: string;
+  at: number;
+}
+
+const LOG_KEY = 'pe-command-log';
+
+function useCommandLog() {
+  const [log, setLog] = useState<CommandLogEntry[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(LOG_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CommandLogEntry[];
+        if (Array.isArray(parsed)) return parsed.slice(-50);
+      }
+    } catch {}
+    return [];
+  });
+
+  const persist = useCallback((next: CommandLogEntry[]) => {
+    setLog(next);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(LOG_KEY, JSON.stringify(next.slice(-50)));
+      } catch {}
+    }
+  }, []);
+
+  const add = useCallback((command: string) => {
+    const entry: CommandLogEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      command,
+      status: 'pending',
+      at: Date.now(),
+    };
+    persist([...log, entry]);
+    return entry.id;
+  }, [log, persist]);
+
+  const update = useCallback((id: string, status: CommandLogEntry['status'], message?: string) => {
+    persist(log.map((e) => (e.id === id ? { ...e, status, message } : e)));
+  }, [log, persist]);
+
+  const undo = useCallback((send: (cmd: string) => void) => {
+    const entry = [...log].reverse().find((e) => e.status === 'success' || e.status === 'pending');
+    if (!entry) return;
+    const inverse: Record<string, string> = { 'Pause All': 'Resume All', 'Resume All': 'Pause All' };
+    const cmd = inverse[entry.command];
+    if (cmd) send(cmd);
+  }, [log]);
+
+  const clear = useCallback(() => persist([]), [persist]);
+
+  return { log, add, update, undo, clear };
+}
+
 function useCommand() {
   const [pending, setPending] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: 'good' | 'bad' | 'neutral' } | null>(null);
+  const { log, add, update, undo, clear } = useCommandLog();
 
   const send = useCallback(async (command: string) => {
     if (pending) return;
     setPending(command);
+    const id = add(command);
     try {
       const r = await fetch('/api/command', {
         method: 'POST',
@@ -176,16 +246,21 @@ function useCommand() {
         body: JSON.stringify({ command }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      update(id, 'success');
       setToast({ message: `${command}: acknowledged`, tone: 'good' });
     } catch (e) {
-      setToast({ message: `${command}: failed — ${e instanceof Error ? e.message : 'network'}`, tone: 'bad' });
+      const msg = e instanceof Error ? e.message : 'network';
+      update(id, 'error', msg);
+      setToast({ message: `${command}: failed — ${msg}`, tone: 'bad' });
     } finally {
       setPending(null);
       setTimeout(() => setToast(null), 3000);
     }
-  }, [pending]);
+  }, [pending, add, update]);
 
-  return { pending, send, toast };
+  const undoLast = useCallback(() => undo(send), [undo, send]);
+
+  return { pending, send, toast, log, undo: undoLast, clearLog: clear };
 }
 
 function scoreColor(value: number): string {
@@ -539,7 +614,69 @@ function Advisor() {
   );
 }
 
-function System({ data }: { data: Data }) {
+function CommandLogPanel({
+  log,
+  undo,
+  clearLog,
+}: {
+  log: CommandLogEntry[];
+  undo: () => void;
+  clearLog: () => void;
+}) {
+  const statusColor = (s: CommandLogEntry['status']) =>
+    s === 'success' ? 'var(--c2-green)' : s === 'error' ? 'var(--c2-red)' : 'var(--c2-amber)';
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.sectionHeader}>
+        <p className={styles.panelTitle}>Command Log</p>
+        <div className={styles.cmdBar}>
+          <button
+            className={cn(styles.cmdBtn, styles.cmdAmber)}
+            onClick={undo}
+            disabled={log.length === 0}
+          >
+            Undo Last
+          </button>
+          <button
+            className={cn(styles.cmdBtn, styles.cmdRed)}
+            onClick={clearLog}
+            disabled={log.length === 0}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+      {log.length === 0 ? (
+        <p className={styles.muted}>No commands issued this session.</p>
+      ) : (
+        <div className={styles.feed}>
+          {[...log].reverse().map((e) => (
+            <div key={e.id} className={styles.feedItem}>
+              <span className={styles.badge} style={{ color: statusColor(e.status), borderColor: statusColor(e.status) }}>
+                {e.status}
+              </span>
+              <span className={styles.feedMsg}>{e.command}</span>
+              <span className={styles.feedTime}>{new Date(e.at).toLocaleTimeString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function System({
+  data,
+  log,
+  undo,
+  clearLog,
+}: {
+  data: Data;
+  log: CommandLogEntry[];
+  undo: () => void;
+  clearLog: () => void;
+}) {
   return (
     <div>
       <div className={styles.sectionHeader}>
@@ -555,6 +692,7 @@ function System({ data }: { data: Data }) {
         {data.avgDurationMs != null && <Kpi label="Avg Duration" value={`${data.avgDurationMs}ms`} accent="#00d0ff" />}
         {data.memUsedPct != null && <Kpi label="RAM Usage" value={`${data.memUsedPct}%`} accent={data.memUsedPct > 85 ? '#ff4d4d' : '#5aa2ff'} />}
       </div>
+      <CommandLogPanel log={log} undo={undo} clearLog={clearLog} />
       {data.contentSite && (
         <div className={styles.panel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span className={styles.panelTitle} style={{ margin: 0 }}>Content Site</span>
@@ -573,13 +711,29 @@ function System({ data }: { data: Data }) {
   );
 }
 
+function useMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const update = () => setMobile(window.innerWidth <= 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return mobile;
+}
+
 export default function Dashboard() {
   const [active, setActive] = useState<SID>('overview');
   const [open, setOpen] = useState(true);
+  const mobile = useMobile();
   const { data, connected, ts } = useData();
-  const { pending, send, toast } = useCommand();
+  const { pending, send, toast, log, undo, clearLog } = useCommand();
 
   const groups = useMemo(() => [...new Set(NAV.map((n) => n.group))], []);
+
+  useEffect(() => {
+    if (mobile) setOpen(false);
+  }, [mobile]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -593,6 +747,11 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const closeOnMobile = useCallback((id: SID) => {
+    setActive(id);
+    if (mobile) setOpen(false);
+  }, [mobile]);
+
   function Section() {
     if (active === 'overview') return <Overview data={data} pending={pending} send={send} />;
     if (active === 'revenue') return <Revenue data={data} />;
@@ -601,13 +760,15 @@ export default function Dashboard() {
     if (active === 'pipeline') return <Pipeline data={data} />;
     if (active === 'activity') return <Activity data={data} />;
     if (active === 'advisor') return <Advisor />;
-    if (active === 'system') return <System data={data} />;
+    if (active === 'system') return <System data={data} log={log} undo={undo} clearLog={clearLog} />;
     return null;
   }
 
+  const sidebarClass = open ? styles.sidebarOpen : styles.sidebarClosed;
+
   return (
     <div className={styles.dashboard}>
-      <aside className={styles.sidebar} style={{ width: open ? 220 : 56 }}>
+      <aside className={cn(styles.sidebar, sidebarClass)}>
         <div className={styles.brand}>
           <div className={styles.brandMark}>PE</div>
           {open && (
@@ -626,7 +787,7 @@ export default function Dashboard() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActive(item.id)}
+                    onClick={() => closeOnMobile(item.id)}
                     title={item.label}
                     className={cn(styles.navItem, isActive ? styles.navItemActive : undefined)}
                   >
@@ -643,14 +804,26 @@ export default function Dashboard() {
         </button>
       </aside>
 
+      {mobile && open && <div className={styles.overlay} onClick={() => setOpen(false)} aria-hidden="true" />}
+
       <div className={styles.main}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
+            <button
+              className={styles.menuToggle}
+              onClick={() => setOpen((o) => !o)}
+              aria-label="Toggle navigation"
+              aria-expanded={open}
+              type="button"
+            >
+              ☰
+            </button>
             <span className={styles.classification}>UNCLASSIFIED // ASI · VHLL · LC&C ARMED</span>
             <span className={styles.profitReadout}>${data.todayProfit.toFixed(2)}</span>
             <span className={styles.readoutSub}>+${data.ratePerHour}/hr · {data.activeStreams} streams live</span>
           </div>
           <div className={styles.headerRight}>
+            <ThemeToggle />
             <span className={styles.statusText}>
               <span className={cn(styles.statusDot, connected ? styles.statusDotLive : styles.statusDotDemo)} />
               {connected ? 'LIVE' : 'DEMO'}
