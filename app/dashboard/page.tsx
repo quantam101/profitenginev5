@@ -158,13 +158,32 @@ function useData() {
     go();
 
     if (typeof window === 'undefined' || !('EventSource' in window)) {
-      const t = setInterval(go, 8000);
+      const t = setInterval(() => {
+        if (document.hidden) return;
+        go();
+      }, 8000);
       return () => clearInterval(t);
     }
 
-    const es = new EventSource('/api/events');
-    es.addEventListener('refresh', go);
-    return () => es.close();
+    let es: EventSource | null = null;
+    const connect = () => {
+      if (es) return;
+      es = new EventSource('/api/events');
+      es.addEventListener('refresh', go);
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (es) { es.close(); es = null; }
+      } else {
+        connect();
+      }
+    };
+    connect();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      if (es) es.close();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [go]);
 
   return { data, connected, ts };

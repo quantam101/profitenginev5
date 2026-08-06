@@ -11,7 +11,7 @@ export const ROLE_ACCESS: Record<Role, string[]> = {
 };
 
 export function normalizeRole(role?: string | null): Role {
-  return role && ROLES.includes(role as Role) ? (role as Role) : 'operator';
+  return role && ROLES.includes(role as Role) ? (role as Role) : 'auditor';
 }
 
 export function canAccess(role: Role | string, section: string): boolean {
