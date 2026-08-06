@@ -7,12 +7,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type ImportBody = { dryRun?: boolean };
-
-type SeedRecord = {
-  id: string;
-  [key: string]: unknown;
-};
-
+type SeedRecord = { id: string; [key: string]: unknown };
 type SeedFile = {
   schema_version: string;
   dataset: string;
@@ -20,6 +15,15 @@ type SeedFile = {
   generated_at: string;
   records: SeedRecord[];
 };
+
+const seedFiles = [
+  'revenue-plays.seed.json',
+  'revenue-plays.seed.v1.1.json',
+  'revenue-plays.seed.v1.2.json',
+  'revenue-plays.seed.v1.3.json',
+  'revenue-plays.seed.v1.4.json',
+  'revenue-plays.seed.v1.5.json',
+];
 
 export async function POST(request: Request) {
   const configuredSecret = process.env.REVENUE_OS_IMPORT_SECRET;
@@ -44,19 +48,42 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const seedPath = path.join(process.cwd(), 'data/revenue-os/revenue-plays.seed.json');
-  const seed = JSON.parse(await readFile(seedPath, 'utf8')) as SeedFile;
-
-  if (!Array.isArray(seed.records) || seed.records.length !== seed.record_count) {
-    return NextResponse.json({ error: 'Invalid seed record count' }, { status: 422 });
+  const datasets: SeedFile[] = [];
+  for (const fileName of seedFiles) {
+    const seedPath = path.join(process.cwd(), 'data/revenue-os', fileName);
+    const seed = JSON.parse(await readFile(seedPath, 'utf8')) as SeedFile;
+    if (!Array.isArray(seed.records) || seed.records.length !== seed.record_count) {
+      return NextResponse.json({ error: `Invalid seed record count: ${fileName}` }, { status: 422 });
+    }
+    datasets.push(seed);
   }
 
   const ids = new Set<string>();
-  for (const record of seed.records) {
-    if (!record.id || ids.has(record.id)) {
-      return NextResponse.json({ error: `Invalid or duplicate record id: ${record.id}` }, { status: 422 });
+  const records: Array<SeedRecord & { seed_schema_version: string; seed_dataset: string; seed_generated_at: Date }> = [];
+  for (const dataset of datasets) {
+    for (const record of dataset.records) {
+      if (!record.id || ids.has(record.id)) {
+        return NextResponse.json({ error: `Invalid or duplicate record id: ${record.id}` }, { status: 422 });
+      }
+      ids.add(record.id);
+      records.push({
+        ...record,
+        seed_schema_version: dataset.schema_version,
+        seed_dataset: dataset.dataset,
+        seed_generated_at: new Date(dataset.generated_at),
+      });
     }
-    ids.add(record.id);
+  }
+
+  if (records.length !== 90) {
+    return NextResponse.json({ error: `Expected 90 records, found ${records.length}` }, { status: 422 });
+  }
+
+  for (let number = 1; number <= 90; number += 1) {
+    const expectedId = `RP-${String(number).padStart(3, '0')}`;
+    if (!ids.has(expectedId)) {
+      return NextResponse.json({ error: `Missing sequential record: ${expectedId}` }, { status: 422 });
+    }
   }
 
   const client = new MongoClient(uri, { maxPoolSize: 5, serverSelectionTimeoutMS: 10_000 });
@@ -80,27 +107,21 @@ export async function POST(request: Request) {
         mode: 'dry-run',
         database: dbName,
         collection: collectionName,
-        seedRecords: seed.records.length,
+        datasets: datasets.length,
+        seedRecords: records.length,
         matchingExistingRecords: existing,
-        potentialNewRecords: seed.records.length - existing,
+        potentialNewRecords: records.length - existing,
         changesApplied: false,
       });
     }
 
     const now = new Date();
     const result = await collection.bulkWrite(
-      seed.records.map((record) => ({
+      records.map((record) => ({
         updateOne: {
           filter: { id: record.id },
           update: {
-            $set: {
-              ...record,
-              seed_schema_version: seed.schema_version,
-              seed_dataset: seed.dataset,
-              seed_generated_at: new Date(seed.generated_at),
-              seed_updated_at: now,
-              updated_at: now,
-            },
+            $set: { ...record, seed_updated_at: now, updated_at: now },
             $setOnInsert: {
               created_at: now,
               source_type: 'version_controlled_seed',
@@ -115,9 +136,8 @@ export async function POST(request: Request) {
 
     await db.collection('revenue_os_audit_events').insertOne({
       event_type: 'REVENUE_OS_SEED_IMPORT',
-      dataset: seed.dataset,
-      schema_version: seed.schema_version,
-      record_count: seed.records.length,
+      datasets: datasets.map(({ dataset, schema_version, record_count }) => ({ dataset, schema_version, record_count })),
+      record_count: records.length,
       matched_count: result.matchedCount,
       modified_count: result.modifiedCount,
       upserted_count: result.upsertedCount,
@@ -129,7 +149,8 @@ export async function POST(request: Request) {
       mode: 'write',
       database: dbName,
       collection: collectionName,
-      seedRecords: seed.records.length,
+      datasets: datasets.length,
+      seedRecords: records.length,
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       upsertedCount: result.upsertedCount,
