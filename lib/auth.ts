@@ -6,9 +6,9 @@ type Role = 'admin' | 'operator' | 'auditor';
 function resolveRole(email: string): Role {
   const admins = new Set((process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
   const operators = new Set((process.env.OPERATOR_EMAILS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
-  if (admins.has(email) || admins.size === 0) return 'admin';
+  if (admins.has(email)) return 'admin';
   if (operators.has(email)) return 'operator';
-  return 'operator';
+  return 'auditor';
 }
 
 export const authOptions: NextAuthOptions = {
@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
-        session.user.role = (token.role as Role) ?? 'operator';
+        session.user.role = (token.role as Role) ?? 'auditor';
       }
       return session;
     },

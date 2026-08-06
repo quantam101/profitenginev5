@@ -1,8 +1,9 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-const INTERVAL_MS = 5000;
+const INTERVAL_MS = 10000;
 const MAX_DURATION_MS = 30000;
+const RETRY_MS = 30000;
 
 export async function GET() {
   const encoder = new TextEncoder();
@@ -12,6 +13,12 @@ export async function GET() {
     start(controller) {
       const startedAt = Date.now();
       let closed = false;
+
+      // Set a longer client retry interval so a closed stream does not
+      // immediately spin up a new serverless invocation.
+      controller.enqueue(
+        encoder.encode(`retry: ${RETRY_MS}\n\n`),
+      );
 
       // Send an initial event immediately
       controller.enqueue(
