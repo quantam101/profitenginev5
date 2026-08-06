@@ -59,3 +59,9 @@ curl -sI -A "curl/7.88.1" "$PREVIEW/" | head -1
 
 - Vercel preview deployments are immutable. Updating environment variables does **not** affect an already-deployed preview; redeploy the branch to apply env changes.
 - The `Run Cycle` button in `/dashboard` posts to `/api/command`, which in turn calls `/api/run-cycle`. Both routes must point to the live Render URL, not to `http://runtime:8080`/`localhost`.
+- **Browser context matters**: Chrome may have a service worker or cookies from an earlier session that redirect `/` to `/sign-in`. Use an incognito window for a clean preview test.
+- **Coordinate mapping**: The desktop is often 1600×1200 while the `computer` tool uses a 1024×768 coordinate plane. To click an element from `getBoundingClientRect()`, convert actual CSS pixels to tool coordinates with `x_tool = x_css * 1024 / screen_width`, `y_tool = y_css * 768 / screen_height`.
+- **Theme toggle**: The `ThemeToggle` button is in the dashboard/command-center header. Three cycles are `dark → light → high-contrast → dark`. Verify `html[data-theme]` changes accordingly.
+- **Mobile dashboard**: Use Chrome DevTools device emulation (iPhone SE / 390×844) to verify the hamburger menu, off-canvas sidebar overlay, stacked grids, and full-width command buttons.
+- **Command Log**: After clicking `Run Cycle`, a `Run Cycle: acknowledged` toast should appear and the entry should persist in `/dashboard` → `System` → `Command Log`. If the toast appears but the log remains empty, the `useCommandLog` `add`/`update` callbacks likely have stale-closure bugs.
+- **Command-center auth**: All `/command-center/*` routes require a Google session. If the Google OAuth app does not register the preview domain, `/api/auth/callback/google` returns `redirect_uri_mismatch`; in that case authenticated command-center/RBAC testing is blocked.

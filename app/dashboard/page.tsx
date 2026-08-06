@@ -193,14 +193,13 @@ function useCommandLog() {
     return [];
   });
 
-  const persist = useCallback((next: CommandLogEntry[]) => {
-    setLog(next);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(LOG_KEY, JSON.stringify(next.slice(-50)));
-      } catch {}
-    }
-  }, []);
+  // Persist every change to localStorage without blocking render.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(LOG_KEY, JSON.stringify(log.slice(-50)));
+    } catch {}
+  }, [log]);
 
   const add = useCallback((command: string) => {
     const entry: CommandLogEntry = {
@@ -209,23 +208,26 @@ function useCommandLog() {
       status: 'pending',
       at: Date.now(),
     };
-    persist([...log, entry]);
+    setLog((prev) => [...prev, entry].slice(-50));
     return entry.id;
-  }, [log, persist]);
+  }, []);
 
   const update = useCallback((id: string, status: CommandLogEntry['status'], message?: string) => {
-    persist(log.map((e) => (e.id === id ? { ...e, status, message } : e)));
-  }, [log, persist]);
+    setLog((prev) => prev.map((e) => (e.id === id ? { ...e, status, message } : e)));
+  }, []);
 
   const undo = useCallback((send: (cmd: string) => void) => {
-    const entry = [...log].reverse().find((e) => e.status === 'success' || e.status === 'pending');
-    if (!entry) return;
-    const inverse: Record<string, string> = { 'Pause All': 'Resume All', 'Resume All': 'Pause All' };
-    const cmd = inverse[entry.command];
-    if (cmd) send(cmd);
-  }, [log]);
+    setLog((prev) => {
+      const entry = [...prev].reverse().find((e) => e.status === 'success' || e.status === 'pending');
+      if (!entry) return prev;
+      const inverse: Record<string, string> = { 'Pause All': 'Resume All', 'Resume All': 'Pause All' };
+      const cmd = inverse[entry.command];
+      if (cmd) send(cmd);
+      return prev;
+    });
+  }, []);
 
-  const clear = useCallback(() => persist([]), [persist]);
+  const clear = useCallback(() => setLog([]), []);
 
   return { log, add, update, undo, clear };
 }
