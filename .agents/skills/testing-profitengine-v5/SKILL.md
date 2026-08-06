@@ -24,8 +24,8 @@ description: End-to-end testing checklist for the ProfitEngine v5 Vercel preview
    - Data comes from `/api/data` on the client; the page itself is pre-rendered.
 
 3. **Command center**
-   - `/command-center` should redirect to `/command-center/agents` (or another default slug).
-   - `/command-center/agents` (or any valid slug) returns HTTP 200 and shows the `COMMAND CENTER` badge.
+   - Unauthenticated `/command-center` and all `/command-center/<section>` routes should redirect to `/sign-in`.
+   - Once authenticated, `/command-center` redirects to the user's first allowed section based on role; the layout nav only shows allowed sections and the role badge reflects the resolved role.
 
 4. **API endpoints**
    - `/api/health` → 200, `ok: true`, `healthScore: 100`.
@@ -60,7 +60,7 @@ curl -sI -A "curl/7.88.1" "$PREVIEW/" | head -1
 - Vercel preview deployments are immutable. Updating environment variables does **not** affect an already-deployed preview; redeploy the branch to apply env changes.
 - The `Run Cycle` button in `/dashboard` posts to `/api/command`, which in turn calls `/api/run-cycle`. Both routes must point to the live Render URL, not to `http://runtime:8080`/`localhost`.
 - **Browser context matters**: Chrome may have a service worker or cookies from an earlier session that redirect `/` to `/sign-in`. Use an incognito window for a clean preview test.
-- **Coordinate mapping**: The desktop is often 1600×1200 while the `computer` tool uses a 1024×768 coordinate plane. To click an element from `getBoundingClientRect()`, convert actual CSS pixels to tool coordinates with `x_tool = x_css * 1024 / screen_width`, `y_tool = y_css * 768 / screen_height`.
+- **Coordinate mapping**: The desktop is often 1600×1200 while the `computer` tool uses a 1024×768 coordinate plane. To click an element from `getBoundingClientRect()`, first add the browser chrome offset (`window.outerHeight - window.innerHeight`) to `y_css`, then convert: `x_tool = x_css * 1024 / screen_width`, `y_tool = (y_css + chrome_offset) * 768 / screen_height`.
 - **Theme toggle**: The `ThemeToggle` button is in the dashboard/command-center header. Three cycles are `dark → light → high-contrast → dark`. Verify `html[data-theme]` changes accordingly.
 - **Mobile dashboard**: Use Chrome DevTools device emulation (iPhone SE / 390×844) to verify the hamburger menu, off-canvas sidebar overlay, stacked grids, and full-width command buttons.
 - **Command Log**: After clicking `Run Cycle`, a `Run Cycle: acknowledged` toast should appear and the entry should persist in `/dashboard` → `System` → `Command Log`. If the toast appears but the log remains empty, the `useCommandLog` `add`/`update` callbacks likely have stale-closure bugs.
