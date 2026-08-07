@@ -23,6 +23,7 @@ const seedFiles = [
   'revenue-plays.seed.v1.3.json',
   'revenue-plays.seed.v1.4.json',
   'revenue-plays.seed.v1.5.json',
+  'revenue-plays.seed.v1.6.json',
 ];
 
 export async function POST(request: Request) {
@@ -75,11 +76,11 @@ export async function POST(request: Request) {
     }
   }
 
-  if (records.length !== 90) {
-    return NextResponse.json({ error: `Expected 90 records, found ${records.length}` }, { status: 422 });
+  if (records.length !== 95) {
+    return NextResponse.json({ error: `Expected 95 records, found ${records.length}` }, { status: 422 });
   }
 
-  for (let number = 1; number <= 90; number += 1) {
+  for (let number = 1; number <= 95; number += 1) {
     const expectedId = `RP-${String(number).padStart(3, '0')}`;
     if (!ids.has(expectedId)) {
       return NextResponse.json({ error: `Missing sequential record: ${expectedId}` }, { status: 422 });
