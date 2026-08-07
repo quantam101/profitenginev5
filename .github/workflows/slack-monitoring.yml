@@ -63,7 +63,7 @@ jobs:
                   sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.morning_briefing()
@@ -123,7 +123,7 @@ jobs:
                   sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.evening_metrics()
@@ -183,7 +183,7 @@ jobs:
                   sys.exit(0)
 
               client = AsyncIOMotorClient(mongo_url)
-              db = client.get_default_database(os.environ.get("DB_NAME") or "profitengine")
+              db = client[os.environ.get("DB_NAME") or "profitengine"]
               service = SlackMonitoringService(db)
 
               briefing = await service.weekly_summary()
