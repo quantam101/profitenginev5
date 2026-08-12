@@ -1,14 +1,36 @@
 import { NextResponse } from 'next/server';
 
-const RUNTIME = process.env.RUNTIME_API_URL ?? 'http://runtime:8080';
+const RUNTIME = (process.env.RUNTIME_API_URL ?? 'https://profitengine-runtime.onrender.com').replace(/\/$/, '');
 
-async function runtimeFetch(path: string, timeoutMs = 5000) {
-  const res = await fetch(`${RUNTIME}${path}`, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`runtime ${res.status} ${path}`);
-  return res.json() as Promise<Record<string, unknown>>;
+async function runtimeFetch(
+  path: string,
+  timeoutMs = 30000,
+  retries = 1,
+): Promise<Record<string, unknown> | null> {
+  const url = `${RUNTIME}${path}`;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!res.ok) {
+        if (res.status >= 500 && attempt < retries) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+        throw new Error(`runtime ${res.status} ${path}`);
+      }
+      return (await res.json()) as Record<string, unknown>;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+  return null;
 }
 
 function timeAgo(isoTs: string): string {
@@ -38,19 +60,18 @@ interface CycleRecord {
 }
 
 export async function GET() {
-  try {
-    const [health, metricsData, cyclesData] = await Promise.all([
-      runtimeFetch('/health'),
-      runtimeFetch('/metrics'),
-      runtimeFetch('/cycles?limit=20'),
-    ]);
+  const [health, metricsData, cyclesData] = await Promise.all([
+    runtimeFetch('/health'),
+    runtimeFetch('/metrics'),
+    runtimeFetch('/cycles?limit=20'),
+  ]);
 
-    const totalCycles = Number(metricsData.total_cycles ?? 0);
-    const successfulCycles = Number(metricsData.successful_cycles ?? 0);
-    const successRate = Number(metricsData.success_rate_pct ?? 0);
-    const tierDist = (metricsData.tier_distribution ?? {}) as Record<string, number>;
-    const agentDist = (metricsData.agent_distribution ?? {}) as Record<string, number>;
-    const cycles = ((cyclesData.cycles ?? []) as CycleRecord[]);
+  const totalCycles = Number(metricsData?.total_cycles ?? 0);
+  const successfulCycles = Number(metricsData?.successful_cycles ?? 0);
+  const successRate = Number(metricsData?.success_rate_pct ?? 0);
+  const tierDist = (metricsData?.tier_distribution ?? {}) as Record<string, number>;
+  const agentDist = (metricsData?.agent_distribution ?? {}) as Record<string, number>;
+  const cycles = ((cyclesData?.cycles ?? []) as CycleRecord[]);
 
     // ── Pipeline stage health (derived from tier distribution + success rate) ──
     const rate = successRate > 0 ? Math.round(successRate) : null;
@@ -98,7 +119,7 @@ export async function GET() {
 
     // ── Uptime: derive from first-ever cycle timestamp if available ────────
     const uptime: string | null = (() => {
-      if (!metricsData.last_cycle_iso) return null;
+      if (!metricsData?.last_cycle_iso) return null;
       // Use oldest cycle in this window as a proxy for "started"
       const oldest = cycles[cycles.length - 1];
       if (!oldest?.iso_timestamp) return null;
@@ -114,8 +135,8 @@ export async function GET() {
     // Build response — only include fields with real values.
     // Fields set to null are filtered in useData merge, preserving mock values.
     const payload: Record<string, unknown> = {
-      engineRunning: Boolean(health.ok),
-      healthScore: successRate > 0 ? Math.round(successRate) : health.ok ? 94 : 0,
+      engineRunning: Boolean(health?.ok),
+      healthScore: successRate > 0 ? Math.round(successRate) : health?.ok ? 94 : 0,
       dlqItems: 0,
       tokensToday: 0,
       pipeline,
@@ -129,14 +150,11 @@ export async function GET() {
       tierDistribution: tierDist,
       totalCycles,
       successfulCycles,
-      avgDurationMs: Number(metricsData.avg_duration_ms ?? 0),
-      lastCycleIso: metricsData.last_cycle_iso ?? null,
+      avgDurationMs: Number(metricsData?.avg_duration_ms ?? 0),
+      lastCycleIso: metricsData?.last_cycle_iso ?? null,
     };
 
     return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-store', 'x-data-source': 'live' },
     });
-  } catch {
-    return NextResponse.json({ error: 'runtime_unreachable' }, { status: 502 });
-  }
 }
