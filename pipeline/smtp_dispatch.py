@@ -30,7 +30,10 @@ Sends FROM dispatch@alreadyherellc.com after domain DNS verification (10 min).
 
 Usage:
   from smtp_dispatch import send_email, send_batch
-  await send_email(to="client@company.com", subject="...", body="...")
+  await send_email(to="client@company.com", subject="...", body="...", cc="cc@company.com")
+
+One-off CLI:
+  SMTP_TO=to@example.com SMTP_CC=cc@example.com SMTP_SUBJECT="..." SMTP_BODY="..." python pipeline/smtp_dispatch.py
 """
 
 from __future__ import annotations
@@ -87,12 +90,35 @@ def _check_config() -> bool:
 
 # ── Core send (sync, runs in thread pool) ────────────────────────────────────
 
-def _smtp_send(to: str, subject: str, body: str, reply_to: Optional[str] = None) -> bool:
+def _split_addresses(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    return [a.strip() for a in value.replace(";", ",").split(",") if a.strip()]
+
+
+def _smtp_send(
+    to: str,
+    subject: str,
+    body: str,
+    reply_to: Optional[str] = None,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
+) -> bool:
     """Synchronous Gmail SMTP send. Called via asyncio.to_thread."""
+    to_addrs = _split_addresses(to)
+    cc_addrs = _split_addresses(cc)
+    bcc_addrs = _split_addresses(bcc)
+    all_recipients = to_addrs + cc_addrs + bcc_addrs
+    if not all_recipients:
+        logger.error("No recipients provided")
+        return False
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]     = f"{_SENDER_NAME} | {_COMPANY} <{_SENDER}>"
-    msg["To"]       = to
+    msg["To"]       = ", ".join(to_addrs)
+    if cc_addrs:
+        msg["Cc"] = ", ".join(cc_addrs)
     msg["Reply-To"] = reply_to or _SMTP_REPLY_TO
 
     msg.attach(MIMEText(body, "plain"))
@@ -102,8 +128,8 @@ def _smtp_send(to: str, subject: str, body: str, reply_to: Optional[str] = None)
             server.ehlo()
             server.starttls()
             server.login(_SMTP_USER, _SMTP_PASS)
-            server.sendmail(_SENDER, [to], msg.as_string())
-        logger.info(f"Sent → {to} | {subject[:60]}")
+            server.sendmail(_SENDER, all_recipients, msg.as_string())
+        logger.info(f"Sent → {', '.join(all_recipients)} | {subject[:60]}")
         return True
     except smtplib.SMTPAuthenticationError:
         logger.error(
@@ -128,6 +154,8 @@ async def send_email(
     subject: str,
     body: str,
     reply_to: Optional[str] = None,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
     dry_run: bool = False,
 ) -> bool:
     """
@@ -135,10 +163,15 @@ async def send_email(
     If GMAIL_APP_PASSWORD is not set or dry_run=True, prints to stdout only.
     """
     if dry_run or not _check_config():
-        print(f"\n[DRY-RUN] To: {to}\nSubject: {subject}\n{body}\n{'─'*60}")
+        print(f"\n[DRY-RUN] To: {to}")
+        if cc:
+            print(f"Cc: {cc}")
+        if bcc:
+            print(f"Bcc: {bcc}")
+        print(f"Subject: {subject}\n{body}\n{'─'*60}")
         return True
 
-    return await asyncio.to_thread(_smtp_send, to, subject, body, reply_to)
+    return await asyncio.to_thread(_smtp_send, to, subject, body, reply_to, cc, bcc)
 
 
 async def send_batch(
@@ -150,7 +183,7 @@ async def send_batch(
     """
     Send a batch of emails with rate-limiting.
 
-    messages: list of dicts with keys: to, subject, body, (optional) reply_to
+    messages: list of dicts with keys: to, subject, body, (optional) reply_to, cc, bcc
     Returns: {"sent": N, "failed": N, "skipped": N}
     """
     if not dry_run and not _check_config():
@@ -167,6 +200,8 @@ async def send_batch(
                 subject=msg["subject"],
                 body=msg["body"],
                 reply_to=msg.get("reply_to"),
+                cc=msg.get("cc"),
+                bcc=msg.get("bcc"),
                 dry_run=dry_run,
             )
             if ok:
@@ -182,6 +217,29 @@ async def send_batch(
 
 
 # ── CLI smoke test ────────────────────────────────────────────────────────────
+
+async def _oneoff() -> bool:
+    """Send a one-off email from environment variables."""
+    to = os.getenv("SMTP_TO", "")
+    subject = os.getenv("SMTP_SUBJECT", "")
+    body = os.getenv("SMTP_BODY", "")
+    if not to or not subject or not body:
+        logger.error("Set SMTP_TO, SMTP_SUBJECT, and SMTP_BODY")
+        return False
+    cc = os.getenv("SMTP_CC") or None
+    bcc = os.getenv("SMTP_BCC") or None
+    reply_to = os.getenv("SMTP_REPLY_TO") or None
+    dry_run = os.getenv("SMTP_DRY_RUN", "false").lower() in {"1", "true", "yes"}
+    return await send_email(
+        to=to,
+        subject=subject,
+        body=body,
+        reply_to=reply_to,
+        cc=cc,
+        bcc=bcc,
+        dry_run=dry_run,
+    )
+
 
 async def _test() -> None:
     """Send a test email to yourself to confirm SMTP config works."""
@@ -203,4 +261,8 @@ async def _test() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    asyncio.run(_test())
+    if os.getenv("SMTP_TO"):
+        ok = asyncio.run(_oneoff())
+        print("OK — one-off email dispatched." if ok else "FAIL — one-off email not dispatched.")
+    else:
+        asyncio.run(_test())

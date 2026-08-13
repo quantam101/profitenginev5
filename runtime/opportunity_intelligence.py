@@ -10,7 +10,7 @@ import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable
@@ -316,12 +316,12 @@ class OpportunityStore:
         with self.connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO weights (key, value, updated_at) VALUES (?, ?, ?)",
-                (key, bounded, datetime.now(UTC).isoformat()),
+                (key, bounded, datetime.now(timezone.utc).isoformat()),
             )
             conn.commit()
 
     def save(self, evaluation: OpportunityEvaluation) -> None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         payload = asdict(evaluation)
         payload["pitch"] = asdict(evaluation.pitch)
         with self.connect() as conn:
@@ -392,7 +392,7 @@ class OpportunityStore:
         with self.connect() as conn:
             conn.execute(
                 "INSERT INTO outcomes (signature, conversion_status, weight_delta_json, created_at) VALUES (?, ?, ?, ?)",
-                (signature, status, json.dumps(deltas, sort_keys=True), datetime.now(UTC).isoformat()),
+                (signature, status, json.dumps(deltas, sort_keys=True), datetime.now(timezone.utc).isoformat()),
             )
             conn.commit()
         return deltas
@@ -476,7 +476,7 @@ class OpportunityIntelligenceEngine:
             decision=decision,
             exact_next_action=next_action,
             pitch=pitch,
-            generated_at=datetime.now(UTC).isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),
             vector=vector,
         )
         if persist:

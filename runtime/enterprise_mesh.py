@@ -14,7 +14,7 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -111,7 +111,7 @@ class EnterpriseMesh:
                     result.agent_id,
                     result.output,
                     json.dumps(result.metrics, sort_keys=True),
-                    datetime.now(UTC).isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
             conn.commit()
@@ -163,7 +163,7 @@ class EnterpriseMesh:
             return self._cached(agent_id, started, f"{type(exc).__name__}: {exc}")
 
     def dispatch(self, agent_ids: list[str], objective: str, context: str = "") -> dict[str, Any]:
-        run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
         started = time.perf_counter()
         results: list[MeshResult] = []
         with ThreadPoolExecutor(max_workers=min(self.max_workers, max(1, len(agent_ids)))) as pool:
@@ -174,7 +174,7 @@ class EnterpriseMesh:
             for future in as_completed(futures):
                 results.append(future.result())
 
-        created_at = datetime.now(UTC).isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as conn:
             conn.executemany(
                 """

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { sendGmail } from './gmail';
+import { sendGmailMessage } from './gmail-sender';
 import { notifyOutreach } from './notify';
 import { getOutreach, insertOutreach, updateOutreach } from './store';
 import type { CreateOutreachInput, OutreachMessage } from './types';
@@ -41,7 +41,7 @@ export async function sendApprovedOutreach(id: string) {
 
   await updateOutreach(id, { status: 'sending', error: undefined });
   try {
-    const result = await sendGmail(current);
+    const result = await sendGmailMessage(current);
     const sent = await updateOutreach(id, {
       status: 'sent',
       sentAt: new Date().toISOString(),
