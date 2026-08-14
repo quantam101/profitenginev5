@@ -16,12 +16,12 @@ function addresses(values?: string[]) {
   return values?.filter(Boolean).map((value) => headerValue(value, 'recipient')).join(', ') ?? '';
 }
 
-function buildMime(message: OutreachMessage, from: string) {
+function buildMime(message: OutreachMessage, from: string, includeBcc: boolean = false) {
   const lines = [
     `From: ${headerValue(from, 'from')}`,
     `To: ${addresses(message.recipients.to)}`,
     ...(message.recipients.cc?.length ? [`Cc: ${addresses(message.recipients.cc)}`] : []),
-    ...(message.recipients.bcc?.length ? [`Bcc: ${addresses(message.recipients.bcc)}`] : []),
+    ...(includeBcc && message.recipients.bcc?.length ? [`Bcc: ${addresses(message.recipients.bcc)}`] : []),
     `Subject: ${headerValue(message.subject, 'subject')}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=UTF-8',
@@ -49,7 +49,7 @@ async function accessToken() {
 }
 
 async function sendViaGmailApi(message: OutreachMessage, from: string) {
-  const raw = encodeBase64Url(buildMime(message, from));
+  const raw = encodeBase64Url(buildMime(message, from, true));
   const token = await accessToken();
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -108,7 +108,7 @@ function smtpSend(message: OutreachMessage, user: string, password: string, from
         const recipients = [...message.recipients.to, ...(message.recipients.cc ?? []), ...(message.recipients.bcc ?? [])];
         for (const recipient of recipients) await command(`RCPT TO:<${headerValue(recipient, 'recipient')}>`, [250, 251]);
         await command('DATA', [354]);
-        const mime = buildMime(message, from).replace(/^\./gm, '..');
+        const mime = buildMime(message, from, false).replace(/^\./gm, '..');
         await command(`${mime}\r\n.`, [250]);
         await command('QUIT', [221]);
         socket.end();
