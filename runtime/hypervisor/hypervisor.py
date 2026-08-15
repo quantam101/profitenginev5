@@ -51,11 +51,11 @@ logger.setLevel(logging.INFO)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-GATEWAY_URL      = os.environ.get("GATEWAY_URL",      "http://localhost:4000/v1/chat/completions")
-LOCAL_OLLAMA_URL = os.environ.get("LOCAL_OLLAMA_URL",  "http://localhost:11434/api/generate")
+GATEWAY_URL      = (os.environ.get("GATEWAY_URL") or "").strip()
+LOCAL_OLLAMA_URL = (os.environ.get("LOCAL_OLLAMA_URL") or "").strip()
 MASTER_KEY       = os.environ.get("LITELLM_MASTER_KEY", "")
 WAL_DB_PATH      = os.environ.get("HYPERVISOR_DB",     "state_journal.db")
-VECTOR_HOST      = os.environ.get("VECTOR_HOST",       "localhost")
+VECTOR_HOST      = (os.environ.get("VECTOR_HOST") or "").strip()
 VECTOR_PORT      = int(os.environ.get("VECTOR_PORT",   "6333"))
 VECTOR_DIM       = 384   # all-MiniLM-L6-v2 compatible
 
@@ -119,7 +119,10 @@ def _update_state(task_id: str, state: str, output: str) -> None:
 # ── Vector Memory (optional — degrades gracefully if Qdrant absent) ──────────
 
 async def _init_vector_memory() -> Optional[object]:
-    """Return AsyncQdrantClient if qdrant-client is installed, else None."""
+    """Return AsyncQdrantClient if qdrant-client is installed and configured, else None."""
+    if not VECTOR_HOST:
+        logger.info("VECTOR_HOST not configured — vector memory disabled.")
+        return None
     try:
         from qdrant_client import AsyncQdrantClient
         from qdrant_client.http import models
@@ -152,6 +155,9 @@ async def _dispatch(client: httpx.AsyncClient, system: str, user: str) -> Option
     Route 2: Local Ollama (air-gapped fallback when gateway is unreachable).
     Returns None on total failure — callers decide how to handle.
     """
+    if not GATEWAY_URL and not LOCAL_OLLAMA_URL:
+        logger.warning("No inference endpoint configured — skipping dispatch.")
+        return None
     headers = {"Authorization": f"Bearer {MASTER_KEY}"} if MASTER_KEY else {}
     payload = {
         "model": "autonomous-intelligence-mesh",

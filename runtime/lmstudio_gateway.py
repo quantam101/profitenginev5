@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-_DEFAULT_BASE_URL = "http://localhost:1234/v1"
+_DEFAULT_BASE_URL = ""
 _DEFAULT_MODEL = "local-model"
 _DEFAULT_TIMEOUT = 120
 
@@ -36,7 +36,7 @@ def _enabled() -> bool:
 
 
 def _base_url() -> str:
-    return os.getenv("LM_STUDIO_BASE_URL", _DEFAULT_BASE_URL).rstrip("/")
+    return (os.getenv("LM_STUDIO_BASE_URL") or _DEFAULT_BASE_URL).rstrip("/")
 
 
 def _model() -> str:
@@ -66,6 +66,8 @@ def call_lmstudio(
         return None
 
     base = _base_url()
+    if not base:
+        return None
     model = _model()
     try:
         timeout = int(os.getenv("GMAOS_LMS_TIMEOUT", str(_DEFAULT_TIMEOUT)))
