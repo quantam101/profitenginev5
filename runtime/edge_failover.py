@@ -13,7 +13,7 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -150,7 +150,7 @@ class EdgeFailoverEngine:
             raise PermissionError("invalid signature")
 
         distilled = distill_payload(payload, tenant.max_token_budget)
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         runtime_mode = "cloud_primary" if server_online else "local_wal_failover"
         with self._connect() as conn:
             conn.execute(
@@ -212,7 +212,7 @@ class EdgeFailoverEngine:
                         result_json = ?, updated_at = ?
                     WHERE tracking_id = ?
                     """,
-                    (status, last_error, json.dumps(result, sort_keys=True), datetime.now(UTC).isoformat(), tracking_id),
+                    (status, last_error, json.dumps(result, sort_keys=True), datetime.now(timezone.utc).isoformat(), tracking_id),
                 )
                 conn.commit()
             return {
@@ -231,7 +231,7 @@ class EdgeFailoverEngine:
                         last_error = ?, updated_at = ?
                     WHERE tracking_id = ?
                     """,
-                    (f"{type(exc).__name__}: {exc}", datetime.now(UTC).isoformat(), tracking_id),
+                    (f"{type(exc).__name__}: {exc}", datetime.now(timezone.utc).isoformat(), tracking_id),
                 )
                 conn.commit()
             return {"ok": False, "tracking_id": tracking_id, "status": "staged", "error": f"{type(exc).__name__}: {exc}"}
