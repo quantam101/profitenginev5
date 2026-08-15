@@ -12,7 +12,7 @@ Replies land in your Zoho inbox automatically.
        SMTP_HOST=smtp.gmail.com
        SMTP_PORT=587
        SMTP_USER=alreadyherellc@gmail.com
-       SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+       SMTP_PASSWORD=$GMAIL_APP_PASSWORD
        SMTP_REPLY_TO=dispatch@alreadyherellc.com
 
 --- OPTION B: Brevo SMTP relay (professional, 300/day free, sends FROM your domain) ---
@@ -23,17 +23,17 @@ Sends FROM dispatch@alreadyherellc.com after domain DNS verification (10 min).
   4. Add to pipeline/.env:
        SMTP_HOST=smtp-relay.brevo.com
        SMTP_PORT=587
-       SMTP_USER=your-brevo-login-email
-       SMTP_PASSWORD=your-brevo-smtp-key
+       SMTP_USER=$BREVO_LOGIN_EMAIL
+       SMTP_PASSWORD=$BREVO_SMTP_KEY
        SMTP_SENDER_EMAIL=dispatch@alreadyherellc.com
        SMTP_REPLY_TO=dispatch@alreadyherellc.com
 
 Usage:
   from smtp_dispatch import send_email, send_batch
-  await send_email(to="client@company.com", subject="...", body="...", cc="cc@company.com")
+  await send_email(to="FieldTech@cptnetworks.com", subject="...", body="...", cc="FSP@cptnetworks.com")
 
 One-off CLI:
-  SMTP_TO=to@example.com SMTP_CC=cc@example.com SMTP_SUBJECT="..." SMTP_BODY="..." python pipeline/smtp_dispatch.py
+  SMTP_TO=FieldTech@cptnetworks.com SMTP_CC=FSP@cptnetworks.com SMTP_SUBJECT="..." SMTP_BODY="..." python pipeline/smtp_dispatch.py
 """
 
 from __future__ import annotations
