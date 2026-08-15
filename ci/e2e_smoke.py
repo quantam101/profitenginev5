@@ -6,7 +6,7 @@ Dashboard auth-gated pages are tested separately in integration stage.
 from playwright.sync_api import sync_playwright
 import sys
 
-BASE = "http://localhost:3000"
+BASE = "http://127.0.0.1:3000"
 
 
 def run() -> int:

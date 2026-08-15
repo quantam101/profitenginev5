@@ -11,7 +11,7 @@ Revenue model:
 
 Environment variables:
   BEEHIIV_API_KEY          — Bearer token from app.beehiiv.com → Settings → API
-  BEEHIIV_PUBLICATION_ID   — pub_xxxxxxxxxxxxxxxxxxxxxxxx (from same page)
+  BEEHIIV_PUBLICATION_ID   — from same page (starts with pub_)
   BEEHIIV_SPONSOR_NAME     — Optional sponsor name injected every 5th issue
   BEEHIIV_SPONSOR_URL      — Optional sponsor link
   BEEHIIV_SPONSOR_COPY     — Optional sponsor ad copy (≤ 150 chars)

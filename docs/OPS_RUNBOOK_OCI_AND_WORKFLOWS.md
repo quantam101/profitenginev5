@@ -15,7 +15,7 @@ in GitHub Actions secrets, Vercel project env, and the server's `.env` files onl
 - GitHub access: read-only deploy key `~/.ssh/github_deploy` (registered on profitenginev5,
   key id 156746536); private-repo clones use the `git@github.com:` remote form
 - pm2 processes: `profitengine` and `mcp-trading-engine` (port 8000; health:
-  `curl http://localhost:8000/healthz` → `{"status":"ok","engine":"mcp-trading"}`;
+  `curl http://127.0.0.1:8000/healthz` → `{"status":"ok","engine":"mcp-trading"}`;
   engine requires `httpx[http2]`)
 - Docker socket is `root:docker` and **opc is not in the docker group** — see Open Items
 

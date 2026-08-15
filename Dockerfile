@@ -24,6 +24,6 @@ ENV PYTHONUNBUFFERED=1 \
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fs http://localhost:8001/api/health || exit 1
+    CMD curl -fs http://127.0.0.1:8001/api/health || exit 1
 
 CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8001"]

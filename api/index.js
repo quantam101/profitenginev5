@@ -25,7 +25,7 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/publi
 
 function start(port) {
   const p = port || cfg().port;
-  app.listen(p, () => logger.info(`API live on http://localhost:${p}`));
+  app.listen(p, () => logger.info(`API live on http://0.0.0.0:${p}`));
   return app;
 }
 

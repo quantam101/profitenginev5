@@ -73,13 +73,13 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
 /**
  * Fetch real health score by calling our own /api/health endpoint.
  * Uses the incoming request's Host header so it works in every environment
- * (localhost dev, Docker on OCI, Vercel) without env var configuration.
+ * (local dev, Docker on OCI, Vercel) without env var configuration.
  */
 async function fetchHealthScore(requestHost: string): Promise<number> {
   if (!requestHost) return 100;
   try {
-    // Use https for non-localhost hosts (production); http for local dev
-    const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
+    // Use https in production; http for local / loopback hosts
+    const isLocal = requestHost.startsWith('127.') || process.env.NODE_ENV === 'development';
     const base = isLocal ? `http://${requestHost}` : `https://${requestHost}`;
     const res = await fetch(`${base}/api/health`, {
       cache: 'no-store',

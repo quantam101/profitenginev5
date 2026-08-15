@@ -15,7 +15,7 @@ export const options = {
   ],
 };
 
-const BASE = __ENV.BASE_URL || "http://localhost:8001";
+const BASE = __ENV.BASE_URL || "http://127.0.0.1:8001";
 
 export default function () {
   for (const path of ["/api/health", "/api/agents/fleet-stats", "/api/distillation/status"]) {

@@ -59,12 +59,12 @@ jobs:
         run: npm run test:ai-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
       - name: Skill gateway test
         run: npm run test:skill-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
       - name: Opportunity intelligence test
         run: npm run test:opportunity
         env:
@@ -73,7 +73,7 @@ jobs:
         run: npm run test:revenue-os
         env:
           CI: "true"
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://127.0.0.1:27017"
           MONGODB_DB: "profitengine_ci"
       - name: Gateway evals
         run: |
@@ -81,7 +81,7 @@ jobs:
           npm run eval:skill-gateway
         env:
           CI: "true"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
       - name: Runtime security scan
         run: |
           python - <<'PY'
@@ -119,9 +119,9 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Run contract tests
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://127.0.0.1:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
         run: python -m pytest backend/tests/test_distillation.py -v
 
   e2e:
@@ -147,16 +147,16 @@ jobs:
           npm ci --include=dev
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://127.0.0.1:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
         run: |
           cd /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
-          for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
+          for i in {1..30}; do curl -fs http://127.0.0.1:8001/api/health && break; sleep 1; done
       - name: e2e smoke — backend health check
         run: |
-          curl -fs http://localhost:8001/api/health | python -c "
+          curl -fs http://127.0.0.1:8001/api/health | python -c "
           import sys, json
           d = json.load(sys.stdin)
           print('health:', json.dumps(d, indent=2))
@@ -180,12 +180,12 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Boot backend
         env:
-          MONGO_URL: "mongodb://localhost:27017"
+          MONGO_URL: "mongodb://127.0.0.1:27017"
           DB_NAME: "profitengine_ci"
-          GROQ_API_KEY: "stub-groq-ci-key"
+          GROQ_API_KEY: ""
         run: |
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
-          for i in {1..30}; do curl -fs http://localhost:8001/api/health && break; sleep 1; done
+          for i in {1..30}; do curl -fs http://127.0.0.1:8001/api/health && break; sleep 1; done
       - name: Install k6
         run: |
           sudo gpg -k && sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
@@ -193,7 +193,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y k6
       - name: Run k6 smoke
         env:
-          BASE_URL: "http://localhost:8001"
+          BASE_URL: "http://127.0.0.1:8001"
         run: k6 run ci/load_smoke.js
 
   deployment_gate:

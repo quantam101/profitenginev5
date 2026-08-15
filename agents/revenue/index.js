@@ -97,7 +97,7 @@ async function sendDailyReport() {
     `Monthly revenue:  $${monthly.total.toFixed(2)}\n` +
     `All-time revenue: $${allTime.total.toFixed(2)}\n` +
     `Revenue by source:\n${Object.entries(monthly.bySource).map(([k,v]) => `  ${k}: $${v.toFixed(2)}`).join('\n')}\n\n` +
-    `Dashboard: http://localhost:${cfg().port}`
+    `Dashboard: https://${cfg().siteDomain}`
   );
 }
 

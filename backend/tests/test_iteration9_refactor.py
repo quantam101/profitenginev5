@@ -12,7 +12,7 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 if not BASE_URL:
     # Fallback to local supervisor backend for in-container runs
-    BASE_URL = "http://localhost:8001"
+    BASE_URL = "http://127.0.0.1:8001"
 
 
 # ---------- launch_router refactor ----------
@@ -32,7 +32,7 @@ class TestLaunchRouterRefactor:
     def test_checkout_session_invalid_package_400(self):
         r = requests.post(
             f"{BASE_URL}/api/checkout/session",
-            json={"package_id": "bogus", "origin_url": "https://example.com"},
+            json={"package_id": "invalid", "origin_url": "https://app.alreadyherellc.com"},
             timeout=15,
         )
         assert r.status_code == 400
@@ -50,7 +50,7 @@ class TestLaunchRouterRefactor:
             f"{BASE_URL}/api/checkout/session",
             json={
                 "package_id": "studio_monthly",
-                "origin_url": "https://example.com",
+                "origin_url": "https://app.alreadyherellc.com",
             },
             timeout=20,
         )
@@ -115,7 +115,7 @@ class TestLaunchRouterRefactor:
     def test_subscriptions_me_unknown(self):
         r = requests.get(
             f"{BASE_URL}/api/subscriptions/me",
-            params={"email": "noone@example.com"},
+            params={"email": "noone@alreadyherellc.com"},
             timeout=15,
         )
         assert r.status_code == 200
