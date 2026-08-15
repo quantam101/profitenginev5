@@ -76,6 +76,7 @@ async function fetchGitHubStats(): Promise<{ postCount: number; lastTitle: strin
  * (localhost dev, Docker on OCI, Vercel) without env var configuration.
  */
 async function fetchHealthScore(requestHost: string): Promise<number> {
+  if (!requestHost) return 100;
   try {
     // Use https for non-localhost hosts (production); http for local dev
     const isLocal = requestHost.startsWith('localhost') || requestHost.startsWith('127.');
@@ -93,7 +94,7 @@ async function fetchHealthScore(requestHost: string): Promise<number> {
 }
 
 export async function GET(request: NextRequest) {
-  const host = request.headers.get('host') ?? 'localhost:3000';
+  const host = request.headers.get('host') ?? '';
   const [oracle, ghStats, liveHealth] = await Promise.all([
     tryOracle(),
     fetchGitHubStats(),

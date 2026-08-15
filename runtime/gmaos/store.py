@@ -187,7 +187,8 @@ class _RedisStreams:
         self._url = url
         self._client: Any = None
         self._available = False
-        self._try_connect()
+        if url:
+            self._try_connect()
 
     def _try_connect(self) -> None:
         try:
@@ -250,7 +251,7 @@ class StateStore:
     def __init__(self, db_path: Optional[Path] = None, redis_url: Optional[str] = None) -> None:
         _base = Path(os.getenv("PROFITENGINE_CORE_DIR", ".core_mesh_data"))
         self._sqlite = _SqliteWAL(db_path or (_base / "gmaos.db"))
-        self._redis  = _RedisStreams(redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+        self._redis  = _RedisStreams(redis_url or os.getenv("REDIS_URL") or "")
         self._l1: dict[str, dict] = {}          # hot in-memory cache
         self._l1_lock = threading.Lock()
 

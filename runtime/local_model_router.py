@@ -3,7 +3,7 @@ Routing tier selection for the GMAOS execution core.
 
 Tier cascade (lowest cost first):
   DETERMINISTIC_LOCAL  — rule-based, zero AI cost (simple / low-risk)
-  LM_STUDIO            — local OpenAI-compatible server (LM Studio localhost:1234)
+  LM_STUDIO            — local OpenAI-compatible server (LM Studio)
   LOCAL_MODEL          — Ollama local inference, free forever
   GROQ_CLOUD           — free tier, 700+ tok/s, Llama-3.3-70b
   HUGGINGFACE          — free cloud inference, many open models
@@ -50,8 +50,8 @@ class LocalModelRouter:
 
     def route(self, complexity_score: float) -> ModelRoute:
         local_enabled  = os.getenv("GMAOS_LOCAL_MODEL_ENABLED", "false").lower() == "true"
-        local_endpoint = os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT", "http://localhost:11434")
-        lms_url        = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+        local_endpoint = (os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT") or "").strip()
+        lms_url        = (os.getenv("LM_STUDIO_BASE_URL") or "").strip()
         groq_key       = bool(os.getenv("GROQ_API_KEY", ""))
         claude_key     = bool(os.getenv("ANTHROPIC_API_KEY", ""))
 
@@ -63,14 +63,14 @@ class LocalModelRouter:
             )
 
         # Tier 2 — LM Studio local (highest-priority local, OpenAI-compatible)
-        if complexity_score <= self._THRESH_LMSTUDIO and self._lmstudio_enabled():
+        if complexity_score <= self._THRESH_LMSTUDIO and self._lmstudio_enabled() and lms_url:
             return ModelRoute(
                 RouteDecision("LM_STUDIO", lms_url, 0.0, "lmstudio_inference"),
                 "lmstudio_enabled_low_complexity",
             )
 
         # Tier 3 — Ollama local inference
-        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled:
+        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled and local_endpoint:
             return ModelRoute(
                 RouteDecision("LOCAL_MODEL", local_endpoint, 0.0, "local_inference"),
                 "ollama_local_enabled",

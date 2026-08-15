@@ -35,7 +35,7 @@ logger = logging.getLogger("EAOS.VideoEngine")
 
 STORAGE_ROOT  = os.environ.get("EAOS_VIDEO_ROOT", "./datacenter/video_pipeline")
 HAS_GPU       = os.environ.get("EAOS_GPU_ENABLED", "false").lower() == "true"
-WAN_ENDPOINT  = os.environ.get("WAN_INFERENCE_ENDPOINT", "http://localhost:8188").rstrip("/")
+WAN_ENDPOINT  = (os.environ.get("WAN_INFERENCE_ENDPOINT") or "").rstrip("/")
 HF_TOKEN      = (os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_API_KEY") or "").strip()
 HF_API_BASE   = "https://api-inference.huggingface.co/models"
 
@@ -273,6 +273,9 @@ class UltimateVideoEngine:
         Returns clip path on success, None on failure (caller falls through).
         """
         if not HAS_GPU or not _GPU_CB.allow():
+            return None
+        if not WAN_ENDPOINT:
+            logger.warning("[VideoEngine] WAN_INFERENCE_ENDPOINT not configured — skipping GPU render")
             return None
 
         try:

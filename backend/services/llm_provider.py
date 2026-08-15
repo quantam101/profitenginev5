@@ -2,7 +2,7 @@
 
 Free-tier and low-cost provider strategy:
 
-0. **LM Studio** — local OpenAI-compatible server (localhost:1234), highest priority.
+0. **LM Studio** — local OpenAI-compatible server, highest priority.
    Zero cost, completely offline. Env: LM_STUDIO_BASE_URL, LM_STUDIO_MODEL.
 1. **Gemini Flash** — Google AI Studio (free tier: 15 RPM, 1M tok/day forever).
    Used for the cheap distillation tier. Key: GEMINI_API_KEY.
@@ -43,8 +43,10 @@ def _has_key(provider: Provider) -> bool:
 
 
 async def _call_lmstudio(*, model: str, system: str, prompt: str, max_tokens: int) -> str:
-    """LM Studio local server — OpenAI-compatible API at localhost:1234. No key needed."""
-    base_url = os.environ.get("LM_STUDIO_BASE_URL", "http://localhost:1234/v1").rstrip("/")
+    """LM Studio local server — OpenAI-compatible API. No key needed."""
+    base_url = (os.environ.get("LM_STUDIO_BASE_URL") or "").rstrip("/")
+    if not base_url:
+        raise RuntimeError("LM_STUDIO_BASE_URL is not configured")
     resolved_model = (
         os.environ.get("LM_STUDIO_MODEL", "").strip()
         or model

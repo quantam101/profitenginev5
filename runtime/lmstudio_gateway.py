@@ -1,13 +1,13 @@
 """
 LM Studio gateway — local OpenAI-compatible inference server.
 
-LM Studio runs at localhost:1234 (default) and serves any GGUF model
-via the OpenAI Chat Completions API.  No API key required.
+LM Studio serves any GGUF model via the OpenAI Chat Completions API.
+No API key required.
 
 Priority: highest — free, private, zero latency overhead.
 
 Environment variables:
-  LM_STUDIO_BASE_URL   — base URL  (default: http://localhost:1234/v1)
+  LM_STUDIO_BASE_URL   — base URL  (required, no default)
   LM_STUDIO_MODEL      — model name to request (default: local-model)
   LM_STUDIO_ENABLED    — "true"/"1"/"yes" to force-enable without BASE_URL
   GMAOS_LMS_TIMEOUT    — request timeout in seconds (default: 120)
@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-_DEFAULT_BASE_URL = "http://localhost:1234/v1"
+_DEFAULT_BASE_URL = ""
 _DEFAULT_MODEL = "local-model"
 _DEFAULT_TIMEOUT = 120
 
@@ -36,7 +36,7 @@ def _enabled() -> bool:
 
 
 def _base_url() -> str:
-    return os.getenv("LM_STUDIO_BASE_URL", _DEFAULT_BASE_URL).rstrip("/")
+    return (os.getenv("LM_STUDIO_BASE_URL") or _DEFAULT_BASE_URL).rstrip("/")
 
 
 def _model() -> str:
@@ -66,6 +66,8 @@ def call_lmstudio(
         return None
 
     base = _base_url()
+    if not base:
+        return None
     model = _model()
     try:
         timeout = int(os.getenv("GMAOS_LMS_TIMEOUT", str(_DEFAULT_TIMEOUT)))

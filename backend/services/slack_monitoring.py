@@ -350,10 +350,12 @@ async def test_slack_briefings():
     """Quick test function to preview Slack messages."""
     from motor.motor_asyncio import AsyncIOMotorClient
 
-    # Mock database
-    mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+    mongo_url = os.environ.get("MONGO_URL")
+    if not mongo_url:
+        print("MONGO_URL not configured — skipping test_slack_briefings")
+        return
     client = AsyncIOMotorClient(mongo_url)
-    db = client["profitengine_test"]
+    db = client[os.environ.get("DB_NAME", "profitengine_test")]
 
     service = SlackMonitoringService(db)
 
