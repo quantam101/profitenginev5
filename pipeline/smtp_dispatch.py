@@ -40,12 +40,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import argparse
 import os
+import re
 import smtplib
 import sys
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 from typing import List, Optional
 
 logger = logging.getLogger("SMTPDispatch")
@@ -55,20 +58,15 @@ logger = logging.getLogger("SMTPDispatch")
 # ── SMTP config ───────────────────────────────────────────────────────────────
 _SMTP_HOST   = os.getenv("SMTP_HOST",     "smtp.gmail.com")
 _SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
-_SMTP_USER   = os.getenv("SMTP_USER",     "").strip()
-_SMTP_PASS   = "".join(os.getenv("SMTP_PASSWORD", "").split())
+# SMTP credentials accept the standard SMTP_* names as well as legacy Gmail names.
+_SMTP_USER   = os.getenv("SMTP_USER", "").strip() or os.getenv("GMAIL_USER", "").strip() or os.getenv("GMAIL_SENDER", "").strip()
+_SMTP_PASS   = "".join(os.getenv("SMTP_PASSWORD", "").split()) or "".join(os.getenv("GMAIL_APP_PASSWORD", "").split())
 
 # SMTP_SENDER_EMAIL lets Brevo send FROM dispatch@ even when logging in with a different user
 _SMTP_SENDER  = os.getenv("SMTP_SENDER_EMAIL",  _SMTP_USER or "dispatch@alreadyherellc.com")
-_SMTP_REPLY_TO = os.getenv("SMTP_REPLY_TO",     "dispatch@alreadyherellc.com")
+_SMTP_REPLY_TO = os.getenv("SMTP_REPLY_TO", os.getenv("GMAIL_REPLY_TO", "dispatch@alreadyherellc.com"))
 
-# Legacy Gmail env vars still accepted
-if not _SMTP_USER:
-    _SMTP_USER = os.getenv("GMAIL_SENDER", "").strip()
-if not _SMTP_PASS:
-    _SMTP_PASS = "".join(os.getenv("GMAIL_APP_PASSWORD", "").split())
-
-_SENDER      = _SMTP_SENDER
+_SENDER      = os.getenv("SMTP_SENDER_EMAIL", os.getenv("GMAIL_FROM_ADDRESS", _SMTP_USER or "dispatch@alreadyherellc.com"))
 _SENDER_NAME = os.getenv("OUTREACH_SENDER_NAME", "Stephen Franklin")
 _COMPANY     = os.getenv("OUTREACH_COMPANY",     "Already Here LLC")
 
@@ -77,12 +75,20 @@ def _check_config() -> bool:
     if not _SMTP_PASS or not _SMTP_USER:
         logger.warning(
             "SMTP not configured — email dispatch disabled.\n"
-            "Add to pipeline/.env:\n"
-            "  SMTP_HOST=smtp.zoho.com\n"
-            "  SMTP_PORT=587\n"
-            "  SMTP_USER=dispatch@alreadyherellc.com\n"
-            "  SMTP_PASSWORD=your-zoho-app-password\n"
-            "Get Zoho App Password: mail.zoho.com → Settings → Security → App Passwords"
+            "Add to pipeline/.env one of the following:\n"
+            "  Gmail:\n"
+            "    SMTP_HOST=smtp.gmail.com\n"
+            "    SMTP_PORT=587\n"
+            "    SMTP_USER=alreadyherellc@gmail.com\n"
+            "    SMTP_PASSWORD=<16-char Gmail App Password>\n"
+            "    SMTP_REPLY_TO=dispatch@alreadyherellc.com\n"
+            "  Brevo:\n"
+            "    SMTP_HOST=smtp-relay.brevo.com\n"
+            "    SMTP_PORT=587\n"
+            "    SMTP_USER=<brevo login email>\n"
+            "    SMTP_PASSWORD=<brevo smtp key>\n"
+            "    SMTP_SENDER_EMAIL=dispatch@alreadyherellc.com\n"
+            "Get Gmail App Password: https://myaccount.google.com/apppasswords"
         )
         return False
     return True
@@ -113,9 +119,19 @@ def _smtp_send(
         logger.error("No recipients provided")
         return False
 
+    # A --from value like "Stephen Franklin <dispatch@alreadyherellc.com>" should be used as-is.
+    from_header = _SENDER
+    from_addr = _SENDER
+    match = re.match(r"^(.*?)\s*<([^>]+)>\s*$", _SENDER)
+    if match:
+        from_header = _SENDER
+        from_addr = match.group(2).strip()
+    else:
+        from_header = f"{_SENDER_NAME} | {_COMPANY} <{_SENDER}>"
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"]     = f"{_SENDER_NAME} | {_COMPANY} <{_SENDER}>"
+    msg["From"]     = from_header
     msg["To"]       = ", ".join(to_addrs)
     if cc_addrs:
         msg["Cc"] = ", ".join(cc_addrs)
@@ -128,7 +144,7 @@ def _smtp_send(
             server.ehlo()
             server.starttls()
             server.login(_SMTP_USER, _SMTP_PASS)
-            server.sendmail(_SENDER, all_recipients, msg.as_string())
+            server.sendmail(from_addr, all_recipients, msg.as_string())
         logger.info(f"Sent → {', '.join(all_recipients)} | {subject[:60]}")
         return True
     except smtplib.SMTPAuthenticationError:
@@ -159,8 +175,8 @@ async def send_email(
     dry_run: bool = False,
 ) -> bool:
     """
-    Send a single email via Gmail SMTP.
-    If GMAIL_APP_PASSWORD is not set or dry_run=True, prints to stdout only.
+    Send a single email via the configured SMTP relay.
+    If SMTP credentials are not set or dry_run=True, prints to stdout only.
     """
     if dry_run or not _check_config():
         print(f"\n[DRY-RUN] To: {to}")
@@ -259,10 +275,44 @@ async def _test() -> None:
     print("PASS — check your Zoho inbox." if ok else "FAIL — check the error above.")
 
 
+async def _cli() -> int:
+    parser = argparse.ArgumentParser(description="Send a one-off email via SMTP.")
+    parser.add_argument("--to", required=True, help="Primary recipient(s), comma separated")
+    parser.add_argument("--cc", help="CC recipient(s), comma separated")
+    parser.add_argument("--bcc", help="BCC recipient(s), comma separated")
+    parser.add_argument("--from", dest="from_header", help="From header, e.g. 'Stephen Franklin <dispatch@alreadyherellc.com>'")
+    parser.add_argument("--reply-to", help="Reply-To header")
+    parser.add_argument("--subject", required=True, help="Email subject")
+    parser.add_argument("--body", help="Plain-text body (use --body-file for long content)")
+    parser.add_argument("--body-file", help="Path to a file containing the plain-text body")
+    parser.add_argument("--dry-run", action="store_true", help="Print the message without sending")
+    args = parser.parse_args()
+
+    body = args.body
+    if args.body_file:
+        body = Path(args.body_file).read_text(encoding="utf-8")
+    if not body:
+        parser.error("--body or --body-file is required")
+
+    global _SENDER, _SMTP_REPLY_TO
+    if args.from_header:
+        _SENDER = args.from_header
+    if args.reply_to:
+        _SMTP_REPLY_TO = args.reply_to
+
+    if args.dry_run:
+        ok = await send_email(to=args.to, cc=args.cc, bcc=args.bcc, reply_to=args.reply_to, subject=args.subject, body=body, dry_run=True)
+    else:
+        if not _check_config():
+            return 1
+        ok = await send_email(to=args.to, cc=args.cc, bcc=args.bcc, reply_to=args.reply_to, subject=args.subject, body=body, dry_run=False)
+    return 0 if ok else 1
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if os.getenv("SMTP_TO"):
         ok = asyncio.run(_oneoff())
         print("OK — one-off email dispatched." if ok else "FAIL — one-off email not dispatched.")
     else:
-        asyncio.run(_test())
+        sys.exit(asyncio.run(_cli()))
