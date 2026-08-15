@@ -92,7 +92,7 @@ export async function GET() {
             message: `${c.agent_id}: ${(c.objective_excerpt ?? '').slice(0, 60)}`,
             ago: c.iso_timestamp ? timeAgo(c.iso_timestamp) : 'recently',
           }))
-        : null; // null → useData merge keeps mock activity
+        : [];
 
     // ── Agent fleet from distribution, most-recent agent marked busy ──────
     const lastAgentId = cycles[0]?.agent_id ?? null;
@@ -103,7 +103,7 @@ export async function GET() {
           label: id,
           status: id === lastAgentId ? 'busy' : 'idle',
         }))
-      : null; // null → useData merge keeps mock agents
+      : [];
 
     // ── Content/24h: count successful cycles with iso_timestamp in last 24h ─
     const oneDayAgo = Date.now() - 86_400_000;
@@ -129,14 +129,13 @@ export async function GET() {
       return `${h}h ${m}m`;
     })();
 
-    // ── aiOpsPerCycle: total AI operations run, or null (keeps mock 2196) ──
-    const aiOpsPerCycle = totalCycles > 0 ? totalCycles : null;
+    // ── aiOpsPerCycle: total AI operations run, or 0 if none yet ────────────
+    const aiOpsPerCycle = totalCycles > 0 ? totalCycles : 0;
 
-    // Build response — only include fields with real values.
-    // Fields set to null are filtered in useData merge, preserving mock values.
+    // Build response with real or zeroed values (no mock fallbacks).
     const payload: Record<string, unknown> = {
       engineRunning: Boolean(health?.ok),
-      healthScore: successRate > 0 ? Math.round(successRate) : health?.ok ? 94 : 0,
+      healthScore: successRate > 0 ? Math.round(successRate) : health?.ok ? 100 : 0,
       dlqItems: 0,
       tokensToday: 0,
       pipeline,
