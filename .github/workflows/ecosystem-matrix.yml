@@ -68,13 +68,19 @@ jobs:
               return ("mongo persistence", m, m == "configured")
 
           def check_content_freshness():
-              body, code = fetch("https://quantam101.github.io/content/")
-              if code != 200: return ("content pipeline", f"HTTP {code}", False)
-              dates = sorted(set(re.findall(r"posts/(\d{4}-\d{2}-\d{2})", body)))
-              if not dates: return ("content pipeline", "no posts found", False)
-              newest = datetime.date.fromisoformat(dates[-1])
+              # Use the canonical Pages feed (updated by daily-content.yml) so the
+              # freshness check works even when Jekyll permalinks do not include
+              # ISO dates in post URLs.
+              body, code = fetch("https://www.alreadyherellc.com/content/feed.xml")
+              if code != 200:
+                  body, code = fetch("https://quantam101.github.io/content/feed.xml")
+              if code != 200: return ("content pipeline", f"feed HTTP {code}", False)
+              dates = sorted(set(re.findall(r"<(published|updated)>(\d{4}-\d{2}-\d{2})T", body)))
+              if not dates: return ("content pipeline", "no published dates found", False)
+              newest = datetime.date.fromisoformat(dates[-1][1])
               age = (TODAY - newest).days
-              return ("content pipeline", f"newest post {dates[-1]} ({age}d old)", age <= 1)
+              source = "custom domain" if "www.alreadyherellc.com" in body[:500] else "fallback"
+              return ("content pipeline", f"newest post {dates[-1][1]} ({age}d old) [{source}]", age <= 1)
 
           # ── repo CI status via GitHub API ────────────────────────────
           REPOS = ["profitenginev5", "content", "already-here-llc",

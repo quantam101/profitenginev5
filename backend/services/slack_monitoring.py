@@ -195,36 +195,103 @@ class SlackMonitoringService:
             color="#9c27b0"  # Purple
         )
 
+    # ── Revenue helpers ──────────────────────────────────────────────────────────
+
+    def _utc_now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    async def _revenue_window(self, days: int) -> dict[str, Any]:
+        """Return paid revenue + transaction counts for the trailing N days."""
+        now = self._utc_now()
+        start = (now - timedelta(days=days)).isoformat()
+        coll = self.db.payment_transactions
+
+        paid = 0
+        revenue = 0.0
+        try:
+            cursor = coll.find({"payment_status": "paid", "updated_at": {"$gte": start}})
+            async for doc in cursor:
+                paid += 1
+                revenue += float(doc.get("amount", 0) or 0)
+        except Exception as exc:
+            print(f"[slack_monitoring] revenue aggregation error: {exc}")
+            return {"paid": 0, "total": 0, "revenue": 0.0, "success_rate": 0.0}
+
+        try:
+            total = await coll.count_documents({"created_at": {"$gte": start}})
+        except Exception as exc:
+            print(f"[slack_monitoring] transaction count error: {exc}")
+            total = paid
+
+        success_rate = (paid / total * 100) if total else 0.0
+        return {"paid": paid, "total": total, "revenue": revenue, "success_rate": success_rate}
+
+    async def _stuck_transactions(self) -> int:
+        """Payments that have been pending/initiated for more than an hour."""
+        now = self._utc_now()
+        cutoff = (now - timedelta(hours=1)).isoformat()
+        try:
+            return await self.db.payment_transactions.count_documents({
+                "payment_status": {"$in": ["initiated", "pending"]},
+                "created_at": {"$lt": cutoff},
+            })
+        except Exception as exc:
+            print(f"[slack_monitoring] stuck transaction query error: {exc}")
+            return 0
+
+    def _revenue_metrics(self, window: dict[str, Any], trailing_days: int, trailing_label: str) -> list[MetricValue]:
+        revenue = window["revenue"]
+        paid = window["paid"]
+        total = window["total"]
+        success_rate = window["success_rate"]
+        avg_ticket = (revenue / paid) if paid else 0.0
+
+        revenue_status = StatusIndicator.OPERATIONAL if revenue > 0 else StatusIndicator.WARNING
+        conversion_status = (
+            StatusIndicator.OPERATIONAL if success_rate >= 80
+            else StatusIndicator.WARNING if success_rate >= 50
+            else StatusIndicator.CRITICAL
+        )
+
+        return [
+            MetricValue(
+                label="Revenue",
+                value=f"${revenue:,.2f}",
+                status=revenue_status,
+                trend=f"{paid} paid / {total} total",
+            ),
+            MetricValue(
+                label="Success Rate",
+                value=f"{success_rate:.1f}%",
+                status=conversion_status,
+            ),
+            MetricValue(
+                label="Avg Ticket",
+                value=f"${avg_ticket:,.2f}",
+                status=StatusIndicator.OPERATIONAL,
+            ),
+            MetricValue(
+                label=trailing_label,
+                value="loading…",
+                status=StatusIndicator.OPERATIONAL,
+            ),
+        ]
+
+    async def _alerts(self) -> list[str]:
+        """Shared alert logic for all briefings."""
+        alerts: list[str] = []
+        stuck = await self._stuck_transactions()
+        if stuck:
+            alerts.append(f"{stuck} payment session(s) stuck in initiated/pending for >1 hour")
+        return alerts
+
     async def _fetch_morning_metrics(self) -> list[MetricValue]:
         """Fetch metrics for morning briefing."""
         try:
-            # Example: pull from database or API
-            metrics = [
-                MetricValue(
-                    label="System Status",
-                    value="All systems operational",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="✓"
-                ),
-                MetricValue(
-                    label="API Latency",
-                    value="142ms avg",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↓ -8ms"
-                ),
-                MetricValue(
-                    label="Error Rate",
-                    value="0.02%",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↓ -0.01%"
-                ),
-                MetricValue(
-                    label="Uptime",
-                    value="99.99%",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="✓"
-                ),
-            ]
+            window_24h = await self._revenue_window(1)
+            window_30d = await self._revenue_window(30)
+            metrics = self._revenue_metrics(window_24h, 30, "30-Day Revenue")
+            metrics[3].value = f"${window_30d['revenue']:,.2f}"
             return metrics
         except Exception as e:
             print(f"Error fetching morning metrics: {e}")
@@ -233,10 +300,7 @@ class SlackMonitoringService:
     async def _fetch_morning_alerts(self) -> list[str]:
         """Fetch alerts for morning briefing."""
         try:
-            # Example: check for critical issues
-            alerts = []
-            # Add logic to fetch real alerts from database
-            return alerts
+            return await self._alerts()
         except Exception as e:
             print(f"Error fetching morning alerts: {e}")
             return []
@@ -244,32 +308,10 @@ class SlackMonitoringService:
     async def _fetch_evening_metrics(self) -> list[MetricValue]:
         """Fetch metrics for evening post."""
         try:
-            metrics = [
-                MetricValue(
-                    label="Daily Revenue",
-                    value="$2,450.85",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +12%"
-                ),
-                MetricValue(
-                    label="Active Sessions",
-                    value="342",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +28"
-                ),
-                MetricValue(
-                    label="Conversion Rate",
-                    value="3.2%",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +0.5%"
-                ),
-                MetricValue(
-                    label="Avg Response Time",
-                    value="156ms",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +12ms"
-                ),
-            ]
+            window_24h = await self._revenue_window(1)
+            window_7d = await self._revenue_window(7)
+            metrics = self._revenue_metrics(window_24h, 7, "7-Day Revenue")
+            metrics[3].value = f"${window_7d['revenue']:,.2f}"
             return metrics
         except Exception as e:
             print(f"Error fetching evening metrics: {e}")
@@ -278,9 +320,7 @@ class SlackMonitoringService:
     async def _fetch_evening_alerts(self) -> list[str]:
         """Fetch alerts for evening post."""
         try:
-            alerts = []
-            # Add logic to fetch real alerts from database
-            return alerts
+            return await self._alerts()
         except Exception as e:
             print(f"Error fetching evening alerts: {e}")
             return []
@@ -288,32 +328,10 @@ class SlackMonitoringService:
     async def _fetch_weekly_metrics(self) -> list[MetricValue]:
         """Fetch metrics for weekly summary."""
         try:
-            metrics = [
-                MetricValue(
-                    label="Weekly Revenue",
-                    value="$18,342.50",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +8.5%"
-                ),
-                MetricValue(
-                    label="Total Sessions",
-                    value="2,145",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +312"
-                ),
-                MetricValue(
-                    label="Avg Daily Revenue",
-                    value="$2,620.36",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="↑ +5.2%"
-                ),
-                MetricValue(
-                    label="Uptime SLA",
-                    value="99.97%",
-                    status=StatusIndicator.OPERATIONAL,
-                    trend="✓"
-                ),
-            ]
+            window_7d = await self._revenue_window(7)
+            window_30d = await self._revenue_window(30)
+            metrics = self._revenue_metrics(window_7d, 30, "30-Day Revenue")
+            metrics[3].value = f"${window_30d['revenue']:,.2f}"
             return metrics
         except Exception as e:
             print(f"Error fetching weekly metrics: {e}")
@@ -322,9 +340,7 @@ class SlackMonitoringService:
     async def _fetch_weekly_alerts(self) -> list[str]:
         """Fetch alerts for weekly summary."""
         try:
-            alerts = []
-            # Add logic to fetch real alerts from database
-            return alerts
+            return await self._alerts()
         except Exception as e:
             print(f"Error fetching weekly alerts: {e}")
             return []
