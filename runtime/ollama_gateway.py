@@ -6,8 +6,8 @@ Calls the Ollama native chat API at:
 
 Environment variables:
   GMAOS_LOCAL_MODEL_ENABLED   — "true" to activate (default: false)
-  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (default: http://localhost:11434)
-                                 Docker: set to http://ollama:11434
+  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (required when enabled, no default)
+                                 Docker example: http://ollama:11434
   GMAOS_LOCAL_MODEL_NAME      — model tag (default: llama3.1:8b)
   GMAOS_LOCAL_MODEL_TIMEOUT   — per-request timeout seconds (default: 120)
 
