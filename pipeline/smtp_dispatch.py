@@ -56,7 +56,7 @@ logger = logging.getLogger("SMTPDispatch")
 _SMTP_HOST   = os.getenv("SMTP_HOST",     "smtp.gmail.com")
 _SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
 _SMTP_USER   = os.getenv("SMTP_USER",     "").strip()
-_SMTP_PASS   = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+_SMTP_PASS   = "".join(os.getenv("SMTP_PASSWORD", "").split())
 
 # SMTP_SENDER_EMAIL lets Brevo send FROM dispatch@ even when logging in with a different user
 _SMTP_SENDER  = os.getenv("SMTP_SENDER_EMAIL",  _SMTP_USER or "dispatch@alreadyherellc.com")
@@ -66,7 +66,7 @@ _SMTP_REPLY_TO = os.getenv("SMTP_REPLY_TO",     "dispatch@alreadyherellc.com")
 if not _SMTP_USER:
     _SMTP_USER = os.getenv("GMAIL_SENDER", "").strip()
 if not _SMTP_PASS:
-    _SMTP_PASS = os.getenv("GMAIL_APP_PASSWORD", "").replace(" ", "")
+    _SMTP_PASS = "".join(os.getenv("GMAIL_APP_PASSWORD", "").split())
 
 _SENDER      = _SMTP_SENDER
 _SENDER_NAME = os.getenv("OUTREACH_SENDER_NAME", "Stephen Franklin")
