@@ -1,10 +1,19 @@
 """
 Already Here LLC — SMTP Dispatcher
-Multi-provider: Gmail SMTP (immediate), Brevo SMTP relay (professional), or any provider.
+Multi-provider: Resend HTTP API (preferred), Gmail SMTP, Brevo SMTP relay, or any provider.
 
 NOTE: Zoho free plan does not include SMTP — use one of the options below.
 
---- OPTION A: Gmail SMTP (immediate, 500/day free) ---
+--- OPTION A: Resend HTTP API (preferred, 100/day free, sends FROM your domain) ---
+Sends FROM Stephen Franklin <dispatch@alreadyherellc.com> once the domain is verified.
+  1. Sign up / log in at resend.com
+  2. Add and verify alreadyherellc.com → obtain an API key (re_...)
+  3. Add to pipeline/.env:
+       RESEND_API_KEY=$RESEND_API_KEY
+       RESEND_FROM=Stephen Franklin <dispatch@alreadyherellc.com>
+       SMTP_REPLY_TO=dispatch@alreadyherellc.com
+
+--- OPTION B: Gmail SMTP (immediate, 500/day free) ---
 Sends FROM alreadyherellc@gmail.com with Reply-To dispatch@alreadyherellc.com.
 Replies land in your Zoho inbox automatically.
   1. myaccount.google.com/apppasswords → Generate → name "Already Here Outreach"
@@ -15,7 +24,7 @@ Replies land in your Zoho inbox automatically.
        SMTP_PASSWORD=$GMAIL_APP_PASSWORD
        SMTP_REPLY_TO=dispatch@alreadyherellc.com
 
---- OPTION B: Brevo SMTP relay (professional, 300/day free, sends FROM your domain) ---
+--- OPTION C: Brevo SMTP relay (professional, 300/day free, sends FROM your domain) ---
 Sends FROM dispatch@alreadyherellc.com after domain DNS verification (10 min).
   1. Sign up free at brevo.com
   2. Settings → Senders & IPs → verify alreadyherellc.com domain
@@ -38,13 +47,16 @@ One-off CLI:
 
 from __future__ import annotations
 
-import asyncio
-import logging
 import argparse
+import asyncio
+import json
+import logging
 import os
 import re
 import smtplib
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -70,12 +82,22 @@ _SENDER      = os.getenv("SMTP_SENDER_EMAIL", os.getenv("GMAIL_FROM_ADDRESS", _S
 _SENDER_NAME = os.getenv("OUTREACH_SENDER_NAME", "Stephen Franklin")
 _COMPANY     = os.getenv("OUTREACH_COMPANY",     "Already Here LLC")
 
+# ── Resend HTTP API fallback ──────────────────────────────────────────────────
+_RESEND_API_KEY = "".join(os.getenv("RESEND_API_KEY", "").split())
+_RESEND_FROM    = os.getenv("RESEND_FROM", _SENDER or "dispatch@alreadyherellc.com")
+_RESEND_URL     = "https://api.resend.com/emails"
+
 
 def _check_config() -> bool:
+    if _RESEND_API_KEY:
+        return True
     if not _SMTP_PASS or not _SMTP_USER:
         logger.warning(
-            "SMTP not configured — email dispatch disabled.\n"
+            "SMTP not configured and RESEND_API_KEY not set — email dispatch disabled.\n"
             "Add to pipeline/.env one of the following:\n"
+            "  Resend (preferred):\n"
+            "    RESEND_API_KEY=<re_...>\n"
+            "    RESEND_FROM=Stephen Franklin <dispatch@alreadyherellc.com>\n"
             "  Gmail:\n"
             "    SMTP_HOST=smtp.gmail.com\n"
             "    SMTP_PORT=587\n"
@@ -95,6 +117,67 @@ def _check_config() -> bool:
 
 
 # ── Core send (sync, runs in thread pool) ────────────────────────────────────
+
+def _resend_send(
+    to: str,
+    subject: str,
+    body: str,
+    reply_to: Optional[str] = None,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
+) -> bool:
+    """Synchronous Resend HTTP API send (no SMTP)."""
+    to_addrs = _split_addresses(to)
+    cc_addrs = _split_addresses(cc)
+    bcc_addrs = _split_addresses(bcc)
+    recipients = to_addrs + cc_addrs + bcc_addrs
+    if not recipients:
+        logger.error("No recipients provided")
+        return False
+
+    from_header = _RESEND_FROM
+    if not re.match(r"^(.*?)\s*<([^>]+)>\s*$", from_header):
+        from_header = f"{_SENDER_NAME} | {_COMPANY} <{from_header}>"
+
+    payload = {
+        "from": from_header,
+        "to": to_addrs,
+        "subject": subject,
+        "text": body,
+    }
+    if cc_addrs:
+        payload["cc"] = cc_addrs
+    if bcc_addrs:
+        payload["bcc"] = bcc_addrs
+    if reply_to or _SMTP_REPLY_TO:
+        payload["reply_to"] = reply_to or _SMTP_REPLY_TO
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        _RESEND_URL,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {_RESEND_API_KEY}",
+            "Content-Type": "application/json",
+            "User-Agent": "profitengine-smtp-dispatch/1.0",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+        logger.info(f"Sent via Resend → {', '.join(recipients)} | {subject[:60]}")
+        return True
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = exc.read().decode("utf-8", errors="ignore")
+        except Exception:
+            detail = str(exc)
+        logger.error(f"Resend API error ({exc.code}): {detail}")
+        return False
+    except Exception as exc:
+        logger.error(f"Resend send failed: {exc}")
+        return False
+
 
 def _split_addresses(value: Optional[str]) -> List[str]:
     if not value:
@@ -175,10 +258,11 @@ async def send_email(
     dry_run: bool = False,
 ) -> bool:
     """
-    Send a single email via the configured SMTP relay.
-    If SMTP credentials are not set or dry_run=True, prints to stdout only.
+    Send a single email via the configured relay.
+    Prefers Resend when RESEND_API_KEY is set, otherwise SMTP.
+    If no credentials are set or dry_run=True, prints to stdout only.
     """
-    if dry_run or not _check_config():
+    if dry_run:
         print(f"\n[DRY-RUN] To: {to}")
         if cc:
             print(f"Cc: {cc}")
@@ -187,6 +271,11 @@ async def send_email(
         print(f"Subject: {subject}\n{body}\n{'─'*60}")
         return True
 
+    if not _check_config():
+        return False
+
+    if _RESEND_API_KEY:
+        return await asyncio.to_thread(_resend_send, to, subject, body, reply_to, cc, bcc)
     return await asyncio.to_thread(_smtp_send, to, subject, body, reply_to, cc, bcc)
 
 
@@ -203,7 +292,7 @@ async def send_batch(
     Returns: {"sent": N, "failed": N, "skipped": N}
     """
     if not dry_run and not _check_config():
-        logger.warning("Batch skipped — GMAIL_APP_PASSWORD not configured.")
+        logger.warning("Batch skipped — no Resend API key or SMTP credentials configured.")
         return {"sent": 0, "failed": 0, "skipped": len(messages)}
 
     sem = asyncio.Semaphore(concurrency)
@@ -294,9 +383,10 @@ async def _cli() -> int:
     if not body:
         parser.error("--body or --body-file is required")
 
-    global _SENDER, _SMTP_REPLY_TO
+    global _SENDER, _SMTP_REPLY_TO, _RESEND_FROM
     if args.from_header:
         _SENDER = args.from_header
+        _RESEND_FROM = args.from_header
     if args.reply_to:
         _SMTP_REPLY_TO = args.reply_to
 
