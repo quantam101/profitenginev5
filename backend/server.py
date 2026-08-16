@@ -79,7 +79,7 @@ async def _paid_revenue_total(days: int) -> float:
             {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
         ]).to_list(length=1)
         return round(float((total[0]["total"] if total else 0) or 0), 2)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return 0.0
 
 
@@ -98,7 +98,7 @@ async def _paid_revenue_series(days: int) -> list[dict]:
             d = (today - timedelta(days=i)).isoformat()
             out.append({"date": d, "amount": round(totals.get(d, 0.0), 2)})
         return out
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return [{"date": (datetime.now(timezone.utc).date() - timedelta(days=i)).isoformat(), "amount": 0.0} for i in range(days, -1, -1)]
 
 
@@ -687,7 +687,6 @@ async def distillation_stats() -> dict:
 
 @app.get("/api/analytics")
 async def analytics() -> dict:
-    today_iso = datetime.now(timezone.utc).date().isoformat()
     week_ago = _days_ago_iso(7)
     day_ago = _days_ago_iso(1)
     try:
