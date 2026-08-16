@@ -7,7 +7,11 @@ set -e
 
 # Configuration
 PROJECT_DIR="$(pwd)"
-DB_URL="postgresql://ah_pos_user:dev_password_change_in_production@localhost:5432/ah_pos"
+DB_URL="${DATABASE_URL:-postgresql://ah_pos_user@127.0.0.1:5432/ah_pos}"
+if [ -z "$DB_URL" ]; then
+  echo "Error: DATABASE_URL is not configured." >&2
+  exit 1
+fi
 
 # Colors
 GREEN='\033[0;32m'
@@ -154,12 +158,15 @@ echo ""
 # Step 8: Generate proposal
 echo -e "${BLUE}Step 8/8: Generating proposal...${NC}"
 python << 'PYSCRIPT' 2>/dev/null
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.proposal_generator import ProposalGenerator
 from backend.models import Solicitation
 
-db_url = "postgresql://ah_pos_user:dev_password_change_in_production@localhost:5432/ah_pos"
+db_url = os.environ.get("DATABASE_URL", "postgresql://ah_pos_user@127.0.0.1:5432/ah_pos")
+if not db_url:
+    raise RuntimeError("DATABASE_URL is not configured")
 engine = create_engine(db_url)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -192,7 +199,7 @@ echo -e "${GREEN}║  ✅ ALL TESTS PASSED — AH-POS IS WORKING!               
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 echo -e "${GREEN}Summary:${NC}"
-echo "  ✓ PostgreSQL running (localhost:5432)"
+echo "  ✓ PostgreSQL running (127.0.0.1:5432)"
 echo "  ✓ 10 past performance contracts imported"
 echo "  ✓ 50+ SAM.gov opportunities scraped"
 echo "  ✓ Opportunities scored (0-100)"
@@ -204,9 +211,9 @@ echo -e "${BLUE}Next Steps:${NC}"
 echo "  1. View proposal: open proposal_draft.html (or start/xdg-open)"
 echo "  2. Access database:"
 echo "     psql $DB_URL"
-echo "  3. View pgAdmin: http://localhost:5050"
-echo "     Email: admin@example.com"
-echo "     Password: admin"
+echo "  3. View pgAdmin: http://127.0.0.1:5050"
+echo "     Email: ${PGADMIN_DEFAULT_EMAIL:-admin@alreadyherellc.com}"
+echo "     Password: (set PGADMIN_DEFAULT_PASSWORD)"
 echo ""
 echo -e "${YELLOW}When Done:${NC}"
 echo "  docker-compose down"

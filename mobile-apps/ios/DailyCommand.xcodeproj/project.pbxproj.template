@@ -13,8 +13,8 @@ PROVISIONING_PROFILE_SPECIFIER = DailyCommand Development
 DEBUG_INFORMATION_FORMAT = dwarf
 ENABLE_TESTABILITY = YES
 
-// Signing (update with your Apple Developer account)
-DEVELOPMENT_TEAM[sdk=iphoneos*] = YOUR_TEAM_ID
+// Signing (set DEVELOPMENT_TEAM via XCODE_DEVELOPMENT_TEAM env var or manually)
+DEVELOPMENT_TEAM[sdk=iphoneos*] = ""
 CODE_SIGN_STYLE = Automatic
 PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = match Development com.dailycommand.ios
 

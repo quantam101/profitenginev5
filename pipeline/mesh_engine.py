@@ -646,9 +646,9 @@ async def main() -> None:
     interval    = float(os.getenv("MESH_CYCLE_INTERVAL_S", "30"))
 
     # Log initial distiller stats on startup
-    sample_prompt = "Target niche: enterprise-software-affiliate. Keyword: cloud arbitrage."
-    dr = distill_payload(sample_prompt, max_tokens=50, model=_OLLAMA_MODEL)
-    logger.info(f"Token distiller online: {dr.original_tokens}→{dr.final_tokens} tokens on sample")
+    example_payload = "Target niche: enterprise-software-affiliate. Keyword: cloud arbitrage."
+    dr = distill_payload(example_payload, max_tokens=50, model=_OLLAMA_MODEL)
+    logger.info(f"Token distiller online: {dr.original_tokens}→{dr.final_tokens} tokens on example")
 
     # Activate the first phase of each track automatically
     await matrix.activate_phase("ALPHA_I")

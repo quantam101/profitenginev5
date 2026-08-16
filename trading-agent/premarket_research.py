@@ -62,7 +62,7 @@ class PreMarketResearcher:
         for event in economic_events:
             logger.info(f"  - {event}")
 
-        # Mock data for demonstration
+        # Demo data for TRADING_DEMO_MODE
         catalysts["earnings_announcements"] = [
             {"symbol": "APPS", "type": "Earnings", "time": "After market close"},
             {"symbol": "EHGO", "type": "Analyst upgrade", "time": "Pre-market"}
@@ -247,6 +247,10 @@ class PreMarketResearcher:
 
     def run(self):
         """Execute full pre-market research"""
+        if os.getenv("TRADING_DEMO_MODE") != "true":
+            logger.error("TRADING_DEMO_MODE must be set to 'true' to run pre-market research with synthetic data.")
+            return False
+
         try:
             # Screen news for catalysts
             self.screen_news()

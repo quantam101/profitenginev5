@@ -107,11 +107,15 @@ class System90PercentExecutor:
         logger.info("\n" + "=" * 70 + "\n")
 
     def run_system_test(self):
-        """Run system test with mock data"""
-        logger.info("Running system test with mock market data...\n")
+        """Run system test with synthetic demo data (TRADING_DEMO_MODE=true)."""
+        if os.getenv("TRADING_DEMO_MODE") != "true":
+            logger.error("TRADING_DEMO_MODE must be set to 'true' to run the synthetic system test.")
+            return
 
-        # Mock strategy signals (simulating 9 strategies)
-        mock_strategies = [
+        logger.info("Running system test with synthetic demo market data...\n")
+
+        # Demo strategy signals (simulating 9 strategies)
+        demo_strategies = [
             {"name": "Mean Reversion", "signal": 1, "confidence": 85, "confluence": 1},
             {"name": "Momentum", "signal": 1, "confidence": 87, "confluence": 1},
             {"name": "Support/Resistance", "signal": 1, "confidence": 82, "confluence": 1},
@@ -124,10 +128,10 @@ class System90PercentExecutor:
         ]
 
         # Count confluence
-        confluence = sum(1 for s in mock_strategies if s["signal"] != 0)
-        avg_confidence = sum(s["confidence"] for s in mock_strategies if s["signal"] != 0) / max(1, confluence)
+        confluence = sum(1 for s in demo_strategies if s["signal"] != 0)
+        avg_confidence = sum(s["confidence"] for s in demo_strategies if s["signal"] != 0) / max(1, confluence)
 
-        logger.info(f"Mock Data Analysis:")
+        logger.info(f"Demo Data Analysis:")
         logger.info(f"  Strategies with signals: {confluence}")
         logger.info(f"  Average confidence: {avg_confidence:.1f}%")
         logger.info(f"  Confluence requirement: 3+")
@@ -148,7 +152,7 @@ class System90PercentExecutor:
                 "confidence": avg_confidence,
                 "expected_win_rate": 0.92,
                 "position_size": 400,
-                "strategies_agreeing": [s["name"] for s in mock_strategies if s["signal"] != 0],
+                "strategies_agreeing": [s["name"] for s in demo_strategies if s["signal"] != 0],
                 "status": "WOULD_EXECUTE"
             }
             self.results["trades_generated"].append(trade)
