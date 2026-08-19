@@ -35,7 +35,7 @@ restart_app() {
   log "Building npm application"
   npm ci
   npm run build
-  log "Starting npm application on localhost:$PORT"
+  log "Starting npm application on 127.0.0.1:$PORT"
   nohup npm run start -- --hostname 127.0.0.1 --port "$PORT" > "/tmp/${APP_NAME}.log" 2>&1 &
 }
 

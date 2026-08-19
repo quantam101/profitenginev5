@@ -51,7 +51,8 @@ echo ""
 
 # Step 6: Verify data
 echo -e "${BLUE}Step 6/7: Verifying data was imported...${NC}"
-psql postgresql://ah_pos_user:dev_password_change_in_production@localhost:5432/ah_pos << EOF
+DB_URL="${DATABASE_URL:-postgresql://ah_pos_user@127.0.0.1:5432/ah_pos}"
+psql "$DB_URL" << EOF
 SELECT 'Past Performance Contracts' as item, COUNT(*) as count FROM past_performance_contracts
 UNION ALL
 SELECT 'SAM.gov Solicitations', COUNT(*) FROM solicitations
@@ -65,12 +66,16 @@ echo ""
 # Step 7: Generate proposal
 echo -e "${BLUE}Step 7/7: Generating sample proposal...${NC}"
 python << 'PYSCRIPT'
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.proposal_generator import ProposalGenerator
 from backend.models import Solicitation
 
-engine = create_engine("postgresql://ah_pos_user:dev_password_change_in_production@localhost:5432/ah_pos")
+db_url = os.environ.get("DATABASE_URL", "postgresql://ah_pos_user@127.0.0.1:5432/ah_pos")
+if not db_url:
+    raise RuntimeError("DATABASE_URL is not configured")
+engine = create_engine(db_url)
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -104,7 +109,7 @@ echo -e "${GREEN}║  ✅ ALL TESTS PASSED — AH-POS IS WORKING!               
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 echo -e "${GREEN}Summary:${NC}"
-echo "  ✓ PostgreSQL running (localhost:5432)"
+echo "  ✓ PostgreSQL running (127.0.0.1:5432)"
 echo "  ✓ Past performance database populated"
 echo "  ✓ SAM.gov opportunities scraped (50+)"
 echo "  ✓ Opportunity scoring working"
@@ -113,7 +118,7 @@ echo "  ✓ Proposal generator working"
 echo ""
 echo -e "${BLUE}Next Steps:${NC}"
 echo "  1. Open proposal: open proposal_draft.html"
-echo "  2. View pgAdmin: http://localhost:5050"
+echo "  2. View pgAdmin: http://127.0.0.1:5050"
 echo "  3. Query database: psql \$DATABASE_URL"
 echo "  4. When done: docker-compose down"
 echo ""

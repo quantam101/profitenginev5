@@ -14,10 +14,10 @@ Usage
   docker compose exec -T runtime python -m runtime.agent_impls.daily_digest
 
   # One-shot local test:
-  TELEGRAM_BOT_TOKEN=xxx TELEGRAM_CHAT_ID=yyy python -m runtime.agent_impls.daily_digest
+  TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID python -m runtime.agent_impls.daily_digest
 
   # Find your Telegram chat-ID (send the bot any message first, then run):
-  TELEGRAM_BOT_TOKEN=xxx python -m runtime.agent_impls.daily_digest --get-chat-id
+  TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN python -m runtime.agent_impls.daily_digest --get-chat-id
 
 Required env vars
 -----------------

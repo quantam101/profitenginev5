@@ -16,7 +16,7 @@ from backend.services.distillation import (
 
 @pytest_asyncio.fixture
 async def db():
-    client = AsyncIOMotorClient(os.environ.get("MONGO_URL", "mongodb://localhost:27017"))
+    client = AsyncIOMotorClient(os.environ.get("MONGO_URL", "mongodb://127.0.0.1:27017"))
     name = "profitengine_test_distill"
     database = client[name]
     await database.distillation_cache.delete_many({})

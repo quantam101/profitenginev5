@@ -45,7 +45,7 @@
       "position": [600, 400],
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8001/tool/book_appointment",
+        "url": "http://127.0.0.1:8001/tool/book_appointment",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [

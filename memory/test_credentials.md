@@ -13,7 +13,7 @@ This is intentional during closed beta.
 
 | Setting | Value |
 | --- | --- |
-| URL | `mongodb://localhost:27017` (from `/app/backend/.env`) |
+| URL | `mongodb://127.0.0.1:27017` (from `/app/backend/.env`) |
 | DB | `profitengine` |
 
 When auth is introduced (Holding tier — SSO + audit log), credentials will be

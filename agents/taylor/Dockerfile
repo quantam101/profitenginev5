@@ -20,7 +20,7 @@ COPY . /app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${TAYLOR_PORT:-8001}/health || exit 1
+    CMD curl -f http://127.0.0.1:${TAYLOR_PORT:-8001}/health || exit 1
 
 EXPOSE 8001
 

@@ -37,7 +37,7 @@ services:
       COHORT_TOTAL_SEATS: ${COHORT_TOTAL_SEATS:-100}
       COHORT_LABEL: ${COHORT_LABEL:-Cohort 1}
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8001/api/health"]
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8001/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -47,7 +47,7 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8001}
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://127.0.0.1:8001}
     restart: unless-stopped
     ports: ["3000:80"]
     depends_on:

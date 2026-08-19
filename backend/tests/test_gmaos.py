@@ -22,7 +22,7 @@ def tmp_db(tmp_path):
 @pytest.fixture
 def store(tmp_db):
     from runtime.gmaos.store import StateStore
-    return StateStore(db_path=tmp_db, redis_url="redis://localhost:9999/99")  # Redis will fail → WAL only
+    return StateStore(db_path=tmp_db, redis_url="redis://127.0.0.1:9999/99")  # Redis will fail → WAL only
 
 
 @pytest.fixture

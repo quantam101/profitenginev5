@@ -29,7 +29,7 @@
       "position": [350, 500],
       "parameters": {
         "method": "GET",
-        "url": "http://localhost:11434/api/tags",
+        "url": "http://127.0.0.1:11434/api/tags",
         "timeout": 3000,
         "continueOnFail": true
       }

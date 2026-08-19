@@ -75,7 +75,7 @@ export default function WidgetKitPage() {
             <input
               value={ref}
               onChange={e => setRef(e.target.value.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64))}
-              placeholder="enter-your-code"
+              placeholder="referral-code"
               style={{ flex: 1, background: '#0C0C0C', border: '1px solid #1F2937', color: '#F3F4F6', padding: '10px 12px', fontFamily: 'monospace', fontSize: 13, outline: 'none' }}
             />
             <a href={`/widget-kit?ref=${ref}`} style={{ padding: '10px 16px', background: '#00FF41', color: '#050505', fontWeight: 700, fontSize: 11, letterSpacing: '.15em', textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>Apply</a>

@@ -7,9 +7,12 @@ events.
 """
 from __future__ import annotations
 
+import os
 import random
 from datetime import datetime, timedelta, timezone
 
+
+_USE_FIXTURES = os.getenv("USE_FIXTURES", "false").lower() == "true"
 
 AGENTS = [
     {"id": "sovereign-orchestrator", "name": "Prime Orchestrator", "type": "orchestrator", "tier": "sovereign",
@@ -135,6 +138,12 @@ AGENTS = [
      "cycle_interval_min": 1, "model": "openai/gpt-5.2"},
 ]
 
+# Strip runtime stats from agent config so the registry is not fake.
+for _a in AGENTS:
+    _a["run_count"] = _a["success_count"] = _a["failure_count"] = _a["recent_fails"] = _a["runs_today"] = 0
+    _a["success_rate"] = 0.0
+    _a["last_run"] = None
+
 APPROVALS = [
     {"id": "apr_001", "agent": "Content Generation Agent", "action": "Publish blog post",
      "summary": "\u201c5 sleeper niches for affiliate creators in 2026\u201d \u2014 2,180 words, 6 outbound links.",
@@ -250,7 +259,11 @@ COST = [
 
 
 def revenue_series(days: int = 30) -> list[dict]:
-    """Deterministic seeded RNG for mock chart data \u2014 not a security context."""
+    """Demo revenue chart data; disabled unless USE_FIXTURES=true."""
+    if not _USE_FIXTURES:
+        return [{"date": (datetime.now(timezone.utc).date() - timedelta(days=i)).isoformat(), "amount": 0.0}
+                for i in range(days, -1, -1)]
+
     rng = random.Random(42)  # noqa: S311
     base = 280.0
     today = datetime.now(timezone.utc).date()

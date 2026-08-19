@@ -18,7 +18,7 @@
       "position": [350, 300],
       "parameters": {
         "model": "llama3.2",
-        "baseUrl": "http://localhost:11434",
+        "baseUrl": "http://127.0.0.1:11434",
         "prompt": "Classify this email into ONE category: WORK_ORDER | PAYMENT_INQUIRY | SERVICE_REQUEST | VENDOR_RESPONSE | JUNK. Reply with ONLY the category word.\n\nSubject: {{$json.subject}}\nFrom: {{$json.from}}\nSnippet: {{$json.snippet}}"
       }
     },

@@ -1,7 +1,7 @@
 import Foundation
 
 class APIService {
-    private let baseURL = "http://localhost:3000"
+    private let baseURL = (ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     private let keychainService = KeychainService()
 
     func get<T: Decodable>(endpoint: String, responseType: T.Type) async throws -> T {

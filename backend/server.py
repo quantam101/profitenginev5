@@ -63,6 +63,104 @@ distiller = Distiller(db)
 proof_publisher = ProofPublisher(db)
 
 
+# ── Real dashboard metrics (no fixture fallbacks) ────────────────
+_USE_FIXTURES = os.getenv("USE_FIXTURES", "false").lower() == "true"
+
+
+def _days_ago_iso(days: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
+async def _paid_revenue_total(days: int) -> float:
+    try:
+        since = _days_ago_iso(days)
+        total = await db.payment_transactions.aggregate([
+            {"$match": {"payment_status": "paid", "created_at": {"$gte": since}}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+        ]).to_list(length=1)
+        return round(float((total[0]["total"] if total else 0) or 0), 2)
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
+async def _paid_revenue_series(days: int) -> list[dict]:
+    try:
+        since = _days_ago_iso(days)
+        rows = await db.payment_transactions.aggregate([
+            {"$match": {"payment_status": "paid", "created_at": {"$gte": since}}},
+            {"$group": {"_id": {"$substr": ["$created_at", 0, 10]}, "amount": {"$sum": "$amount"}}},
+            {"$sort": {"_id": 1}},
+        ]).to_list(length=days + 1)
+        totals = {r["_id"]: float(r.get("amount", 0) or 0) for r in rows}
+        today = datetime.now(timezone.utc).date()
+        out = []
+        for i in range(days, -1, -1):
+            d = (today - timedelta(days=i)).isoformat()
+            out.append({"date": d, "amount": round(totals.get(d, 0.0), 2)})
+        return out
+    except Exception:  # noqa: BLE001
+        return [{"date": (datetime.now(timezone.utc).date() - timedelta(days=i)).isoformat(), "amount": 0.0} for i in range(days, -1, -1)]
+
+
+async def _agent_run_stats(days: int | None = None) -> dict:
+    match: dict = {}
+    if days:
+        match["queued_at"] = {"$gte": _days_ago_iso(days)}
+    pipeline = [
+        {"$match": match} if match else {"$match": {}},
+        {"$group": {
+            "_id": "$agent_id",
+            "runs": {"$sum": 1},
+            "successes": {"$sum": {"$cond": [{"$eq": ["$status", "completed"]}, 1, 0]}},
+            "failures": {"$sum": {"$cond": [{"$eq": ["$status", "errored"]}, 1, 0]}},
+            "cost_usd": {"$sum": "$cost_usd"},
+            "last_queued": {"$max": "$queued_at"},
+        }},
+    ]
+    try:
+        rows = await db.agent_runs.aggregate(pipeline).to_list(length=1000)
+    except Exception:  # noqa: BLE001
+        rows = []
+    return {r["_id"]: {
+        "runs": int(r.get("runs", 0) or 0),
+        "successes": int(r.get("successes", 0) or 0),
+        "failures": int(r.get("failures", 0) or 0),
+        "cost_usd": round(float(r.get("cost_usd", 0) or 0), 6),
+        "last_queued": r.get("last_queued"),
+    } for r in rows if r.get("_id")}
+
+
+async def _cost_breakdown(days: int | None = None) -> dict:
+    stats = await _agent_run_stats(days)
+    today_iso = datetime.now(timezone.utc).date().isoformat()
+    # Separate today's cost from the rest using queued_at date string prefix.
+    today_match = {"queued_at": {"$regex": f"^{today_iso}"}}
+    month_match = {"queued_at": {"$gte": _days_ago_iso(30)}}
+    try:
+        today_rows = await db.agent_runs.aggregate([
+            {"$match": today_match},
+            {"$group": {"_id": "$agent_id", "cost_usd": {"$sum": "$cost_usd"}}},
+        ]).to_list(length=1000)
+        month_rows = await db.agent_runs.aggregate([
+            {"$match": month_match},
+            {"$group": {"_id": "$agent_id", "cost_usd": {"$sum": "$cost_usd"}}},
+        ]).to_list(length=1000)
+    except Exception:  # noqa: BLE001
+        today_rows = month_rows = []
+    def _cost(rows):
+        return round(sum(float(r.get("cost_usd", 0) or 0) for r in rows), 6)
+    categories = [{"category": aid, "today_usd": round(s.get("cost_usd", 0.0), 6),
+                   "month_usd": round(s.get("cost_usd", 0.0), 6), "limit_usd": 0.0}
+                  for aid, s in stats.items()]
+    return {
+        "categories": categories,
+        "today_usd": _cost(today_rows),
+        "month_usd": _cost(month_rows),
+        "daily_cap_usd": 0.10,
+        "monthly_cap_usd": 5.0,
+    }
+
+
 # ── Schemas ────────────────────────────────────────────────────
 class MergeRequest(BaseModel):
     language: Literal["python", "js"]
@@ -125,20 +223,20 @@ class StatsResponse(BaseModel):
 
 
 # ── Domain fixtures (extracted to backend/fixtures.py) ─────────
+# Static agent config is real; all runtime/demo data is gated by USE_FIXTURES.
 _AGENTS = fx.AGENTS
-_APPROVALS = fx.APPROVALS
-_CONTENT = fx.CONTENT
-_REVENUE_STREAMS = fx.REVENUE_STREAMS
-_DEPLOYMENTS = fx.DEPLOYMENTS
-_BUILDS = fx.BUILDS
-_AUDIT = fx.AUDIT
-_PROPOSALS = fx.PROPOSALS
-_BOOKS = fx.BOOKS
-_SECRETS = fx.SECRETS
-_SOVEREIGN_DECISIONS = fx.SOVEREIGN_DECISIONS
-_SCOUT_OPPS = fx.SCOUT_OPPS
-_COST = fx.COST
-_revenue_series = fx.revenue_series
+_APPROVALS = fx.APPROVALS if _USE_FIXTURES else []
+_CONTENT = fx.CONTENT if _USE_FIXTURES else []
+_REVENUE_STREAMS = fx.REVENUE_STREAMS if _USE_FIXTURES else []
+_DEPLOYMENTS = fx.DEPLOYMENTS if _USE_FIXTURES else []
+_BUILDS = fx.BUILDS if _USE_FIXTURES else []
+_AUDIT = fx.AUDIT if _USE_FIXTURES else []
+_PROPOSALS = fx.PROPOSALS if _USE_FIXTURES else []
+_BOOKS = fx.BOOKS if _USE_FIXTURES else []
+_SECRETS = fx.SECRETS if _USE_FIXTURES else []
+_SOVEREIGN_DECISIONS = fx.SOVEREIGN_DECISIONS if _USE_FIXTURES else []
+_SCOUT_OPPS = fx.SCOUT_OPPS if _USE_FIXTURES else []
+_COST = fx.COST if _USE_FIXTURES else []
 
 
 # ── App ────────────────────────────────────────────────────────
@@ -170,13 +268,30 @@ async def health() -> dict[str, Any]:
 @app.get("/api/stats", response_model=StatsResponse)
 async def stats_endpoint() -> StatsResponse:
     devs = await db.waitlist.count_documents({})
+    agents_online = sum(1 for a in _AGENTS if a["status"] in ("online", "active"))
+    if _USE_FIXTURES:
+        revenue_30d = round(sum(p["amount"] for p in fx.revenue_series(30)), 2)
+        return StatsResponse(
+            revenue_30d=revenue_30d,
+            posts_published=sum(1 for c in _CONTENT if c["status"] == "published") + 1247,
+            agents_online=agents_online,
+            devs_joined=devs + 312,
+            sovereign_decisions_today=len(_SOVEREIGN_DECISIONS),
+            proof_of_work_score=0.94,
+        )
+    revenue_30d = await _paid_revenue_total(30)
+    run_stats = await _agent_run_stats(30)
+    successes = sum(s.get("successes", 0) for s in run_stats.values())
+    failures = sum(s.get("failures", 0) for s in run_stats.values())
+    total_runs = successes + failures
+    proof_score = round((successes / max(total_runs, 1)) * 100, 2)
     return StatsResponse(
-        revenue_30d=sum(p["amount"] for p in _revenue_series(30)),
-        posts_published=sum(1 for c in _CONTENT if c["status"] == "published") + 1247,
-        agents_online=sum(1 for a in _AGENTS if a["status"] in ("online", "active")),
-        devs_joined=devs + 312,
-        sovereign_decisions_today=len(_SOVEREIGN_DECISIONS),
-        proof_of_work_score=0.94,
+        revenue_30d=revenue_30d,
+        posts_published=sum(1 for c in _CONTENT if c["status"] == "published"),
+        agents_online=agents_online,
+        devs_joined=devs,
+        sovereign_decisions_today=await db.approval_decisions.count_documents({"decision": {"$exists": True}}),
+        proof_of_work_score=proof_score,
     )
 
 
@@ -196,17 +311,32 @@ async def waitlist_endpoint(entry: WaitlistEntry) -> WaitlistResponse:
 # ── Agents ─────────────────────────────────────────────────────
 @app.get("/api/agents")
 async def list_agents() -> list[dict]:
-    return _AGENTS
+    stats = await _agent_run_stats()
+    out = []
+    for a in _AGENTS:
+        s = stats.get(a["id"], {})
+        merged = {**a, **{
+            "run_count": s.get("runs", 0),
+            "success_count": s.get("successes", 0),
+            "failure_count": s.get("failures", 0),
+            "success_rate": round((s.get("successes", 0) / max(s.get("runs", 1), 1)) * 100, 2),
+            "last_run": s.get("last_queued"),
+        }}
+        out.append(merged)
+    return out
 
 
 @app.get("/api/agents/fleet-stats")
 async def fleet_stats() -> dict:
     total = len(_AGENTS)
     active = sum(1 for a in _AGENTS if a["status"] == "active")
-    runs = sum(a["run_count"] for a in _AGENTS)
-    successes = sum(a["success_count"] for a in _AGENTS)
-    fleet_success = round((successes / runs) * 100) if runs else 0
+    stats = await _agent_run_stats()
+    runs = sum(s.get("runs", 0) for s in stats.values())
+    successes = sum(s.get("successes", 0) for s in stats.values())
+    failures = sum(s.get("failures", 0) for s in stats.values())
+    fleet_success = round((successes / max(runs, 1)) * 100, 2) if runs else 0
     return {"total": total, "active": active, "total_runs": runs,
+            "successes": successes, "failures": failures,
             "fleet_success_rate": fleet_success}
 
 
@@ -303,7 +433,13 @@ async def execute_agent(agent_id: str) -> dict:
 # ── Approvals ─────────────────────────────────────────────────
 @app.get("/api/approvals")
 async def list_approvals() -> list[dict]:
-    return _APPROVALS
+    """Return approval backlog; in production only persisted decisions are shown."""
+    if _USE_FIXTURES:
+        return _APPROVALS
+    decisions = await db.approval_decisions.find().sort("at", -1).to_list(length=50)
+    for d in decisions:
+        d.pop("_id", None)
+    return decisions
 
 
 @app.post("/api/approvals/{aid}/decide")
@@ -311,7 +447,7 @@ async def decide_approval(aid: str, body: dict) -> dict:
     decision = body.get("decision")
     if decision not in ("approve", "veto"):
         raise HTTPException(status_code=400, detail="decision must be approve|veto")
-    if not any(a["id"] == aid for a in _APPROVALS):
+    if _USE_FIXTURES and not any(a["id"] == aid for a in _APPROVALS):
         raise HTTPException(status_code=404, detail="approval not found")
     record = {
         "id": str(uuid.uuid4()),
@@ -345,47 +481,93 @@ async def get_content(cid: str) -> dict:
 async def revenue_series(days: int = 30) -> list[dict]:
     if days < 1 or days > 365:
         raise HTTPException(status_code=400, detail="days must be 1..365")
-    return _revenue_series(days)
+    return await _paid_revenue_series(days)
 
 
 @app.get("/api/revenue/streams")
 async def revenue_streams() -> list[dict]:
-    return _REVENUE_STREAMS
+    """Active revenue streams; fixture-backed in demo mode, otherwise from payment_transactions."""
+    if _USE_FIXTURES:
+        return _REVENUE_STREAMS
+    try:
+        rows = await db.payment_transactions.aggregate([
+            {"$match": {"payment_status": "paid"}},
+            {"$group": {"_id": "$tier", "mrr": {"$sum": "$amount"}, "active": {"$sum": 1}}},
+            {"$sort": {"mrr": -1}},
+        ]).to_list(length=50)
+    except Exception:  # noqa: BLE001
+        rows = []
+    return [{"name": r["_id"] or "unknown", "mrr": round(float(r.get("mrr", 0) or 0), 2),
+             "active": bool(r.get("active", 0))} for r in rows]
 
 
 @app.get("/api/revenue/stats")
 async def revenue_stats() -> dict:
-    series = _revenue_series(30)
+    if _USE_FIXTURES:
+        series = fx.revenue_series(30)
+    else:
+        series = await _paid_revenue_series(30)
     total = sum(p["amount"] for p in series)
+    streams = await revenue_streams()
+    best = max(streams, key=lambda s: s["mrr"], default={})
     return {"total_30d": round(total, 2), "mrr_estimate": round(total, 2),
-            "active_streams": sum(1 for s in _REVENUE_STREAMS if s["active"]),
-            "best_stream": max(_REVENUE_STREAMS, key=lambda s: s["mrr"])["name"]}
+            "active_streams": sum(1 for s in streams if s["active"]),
+            "best_stream": best.get("name", "N/A")}
 
 
 @app.get("/api/ledger/progress")
 async def ledger_progress() -> dict:
-    series = _revenue_series(30)
-    earned = round(sum(p["amount"] for p in series), 2)
-    return {"goal_usd": 25000, "earned_usd": earned,
-            "pct": min(1.0, earned / 25000), "milestone": "commercialization unlock"}
+    goal = float(os.environ.get("LEDGER_GOAL_USD", 25000))
+    if _USE_FIXTURES:
+        series = fx.revenue_series(30)
+        earned = round(sum(p["amount"] for p in series), 2)
+    else:
+        earned = await _paid_revenue_total(30)
+    pct = min(1.0, earned / goal) if goal else 0.0
+    return {"goal_usd": goal, "earned_usd": earned,
+            "pct": round(pct, 4), "milestone": "commercialization unlock"}
 
 
 # ── Cycle + Sovereign ─────────────────────────────────────────
 @app.get("/api/cycle/status")
 async def cycle_status() -> dict[str, Any]:
-    return {"state": "running", "current_step": "Content → Video pipeline",
-            "step_index": 3, "step_total": 7,
-            "started_at": (datetime.now(timezone.utc) - timedelta(minutes=8)).isoformat(),
-            "approval_required": True, "cycle_id": "cycle_4017"}
+    latest = await db.cycle_events.find().sort("triggered_at", -1).limit(1).to_list(length=1)
+    if latest:
+        ev = latest[0]
+        ev.pop("_id", None)
+        return {"state": ev.get("state", "running"),
+                "current_step": ev.get("current_step"),
+                "step_index": ev.get("step_index", 1),
+                "step_total": ev.get("step_total", 7),
+                "started_at": ev.get("triggered_at"),
+                "approval_required": True, "cycle_id": ev.get("id")}
+    return {"state": "idle", "current_step": None, "step_index": 0, "step_total": 7,
+            "started_at": None, "approval_required": False, "cycle_id": None}
 
 
 @app.get("/api/sovereign/status")
 async def sovereign_status() -> dict:
-    return {"id": "sovereign-orchestrator", "model": "gemini/gemini-2.0-flash",
-            "next_cycle_in_min": 47, "decisions_today": len(_SOVEREIGN_DECISIONS),
-            "current_objective": "Reach $25k milestone — currently 22.4% complete.",
-            "safety": {"daily_tokens_used": 18420, "daily_token_cap": 80000,
-                       "daily_usd": 0.06, "daily_usd_cap": 0.10, "circuit_breaker": "armed"}}
+    today_iso = datetime.now(timezone.utc).date().isoformat()
+    try:
+        ds = await distiller.stats()
+        decisions_today = await db.approval_decisions.count_documents({"at": {"$regex": f"^{today_iso}"}})
+        earned = await _paid_revenue_total(30)
+        goal = float(os.environ.get("LEDGER_GOAL_USD", 25000))
+        pct = round((earned / goal * 100), 2) if goal else 0.0
+        return {"id": "sovereign-orchestrator",
+                "model": os.environ.get("SOVEREIGN_MODEL", "openai/gpt-4o-mini"),
+                "next_cycle_in_min": None,
+                "decisions_today": decisions_today,
+                "current_objective": f"Reach ${goal:,.0f} milestone — currently {pct}% complete.",
+                "safety": {"daily_tokens_used": ds.get("tokens_used_24h", 0),
+                           "daily_token_cap": int(os.environ.get("DAILY_TOKEN_CAP", 80000)),
+                           "daily_usd": round(ds.get("cost_usd_24h", 0.0), 6),
+                           "daily_usd_cap": float(os.environ.get("DAILY_USD_CAP", 0.10)),
+                           "circuit_breaker": "armed"}}
+    except Exception:  # noqa: BLE001
+        return {"id": "sovereign-orchestrator", "model": os.environ.get("SOVEREIGN_MODEL", "openai/gpt-4o-mini"),
+                "next_cycle_in_min": None, "decisions_today": 0,
+                "current_objective": "Sovereign metrics unavailable", "safety": {}}
 
 
 @app.get("/api/sovereign/decisions")
@@ -433,18 +615,23 @@ async def secrets_endpoint() -> list[dict]:
 # ── Cost ───────────────────────────────────────────────────────
 @app.get("/api/cost")
 async def cost_breakdown() -> dict:
-    today = round(sum(c["today_usd"] for c in _COST), 4)
-    month = round(sum(c["month_usd"] for c in _COST), 4)
-    return {"categories": _COST, "today_usd": today, "month_usd": month,
-            "daily_cap_usd": 0.10, "monthly_cap_usd": 5.0}
+    if _USE_FIXTURES:
+        today = round(sum(c["today_usd"] for c in _COST), 4)
+        month = round(sum(c["month_usd"] for c in _COST), 4)
+        return {"categories": _COST, "today_usd": today, "month_usd": month,
+                "daily_cap_usd": 0.10, "monthly_cap_usd": 5.0}
+    return await _cost_breakdown()
 
 
 # ── Proof of Work / Distillation / Analytics / Advisor ─────────
 @app.get("/api/proof-of-work")
-async def proof_of_work() -> dict:
-    return {"score": 0.94, "uptime_pct": 99.87, "passed_cycles_24h": 23, "failed_cycles_24h": 1,
-            "signed_assets_24h": 62, "guard_blocks_24h": 3,
-            "last_attestation": (datetime.now(timezone.utc) - timedelta(minutes=12)).isoformat()}
+async def proof_of_work() -> dict[str, Any]:
+    """Proof-of-work summary; fixture-backed in demo mode, otherwise from proof_receipts."""
+    if _USE_FIXTURES:
+        return {"score": 0.94, "uptime_pct": 99.87, "passed_cycles_24h": 23, "failed_cycles_24h": 1,
+                "signed_assets_24h": 62, "guard_blocks_24h": 3,
+                "last_attestation": (datetime.now(timezone.utc) - timedelta(minutes=12)).isoformat()}
+    return await proof_publisher.proof_of_work_summary()
 
 
 @app.get("/api/distillation/status")
@@ -500,10 +687,25 @@ async def distillation_stats() -> dict:
 
 @app.get("/api/analytics")
 async def analytics() -> dict:
-    return {"daily_active_agents": 7, "weekly_active_agents": 7,
-            "cycle_completion_rate": 0.96, "approval_latency_median_s": 38,
-            "channel_split": {"Blog": 0.42, "Newsletter": 0.18, "X / Twitter": 0.21,
-                              "YouTube short": 0.11, "Other": 0.08}}
+    week_ago = _days_ago_iso(7)
+    day_ago = _days_ago_iso(1)
+    try:
+        daily_active = await db.agent_runs.distinct("agent_id", {"queued_at": {"$gte": day_ago}})
+        weekly_active = await db.agent_runs.distinct("agent_id", {"queued_at": {"$gte": week_ago}})
+        runs_24h = await db.agent_runs.count_documents({"queued_at": {"$gte": day_ago}})
+        completed_24h = await db.agent_runs.count_documents({"queued_at": {"$gte": day_ago}, "status": "completed"})
+        cycle_rate = round(completed_24h / max(runs_24h, 1), 4)
+        # Median latency for approval decisions made in last 24h (requires created_at field on request).
+        median_latency = None
+        return {"daily_active_agents": len(daily_active),
+                "weekly_active_agents": len(weekly_active),
+                "cycle_completion_rate": cycle_rate,
+                "approval_latency_median_s": median_latency,
+                "channel_split": {}}
+    except Exception:  # noqa: BLE001
+        return {"daily_active_agents": 0, "weekly_active_agents": 0,
+                "cycle_completion_rate": 0.0, "approval_latency_median_s": None,
+                "channel_split": {}}
 
 
 @app.post("/api/advisor/ask")
@@ -599,37 +801,69 @@ async def demo_endpoint() -> dict[str, Any]:
 
 # ── Cash AI (governance layer) ─────────────────────────────────
 def _highest_confidence_open_approval() -> dict | None:
-    """Pick the highest-confidence still-open approval (user choice b)."""
+    """Pick the highest-confidence still-open approval from the fixture backlog."""
     open_apprs = [a for a in _APPROVALS if a.get("state", "open") == "open"]
     if not open_apprs:
         return None
     return max(open_apprs, key=lambda a: a.get("confidence", 0.0))
 
 
+async def _latest_approval_decision() -> dict | None:
+    """Return the most recent persisted approval decision with a human summary."""
+    d = await db.approval_decisions.find_one(sort=[("at", -1)])
+    if not d:
+        return None
+    d.pop("_id", None)
+    run = await db.agent_runs.find_one({"id": d.get("approval_id")})
+    summary = "Approval decision"
+    agent = "operator"
+    if run and isinstance(run.get("output"), dict):
+        summary = run["output"].get("headline", run["output"].get("next_action", summary))
+        agent = run.get("agent_id", agent)
+    return {
+        "id": d["approval_id"],
+        "summary": summary,
+        "action": d["decision"],
+        "agent": agent,
+        "risk": "low",
+        "confidence": None,
+        "state": "decided",
+        "tags": [agent],
+        "at": d["at"],
+        "source": "approval",
+    }
+
+
 @app.get("/api/cash/last-decision")
 async def cash_last_decision() -> dict:
-    """Surface the highest-confidence open approval as the Last Cash Decision.
-
-    Falls back to the most recent sovereign decision if no approval is open.
-    """
-    appr = _highest_confidence_open_approval()
-    if appr:
-        return {
-            "id": appr["id"],
-            "summary": appr["summary"],
-            "action": appr["action"],
-            "agent": appr["agent"],
-            "risk": appr["risk"],
-            "confidence": appr.get("confidence"),
-            "state": appr.get("state", "open"),
-            "tags": [appr["agent"]],
-            "at": appr["created_at"],
-            "source": "approval",
-        }
-    dec = _SOVEREIGN_DECISIONS[0] if _SOVEREIGN_DECISIONS else None
-    if not dec:
-        raise HTTPException(status_code=404, detail="no decisions yet")
-    return {**dec, "source": "sovereign_decision"}
+    """Surface the latest approval decision or completed agent run."""
+    if _USE_FIXTURES:
+        appr = _highest_confidence_open_approval()
+        if appr:
+            return {
+                "id": appr["id"],
+                "summary": appr["summary"],
+                "action": appr["action"],
+                "agent": appr["agent"],
+                "risk": appr["risk"],
+                "confidence": appr.get("confidence"),
+                "state": appr.get("state", "open"),
+                "tags": [appr["agent"]],
+                "at": appr["created_at"],
+                "source": "approval",
+            }
+        dec = _SOVEREIGN_DECISIONS[0] if _SOVEREIGN_DECISIONS else None
+        if not dec:
+            raise HTTPException(status_code=404, detail="no decisions yet")
+        return {**dec, "source": "sovereign_decision"}
+    last = await _latest_approval_decision()
+    if last:
+        return last
+    run = await db.agent_runs.find_one(sort=[("completed_at", -1)])
+    if run:
+        run.pop("_id", None)
+        return {**run, "source": "agent_run"}
+    raise HTTPException(status_code=404, detail="no decisions yet")
 
 
 @app.post("/api/cash/cycle/trigger")
@@ -664,25 +898,24 @@ async def cash_cache_clear() -> dict:
 
 @app.get("/api/cash/audit-trail")
 async def cash_audit_trail(limit: int = 20) -> list[dict]:
-    """Decision audit trail: sovereign decisions + persisted approval decisions."""
+    """Decision audit trail: persisted approval decisions."""
     if limit < 1 or limit > 200:
         raise HTTPException(status_code=400, detail="limit must be 1..200")
     persisted = await db.approval_decisions.find().sort("at", -1).to_list(length=limit)
-    appr_map = {a["id"]: a for a in _APPROVALS}
     trail: list[dict] = []
     for d in persisted:
-        appr = appr_map.get(d["approval_id"]) or {}
+        run = await db.agent_runs.find_one({"id": d.get("approval_id")})
+        summary = run["output"].get("headline", d["approval_id"]) if run and isinstance(run.get("output"), dict) else d["approval_id"]
+        agent = run.get("agent_id", "operator") if run else "operator"
         trail.append({
             "id": d["id"],
             "kind": "approval_decision",
-            "summary": appr.get("summary", d["approval_id"]),
+            "summary": summary,
             "verdict": d["decision"],
-            "risk": appr.get("risk", "low"),
-            "tags": [appr.get("agent", "operator")],
+            "risk": "low",
+            "tags": [agent],
             "at": d["at"],
         })
-    for d in _SOVEREIGN_DECISIONS:
-        trail.append({**d, "kind": "sovereign_decision"})
     return trail[:limit]
 
 
@@ -725,15 +958,21 @@ async def api_status() -> dict[str, Any]:
     the COMPLETE_SETUP.sh verify script passes all module checks.
     """
     from backend.services.llm_provider import active_transport
+    mongo_ok = not MONGO_BOOT_ERROR
+    try:
+        if mongo_ok:
+            await db.command("ping")
+    except Exception:  # noqa: BLE001
+        mongo_ok = False
     return {
         "version": "5.1.0",
         "service": "profitengine-v5",
-        "ok": True,
+        "ok": mongo_ok,
         "modules": {
-            "distillation": True,
-            "sovereign": True,
-            "lcc": True,
-            "proof_publisher": True,
+            "distillation": mongo_ok,
+            "sovereign": mongo_ok,
+            "lcc": mongo_ok,
+            "proof_publisher": mongo_ok,
             "agents": len(_AGENTS),
             "llm_transports": active_transport(),
         },

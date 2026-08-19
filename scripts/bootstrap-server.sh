@@ -293,7 +293,7 @@ log "Waiting for runtime API …"
 for i in $(seq 1 30); do
   # runtime has curl; web (Alpine Next.js) does not
   docker compose exec -T runtime python3 -c \
-    "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8080/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
+    "import urllib.request,sys; r=urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
     > /dev/null 2>&1 && { log "Runtime healthy."; break; } || sleep 2
 done
 
@@ -314,7 +314,7 @@ done
 log "Waiting for FastAPI backend …"
 for i in $(seq 1 30); do
   docker compose exec -T backend python3 -c \
-    "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8001/api/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
+    "import urllib.request,sys; r=urllib.request.urlopen('http://127.0.0.1:8001/api/health',timeout=3); sys.exit(0 if r.status==200 else 1)" \
     > /dev/null 2>&1 && { log "Backend healthy."; break; } || sleep 2
 done
 

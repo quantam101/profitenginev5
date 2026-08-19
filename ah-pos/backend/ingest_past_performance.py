@@ -270,7 +270,9 @@ def main():
     from dotenv import load_dotenv
 
     load_dotenv()
-    database_url = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/ah_pos')
+    database_url = os.getenv('DATABASE_URL', '').strip()
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured")
 
     ingester = PastPerformanceIngester(database_url)
 

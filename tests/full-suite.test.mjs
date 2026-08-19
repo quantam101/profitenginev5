@@ -25,9 +25,9 @@ import { join, relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 // ── Config ─────────────────────────────────────────────────────────────────────
-const RUNTIME_URL = process.env.RUNTIME_URL ?? 'http://localhost:8080';
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8001';
-const NEXT_URL    = process.env.NEXT_URL    ?? 'http://localhost:3000';
+const RUNTIME_URL = process.env.RUNTIME_URL ?? 'http://127.0.0.1:8080';
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://127.0.0.1:8001';
+const NEXT_URL    = process.env.NEXT_URL    ?? 'http://127.0.0.1:3000';
 const SKIP_LIVE   = process.argv.includes('--skip-live');
 const ROOT        = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
 
@@ -205,7 +205,7 @@ async function runSmoke(runtimeOk, backendOk) {
 
     // POST waitlist
     try {
-      const email = `smoke-test-${Date.now()}@example.com`;
+      const email = `smoke-test-${Date.now()}@alreadyherellc.com`;
       const r = await fetchJSON(`${BACKEND_URL}/api/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

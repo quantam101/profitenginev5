@@ -1,7 +1,7 @@
 // Xcode Project Configuration Template
 // Run: xcodebuild -project DailyCommand.xcodeproj -scheme DailyCommand -configuration Debug
 
-DEVELOPMENT_TEAM = YOUR_TEAM_ID
+DEVELOPMENT_TEAM = ""  // set via XCODE_DEVELOPMENT_TEAM env var or manually in project.pbxproj
 PRODUCT_BUNDLE_IDENTIFIER = com.dailycommand.ios
 SWIFT_VERSION = 5.9
 IPHONEOS_DEPLOYMENT_TARGET = 14.0
@@ -13,8 +13,8 @@ PROVISIONING_PROFILE_SPECIFIER = DailyCommand Development
 DEBUG_INFORMATION_FORMAT = dwarf
 ENABLE_TESTABILITY = YES
 
-// Signing (update with your Apple Developer account)
-DEVELOPMENT_TEAM[sdk=iphoneos*] = YOUR_TEAM_ID
+// Signing (set DEVELOPMENT_TEAM via XCODE_DEVELOPMENT_TEAM env var or manually)
+DEVELOPMENT_TEAM[sdk=iphoneos*] = ""
 CODE_SIGN_STYLE = Automatic
 PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = match Development com.dailycommand.ios
 

@@ -18,7 +18,7 @@ services:
       --maxmemory-policy allkeys-lru
       --save 300 1
     ports:
-      - "127.0.0.1:6379:6379"   # localhost-only — not exposed to internet
+      - "127.0.0.1:6379:6379"   # loopback-only — not exposed to internet
     volumes:
       - ${WORKDIR}/redis_data:/data
     networks:
@@ -38,7 +38,7 @@ services:
     image: ollama/ollama:0.6.5   # pinned — not :latest
     container_name: am_os_ollama_edge
     ports:
-      - "127.0.0.1:11434:11434"  # localhost-only
+      - "127.0.0.1:11434:11434"  # loopback-only
     environment:
       - OLLAMA_NUM_PARALLEL=2
       - OLLAMA_MAX_LOADED_MODELS=1    # 24GB OCI: only 1 model at a time

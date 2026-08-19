@@ -336,7 +336,7 @@ class EdgeStorageManager:
 
 # ── AI inference agent (local Ollama) ─────────────────────────────────────────
 
-_OLLAMA_BASE  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+_OLLAMA_BASE  = (os.getenv("OLLAMA_BASE_URL") or "").strip()
 _OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")  # llama3.2 confirmed installed
 
 _SYSTEM_PROMPT = (
@@ -348,7 +348,10 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _build_agent() -> Agent:
+def _build_agent() -> Agent | None:
+    if not _OLLAMA_BASE:
+        logger.warning("OLLAMA_BASE_URL is not configured — mesh AI generation disabled.")
+        return None
     model = OpenAIChatModel(
         model_name=_OLLAMA_MODEL,
         base_url=_OLLAMA_BASE,
@@ -629,6 +632,9 @@ async def main() -> None:
             logger.warning(f"MESH_SEED_JSON parse error — skipping seed: {exc}")
 
     agent = _build_agent()
+    if agent is None:
+        logger.error("Mesh engine cannot start without OLLAMA_BASE_URL")
+        sys.exit(1)
 
     cb = CircuitBreaker(
         failure_threshold=int(os.getenv("CB_FAILURE_THRESHOLD", "3")),
@@ -640,9 +646,9 @@ async def main() -> None:
     interval    = float(os.getenv("MESH_CYCLE_INTERVAL_S", "30"))
 
     # Log initial distiller stats on startup
-    sample_prompt = "Target niche: enterprise-software-affiliate. Keyword: cloud arbitrage."
-    dr = distill_payload(sample_prompt, max_tokens=50, model=_OLLAMA_MODEL)
-    logger.info(f"Token distiller online: {dr.original_tokens}→{dr.final_tokens} tokens on sample")
+    example_payload = "Target niche: enterprise-software-affiliate. Keyword: cloud arbitrage."
+    dr = distill_payload(example_payload, max_tokens=50, model=_OLLAMA_MODEL)
+    logger.info(f"Token distiller online: {dr.original_tokens}→{dr.final_tokens} tokens on example")
 
     # Activate the first phase of each track automatically
     await matrix.activate_phase("ALPHA_I")

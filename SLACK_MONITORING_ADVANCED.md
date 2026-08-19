@@ -519,7 +519,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 async def test_all_briefings():
     """Test all briefing types locally."""
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    client = AsyncIOMotorClient("mongodb://127.0.0.1:27017")
     db = client.profitengine
     
     service = SlackMonitoringService(db)

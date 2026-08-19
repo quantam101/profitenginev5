@@ -67,7 +67,11 @@ START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 REPO_PATH="/home/opc/profitenginev5"
 AH_POS_PATH="$REPO_PATH/ah-pos"
 LOG_FILE="/var/log/ah-pos/sync-$(date +%Y%m%d).log"
-DB_URL="${DATABASE_URL:-postgresql://ah_pos_user:password@localhost:5432/ah_pos}"
+DB_URL="${DATABASE_URL:-}"
+if [ -z "$DB_URL" ]; then
+  echo "[$START_TIME] ERROR: DATABASE_URL is not set" >&2
+  exit 1
+fi
 
 # Log execution
 echo "[$START_TIME] Starting AH-POS daily sync..." >> $LOG_FILE

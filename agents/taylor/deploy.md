@@ -101,17 +101,17 @@ If both fail → reads local script + transfers to 602-882-2920.
 
 ```bash
 # Test calendar tool
-curl -X POST http://localhost:8001/tool/check_calendar_availability \
+curl -X POST http://127.0.0.1:8001/tool/check_calendar_availability \
   -H "Content-Type: application/json" \
   -d '{"target_date": "2026-06-10", "service_type": "audit"}'
 
 # Test payment init
-curl -X POST http://localhost:8001/tool/initialize_stripe_payment \
+curl -X POST http://127.0.0.1:8001/tool/initialize_stripe_payment \
   -H "Content-Type: application/json" \
   -d '{"amount_in_cents": 35000, "billing_zip": "85378"}'
 
 # Health check
-curl http://localhost:8001/health
+curl http://127.0.0.1:8001/health
 ```
 
 ---

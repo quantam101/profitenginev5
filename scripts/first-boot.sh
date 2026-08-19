@@ -17,18 +17,18 @@
 #
 #  METHOD B — OCI Cloud Shell (if instance is on public subnet):
 #    Open Cloud Shell (>_ in OCI Console top bar)
-#    → ssh opc@129.146.236.177   (if your OCI Cloud Shell key is in authorized_keys)
+#    → ssh opc@$OCI_VM_IP   (if your OCI Cloud Shell key is in authorized_keys)
 #    → Paste this script
 #
 #  METHOD C — Any machine with any working SSH key:
-#    ssh -i YOUR_KEY opc@129.146.236.177
+#    ssh -i ${OCI_SSH_KEY:-/path/to/oci-key} opc@$OCI_VM_IP
 #    → Paste this script
 #
 #  Fill in your API keys below before running.
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-# ── YOUR KEYS (fill these in before running) ──────────────────────
+# ── REQUIRED KEYS (fill these in before running) ──────────────────────
 # Keys are in your Bitwarden vault and in GitHub Actions secrets.
 # Find them in: Downloads/COMPLETE_SETUP.sh  or  GitHub → Settings → Secrets
 GROQ_API_KEY="${GROQ_API_KEY:?GROQ_API_KEY is required}"

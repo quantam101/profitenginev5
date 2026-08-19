@@ -319,7 +319,9 @@ def main():
     from dotenv import load_dotenv
 
     load_dotenv()
-    database_url = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/ah_pos')
+    database_url = os.getenv('DATABASE_URL', '').strip()
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured")
 
     # Example NAICS codes to monitor
     naics_codes = ['541611', '541512', '541330']  # IT services, IT consulting, etc.
