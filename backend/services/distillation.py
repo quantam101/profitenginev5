@@ -400,6 +400,7 @@ class Distiller:
                 "cache_hit_rate": 0.0, "total_cost_usd": 0.0,
                 "baseline_cost_usd": 0.0, "saved_usd": 0.0, "savings_pct": 0.0,
                 "tokens_in": 0, "tokens_out": 0, "avg_latency_ms": 0,
+                "tokens_used_24h": 0, "cost_usd_24h": 0.0,
                 "cheap_model": f"{self.cheap_provider}/{self.cheap_model}",
                 "expensive_model": f"{self.exp_provider}/{self.exp_model}",
             }
@@ -407,6 +408,9 @@ class Distiller:
         cost = baseline = saved = 0.0
         t_in = t_out = lat = 0
         cache_hits = 0
+        since_24h = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        cost_24h = 0.0
+        t_in_24h = t_out_24h = 0
         for r in runs:
             tier_breakdown[r["tier"]] = tier_breakdown.get(r["tier"], 0) + 1
             cost += r["cost_usd"]
@@ -417,6 +421,10 @@ class Distiller:
             lat += r["latency_ms"]
             if r["cache_hit"]:
                 cache_hits += 1
+            if r.get("at", "") >= since_24h:
+                cost_24h += r["cost_usd"]
+                t_in_24h += r["tokens_in"]
+                t_out_24h += r["tokens_out"]
         total = len(runs)
         return {
             "total_runs": total,
@@ -428,6 +436,8 @@ class Distiller:
             "savings_pct": round(saved / baseline, 4) if baseline else 0.0,
             "tokens_in": t_in, "tokens_out": t_out,
             "avg_latency_ms": round(lat / total),
+            "tokens_used_24h": t_in_24h + t_out_24h,
+            "cost_usd_24h": round(cost_24h, 6),
             "cheap_model": f"{self.cheap_provider}/{self.cheap_model}",
             "expensive_model": f"{self.exp_provider}/{self.exp_model}",
         }

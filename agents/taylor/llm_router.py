@@ -38,7 +38,7 @@ class LLMProvider:
         if self.state is LLMState.FAILED:
             return False
         if self.provider == "ollama":
-            return bool(self.endpoint) and bool(self.api_key)
+            return bool(self.api_key)
         return bool(self.api_key)
 
 

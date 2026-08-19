@@ -67,10 +67,13 @@ START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 REPO_PATH="/home/opc/profitenginev5"
 AH_POS_PATH="$REPO_PATH/ah-pos"
 LOG_FILE="/var/log/ah-pos/sync-$(date +%Y%m%d).log"
+if [ -f "/home/opc/.ah-pos.env" ]; then
+  source "/home/opc/.ah-pos.env"
+fi
 DB_URL="${DATABASE_URL:-}"
 if [ -z "$DB_URL" ]; then
-  echo "[$START_TIME] ERROR: DATABASE_URL is not set" >&2
-  exit 1
+  echo "[$START_TIME] WARNING: DATABASE_URL is not set; skipping sync" >&2
+  exit 0
 fi
 
 # Log execution

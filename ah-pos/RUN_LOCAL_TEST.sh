@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Step 1: Start Docker
 echo -e "${BLUE}Step 1/7: Starting Docker services...${NC}"
-docker-compose up -d
+docker-compose up -d backend
 echo "✓ Docker services started"
 echo ""
 
@@ -52,6 +52,7 @@ echo ""
 # Step 6: Verify data
 echo -e "${BLUE}Step 6/7: Verifying data was imported...${NC}"
 DB_URL="${DATABASE_URL:-postgresql://ah_pos_user@127.0.0.1:5432/ah_pos}"
+export DATABASE_URL="$DB_URL"
 psql "$DB_URL" << EOF
 SELECT 'Past Performance Contracts' as item, COUNT(*) as count FROM past_performance_contracts
 UNION ALL

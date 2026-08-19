@@ -144,6 +144,7 @@ def _gateway(prompt: str, system: Optional[str], max_tokens: int) -> str:
     master_key  = os.environ.get("LITELLM_MASTER_KEY", "")
     if not gateway_url:
         raise RuntimeError("gateway:not_configured")
+    url = f"{gateway_url.rstrip('/')}/v1/chat/completions"
     headers = {"Authorization": f"Bearer {master_key}"} if master_key else {}
     msgs = []
     if system:
@@ -151,9 +152,10 @@ def _gateway(prompt: str, system: Optional[str], max_tokens: int) -> str:
     msgs.append({"role": "user", "content": prompt})
     try:
         resp = requests.post(
-            f"{gateway_url.rstrip('/')}/v1/chat/completions",
+            url,
+            timeout=20,
             json={"model": "autonomous-intelligence-mesh", "messages": msgs, "max_tokens": max_tokens},
-            headers=headers, timeout=20,
+            headers=headers,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"].strip()

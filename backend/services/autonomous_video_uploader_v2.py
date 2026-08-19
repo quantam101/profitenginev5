@@ -40,7 +40,7 @@ class RealVideoGenerator:
                 str(video_path),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            result = subprocess.run(cmd, capture_output=True, timeout=60)  # noqa: S603
 
             if result.returncode == 0 and video_path.exists():
                 logger.info(f"✅ Real video generated: {video_path} ({video_path.stat().st_size} bytes)")

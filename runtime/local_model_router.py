@@ -70,9 +70,9 @@ class LocalModelRouter:
             )
 
         # Tier 3 — Ollama local inference
-        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled and local_endpoint:
+        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled:
             return ModelRoute(
-                RouteDecision("LOCAL_MODEL", local_endpoint, 0.0, "local_inference"),
+                RouteDecision("LOCAL_MODEL", local_endpoint or "http://127.0.0.1:11434", 0.0, "local_inference"),
                 "ollama_local_enabled",
             )
 

@@ -19,7 +19,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -333,7 +333,7 @@ class ProofPublisher:
         return await cursor.to_list(length=limit)
 
     async def proof_of_work_summary(self, client_id: str | None = None) -> dict[str, Any]:
-        """Dashboard summary: receipts, platforms, word count, hashes."""
+        """Dashboard summary: receipts, platforms, word count, hashes, and cycle stats."""
         query: dict[str, Any] = {}
         if client_id:
             query["client_id"] = client_id
@@ -350,11 +350,36 @@ class ProofPublisher:
             if r.get("niche"):
                 niches.add(r["niche"])
 
+        since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        try:
+            passed = await self._db.agent_runs.count_documents(
+                {"queued_at": {"$gte": since}, "status": "completed"}
+            )
+            failed = await self._db.agent_runs.count_documents(
+                {"queued_at": {"$gte": since}, "status": "errored"}
+            )
+            signed = await self._receipts.count_documents({"published_at": {"$gte": since}, **query})
+            guard = await self._db.approval_decisions.count_documents(
+                {"at": {"$gte": since}, "decision": "veto"}
+            )
+        except Exception:  # noqa: BLE001
+            passed = failed = signed = guard = 0
+
+        total_cycles = passed + failed
+        score = round(passed / max(total_cycles, 1), 4)
+        latest = receipts[0] if receipts else None
         return {
+            "score": score,
+            "uptime_pct": round(score * 100, 2),
+            "passed_cycles_24h": passed,
+            "failed_cycles_24h": failed,
+            "signed_assets_24h": signed,
+            "guard_blocks_24h": guard,
+            "last_attestation": latest.get("published_at") if isinstance(latest, dict) else None,
             "total_published": len(receipts),
             "total_words": total_words,
             "platforms": platform_counts,
             "niches": sorted(niches),
-            "latest_receipt": receipts[0] if receipts else None,
+            "latest_receipt": latest,
             "proof_hash": _sha256(str(len(receipts)) + str(total_words)),
         }

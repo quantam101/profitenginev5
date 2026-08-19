@@ -8,6 +8,7 @@ set -e
 # Configuration
 PROJECT_DIR="$(pwd)"
 DB_URL="${DATABASE_URL:-postgresql://ah_pos_user@127.0.0.1:5432/ah_pos}"
+export DATABASE_URL="$DB_URL"
 if [ -z "$DB_URL" ]; then
   echo "Error: DATABASE_URL is not configured." >&2
   exit 1
@@ -89,7 +90,7 @@ echo ""
 
 # Step 2: Start Docker
 echo -e "${BLUE}Step 2/8: Starting Docker services...${NC}"
-docker-compose up -d
+docker-compose up -d backend
 echo -e "${GREEN}✓ Docker services started${NC}"
 echo ""
 

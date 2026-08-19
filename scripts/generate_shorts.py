@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import random
+import secrets
 import re
 import shutil
 import subprocess
@@ -28,6 +28,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+
+_RANDOM = secrets.SystemRandom()
 
 W, H = 1080, 1920
 OUT = Path("videos/openmontage")
@@ -240,13 +242,13 @@ def _template_script(prog: dict) -> str:
     pain = prog.get("pain", "doing it the hard way")
     fmt = prog.get("format", "sales")
     benefits = list(prog.get("benefits", []))
-    random.shuffle(benefits)
+    _RANDOM.shuffle(benefits)
     b = benefits[:3] if benefits else ["just works"]
     if fmt == "micro":
         # two beats, ~14 words, loop-friendly — skip the connectors/closers
         b0 = " ".join(b[0].split()[:6])
         return f"I kept {pain}. Then {prog['product']} — {b0}. Every time."
-    hook = random.choice(_HOOKS).format(pain=pain, product=prog["product"])
+    hook = _RANDOM.choice(_HOOKS).format(pain=pain, product=prog["product"])
     if fmt == "tips" and len(b) >= 3:
         body = f"First, {b[0]}. Second, {b[1]}. Third, {b[2]}"
         hook = f"Three {prog['product']} tips nobody shows you."
@@ -263,7 +265,7 @@ def _template_script(prog: dict) -> str:
         body = f"{prog['product']} {b[0]}"
         if len(b) > 1:
             body += f", and it {b[1]}"
-    parts = [hook, random.choice(_CONNECT), body + ".", random.choice(_CLOSERS),
+    parts = [hook, _RANDOM.choice(_CONNECT), body + ".", _RANDOM.choice(_CLOSERS),
              f"{prog['cta']} and try it today." if fmt == "sales"
              else f"{prog['cta']}."]
     return " ".join(parts)
@@ -359,9 +361,9 @@ def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float,
         col = _ACCENTS[i % len(_ACCENTS)]
         if kinetic:
             # full-screen typography: bigger, drifting anchor, slight tilt
-            x = 540 + random.randint(-70, 70)
-            y = 1030 + random.randint(-140, 140)
-            rz = random.randint(-5, 5)
+            x = 540 + _RANDOM.randint(-70, 70)
+            y = 1030 + _RANDOM.randint(-140, 140)
+            rz = _RANDOM.randint(-5, 5)
             eff = (f"{{\\an5\\pos({x},{y})\\c{col}&\\fs150\\frz{rz}\\fad(50,30)"
                    f"\\fscx40\\fscy40\\t(0,110,\\fscx115\\fscy115)"
                    f"\\t(110,190,\\fscx100\\fscy100)}}")
@@ -460,7 +462,7 @@ def make_swoosh(out: Path) -> None:
 def gradient_bg(prog: dict, duration: float, out: Path) -> None:
     palettes = [("0x0f2027", "0x203a43", "0x2c5364"), ("0x1a2a6c", "0x2a5298", "0xb21f1f"),
                 ("0x11998e", "0x1c2541", "0x38ef7d"), ("0x232526", "0x414345", "0x536976")]
-    c0, c1, c2 = random.choice(palettes)
+    c0, c1, c2 = _RANDOM.choice(palettes)
     run(["ffmpeg", "-y", "-f", "lavfi",
          "-i", f"gradients=s={W}x{H}:c0={c0}:c1={c1}:c2={c2}:n=3:speed=0.012:d={duration:.2f}:r=30",
          "-vf", "zoompan=z='min(zoom+0.0006,1.12)':d=1:s={0}x{1}:fps=30".format(W, H),
@@ -471,7 +473,7 @@ def gradient_bg(prog: dict, duration: float, out: Path) -> None:
 def music_bed(duration: float, out: Path) -> None:
     bundled = sorted(Path("assets/music").glob("*.mp3")) if Path("assets/music").exists() else []
     if bundled:
-        run(["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(random.choice(bundled)),
+        run(["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(_RANDOM.choice(bundled)),
              "-t", f"{duration:.2f}", "-af", "volume=0.14", "-c:a", "aac", str(out)])
         if out.exists():
             return
@@ -541,7 +543,7 @@ async def make_one(prog: dict) -> dict | None:
     print(f"   script: {script[:80]}...")
 
     vo = work / "vo.mp3"
-    voice = random.choice(VOICES)
+    voice = _RANDOM.choice(VOICES)
     try:
         words = await synth_vo(script, vo, voice)
     except Exception as e:
@@ -557,7 +559,7 @@ async def make_one(prog: dict) -> dict | None:
     # micros without an explicit visual flip a coin: kinetic typography vs
     # B-roll — the tracker's view data decides which style wins
     if prog.get("format") == "micro" and "visual" not in prog:
-        prog["visual"] = random.choice(["kinetic", "broll"])
+        prog["visual"] = _RANDOM.choice(["kinetic", "broll"])
     kinetic = prog.get("visual") == "kinetic"
     if kinetic:
         print("   visual=kinetic (typography animation)")

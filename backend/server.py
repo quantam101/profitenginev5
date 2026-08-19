@@ -131,7 +131,6 @@ async def _agent_run_stats(days: int | None = None) -> dict:
 
 
 async def _cost_breakdown(days: int | None = None) -> dict:
-    stats = await _agent_run_stats(days)
     today_iso = datetime.now(timezone.utc).date().isoformat()
     # Separate today's cost from the rest using queued_at date string prefix.
     today_match = {"queued_at": {"$regex": f"^{today_iso}"}}
@@ -147,11 +146,16 @@ async def _cost_breakdown(days: int | None = None) -> dict:
         ]).to_list(length=1000)
     except Exception:  # noqa: BLE001
         today_rows = month_rows = []
+    today_by_id = {r["_id"]: float(r.get("cost_usd", 0) or 0) for r in today_rows if r.get("_id")}
+    month_by_id = {r["_id"]: float(r.get("cost_usd", 0) or 0) for r in month_rows if r.get("_id")}
+
     def _cost(rows):
         return round(sum(float(r.get("cost_usd", 0) or 0) for r in rows), 6)
-    categories = [{"category": aid, "today_usd": round(s.get("cost_usd", 0.0), 6),
-                   "month_usd": round(s.get("cost_usd", 0.0), 6), "limit_usd": 0.0}
-                  for aid, s in stats.items()]
+    categories = [
+        {"category": aid, "today_usd": round(today_by_id.get(aid, 0.0), 6),
+         "month_usd": round(month_by_id.get(aid, 0.0), 6), "limit_usd": 0.0}
+        for aid in sorted(set(today_by_id) | set(month_by_id))
+    ]
     return {
         "categories": categories,
         "today_usd": _cost(today_rows),
@@ -284,13 +288,16 @@ async def stats_endpoint() -> StatsResponse:
     successes = sum(s.get("successes", 0) for s in run_stats.values())
     failures = sum(s.get("failures", 0) for s in run_stats.values())
     total_runs = successes + failures
-    proof_score = round((successes / max(total_runs, 1)) * 100, 2)
+    proof_score = round(successes / max(total_runs, 1), 4)
+    today_iso = datetime.now(timezone.utc).date().isoformat()
     return StatsResponse(
         revenue_30d=revenue_30d,
         posts_published=sum(1 for c in _CONTENT if c["status"] == "published"),
         agents_online=agents_online,
         devs_joined=devs,
-        sovereign_decisions_today=await db.approval_decisions.count_documents({"decision": {"$exists": True}}),
+        sovereign_decisions_today=await db.approval_decisions.count_documents(
+            {"at": {"$regex": f"^{today_iso}"}, "decision": {"$exists": True}}
+        ),
         proof_of_work_score=proof_score,
     )
 
@@ -319,7 +326,7 @@ async def list_agents() -> list[dict]:
             "run_count": s.get("runs", 0),
             "success_count": s.get("successes", 0),
             "failure_count": s.get("failures", 0),
-            "success_rate": round((s.get("successes", 0) / max(s.get("runs", 1), 1)) * 100, 2),
+            "success_rate": round(s.get("successes", 0) / max(s.get("runs", 1), 1), 4),
             "last_run": s.get("last_queued"),
         }}
         out.append(merged)
@@ -447,8 +454,16 @@ async def decide_approval(aid: str, body: dict) -> dict:
     decision = body.get("decision")
     if decision not in ("approve", "veto"):
         raise HTTPException(status_code=400, detail="decision must be approve|veto")
-    if _USE_FIXTURES and not any(a["id"] == aid for a in _APPROVALS):
-        raise HTTPException(status_code=404, detail="approval not found")
+    if _USE_FIXTURES:
+        if not any(a["id"] == aid for a in _APPROVALS):
+            raise HTTPException(status_code=404, detail="approval not found")
+    else:
+        run = await db.agent_runs.find_one({"id": aid})
+        if not run:
+            raise HTTPException(status_code=404, detail="approval not found")
+        existing = await db.approval_decisions.find_one({"approval_id": aid})
+        if existing:
+            raise HTTPException(status_code=409, detail="approval already decided")
     record = {
         "id": str(uuid.uuid4()),
         "approval_id": aid,

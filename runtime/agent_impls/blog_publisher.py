@@ -206,13 +206,16 @@ class Agent:
                 f"<li><a href='{p['url']}'>{p['title']}</a> — {p['platform']}</li>"
                 for p in published
             )
+            error_block = ""
+            if errors:
+                error_block = f'<p style="color:red">Errors: {"; ".join(errors)}</p>'
             try:
                 send_email(
                     subject=f"ProfitEngine: Published '{title}'",
                     body_html=(
                         f"<h2>Article Published</h2><ul>{rows}</ul>"
                         f"<p>Platforms: {', '.join(p['platform'] for p in published)}</p>"
-                        f"{'<p style=\"color:red\">Errors: ' + '; '.join(errors) + '</p>' if errors else ''}"
+                        f"{error_block}"
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
