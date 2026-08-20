@@ -73,15 +73,15 @@ export async function GET() {
   const agentDist = (metricsData?.agent_distribution ?? {}) as Record<string, number>;
   const cycles = ((cyclesData?.cycles ?? []) as CycleRecord[]);
 
-    // ── Pipeline stage health (derived from tier distribution + success rate) ──
+    // ── Pipeline stage health: measured success rate only, zero if no data ──
     const rate = successRate > 0 ? Math.round(successRate) : null;
     const pipeline = {
-      trends: 100,
-      generate: rate ?? 87,
-      seo: rate ? Math.min(100, Math.round(rate * 1.05)) : 92,
-      affiliate: 100,
-      publish: rate ?? 94,
-      lcc: rate ?? 100,
+      trends: rate ?? 0,
+      generate: rate ?? 0,
+      seo: rate ? Math.min(100, Math.round(rate * 1.05)) : 0,
+      affiliate: rate ?? 0,
+      publish: rate ?? 0,
+      lcc: rate ?? 0,
     };
 
     // ── Activity feed from real cycle records ──────────────────────────────
@@ -135,7 +135,7 @@ export async function GET() {
     // Build response with real or zeroed values (no mock fallbacks).
     const payload: Record<string, unknown> = {
       engineRunning: Boolean(health?.ok),
-      healthScore: successRate > 0 ? Math.round(successRate) : health?.ok ? 100 : 0,
+      healthScore: successRate > 0 ? Math.round(successRate) : 0,
       dlqItems: 0,
       tokensToday: 0,
       pipeline,
