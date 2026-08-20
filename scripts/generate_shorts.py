@@ -29,7 +29,22 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-W, H = 1080, 1920
+# Output geometry. Vertical Shorts by default; VIDEO_ASPECT env (or --aspect
+# flag) unlocks landscape 16:9 (YouTube long-form) and square 1:1 from the same
+# pipeline. Everything downstream reads W/H at call time, so flipping these here
+# (or in main) reshapes captions, B-roll crop, and the gradient automatically.
+ASPECTS = {
+    "vertical": (1080, 1920), "portrait": (1080, 1920), "9:16": (1080, 1920),
+    "landscape": (1920, 1080), "16:9": (1920, 1080),
+    "square": (1080, 1080), "1:1": (1080, 1080),
+}
+
+
+def _resolve_aspect(name: str) -> tuple[int, int]:
+    return ASPECTS.get((name or "").strip().lower(), (1080, 1920))
+
+
+W, H = _resolve_aspect(os.getenv("VIDEO_ASPECT", "vertical"))
 OUT = Path("videos/openmontage")
 TMP = Path("videos/_work")
 FONT = next((f for f in (
@@ -334,7 +349,7 @@ def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float,
     style = ("Style: Cap,DejaVu Sans,104,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,"
              "-1,0,0,0,100,100,1,0,1,8,4,5,110,110,0,1")
     header = (
-        "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n"
+        f"[Script Info]\nScriptType: v4.00+\nPlayResX: {W}\nPlayResY: {H}\nWrapStyle: 0\n\n"
         "[V4+ Styles]\nFormat: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,"
         "BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,"
         "Shadow,Alignment,MarginL,MarginR,MarginV,Encoding\n" + style + "\n\n"
@@ -358,59 +373,128 @@ def build_ass(words: list[tuple[float, float, str]], ass: Path, total: float,
         en = max(en, st + 0.28)
         col = _ACCENTS[i % len(_ACCENTS)]
         if kinetic:
-            # full-screen typography: bigger, drifting anchor, slight tilt
-            x = 540 + random.randint(-70, 70)
-            y = 1030 + random.randint(-140, 140)
+            # full-screen typography: bigger, drifting anchor, slight tilt.
+            # Anchor + jitter scale with the frame so it centers in any aspect.
+            x = W // 2 + random.randint(-(W * 65 // 1000), W * 65 // 1000)
+            y = int(H * 0.536) + random.randint(-(H * 73 // 1000), H * 73 // 1000)
             rz = random.randint(-5, 5)
             eff = (f"{{\\an5\\pos({x},{y})\\c{col}&\\fs150\\frz{rz}\\fad(50,30)"
                    f"\\fscx40\\fscy40\\t(0,110,\\fscx115\\fscy115)"
                    f"\\t(110,190,\\fscx100\\fscy100)}}")
         else:
             # anchor an5 (center) at 62% height via \pos; pop-in with overshoot
-            eff = (f"{{\\an5\\pos(540,1200)\\c{col}&\\fad(60,40)"
+            eff = (f"{{\\an5\\pos({W // 2},{int(H * 0.625)})\\c{col}&\\fad(60,40)"
                    f"\\fscx52\\fscy52\\t(0,120,\\fscx110\\fscy110)\\t(120,200,\\fscx100\\fscy100)}}")
         clean = re.sub(r"[,;:]", "", txt).upper().strip()
         lines.append(f"Dialogue: 0,{_ass_time(st)},{_ass_time(en)},Cap,,0,0,0,,{eff}{clean}")
     ass.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
 
 
-# ── 4. Scenes: multi-clip Pexels B-roll with xfade transitions (+ cut times) ─────
+# ── 4. Scenes: multi-clip stock B-roll with xfade transitions (+ cut times) ──────
 _TRANS = ["slideleft", "circleopen", "fade", "slideup", "smoothright", "wiperight", "zoomin"]
+
+
+def _download(url: str, dest: Path, timeout: int = 90) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp, open(dest, "wb") as fh:
+        shutil.copyfileobj(resp, fh)
+
+
+def _pexels_clip_urls(query: str, orientation: str, key: str, want: int) -> list[str]:
+    q = urllib.parse.quote(query)
+    req = urllib.request.Request(
+        f"https://api.pexels.com/videos/search?query={q}&orientation={orientation}&per_page=15&size=medium",
+        headers={"Authorization": key, "User-Agent": "already-here-shorts/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.loads(r.read())
+    urls: list[str] = []
+    for vid in data.get("videos", []):
+        files = [f for f in vid.get("video_files", []) if f.get("height", 0) >= 1080] or vid.get("video_files", [])
+        if not files:
+            continue
+        # pick the file whose height is closest to our target frame height
+        urls.append(sorted(files, key=lambda f: abs(f.get("height", 0) - H))[0]["link"])
+        if len(urls) >= want:
+            break
+    return urls
+
+
+def _pixabay_clip_urls(query: str, key: str, want: int, portrait: bool) -> list[str]:
+    """Pixabay Videos API fallback — same free/no-cost model as Pexels. Prefers
+    clips whose orientation matches ours, but ffmpeg's scale+crop rescues any
+    source, so we never reject a hit purely on shape."""
+    q = urllib.parse.quote(query)
+    req = urllib.request.Request(
+        f"https://pixabay.com/api/videos/?key={key}&q={q}&per_page=30&safesearch=true",
+        headers={"User-Agent": "already-here-shorts/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.loads(r.read())
+    matched: list[str] = []
+    fallback: list[str] = []
+    for hit in data.get("hits", []):
+        vids = hit.get("videos", {})
+        chosen = None
+        for size in ("large", "medium", "small", "tiny"):
+            v = vids.get(size)
+            if v and v.get("url"):
+                if chosen is None:
+                    chosen = v["url"]
+                if (v.get("height", 0) >= v.get("width", 0)) == portrait:
+                    matched.append(v["url"])
+                    chosen = None
+                    break
+        if chosen:
+            fallback.append(chosen)
+    return (matched + fallback)[:want]
 
 
 def build_scenes(prog: dict, duration: float, out: Path, work: Path) -> list[float]:
     """Build the background video. visual=kinetic skips B-roll on purpose —
     the animated gradient is the canvas and the typography is the show.
-    Otherwise, with a Pexels key: N ~3s clips stitched with
+    Otherwise, with a Pexels and/or Pixabay key: N ~3s clips stitched with
     xfade transitions — returns the list of cut (transition-midpoint) timestamps
-    for SFX. Without a key or on any failure: single animated gradient, returns []."""
-    key = os.getenv("PEXELS_API_KEY", "").strip()
-    if not key or prog.get("visual") == "kinetic":
+    for SFX. Pexels is tried first; Pixabay is the graceful fallback when Pexels
+    has no key/quota/matches. With neither source usable: animated gradient, []."""
+    pexels_key = os.getenv("PEXELS_API_KEY", "").strip()
+    pixabay_key = os.getenv("PIXABAY_API_KEY", "").strip()
+    if prog.get("visual") == "kinetic" or (not pexels_key and not pixabay_key):
         gradient_bg(prog, duration, out)
         return []
+    orientation = "portrait" if H > W else "landscape" if W > H else "square"
+    portrait = H >= W
     try:
         X = 0.5  # crossfade seconds
         # micro shorts (<10s) look frantic with 3+ cuts — cap at 2 clips there
         n = max(2 if duration < 10 else 3, min(7, round(duration / 3.0)))
-        q = urllib.parse.quote(" ".join(prog["keywords"].split()[:2]))
-        req = urllib.request.Request(
-            f"https://api.pexels.com/videos/search?query={q}&orientation=portrait&per_page=15&size=medium",
-            headers={"Authorization": key, "User-Agent": "already-here-shorts/1.0"})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.loads(r.read())
+        query = " ".join(prog["keywords"].split()[:2])
+
+        urls: list[str] = []
+        source = "Pexels"
+        if pexels_key:
+            try:
+                urls = _pexels_clip_urls(query, orientation, pexels_key, n)
+            except Exception as e:
+                print(f"   Pexels lookup failed ({str(e)[:60]})")
+        if len(urls) < 2 and pixabay_key:
+            try:
+                pb = _pixabay_clip_urls(query, pixabay_key, n, portrait)
+                if len(pb) > len(urls):
+                    urls, source = pb, "Pixabay"
+            except Exception as e:
+                print(f"   Pixabay lookup failed ({str(e)[:60]})")
+        if len(urls) < 2:
+            gradient_bg(prog, duration, out)
+            return []
+
         clips: list[Path] = []
-        for vid in data.get("videos", []):
-            files = [f for f in vid.get("video_files", []) if f.get("height", 0) >= 1080] or vid.get("video_files", [])
-            if not files:
-                continue
-            src = sorted(files, key=lambda f: abs(f.get("height", 0) - 1920))[0]["link"]
+        for u in urls[:n]:
             cp = work / f"raw{len(clips)}.mp4"
-            dreq = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(dreq, timeout=90) as resp, open(cp, "wb") as fh:
-                shutil.copyfileobj(resp, fh)
-            clips.append(cp)
-            if len(clips) >= n:
-                break
+            try:
+                _download(u, cp)
+            except Exception:
+                continue
+            if cp.exists() and cp.stat().st_size > 10000:
+                clips.append(cp)
         if len(clips) < 2:
             gradient_bg(prog, duration, out)
             return []
@@ -441,12 +525,12 @@ def build_scenes(prog: dict, duration: float, out: Path, work: Path) -> list[flo
              "-t", f"{duration:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(out)],
             timeout=240)
         if out.exists() and out.stat().st_size > 10000:
-            print(f"   B-roll: {n} clips, {len(cut_times)} transitions")
+            print(f"   B-roll: {n} {source} clips, {len(cut_times)} transitions ({orientation})")
             return cut_times
         gradient_bg(prog, duration, out)
         return []
     except Exception as e:
-        print(f"   Pexels scenes failed ({str(e)[:70]}) — gradient")
+        print(f"   Scenes failed ({str(e)[:70]}) — gradient")
         gradient_bg(prog, duration, out)
         return []
 
@@ -629,6 +713,15 @@ def link_block(prog: dict) -> str:
 
 
 async def main() -> None:
+    # `--aspect landscape|square|vertical` overrides the VIDEO_ASPECT env for
+    # this run (e.g. produce a 16:9 cut from the same programs).
+    argv = sys.argv[1:]
+    if "--aspect" in argv:
+        i = argv.index("--aspect")
+        if i + 1 < len(argv):
+            global W, H
+            W, H = _resolve_aspect(argv[i + 1])
+    print(f"Output geometry: {W}x{H}")
     OUT.mkdir(parents=True, exist_ok=True)
     if not shutil.which("ffmpeg"):
         print("ffmpeg not on PATH", file=sys.stderr); sys.exit(1)
