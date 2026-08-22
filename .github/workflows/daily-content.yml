@@ -7,11 +7,6 @@ name: Daily Content Publisher
 # Topics rotate from scripts/article_topics.py (90-topic cycle).
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/daily-content.yml'
-      - 'scripts/publish_article.py'
   schedule:
     # 07:05 UTC daily - 5 min after n8n cron on the server (avoids overlap)
     - cron: '5 7 * * *'
@@ -87,7 +82,7 @@ jobs:
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
-          FORCE_PUBLISH: ${{ github.event_name == 'push' && 'true' || github.event.inputs.force_publish }}
+          FORCE_PUBLISH: ${{ github.event.inputs.force_publish }}
           PYTHONUTF8: "1"
           # EAOS Social credentials - add these secrets to enable each platform
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
