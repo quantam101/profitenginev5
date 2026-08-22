@@ -87,7 +87,7 @@ jobs:
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
-          FORCE_PUBLISH: ${{ github.event.inputs.force_publish }}
+          FORCE_PUBLISH: ${{ github.event_name == 'push' && 'true' || github.event.inputs.force_publish }}
           PYTHONUTF8: "1"
           # EAOS Social credentials - add these secrets to enable each platform
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
