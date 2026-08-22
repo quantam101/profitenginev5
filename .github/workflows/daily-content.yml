@@ -7,6 +7,11 @@ name: Daily Content Publisher
 # Topics rotate from scripts/article_topics.py (90-topic cycle).
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily-content.yml'
+      - 'scripts/publish_article.py'
   schedule:
     # 07:05 UTC daily - 5 min after n8n cron on the server (avoids overlap)
     - cron: '5 7 * * *'
