@@ -1,0 +1,192 @@
+name: Repair P2 AI Provider Redundancy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-p2-redundancy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime dependencies
+        run: pip install httpx pillow
+
+      - name: Patch redundancy logic
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('scripts/publish_article.py')
+          s = p.read_text(encoding='utf-8')
+          original = s
+
+          s = s.replace(
+              '_CMDOS_BASE = os.getenv("CMDOS_BASE_URL", "https://app.alreadyherellc.com").rstrip("/")',
+              '_CMDOS_BASE = (os.getenv("CMDOS_BASE_URL", "").strip() or "https://app.alreadyherellc.com").rstrip("/")'
+          )
+
+          old_models = '''_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
+          GROQ_MODELS: List[str] = list(dict.fromkeys([
+              _GROQ_DEFAULT,                    # env-configured (default: 70b) — best quality for long articles
+              "qwen-qwq-32b",                   # reasoning model — excellent structured JSON, strong SEO content
+              "llama-3.1-8b-instant",          # high quota, fast, good JSON fidelity
+              "gemma2-9b-it",                   # alternative free model
+          ]))'''
+          new_models = '''_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "openai/gpt-oss-20b")
+          GROQ_MODELS: List[str] = list(dict.fromkeys([
+              _GROQ_DEFAULT,
+              "openai/gpt-oss-20b",
+              "openai/gpt-oss-120b",
+              "groq/compound-mini",
+              "groq/compound",
+          ]))
+
+          GEMINI_MODELS: List[str] = list(dict.fromkeys([
+              GEMINI_MODEL,
+              "gemini-3.7-flash",
+              "gemini-3.6-flash",
+              "gemini-3.5-flash",
+              "gemini-3.5-flash-lite",
+          ]))'''
+          if old_models not in s:
+              raise SystemExit('Groq model block not found; refusing unsafe patch')
+          s = s.replace(old_models, new_models)
+
+          s = s.replace(
+              'return _retry_post(_do, max_retries=2, base_delay=30)',
+              'return _retry_post(_do, max_retries=1, base_delay=5)',
+              1,
+          )
+
+          old_gemini = '''def _call_gemini(prompt: str) -> str:
+              """Call Gemini Flash API. Raises on failure."""
+              url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+              def _do() -> str:
+                  resp = httpx.post(
+                      f"{url}?key={GEMINI_KEY}",
+                      headers={"Content-Type": "application/json"},
+                      json={
+                          "contents": [
+                              {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\\n\\n{prompt}"}]},
+                          ],
+                          "generationConfig": {"maxOutputTokens": 3072, "temperature": 0.7},
+                      },
+                      timeout=120,
+                  )
+                  resp.raise_for_status()
+                  parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                  return "".join(p.get("text", "") for p in parts).strip()
+              return _retry_post(_do, max_retries=2, base_delay=30)'''
+          new_gemini = '''def _call_gemini(prompt: str, model: str | None = None) -> str:
+              """Call Gemini GenerateContent API using the current x-goog-api-key auth pattern."""
+              m = model or GEMINI_MODELS[0]
+              url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
+              def _do() -> str:
+                  resp = httpx.post(
+                      url,
+                      headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY},
+                      json={
+                          "contents": [
+                              {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\\n\\n{prompt}"}]},
+                          ],
+                          "generationConfig": {
+                              "maxOutputTokens": 3072,
+                              "thinkingConfig": {"thinkingLevel": "low"},
+                          },
+                      },
+                      timeout=120,
+                  )
+                  resp.raise_for_status()
+                  parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                  text = "".join(p.get("text", "") for p in parts).strip()
+                  if not text:
+                      raise RuntimeError(f"Gemini/{m} returned empty content")
+                  return text
+              return _retry_post(_do, max_retries=1, base_delay=5)'''
+          if old_gemini not in s:
+              raise SystemExit('Gemini call block not found; refusing unsafe patch')
+          s = s.replace(old_gemini, new_gemini)
+
+          old_fallback = '''    if not raw and GEMINI_KEY:
+                  try:
+                      raw = _call_gemini(prompt)
+                      print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
+                  except Exception as e:
+                      print(f"[AI] Gemini failed ({e})")'''
+          new_fallback = '''    if not raw and GEMINI_KEY:
+                  for model in GEMINI_MODELS:
+                      try:
+                          raw = _call_gemini(prompt, model=model)
+                          print(f"[AI] Provider: Gemini ({model})")
+                          break
+                      except Exception as e:
+                          print(f"[AI] Gemini/{model} failed ({e}), trying next...")'''
+          if old_fallback not in s:
+              raise SystemExit('Gemini fallback block not found; refusing unsafe patch')
+          s = s.replace(old_fallback, new_fallback)
+
+          if s == original:
+              raise SystemExit('No changes applied')
+          p.write_text(s, encoding='utf-8')
+          PY
+          python -m py_compile scripts/publish_article.py
+
+      - name: Verify Gemini failover independently
+        env:
+          GROQ_API_KEY: ''
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAOS_GEMINI_MODEL: gemini-3.7-flash
+        run: |
+          python - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location('publisher', 'scripts/publish_article.py')
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          article = mod.generate_article('Small Business IT Service Intake Automation')
+          assert article.get('title') and article.get('body')
+          print('[REDUNDANCY][PASS] Gemini generated and parsed article content')
+          PY
+
+      - name: Verify Groq primary independently
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ''
+          GMAOS_GROQ_MODEL: openai/gpt-oss-20b
+        run: |
+          python - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location('publisher', 'scripts/publish_article.py')
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          article = mod.generate_article('Phoenix On-Site IT Support Pricing')
+          assert article.get('title') and article.get('body')
+          print('[REDUNDANCY][PASS] Groq generated and parsed article content')
+          PY
+
+      - name: Commit repair and self-remove repair workflow
+        run: |
+          rm .github/workflows/repair-p2-redundancy.yml
+          git config user.email "profitengine@alreadyherellc.com"
+          git config user.name "ProfitEngine Repair"
+          git add scripts/publish_article.py .github/workflows/repair-p2-redundancy.yml
+          git commit -m "fix(content): harden Groq/Gemini provider redundancy"
+          git pull --rebase origin main
+          git push origin main
