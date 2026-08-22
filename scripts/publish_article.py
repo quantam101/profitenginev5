@@ -66,7 +66,7 @@ FORCE_PUBLISH = os.getenv("FORCE_PUBLISH", "").strip().lower() in {"1", "true", 
 # Public site base for canonical URLs — the github.io copy canonicalizes here.
 SITE_BASE = os.getenv("CONTENT_SITE_BASE", "https://www.alreadyherellc.com/content").rstrip("/")
 
-_CMDOS_BASE = os.getenv("CMDOS_BASE_URL", "https://app.alreadyherellc.com").rstrip("/")
+_CMDOS_BASE = (os.getenv("CMDOS_BASE_URL", "").strip() or "https://app.alreadyherellc.com").rstrip("/")
 
 
 def _fetch_cmdos_topic() -> Optional[str]:
@@ -135,12 +135,21 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_M
 # Groq models in priority order — fall through if one hits a rate limit.
 # llama-3.1-8b-instant is tried first: higher daily token allowance on free tier.
 # llama-3.3-70b is second: better quality but tighter daily token quota.
-_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")
+_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "openai/gpt-oss-20b")
 GROQ_MODELS: List[str] = list(dict.fromkeys([
-    _GROQ_DEFAULT,                    # env-configured (default: 70b) — best quality for long articles
-    "qwen-qwq-32b",                   # reasoning model — excellent structured JSON, strong SEO content
-    "llama-3.1-8b-instant",          # high quota, fast, good JSON fidelity
-    "gemma2-9b-it",                   # alternative free model
+    _GROQ_DEFAULT,
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+    "groq/compound-mini",
+    "groq/compound",
+]))
+
+GEMINI_MODELS: List[str] = list(dict.fromkeys([
+    GEMINI_MODEL,
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
 ]))
 
 
@@ -153,7 +162,8 @@ def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
             return fn()
         except Exception as exc:
             msg = str(exc)
-            is_rate_limit = "429" in msg or "rate" in msg.lower() or "quota" in msg.lower()
+            lower = msg.lower()
+            is_rate_limit = "429" in msg or "rate limit" in lower or "rate_limit" in lower or "quota exceeded" in lower
             if is_rate_limit and attempt < max_retries:
                 wait = base_delay * (2 ** attempt)
                 print(f"[AI] Rate limited (attempt {attempt+1}/{max_retries}), waiting {wait}s …")
@@ -181,29 +191,40 @@ def _call_groq(prompt: str, model: str | None = None) -> str:
             timeout=120,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
-    return _retry_post(_do, max_retries=2, base_delay=30)
+        message = resp.json()["choices"][0]["message"]
+        text = (message.get("content") or "").strip()
+        if not text:
+            raise RuntimeError(f"Groq/{m} returned empty content")
+        return text
+    return _retry_post(_do, max_retries=1, base_delay=5)
 
 
-def _call_gemini(prompt: str) -> str:
-    """Call Gemini Flash API. Raises on failure."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+def _call_gemini(prompt: str, model: str | None = None) -> str:
+    """Call Gemini GenerateContent API using current header auth and model failover."""
+    m = model or GEMINI_MODELS[0]
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
     def _do() -> str:
         resp = httpx.post(
-            f"{url}?key={GEMINI_KEY}",
-            headers={"Content-Type": "application/json"},
+            url,
+            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY},
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
                 ],
-                "generationConfig": {"maxOutputTokens": 3072, "temperature": 0.7},
+                "generationConfig": {
+                    "maxOutputTokens": 3072,
+                    "thinkingConfig": {"thinkingLevel": "low"},
+                },
             },
             timeout=120,
         )
         resp.raise_for_status()
         parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        return "".join(p.get("text", "") for p in parts).strip()
-    return _retry_post(_do, max_retries=2, base_delay=30)
+        text = "".join(part.get("text", "") for part in parts).strip()
+        if not text:
+            raise RuntimeError(f"Gemini/{m} returned empty content")
+        return text
+    return _retry_post(_do, max_retries=1, base_delay=5)
 
 
 def generate_article(topic: str) -> Dict[str, Any]:
@@ -222,11 +243,13 @@ def generate_article(topic: str) -> Dict[str, Any]:
             except Exception as e:
                 print(f"[AI] Groq/{model} failed ({e}), trying next...")
     if not raw and GEMINI_KEY:
-        try:
-            raw = _call_gemini(prompt)
-            print(f"[AI] Provider: Gemini ({GEMINI_MODEL})")
-        except Exception as e:
-            print(f"[AI] Gemini failed ({e})")
+        for model in GEMINI_MODELS:
+            try:
+                raw = _call_gemini(prompt, model=model)
+                print(f"[AI] Provider: Gemini ({model})")
+                break
+            except Exception as e:
+                print(f"[AI] Gemini/{model} failed ({e}), trying next...")
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
