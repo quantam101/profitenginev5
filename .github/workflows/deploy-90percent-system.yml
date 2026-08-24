@@ -96,6 +96,7 @@ jobs:
           ROBINHOOD_SECRET: ${{ secrets.ROBINHOOD_SECRET }}
           ACCOUNT_NUMBER: "794764977"
           TRADING_MODE: 90_percent_winrate
+          TRADING_DEMO_MODE: "true"
           LOG_LEVEL: INFO
         run: |
           echo "=== RUNNING 90% SYSTEM TEST ==="
