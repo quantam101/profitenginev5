@@ -4,13 +4,16 @@ Generates ACTUAL MP4 videos and uploads to REAL affiliate platforms.
 """
 
 import asyncio
-import os
 import logging
+import os
+import shutil
 import subprocess
-import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
+
+def _esc_drawtext(t: str) -> str:
+    return t.replace("\\", "\\\\").replace(":", "\\:").replace("'", "’").replace("%", "\\%")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,17 +33,17 @@ class RealVideoGenerator:
 
             # REAL FFmpeg command - creates actual video file
             cmd = [
-                "ffmpeg", "-y",
+                shutil.which("ffmpeg") or "ffmpeg", "-y",
                 "-f", "lavfi",
                 "-i", "color=c=1a1a2e:s=1080x1920:d=15",  # 15 sec real video
-                "-vf", f"drawtext=text='{title}':fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2",
+                "-vf", f"drawtext=text='{_esc_drawtext(title)}':fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2",
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
                 "-pix_fmt", "yuv420p",
                 str(video_path),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            result = subprocess.run(cmd, capture_output=True, timeout=60)  # noqa: S603
 
             if result.returncode == 0 and video_path.exists():
                 logger.info(f"✅ Real video generated: {video_path} ({video_path.stat().st_size} bytes)")

@@ -50,7 +50,7 @@ class LocalModelRouter:
 
     def route(self, complexity_score: float) -> ModelRoute:
         local_enabled  = os.getenv("GMAOS_LOCAL_MODEL_ENABLED", "false").lower() == "true"
-        local_endpoint = (os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT") or "").strip()
+        local_endpoint = (os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT") or "http://localhost:11434").strip()
         lms_url        = (os.getenv("LM_STUDIO_BASE_URL") or "").strip()
         groq_key       = bool(os.getenv("GROQ_API_KEY", ""))
         claude_key     = bool(os.getenv("ANTHROPIC_API_KEY", ""))
