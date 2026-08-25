@@ -31,6 +31,7 @@ jobs:
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          TRADING_DEMO_MODE: "true"
         run: |
           python trading-agent/premarket_research.py
 
