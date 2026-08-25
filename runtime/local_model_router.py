@@ -50,7 +50,7 @@ class LocalModelRouter:
 
     def route(self, complexity_score: float) -> ModelRoute:
         local_enabled  = os.getenv("GMAOS_LOCAL_MODEL_ENABLED", "false").lower() == "true"
-        local_endpoint = (os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT") or "http://localhost:11434").strip()
+        local_endpoint = (os.getenv("GMAOS_LOCAL_MODEL_ENDPOINT") or "").strip() or None
         lms_url        = (os.getenv("LM_STUDIO_BASE_URL") or "").strip()
         groq_key       = bool(os.getenv("GROQ_API_KEY", ""))
         claude_key     = bool(os.getenv("ANTHROPIC_API_KEY", ""))
@@ -70,7 +70,7 @@ class LocalModelRouter:
             )
 
         # Tier 3 — Ollama local inference
-        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled and local_endpoint:
+        if complexity_score <= self._THRESH_LOCAL_MODEL and local_enabled:
             return ModelRoute(
                 RouteDecision("LOCAL_MODEL", local_endpoint, 0.0, "local_inference"),
                 "ollama_local_enabled",
