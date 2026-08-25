@@ -4,6 +4,7 @@ Generates ACTUAL MP4 videos and uploads to REAL affiliate platforms.
 """
 
 import asyncio
+import json
 import logging
 import os
 import shutil
