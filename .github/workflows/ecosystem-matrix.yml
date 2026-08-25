@@ -7,8 +7,10 @@ name: Ecosystem Matrix — Daily Orchestration Audit
 # Fast outage detection stays with uptime-monitor.yml (every 10 min);
 # this is the daily deep audit across all repos and revenue functions.
 on:
-  schedule:
-    - cron: '20 13 * * *'   # daily 13:20 UTC (after the 07:05 content run and 11:35 income run)
+  # Schedule moved to public repo already-here-llc to run on unlimited free minutes.
+  # Kept here as workflow_dispatch for manual/backfill use only.
+  # schedule:
+  #   - cron: '20 13 * * *'   # daily 13:20 UTC (after the 07:05 content run and 11:35 income run)
   workflow_dispatch:
 
 permissions:
