@@ -43,18 +43,6 @@ app.{$SITE_DOMAIN} {
 
 api.{$SITE_DOMAIN} {
   encode gzip zstd
-  reverse_proxy runtime:8080
-
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "strict-origin-when-cross-origin"
-  }
-}
-
-api.{$SITE_DOMAIN} {
-  encode gzip zstd
 
   # Route Stripe webhook to backend
   handle_path /stripe/* {

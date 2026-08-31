@@ -260,14 +260,18 @@ def _create_openassistant_bot(
     # Generate a stable bot ID from business name
     bot_id = hashlib.sha256(f"{business_name}:{niche}".encode()).hexdigest()[:16]
 
-    runtime_url = os.environ.get("RUNTIME_API_URL", "https://profitengine-runtime.onrender.com")
+    widget_base = os.environ.get("APP_PUBLIC_URL") or os.environ.get("NEXT_PUBLIC_SITE_URL") or os.environ.get("PUBLIC_SITE_URL")
+    if not widget_base:
+        widget_base = f"https://app.{os.environ.get('SITE_DOMAIN', 'alreadyherellc.com')}"
+    widget_base = widget_base.rstrip("/")
+    runtime_url = widget_base
 
     embed_code = (
         f'<!-- {business_name} AI Assistant - Powered by Already Here LLC -->\n'
         f'<script>\n'
         f'  (function() {{\n'
         f'    var s = document.createElement("script");\n'
-        f'    s.src = "{runtime_url}/widget.js";\n'
+        f'    s.src = "{runtime_url}/api/widget.js";\n'
         f'    s.setAttribute("data-bot-id", "{bot_id}");\n'
         f'    s.setAttribute("data-name", "{business_name} AI");\n'
         f'    s.setAttribute("data-niche", "{niche}");\n'
@@ -313,9 +317,13 @@ def _create_openassistant_bot(
 
 def _create_custom_widget(business_name: str, niche: str) -> Dict[str, Any]:
     bot_id     = hashlib.md5(f"{business_name}{niche}".encode(), usedforsecurity=False).hexdigest()[:12]
-    runtime_url = os.environ.get("RUNTIME_API_URL", "https://profitengine-runtime.onrender.com")
+    widget_base = os.environ.get("APP_PUBLIC_URL") or os.environ.get("NEXT_PUBLIC_SITE_URL") or os.environ.get("PUBLIC_SITE_URL")
+    if not widget_base:
+        widget_base = f"https://app.{os.environ.get('SITE_DOMAIN', 'alreadyherellc.com')}"
+    widget_base = widget_base.rstrip("/")
+    runtime_url = widget_base
     embed_code = (
-        f'<script src="{runtime_url}/widget.js" '
+        f'<script src="{runtime_url}/api/widget.js" '
         f'data-bot="{bot_id}" '
         f'data-name="{business_name}" async></script>'
     )
