@@ -111,11 +111,13 @@ export AMAZON_PARTNER_TAG DEVTO_API_KEY HASHNODE_API_KEY HASHNODE_PUB_ID MEDIUM_
 
 bash scripts/bootstrap-server.sh
 
+SITE_DOMAIN="${SITE_DOMAIN:-alreadyherellc.com}"
+PUBLIC_URL="${APP_PUBLIC_URL:-https://app.${SITE_DOMAIN}}"
 log ""
 log "╔══════════════════════════════════════════════════════════════╗"
 log "║  FIRST BOOT COMPLETE                                         ║"
 log "╠══════════════════════════════════════════════════════════════╣"
-log "║  Dashboard: http://129.146.236.177:3000                       ║"
-log "║  Health:    http://129.146.236.177:3000/api/health            ║"
+log "║  Dashboard: ${PUBLIC_URL}"
+log "║  Health:    ${PUBLIC_URL}/api/health"
 log "║  CI/CD:     every git push to main auto-deploys now          ║"
 log "╚══════════════════════════════════════════════════════════════╝"

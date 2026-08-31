@@ -2,7 +2,7 @@
  * WIDGET_JS is the verbatim JavaScript that gets served at /api/widget.js
  *
  * Placeholder tokens replaced at serve-time:
- *   __ORIGIN__  → https://profitengine.alreadyherellc.com
+ *   __ORIGIN__  → NEXT_PUBLIC_SITE_URL (defaults to https://alreadyherellc.com)
  *   __REF__     → reseller referral code (or empty string)
  *   __THEME__   → "dark" | "light"
  *

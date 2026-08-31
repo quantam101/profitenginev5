@@ -8,10 +8,11 @@ import json
 import os
 import urllib.request
 
-RECIPIENT = "yourfriends@medium.com"
+RECIPIENT = os.environ.get("MEDIUM_PARTNER_EMAIL", "partners@medium.com")
 SUBJECT = "API Access Request - ProfitEngine v5 / Already Here LLC"
 SENDER = "Stephen - Already Here LLC <dispatch@alreadyherellc.com>"
 
+_PUBLIC_URL = os.environ.get("APP_PUBLIC_URL", "https://alreadyherellc.com").rstrip("/")
 body = (
     "Hi Medium team,\n\n"
     "My name is Stephen, founder of Already Here LLC. I am building ProfitEngine v5, "
@@ -21,8 +22,8 @@ body = (
     "our Medium publication. We are currently live on GitHub Pages, Dev.to, and Hashnode. "
     "Medium is the final distribution channel we want to activate.\n\n"
     "Details:\n"
-    "- Company: Already Here LLC\n"
-    "- Website: https://profitengine.alreadyherellc.com\n"
+    f"- Company: Already Here LLC\n"
+    f"- Website: {_PUBLIC_URL}\n"
     "- Use case: Automated cross-posting of original long-form articles (1,000-1,500 words) "
     "on AI tools, passive income, and developer productivity\n"
     "- Scopes needed: basicProfile, publishPost\n"
@@ -38,7 +39,7 @@ body = (
     "Stephen\n"
     "Already Here LLC\n"
     "dispatch@alreadyherellc.com\n"
-    "https://profitengine.alreadyherellc.com"
+    f"{_PUBLIC_URL}"
 )
 
 

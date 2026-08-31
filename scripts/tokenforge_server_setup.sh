@@ -1,6 +1,6 @@
 #!/bin/bash
-# TokenForge server full setup — run via OCI Run Command or serial console
-# Server: 129.146.236.177
+# TokenForge server full setup — run via the target host's console or SSH.
+# Set the host IP/hostname in the SERVER_HOST env var before running.
 set -e
 
 echo "=== TokenForge Server Setup ==="

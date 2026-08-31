@@ -97,10 +97,11 @@ function smtpSend(message: OutreachMessage, user: string, password: string, from
       if (value) socket.write(`${value}\r\n`);
     });
 
+    const ehloDomain = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname : 'alreadyherellc.com';
     void (async () => {
       try {
         await command('', [220]);
-        await command('EHLO profitengine.alreadyherellc.com', [250]);
+        await command(`EHLO ${ehloDomain}`, [250]);
         await command('AUTH LOGIN', [334]);
         await command(Buffer.from(user).toString('base64'), [334]);
         await command(Buffer.from(password).toString('base64'), [235]);

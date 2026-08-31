@@ -189,7 +189,7 @@ upsert_env DISTILLATION_EXPENSIVE_MODEL  "${DISTILLATION_EXPENSIVE_MODEL:-gemini
 upsert_env DISTILLATION_CACHE_TTL_HOURS  "${DISTILLATION_CACHE_TTL_HOURS:-168}"
 upsert_env COHORT_TOTAL_SEATS            "${COHORT_TOTAL_SEATS:-100}"
 upsert_env COHORT_LABEL                  "${COHORT_LABEL:-Cohort 1}"
-upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://profitengine.alreadyherellc.com}"
+upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://app.${SITE_DOMAIN:-alreadyherellc.com}}"
 
 # Optional keys — injected when available, skipped otherwise
 [[ -n "${ANTHROPIC_API_KEY:-}" ]] && upsert_env ANTHROPIC_API_KEY      "${ANTHROPIC_API_KEY}"

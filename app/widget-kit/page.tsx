@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://profitengine.alreadyherellc.com';
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alreadyherellc.com';
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);

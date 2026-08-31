@@ -1,6 +1,6 @@
 #!/bin/bash
 # Already Here LLC — Full Stack Installer
-# Run on OCI server: ssh opc@129.146.236.177 && bash deploy/install.sh
+# Run on the target Linux server: ssh user@$SERVER_HOST && bash deploy/install.sh
 # Installs: Docker, N8N, Taylor voice agent, PM2, all dependencies
 
 set -e

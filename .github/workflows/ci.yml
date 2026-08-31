@@ -83,16 +83,7 @@ jobs:
           CI: "true"
           GROQ_API_KEY: ""
       - name: Runtime security scan
-        run: |
-          python - <<'PY'
-          import sys
-          from runtime.security_scanner import scan_repo
-          findings = scan_repo('.')
-          if findings:
-              print('\n'.join(findings))
-              sys.exit(1)
-          print('runtime security scan passed')
-          PY
+        run: npm run security:scan
       - name: Production build
         run: npm run build
         env:

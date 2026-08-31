@@ -67,9 +67,9 @@ python server.py
 # Server starts on port 8001
 ```
 
-Option B — OCI server (recommended — always on):
+Option B — Any Linux server (recommended — always on):
 ```bash
-ssh opc@129.146.236.177
+ssh user@$TAYLOR_HOST
 cd /opt/already-here
 git pull
 pip install fastapi uvicorn aiohttp stripe

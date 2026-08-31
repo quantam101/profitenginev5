@@ -16,7 +16,11 @@ Layer 3 -- secret-value scanner (runtime/security_scanner.py)
   PEM headers, AWS secret assignments).  Markers are narrow -- env-var names
   like ANTHROPIC_API_KEY are NOT in the list; ruff/eslint own those concerns.
 
-Exit 0 = all three layers pass.
+Layer 4 -- production-fallback validator (runtime/production_fallback_validator.py)
+  Ensures no decommissioned OCI IP, fake backend domain, or placeholder strings
+  are reintroduced into production source or deployment config.
+
+Exit 0 = all four layers pass.
 Exit 1 = at least one finding; details printed to stdout.
 """
 from __future__ import annotations
@@ -28,6 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from runtime.production_fallback_validator import scan_fallbacks  # noqa: E402
 from runtime.security_scanner import scan_repo  # noqa: E402
 
 
@@ -102,15 +107,27 @@ def check_secrets() -> list[str]:
     return findings
 
 
+def check_fallbacks() -> list[str]:
+    _header("production-fallback validator (dead IPs / fake domains)")
+    findings = scan_fallbacks(".")
+    if not findings:
+        print("  ok no forbidden fallback values found")
+        return []
+    for f in findings:
+        print(f"  FAIL: {f}")
+    return findings
+
+
 # -- main -----------------------------------------------------------------------
 
 def main() -> int:
-    print("security-check: running three-layer scan ...")
+    print("security-check: running four-layer scan ...")
     ruff_findings    = check_ruff()
     eslint_findings  = check_eslint()
     secret_findings  = check_secrets()
+    fallback_findings = check_fallbacks()
 
-    total = len(ruff_findings) + len(eslint_findings) + len(secret_findings)
+    total = len(ruff_findings) + len(eslint_findings) + len(secret_findings) + len(fallback_findings)
     print(f"\n{'-' * 64}")
     if total == 0:
         print("security-check: all layers passed ok")
@@ -118,7 +135,7 @@ def main() -> int:
 
     print(f"security-check: {total} finding(s) across "
           f"ruff={len(ruff_findings)} eslint={len(eslint_findings)} "
-          f"secrets={len(secret_findings)}")
+          f"secrets={len(secret_findings)} fallbacks={len(fallback_findings)}")
     return 1
 
 
