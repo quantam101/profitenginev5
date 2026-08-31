@@ -80,7 +80,7 @@ api.alreadyherellc.com {
   }
 }
 
-backend.alreadyherellc.com {
+backend.{$SITE_DOMAIN} {
   encode gzip zstd
 
   handle_path /taylor/* {

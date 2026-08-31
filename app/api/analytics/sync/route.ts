@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Analytics Sync API
- * Syncs data from OCI server to dashboard
- * Called by cron job every minute
+ * Syncs data from a configured runtime host to the dashboard.
+ * Called by cron job every minute. The OCI server is decommissioned;
+ * use OCI_HOST to target a new host if needed.
  */
 
 export async function POST(request: NextRequest) {
@@ -29,8 +30,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch analytics from OCI
-    const ociHost = process.env.OCI_HOST || '129.146.236.177';
+    const ociHost = process.env.OCI_HOST;
+    if (!ociHost) {
+      return NextResponse.json({
+        error: 'OCI_HOST not configured',
+        fallback: true,
+      }, { status: 202 });
+    }
 
     const analyticsResponse = await fetch(`http://${ociHost}:8000/analytics`, {
       method: 'GET',
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     if (!analyticsResponse?.ok) {
       return NextResponse.json({
-        error: 'OCI analytics unavailable',
+        error: 'Runtime analytics unavailable',
         fallback: true,
       }, { status: 202 });
     }
@@ -50,7 +56,7 @@ export async function GET(request: NextRequest) {
     const data = await analyticsResponse.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Failed to fetch OCI analytics:', error);
+    console.error('Failed to fetch analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }
