@@ -41,12 +41,12 @@ Railway auto-detects most variables, but you need to set:
 2. Add these:
 
 ```
-DATABASE_URL=[Railway PostgreSQL URL - auto-filled]
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[Your Stripe key]
-NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID=[Your pricing table ID]
-STRIPE_SECRET_KEY=[Your Stripe secret]
-PROFITENGINE_WEBHOOK_TOKEN=[Generate secure token]
-RUNTIME_API_URL=[Your runtime API URL]
+DATABASE_URL=                             # Railway PostgreSQL URL (auto-filled)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=     # pk_test_... from Stripe Dashboard
+NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID=    # pricing table ID from Stripe Dashboard
+STRIPE_SECRET_KEY=                      # sk_test_... from Stripe Dashboard
+PROFITENGINE_WEBHOOK_TOKEN=             # generate with: openssl rand -hex 32
+RUNTIME_API_URL=                        # e.g. https://profitengine-runtime.onrender.com
 ```
 
 **Get these from:**
