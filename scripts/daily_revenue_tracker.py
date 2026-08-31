@@ -79,10 +79,11 @@ class RevenueTracker:
                 gumroad_data["total_sales"] += product.get("sales_count", 0)
 
             cutoff = datetime.utcnow() - timedelta(days=1)
+            after = cutoff.strftime("%Y-%m-%d")
             sales_response = requests.get(
                 "https://api.gumroad.com/v2/sales",
                 headers=headers,
-                params={"after": cutoff.strftime("%Y-%m-%d")},
+                params={"after": after},
                 timeout=10
             )
             if sales_response.status_code == 200:

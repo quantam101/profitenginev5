@@ -799,15 +799,13 @@ def main() -> None:
                               + (["medium"] if medium_url else [])
                               + (["hashnode"] if hashnode_url else [])),
             }).encode()
-            _req.urlopen(  # noqa: S310
-                _req.Request(  # noqa: S310
-                    f"{_CMDOS_BASE}/api/content-sync/published",
-                    data=payload,
-                    method="POST",
-                    headers={"Content-Type": "application/json"},
-                ),
-                timeout=8,
+            request = _req.Request(  # noqa: S310
+                f"{_CMDOS_BASE}/api/content-sync/published",
+                data=payload,
+                method="POST",
+                headers={"Content-Type": "application/json"},
             )
+            _req.urlopen(request, timeout=8)  # noqa: S310
             print("[ContentSync] Published article logged to Growth Command OS")
         except Exception as e:
             print(f"[ContentSync] Could not log to dashboard (non-fatal): {e}")

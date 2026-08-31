@@ -31,7 +31,7 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-_DEFAULT_BASE_URL = ""
+_DEFAULT_BASE_URL = "http://ollama:11434"
 _DEFAULT_MODEL = "llama3.1:8b"
 _DEFAULT_TIMEOUT = 120
 

@@ -43,7 +43,7 @@ class LLMProvider:
 
 
 PROVIDERS = [
-    LLMProvider("ollama-llama3.2", "ollama", "llama3.2", "OLLAMA_API_KEY", (os.environ.get("OLLAMA_BASE_URL") or "").strip(), 0.0),
+    LLMProvider("ollama-llama3.2", "ollama", "llama3.2", "OLLAMA_API_KEY", (os.environ.get("OLLAMA_BASE_URL") or "http://ollama:11434").strip(), 0.0),
     LLMProvider("deepseek-chat", "openai-compatible", "deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1", 0.00014),
     LLMProvider("gemini-flash", "google", "gemini-1.5-flash", "GOOGLE_API_KEY", "https://generativelanguage.googleapis.com/v1beta/openai", 0.000075),
     LLMProvider("claude-haiku", "anthropic", "claude-3-5-haiku-latest", "ANTHROPIC_API_KEY", "https://api.anthropic.com", 0.00025),

@@ -149,9 +149,10 @@ def _gateway(prompt: str, system: Optional[str], max_tokens: int) -> str:
     if system:
         msgs.append({"role": "system", "content": system})
     msgs.append({"role": "user", "content": prompt})
+    chat_url = f"{gateway_url.rstrip('/')}/v1/chat/completions"
     try:
         resp = requests.post(
-            f"{gateway_url.rstrip('/')}/v1/chat/completions",
+            chat_url,
             json={"model": "autonomous-intelligence-mesh", "messages": msgs, "max_tokens": max_tokens},
             headers=headers, timeout=20,
         )
