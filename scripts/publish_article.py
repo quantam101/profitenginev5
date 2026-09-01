@@ -122,7 +122,12 @@ Return ONLY a valid JSON object (no markdown, no explanation) with these exact f
 The article should be 800-1200 words, include:
 - A brief intro explaining the value
 - 5-7 sections with practical examples
-- A conclusion with a clear CTA
+- A conclusion that summarizes the takeaways and invites the reader to explore
+  the resources featured on this page. Do NOT tell readers to sign up for, buy,
+  or start a free trial of any third-party or competitor product/tool by name
+  (e.g. no "sign up for Buffer/Copy.ai/etc."). A dedicated owned-product CTA is
+  appended to the page automatically — the conclusion must not compete with it
+  or send readers off-site to a competitor.
 - Natural keyword placement for SEO
 - No unresolved tokens or filler text; publish real, useful content"""
 
