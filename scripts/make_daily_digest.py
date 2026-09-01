@@ -66,23 +66,41 @@ def _similar(a: list[str], b: list[str]) -> bool:
     return len(sa & sb) / len(sa | sb) >= SIMILARITY_THRESHOLD
 
 
+def _norm_url(url: str) -> str:
+    """Canonical form for dedup: drop query/fragment and trailing slash."""
+    if not url:
+        return ""
+    p = urllib.parse.urlsplit(url)
+    return f"{p.scheme.lower()}://{p.netloc.lower()}{p.path.rstrip('/')}"
+
+
 class Ledger:
     """Permanent record of every item ever featured in the digest."""
 
     def __init__(self) -> None:
         self.entries: list[dict] = []
         if LEDGER_PATH.exists():
+            # fail CLOSED: an unreadable permanent history must never be
+            # treated as empty, or the next issue repeats old content and
+            # the save overwrites the damaged file
             try:
-                self.entries = json.loads(
-                    LEDGER_PATH.read_text(encoding="utf-8")).get("featured", [])
+                data = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+                self.entries = data["featured"]
+                if not isinstance(self.entries, list):
+                    raise TypeError("'featured' is not a list")
             except Exception as e:
-                print(f"::warning::ledger unreadable ({e}) — starting empty")
+                print(f"::error::ledger {LEDGER_PATH} unreadable ({e}) — "
+                      "aborting so history is not lost; fix or restore the file")
+                sys.exit(1)
         self._new: list[dict] = []
 
-    def seen(self, key: str, title: str = "") -> bool:
+    def seen(self, key: str, title: str = "", url: str = "") -> bool:
         fp = fingerprint(title) if title else []
+        nu = _norm_url(url)
         for e in self.entries:
             if key and key == e.get("key"):
+                return True
+            if nu and nu == _norm_url(e.get("url", "")):
                 return True
             if fp and _similar(fp, e.get("fingerprint", [])):
                 return True
@@ -133,11 +151,11 @@ def fetch_new_articles(ledger: Ledger) -> list[dict]:
             continue
         if age_days > MAX_ARTICLE_AGE_DAYS:
             continue
-        if not title or not url or ledger.seen(eid, title):
+        if not title or not url or ledger.seen(eid, title, url):
             continue
         fresh.append({"id": eid, "title": title, "url": url,
                       "published": published})
-    return fresh[:3]
+    return fresh
 
 
 def utm(url: str, campaign: str = "daily-digest") -> str:
@@ -184,26 +202,44 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
     """Returns (headline, sections, cta_url), or None when there is nothing
     genuinely new to say (caller should skip the send)."""
     today = time.strftime("%B %d, %Y", time.gmtime())
-    articles = fetch_new_articles(ledger)
     manifest = {v["program"]: v for v in (_load("videos_manifest.json") or [])}
+
+    # Selection reserves each accepted item in the ledger immediately, so
+    # duplicates within the same batch (or across source categories) are
+    # rejected too, not just items featured in past issues.
+    articles = []
+    for a in fetch_new_articles(ledger):
+        if len(articles) >= 3:
+            break
+        if ledger.seen(a["id"], a["title"], a["url"]):
+            continue
+        ledger.add("article", a["id"], a["title"], a["url"])
+        articles.append(a)
 
     uploads = []
     for u in (_load("youtube_uploads.json") or []):
+        if len(uploads) >= 5:
+            break
         if u.get("status") != "success":
             continue
         m = manifest.get(u.get("program", ""), {})
         title = m.get("title", u.get("program", ""))
-        key = u.get("video_id", "")
-        if ledger.seen(key, title):
+        url = u.get("url") or \
+            f"https://www.youtube.com/shorts/{u.get('video_id', '')}"
+        if ledger.seen(u.get("video_id", ""), title, url):
             continue
+        ledger.add("upload", u.get("video_id", ""), title, url)
         uploads.append(u)
 
     trending = []
     for t in (_load("trending_topics.json") or []):
-        if ledger.seen(t.get("id", "") or t.get("url", ""), t.get("title", "")):
+        if len(trending) >= 3:
+            break
+        key = t.get("id", "") or t.get("url", "")
+        if ledger.seen(key, t.get("title", ""), t.get("url", "")):
             continue
+        ledger.add("trend", key, t.get("title", ""), t.get("url", ""))
         trending.append(t)
-    trending = trending[:3]
 
     # Hard publishing rule: no new source material = no issue. Product
     # spotlight and AI insight alone never justify a send.
@@ -216,9 +252,9 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
     if articles:
         items = []
         for a in articles:
-            items.append(f'&bull; <a href="{utm(a["url"], "daily-digest-article")}">'
+            link = html.escape(utm(a["url"], "daily-digest-article"), quote=True)
+            items.append(f'&bull; <a href="{link}">'
                          f'{html.escape(a["title"])}</a>')
-            ledger.add("article", a["id"], a["title"], a["url"])
         sections.append({"heading": "New today",
                          "body": ("Freshly published on our site:<br>"
                                   + "<br>".join(items))})
@@ -234,13 +270,13 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
 
     if uploads:
         items = []
-        for u in uploads[:5]:
+        for u in uploads:
             m = manifest.get(u.get("program", ""), {})
             raw_title = m.get("title", u.get("program", "New video"))
             url = u.get("url") or \
                 f"https://www.youtube.com/shorts/{u.get('video_id', '')}"
-            items.append(f'&bull; <a href="{url}">{html.escape(raw_title)}</a>')
-            ledger.add("upload", u.get("video_id", ""), raw_title, url)
+            items.append(f'&bull; <a href="{html.escape(url, quote=True)}">'
+                         f'{html.escape(raw_title)}</a>')
         sections.append({"heading": "Fresh from our channel",
                          "body": "<br>".join(items)})
 
@@ -251,9 +287,8 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
             url = t.get("url", "")
             vpd = t.get("views_per_day")
             stat = f" — ~{vpd:,} views/day" if vpd else ""
-            items.append(f'&bull; <a href="{url}">'
+            items.append(f'&bull; <a href="{html.escape(url, quote=True)}">'
                          f'{html.escape(raw_title[:80])}</a>{stat}')
-            ledger.add("trend", t.get("id", "") or url, raw_title, url)
         sections.append({
             "heading": "What's pulling views right now",
             "body": ("Top performers in our niches, live from today's "

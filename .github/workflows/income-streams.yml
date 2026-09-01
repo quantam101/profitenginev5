@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write  # newsletter job commits the content ledger after each send
+  contents: read
   actions: read   # gh run download of the video pipeline's artifacts
 
 jobs:
@@ -34,6 +34,9 @@ jobs:
   newsletter:
     name: Publish Daily Newsletter (Resend)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # commits the content ledger after each send
+      actions: read
     if: >
       (github.event_name == 'schedule' && github.event.schedule == '30 8 * * *') ||
       github.event.inputs.stream == 'newsletter' ||
@@ -83,19 +86,27 @@ jobs:
             python scripts/make_daily_digest.py
           fi
 
+      # Losing this commit would let the next run resend already-featured
+      # items, so retry the push with a rebase and FAIL the job loudly if it
+      # cannot land — a visible failure beats a silent duplicate issue.
       - name: Commit content ledger
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
-          if git status --porcelain data/newsletter_ledger.json | grep -q .; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add data/newsletter_ledger.json
-            git commit -m "chore(newsletter): record featured items in content ledger"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            git push
-          else
+          if ! git status --porcelain data/newsletter_ledger.json | grep -q .; then
             echo "ledger unchanged — nothing to commit"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/newsletter_ledger.json
+          git commit -m "chore(newsletter): record featured items in content ledger"
+          for i in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed — retrying"
+            sleep 5
+          done
+          echo "::error::could not push the content ledger — next run may repeat today's items"
+          exit 1
 
   city-seo:
     name: Generate City SEO Pages
