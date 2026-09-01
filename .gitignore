@@ -8,6 +8,7 @@ tsconfig.tsbuildinfo
 __pycache__/
 /data/*
 !/data/revenue-os/
+!/data/newsletter_ledger.json
 datacenter/*.db
 *.sqlite3
 backups/

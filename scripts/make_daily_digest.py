@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """Daily newsletter composer. Builds the digest from real pipeline data —
+the content site's Atom feed (today's freshly published article),
 trending_topics.json + youtube_uploads.json (video pipeline artifacts) and the
 live Gumroad catalog — then POSTs it to the runtime /newsletter/publish
 endpoint (Resend broadcast).
 
-Replaces the hardcoded sections that previously lived in income-streams.yml,
-which sent the identical email every day with no external links.
+A permanent content ledger (data/newsletter_ledger.json, committed by the
+workflow) records everything ever featured: id/url, semantic title
+fingerprint, kind, and date. Items already in the ledger are never featured
+again, matched by id/url AND by title-token similarity, so the same story
+under a different headline is still rejected.
 
-If no fresh data source is available at all, the send is SKIPPED (exit 0 with
-a warning) rather than falling back to canned copy — repeat content is worse
-than a missed day.
+Hard publishing rule: no new source material = no issue. If nothing new is
+available (no new article, no unfeatured upload, no unfeatured trend), the
+send is SKIPPED (exit 0 with a warning) — repeat content is worse than a
+missed day.
 
 Env:
   RUNTIME_API_URL        — required; Render runtime base URL
@@ -27,6 +32,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -35,6 +41,103 @@ from generate_shorts import ai_complete  # noqa: E402
 PAGES_BASE = "https://quantam101.github.io/content"
 BLUEPRINT_URL = f"{PAGES_BASE}/ebooks/blueprint/"
 EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/"
+FEED_URL = "https://www.alreadyherellc.com/content/feed.xml"
+LEDGER_PATH = Path("data/newsletter_ledger.json")
+MAX_ARTICLE_AGE_DAYS = 3   # a feed entry older than this is not "new today"
+SIMILARITY_THRESHOLD = 0.6  # Jaccard overlap of title tokens => same story
+
+_STOPWORDS = frozenset(
+    "a an and are as at be by for from how in is it of on or the to that this "
+    "these those with you your what why when where will can our we i".split())
+
+
+def fingerprint(title: str) -> list[str]:
+    """Semantic-ish fingerprint: sorted content tokens of the title."""
+    tokens = {t for t in "".join(
+        c.lower() if c.isalnum() else " " for c in title).split()
+        if len(t) > 2 and t not in _STOPWORDS}
+    return sorted(tokens)
+
+
+def _similar(a: list[str], b: list[str]) -> bool:
+    sa, sb = set(a), set(b)
+    if not sa or not sb:
+        return False
+    return len(sa & sb) / len(sa | sb) >= SIMILARITY_THRESHOLD
+
+
+class Ledger:
+    """Permanent record of every item ever featured in the digest."""
+
+    def __init__(self) -> None:
+        self.entries: list[dict] = []
+        if LEDGER_PATH.exists():
+            try:
+                self.entries = json.loads(
+                    LEDGER_PATH.read_text(encoding="utf-8")).get("featured", [])
+            except Exception as e:
+                print(f"::warning::ledger unreadable ({e}) — starting empty")
+        self._new: list[dict] = []
+
+    def seen(self, key: str, title: str = "") -> bool:
+        fp = fingerprint(title) if title else []
+        for e in self.entries:
+            if key and key == e.get("key"):
+                return True
+            if fp and _similar(fp, e.get("fingerprint", [])):
+                return True
+        return False
+
+    def add(self, kind: str, key: str, title: str, url: str) -> None:
+        entry = {"kind": kind, "key": key, "title": title, "url": url,
+                 "fingerprint": fingerprint(title),
+                 "date": time.strftime("%Y-%m-%d", time.gmtime())}
+        self.entries.append(entry)
+        self._new.append(entry)
+
+    def save(self) -> None:
+        if not self._new:
+            return
+        LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        LEDGER_PATH.write_text(
+            json.dumps({"featured": self.entries}, indent=2) + "\n",
+            encoding="utf-8")
+        print(f"ledger: recorded {len(self._new)} new item(s) "
+              f"({len(self.entries)} total) -> {LEDGER_PATH}")
+
+
+def fetch_new_articles(ledger: Ledger) -> list[dict]:
+    """Freshly published posts from the content site's Atom feed that have
+    never been featured before."""
+    try:
+        req = urllib.request.Request(
+            FEED_URL, headers={"User-Agent": "already-here-digest/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            root = ET.fromstring(r.read())  # noqa: S314 - our own Pages feed
+    except Exception as e:
+        print(f"feed fetch failed ({str(e)[:80]}) — no article section")
+        return []
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+    now = time.time()
+    fresh = []
+    for entry in root.findall("a:entry", ns):
+        title = (entry.findtext("a:title", "", ns) or "").strip()
+        link = entry.find("a:link[@rel='alternate']", ns)
+        url = link.get("href") if link is not None else ""
+        eid = entry.findtext("a:id", "", ns) or url
+        published = entry.findtext("a:published", "", ns)[:10]
+        try:
+            age_days = (now - time.mktime(
+                time.strptime(published, "%Y-%m-%d"))) / 86400
+        except ValueError:
+            continue
+        if age_days > MAX_ARTICLE_AGE_DAYS:
+            continue
+        if not title or not url or ledger.seen(eid, title):
+            continue
+        fresh.append({"id": eid, "title": title, "url": url,
+                      "published": published})
+    return fresh[:3]
 
 
 def utm(url: str, campaign: str = "daily-digest") -> str:
@@ -77,20 +180,48 @@ def gumroad_products() -> list[dict]:
         return []
 
 
-def compose() -> tuple[str, list[dict], str] | None:
+def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
     """Returns (headline, sections, cta_url), or None when there is nothing
-    fresh to say (caller should skip the send)."""
+    genuinely new to say (caller should skip the send)."""
     today = time.strftime("%B %d, %Y", time.gmtime())
-    trending = (_load("trending_topics.json") or [])[:3]
-    uploads = [u for u in (_load("youtube_uploads.json") or [])
-               if u.get("status") == "success"]
+    articles = fetch_new_articles(ledger)
     manifest = {v["program"]: v for v in (_load("videos_manifest.json") or [])}
-    products = gumroad_products()
 
-    if not (trending or uploads or products):
+    uploads = []
+    for u in (_load("youtube_uploads.json") or []):
+        if u.get("status") != "success":
+            continue
+        m = manifest.get(u.get("program", ""), {})
+        title = m.get("title", u.get("program", ""))
+        key = u.get("video_id", "")
+        if ledger.seen(key, title):
+            continue
+        uploads.append(u)
+
+    trending = []
+    for t in (_load("trending_topics.json") or []):
+        if ledger.seen(t.get("id", "") or t.get("url", ""), t.get("title", "")):
+            continue
+        trending.append(t)
+    trending = trending[:3]
+
+    # Hard publishing rule: no new source material = no issue. Product
+    # spotlight and AI insight alone never justify a send.
+    if not (articles or uploads or trending):
         return None
 
+    products = gumroad_products()
     sections: list[dict] = []
+
+    if articles:
+        items = []
+        for a in articles:
+            items.append(f'&bull; <a href="{utm(a["url"], "daily-digest-article")}">'
+                         f'{html.escape(a["title"])}</a>')
+            ledger.add("article", a["id"], a["title"], a["url"])
+        sections.append({"heading": "New today",
+                         "body": ("Freshly published on our site:<br>"
+                                  + "<br>".join(items))})
 
     insight = ai_complete(
         "Write a 2-3 sentence practical daily insight for small-business "
@@ -105,21 +236,24 @@ def compose() -> tuple[str, list[dict], str] | None:
         items = []
         for u in uploads[:5]:
             m = manifest.get(u.get("program", ""), {})
-            title = html.escape(m.get("title", u.get("program", "New video")))
+            raw_title = m.get("title", u.get("program", "New video"))
             url = u.get("url") or \
                 f"https://www.youtube.com/shorts/{u.get('video_id', '')}"
-            items.append(f'&bull; <a href="{url}">{title}</a>')
+            items.append(f'&bull; <a href="{url}">{html.escape(raw_title)}</a>')
+            ledger.add("upload", u.get("video_id", ""), raw_title, url)
         sections.append({"heading": "Fresh from our channel",
                          "body": "<br>".join(items)})
 
     if trending:
         items = []
         for t in trending:
-            title = html.escape(t.get("title", "")[:80])
+            raw_title = t.get("title", "")
             url = t.get("url", "")
             vpd = t.get("views_per_day")
             stat = f" — ~{vpd:,} views/day" if vpd else ""
-            items.append(f'&bull; <a href="{url}">{title}</a>{stat}')
+            items.append(f'&bull; <a href="{url}">'
+                         f'{html.escape(raw_title[:80])}</a>{stat}')
+            ledger.add("trend", t.get("id", "") or url, raw_title, url)
         sections.append({
             "heading": "What's pulling views right now",
             "body": ("Top performers in our niches, live from today's "
@@ -160,10 +294,12 @@ def publish(headline: str, sections: list[dict], cta_url: str) -> dict:
 
 
 def main() -> None:
-    composed = compose()
+    ledger = Ledger()
+    composed = compose(ledger)
     if not composed:
-        print("::warning::no fresh data (trends/uploads/products all empty) — "
-              "skipping today's send to avoid repeat content")
+        print("::warning::no NEW source material (article/uploads/trends all "
+              "already featured or empty) — skipping today's send to avoid "
+              "repeat content")
         return
     headline, sections, cta_url = composed
     print(f"headline: {headline}")
@@ -173,13 +309,15 @@ def main() -> None:
         Path("daily_digest_preview.json").write_text(
             json.dumps({"headline": headline, "sections": sections,
                         "cta_url": cta_url}, indent=2), encoding="utf-8")
-        print("dry run — wrote daily_digest_preview.json, nothing sent")
+        print("dry run — wrote daily_digest_preview.json, nothing sent "
+              "(ledger not updated)")
         return
     result = publish(headline, sections, cta_url)
     print(json.dumps(result))
     if not result.get("ok"):
         print(f"::error::newsletter publish failed: {result.get('error')}")
         sys.exit(1)
+    ledger.save()
 
 
 if __name__ == "__main__":
