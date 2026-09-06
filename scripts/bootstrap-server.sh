@@ -150,6 +150,7 @@ upsert_env GMAOS_GROQ_MODEL           "llama-3.3-70b-versatile"
 upsert_env GMAOS_GROQ_TIMEOUT         "60"
 upsert_env GMAOS_GEMINI_MODEL         "gemini-1.5-flash"
 upsert_env GMAOS_GEMINI_TIMEOUT       "60"
+SITE_DOMAIN="${SITE_DOMAIN:-$(existing_env SITE_DOMAIN)}"
 if [[ -z "${SITE_DOMAIN:-}" ]]; then
   die "SITE_DOMAIN is required (e.g., alreadyherellc.com)"
 fi
@@ -169,7 +170,10 @@ upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 [[ -n "${RESEND_API_KEY:-}"         ]] && upsert_env RESEND_API_KEY         "${RESEND_API_KEY}"
 
 # Taylor voice agent / Twilio / Stripe Checkout links
-[[ -n "${TAYLOR_SERVER_URL:-}" ]] && upsert_env TAYLOR_SERVER_URL "${TAYLOR_SERVER_URL}"
+if [[ -z "${TAYLOR_SERVER_URL:-}" ]]; then
+  TAYLOR_SERVER_URL="https://taylor.${SITE_DOMAIN}"
+fi
+upsert_env TAYLOR_SERVER_URL "${TAYLOR_SERVER_URL}"
 upsert_env TAYLOR_DB_PATH                 "${TAYLOR_DB_PATH:-/data/taylor.db}"
 upsert_env TAYLOR_PAYMENT_SUCCESS_URL     "${TAYLOR_PAYMENT_SUCCESS_URL:-https://alreadyherellc.com/payment-success}"
 upsert_env TAYLOR_PAYMENT_CANCEL_URL      "${TAYLOR_PAYMENT_CANCEL_URL:-https://alreadyherellc.com/payment-cancelled}"
