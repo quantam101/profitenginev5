@@ -2,8 +2,7 @@
   email {$ACME_EMAIL}
 }
 
-# Bare-IP health probe — CI and monitoring can hit http://129.146.236.177/health
-# without needing a TLS cert or DNS. Caddy handles this on port 80 only.
+# Port 80 health probe for CI and monitoring.
 # NOTE: the catch-all redir MUST be inside a handle {} block so Caddy treats it
 # as "else" — a bare redir fires before handle matches in Caddy v2.
 :80 {
@@ -77,30 +76,6 @@ api.alreadyherellc.com {
     X-Frame-Options "DENY"
     Referrer-Policy "strict-origin-when-cross-origin"
     Access-Control-Allow-Origin "https://forge.alreadyherellc.com"
-  }
-}
-
-backend.alreadyherellc.com {
-  encode gzip zstd
-
-  handle_path /taylor/* {
-    reverse_proxy taylor:8001
-  }
-
-  handle_path /runtime/* {
-    reverse_proxy runtime:8080
-  }
-
-  handle {
-    reverse_proxy backend:8001
-  }
-
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "strict-origin-when-cross-origin"
-    Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
   }
 }
 

@@ -121,7 +121,7 @@ upsert_env GITHUB_CONTENT_TOKEN   "${GITHUB_CONTENT_TOKEN}"
 upsert_env GITHUB_CONTENT_OWNER   "${GITHUB_CONTENT_OWNER:-quantam101}"
 upsert_env GITHUB_CONTENT_REPO    "${GITHUB_CONTENT_REPO:-content}"
 upsert_env GITHUB_CONTENT_BRANCH  "${GITHUB_CONTENT_BRANCH:-main}"
-upsert_env GITHUB_CONTENT_DIR     "${GITHUB_CONTENT_DIR:-posts}"
+upsert_env GITHUB_CONTENT_DIR     "${GITHUB_CONTENT_DIR:-_posts}"
 upsert_env GMAIL_USER             "${GMAIL_USER:-alreadyherellc@gmail.com}"
 upsert_env GMAIL_APP_PASSWORD     "${GMAIL_APP_PASSWORD}"
 upsert_env ALERT_EMAIL            "${ALERT_EMAIL:-stephen47@gmail.com}"
@@ -150,7 +150,10 @@ upsert_env GMAOS_GROQ_MODEL           "llama-3.3-70b-versatile"
 upsert_env GMAOS_GROQ_TIMEOUT         "60"
 upsert_env GMAOS_GEMINI_MODEL         "gemini-1.5-flash"
 upsert_env GMAOS_GEMINI_TIMEOUT       "60"
-upsert_env SITE_DOMAIN                "${SITE_DOMAIN:-profitengine.alreadyherellc.com}"
+if [[ -z "${SITE_DOMAIN:-}" ]]; then
+  die "SITE_DOMAIN is required (e.g., alreadyherellc.com)"
+fi
+upsert_env SITE_DOMAIN                "${SITE_DOMAIN}"
 upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 
 # ── backend (FastAPI / MongoDB) optional keys ──────────────────────────────
@@ -166,7 +169,7 @@ upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"
 [[ -n "${RESEND_API_KEY:-}"         ]] && upsert_env RESEND_API_KEY         "${RESEND_API_KEY}"
 
 # Taylor voice agent / Twilio / Stripe Checkout links
-upsert_env TAYLOR_SERVER_URL              "${TAYLOR_SERVER_URL:-https://backend.alreadyherellc.com/taylor}"
+[[ -n "${TAYLOR_SERVER_URL:-}" ]] && upsert_env TAYLOR_SERVER_URL "${TAYLOR_SERVER_URL}"
 upsert_env TAYLOR_DB_PATH                 "${TAYLOR_DB_PATH:-/data/taylor.db}"
 upsert_env TAYLOR_PAYMENT_SUCCESS_URL     "${TAYLOR_PAYMENT_SUCCESS_URL:-https://alreadyherellc.com/payment-success}"
 upsert_env TAYLOR_PAYMENT_CANCEL_URL      "${TAYLOR_PAYMENT_CANCEL_URL:-https://alreadyherellc.com/payment-cancelled}"
@@ -189,7 +192,7 @@ upsert_env DISTILLATION_EXPENSIVE_MODEL  "${DISTILLATION_EXPENSIVE_MODEL:-gemini
 upsert_env DISTILLATION_CACHE_TTL_HOURS  "${DISTILLATION_CACHE_TTL_HOURS:-168}"
 upsert_env COHORT_TOTAL_SEATS            "${COHORT_TOTAL_SEATS:-100}"
 upsert_env COHORT_LABEL                  "${COHORT_LABEL:-Cohort 1}"
-upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://profitengine.alreadyherellc.com}"
+upsert_env APP_PUBLIC_URL                "${APP_PUBLIC_URL:-https://app.${SITE_DOMAIN}}"
 
 # Optional keys — injected when available, skipped otherwise
 [[ -n "${ANTHROPIC_API_KEY:-}" ]] && upsert_env ANTHROPIC_API_KEY      "${ANTHROPIC_API_KEY}"

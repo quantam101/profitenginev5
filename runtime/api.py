@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
+import sys
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List
@@ -661,12 +663,14 @@ def run_guard(payload: GuardRequest, request: Request) -> Dict[str, Any]:
     _check_webhook_token(request)
     repo_dir = os.environ.get("REPO_DIR", "/home/opc/profitenginev5")
     script = os.path.join(repo_dir, "scripts", "docker-guard.sh")
+    bash = shutil.which("bash") or "/bin/bash"
     try:
-        proc = subprocess.run(
-            ["bash", script],
+        proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
+            [bash, script],
             cwd=repo_dir,
             env={**os.environ, "REPO_DIR": repo_dir, "AGGRESSIVE": "true" if payload.aggressive else "false"},
             capture_output=True, text=True, timeout=600,
+            shell=False,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"guard failed: {exc}") from exc
@@ -687,11 +691,13 @@ def pod_status(request: Request) -> Dict[str, Any]:
     # the old /home/opc/... default died with the OCI host
     repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
     script = os.path.join(repo_dir, "scripts", "printify_shop_status.py")
+    python = sys.executable
     try:
-        proc = subprocess.run(
-            ["python3", script],
+        proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
+            [python, script],
             cwd=repo_dir,
             capture_output=True, text=True, timeout=120,
+            shell=False,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"status check failed: {exc}") from exc
@@ -731,9 +737,10 @@ async def pod_push(request: Request) -> Dict[str, Any]:
         saved.append(safe_name)
 
     script = os.path.join(repo_dir, "scripts", "push_printify_catalog.py")
+    python = sys.executable
     try:
-        proc = subprocess.run(
-            ["python3", script],
+        proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
+            [python, script],
             cwd=repo_dir,
             env={
                 **os.environ,
@@ -742,6 +749,7 @@ async def pod_push(request: Request) -> Dict[str, Any]:
                 "TARGET_SKU": target_sku,
             },
             capture_output=True, text=True, timeout=900,
+            shell=False,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"push failed: {exc}") from exc
