@@ -47,7 +47,7 @@ Run this test command:
 ```bash
 # Test your TikTok access token
 curl -X GET "https://open.tiktokapis.com/v1/oauth2/token/validate" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE" \
+  -H "Authorization: Bearer $TIKTOK_ACCESS_TOKEN" \
   -H "Content-Type: application/json"
 ```
 
