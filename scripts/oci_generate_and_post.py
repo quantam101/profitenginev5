@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 OCI Server: Video Generation + Multi-Platform Upload
-Runs on OCI Always Free tier (129.146.236.177)
+The OCI host 129.146.236.177 is decommissioned. Set OCI_HOST to a live host and
+RUN_OCI_VIDEO=true before running this script on a replacement OCI box.
 - Lightweight: FFmpeg slideshow only (no Wan, no heavy models)
 - Triggered by GitHub Actions webhook or cron job
 - Generates video and auto-posts to all platforms
@@ -19,6 +20,13 @@ from runtime.eaos.social_engine import ProductionSocialEngine, SocialPost
 
 async def main():
     """Generate video from latest article and post to all platforms."""
+
+    # Guard against running on the decommissioned OCI host
+    dead_ip = "129.146.236.177"
+    oci_host = os.getenv("OCI_HOST", "")
+    if oci_host == dead_ip or not oci_host or os.getenv("RUN_OCI_VIDEO") != "true":
+        print(f"[OCI Video] ERROR: OCI host {dead_ip} is decommissioned. Set OCI_HOST to a live host and RUN_OCI_VIDEO=true.")
+        return
 
     # Get article topic (from GitHub Actions or environment)
     article_topic = os.getenv("ARTICLE_TOPIC", "Best AI Tools for Passive Income in 2026")

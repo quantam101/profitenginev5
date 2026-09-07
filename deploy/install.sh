@@ -1,6 +1,7 @@
 #!/bin/bash
 # Already Here LLC — Full Stack Installer
-# Run on OCI server: ssh opc@129.146.236.177 && bash deploy/install.sh
+# Run on a live OCI server: set OCI_HOST, then ssh opc@$OCI_HOST && bash deploy/install.sh
+# The OCI host 129.146.236.177 is decommissioned.
 # Installs: Docker, N8N, Taylor voice agent, PM2, all dependencies
 
 set -e

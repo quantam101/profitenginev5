@@ -1,6 +1,9 @@
 #!/bin/bash
 # OCI Aggressive Posting Cron Configuration (3-5x daily strategic timing)
-# Install on OCI server with: crontab < oci-aggressive-cron.sh
+# DEPRECATED — The OCI host 129.146.236.177 is decommissioned. This schedule
+# is non-production and should not be installed. The social/video pipeline is
+# currently disabled.
+# Install on OCI server with: crontab < oci-aggressive-cron.sh (do not use)
 
 # ════════════════════════════════════════════════════════════════════════
 # PROFITENGINE v5 - AGGRESSIVE POSTING SCHEDULE (UTC)

@@ -112,8 +112,8 @@ PROFITENGINE v5 - BACKUP MANIFEST
 
 Timestamp: TIMESTAMP_PLACEHOLDER
 Repository: https://github.com/quantam101/profitenginev5
-Server: OCI Always Free (129.146.236.177)
-Frontend: https://profitengine-tau.vercel.app
+Server: Set via OCI_HOST (the former OCI host 129.146.236.177 is decommissioned)
+Frontend: https://app.alreadyherellc.com
 
 CONTENTS:
 ---------
@@ -150,7 +150,7 @@ If system fails:
   2. Recreate .env from .env.gpg (gpg decryption)
   3. Restore database from databases/
   4. Pull latest from GitHub: git pull origin main
-  5. Redeploy: bash deploy_oci_hybrid.sh (on OCI)
+  5. Redeploy: Deploy to Render/Vercel or set OCI_HOST for a new OCI instance
 
 MANIFEST
 
