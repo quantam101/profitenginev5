@@ -166,7 +166,7 @@ TIER SYSTEM FOR CONTENT PERFORMANCE:
 IMPORTANT NOTES:
 ✅ Affiliate tag: alreadyhere-20 (required in all links)
 ✅ OCI Backend: 129.146.236.177 (check health at 8 AM)
-✅ Vercel Frontend: profitengine-tau.vercel.app (check deployment)
+✅ Vercel Frontend: app.alreadyherellc.com (check deployment)
 ✅ No placeholders in production URLs
 ✅ All revenue targets are daily minimums
 

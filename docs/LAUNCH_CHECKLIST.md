@@ -110,7 +110,7 @@ To add a secret: GitHub → repo → Settings → Secrets → Actions → New se
 ## Post-Deploy (after server is up)
 
 - [ ] Run `bash scripts/setup-n8n.sh` on server to activate n8n workflows
-- [ ] Verify n8n dashboard at https://app.profitengine.alreadyherellc.com
+- [ ] Verify n8n dashboard at https://app.alreadyherellc.com
 - [ ] Verify `/api/health` returns 100/100
 - [ ] HTTPS certificates issued by Caddy (auto, wait ~60s after first deploy)
 - [ ] Confirm only ports 22, 80, 443 are open in OCI Security List
@@ -119,7 +119,7 @@ To add a secret: GitHub → repo → Settings → Secrets → Actions → New se
 
 ## Domain / DNS
 
-- [ ] `SITE_DOMAIN` set in `.env` (default: `profitengine.alreadyherellc.com`)
+- [ ] `SITE_DOMAIN` set in `.env` (default: `app.alreadyherellc.com`)
 - [ ] A records: `@`, `app`, `api` → 129.146.236.177
 - [ ] Caddy is running and HTTPS certificates are issued
 - [ ] n8n not publicly exposed until `N8N_BASIC_AUTH_ACTIVE=true` confirmed

@@ -26,10 +26,10 @@
 All 4 A records set in GoDaddy → 129.146.236.177. TLS certs live.
 
 Live URLs:
-- https://profitengine.alreadyherellc.com        ← main dashboard
-- https://api.profitengine.alreadyherellc.com     ← API
-- https://status.profitengine.alreadyherellc.com  ← Uptime Kuma
-- https://app.profitengine.alreadyherellc.com     ← app
+- https://app.alreadyherellc.com        ← main dashboard
+- https://api.alreadyherellc.com     ← API
+- https://status.alreadyherellc.com  ← Uptime Kuma
+- https://app.alreadyherellc.com     ← app
 
 ### 2. Blog Publishing API Keys (revenue-enabling)
 Add these to GitHub Secrets (https://github.com/quantam101/profitenginev5/settings/secrets/actions):

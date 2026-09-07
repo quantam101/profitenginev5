@@ -69,7 +69,7 @@ dig dispatch.alreadyherellc.com TXT | grep "v=spf1"
 #### 1.4 Website & Lead Magnet
 ```bash
 # Verify affiliate landing page live at production URL
-curl -s https://profitengine-tau.vercel.app/affiliate \
+curl -s https://app.alreadyherellc.com/affiliate \
   | grep -E "(affiliate|signup|program)" | head -5
 
 # SUCCESS CRITERIA:
@@ -80,7 +80,7 @@ curl -s https://profitengine-tau.vercel.app/affiliate \
 ```
 
 **Manual Check:**
-- [ ] Visit https://profitengine-tau.vercel.app/affiliate
+- [ ] Visit https://app.alreadyherellc.com/affiliate
 - [ ] Fill out lead magnet form with test email
 - [ ] Verify PDF download initiates
 - [ ] Check test inbox for confirmation email with download link
@@ -259,7 +259,7 @@ NEXT: Prepare API documentation, YouTube video planning
 ### Target Metrics
 - **Affiliate Growth:** 8–15 total affiliates (100% growth from Day 7)
 - **YouTube Channel:** 5–15 videos published, 100–500 views
-- **API Deployment:** REST API live at `https://api.profitengine-tau.vercel.app`
+- **API Deployment:** REST API live at `https://api.alreadyherellc.com`
 - **Sales:** 25–50 total attributed sales, revenue $1,500–$4,000
 - **Social Reach:** 1,000–5,000 new followers/impressions
 
@@ -311,7 +311,7 @@ GROUP BY status;
 ```bash
 # Verify API is live and accessible
 curl -s -H "Authorization: Bearer $API_KEY" \
-  https://api.profitengine-tau.vercel.app/affiliates/stats \
+  https://api.alreadyherellc.com/affiliates/stats \
   | jq '.total_affiliates'
 
 # SUCCESS CRITERIA:
@@ -323,7 +323,7 @@ curl -s -H "Authorization: Bearer $API_KEY" \
 ```
 
 **Manual Check:**
-- [ ] Visit https://api.profitengine-tau.vercel.app/docs
+- [ ] Visit https://api.alreadyherellc.com/docs
 - [ ] Review endpoint list: /affiliates, /commissions, /sales, /webhooks
 - [ ] Test authentication: Try request without API key (should 401)
 - [ ] Test with valid key: Get affiliate list, verify fields

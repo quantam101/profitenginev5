@@ -11,9 +11,9 @@ CRITICAL URLS (Bookmark These)
 ================================================================================
 
 FRONTEND (Vercel)
-  Production: https://profitengine-tau.vercel.app
-  Dashboard: https://profitengine-tau.vercel.app/dashboard
-  Health: https://profitengine-tau.vercel.app/health
+  Production: https://app.alreadyherellc.com
+  Dashboard: https://app.alreadyherellc.com/dashboard
+  Health: https://app.alreadyherellc.com/health
 
 BACKEND (OCI)
   API Root: http://129.146.236.177:8001
@@ -30,7 +30,7 @@ DAILY CHECKS (Takes 5 minutes)
 ================================================================================
 
 1. SYSTEM HEARTBEAT
-   [ ] Frontend responds (curl profitengine-tau.vercel.app/health)
+   [ ] Frontend responds (curl app.alreadyherellc.com/health)
    [ ] Backend responds (curl 129.146.236.177:8001/api/health)
    [ ] No recent GitHub Actions failures
 
@@ -118,7 +118,7 @@ Step 1: Record 5 Videos (1 hour)
 Step 2: Upload to YouTube (30 min)
   Channel: quantam101 (your YouTube channel)
   Settings: Unlisted → Public after playlist ready
-  Description: Include links to profitengine-tau.vercel.app
+  Description: Include links to app.alreadyherellc.com
   Monetization: Enable ads (YouTube Partner Program)
 
 Step 3: Publish & Syndicate (30 min)
@@ -232,7 +232,7 @@ System Uptime:
 Revenue Velocity:
   Baseline Target: $180K/month (conservative)
   Tracking: income-streams.yml daily snapshots
-  Dashboard: profitengine-tau.vercel.app/dashboard
+  Dashboard: app.alreadyherellc.com/dashboard
 
 User Acquisition:
   YouTube → YouTube subscribers (target: +1K/month)

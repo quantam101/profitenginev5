@@ -83,7 +83,7 @@ Copy `.env.example` to `.env` and fill in the values below.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `SITE_DOMAIN` | ✅ | — | Root domain, e.g. `profitengine.alreadyherellc.com` |
+| `SITE_DOMAIN` | ✅ | — | Root domain, e.g. `app.alreadyherellc.com` |
 | `ACME_EMAIL` | ✅ | — | Email for Let's Encrypt certificates |
 | `POSTGRES_DB` | ✅ | — | Database name |
 | `POSTGRES_USER` | ✅ | — | Database user |
@@ -124,17 +124,16 @@ After the pull the inference cascade activates automatically on the next executi
 
 ## 5. DNS & HTTPS with Caddy
 
-Point your DNS records to your server IP **before** running the deploy script.
-Caddy handles TLS automatically via Let's Encrypt.
+The OCI host `129.146.236.177` is decommissioned. Production services run on Render (API/runtime) and Vercel (frontend). Point DNS to the live targets below instead.
 
-Required DNS records — A records pointing to `129.146.236.177`:
+Required DNS records:
 
-| Subdomain | Points to | Purpose |
-|---|---|---|
-| `profitengine.alreadyherellc.com` | `129.146.236.177` | Marketing site |
-| `app.profitengine.alreadyherellc.com` | `129.146.236.177` | Command center (Next.js) |
-| `api.profitengine.alreadyherellc.com` | `129.146.236.177` | Runtime API (FastAPI) |
-| `status.profitengine.alreadyherellc.com` | `129.146.236.177` | Uptime Kuma monitoring |
+| Subdomain | Type | Points to | Purpose |
+|---|---|---|---|
+| `www.alreadyherellc.com` | CNAME | Vercel / GitHub Pages | Public Jekyll site / marketing site |
+| `app.alreadyherellc.com` | CNAME | `cname.vercel-dns.com` | Command center (Next.js) |
+| `api.alreadyherellc.com` | CNAME | `profitengine-api-6cwb.onrender.com` | Runtime API (FastAPI) |
+| `status.alreadyherellc.com` | CNAME | `profitengine-runtime.onrender.com` | Uptime/status page |
 
 n8n is NOT publicly exposed by default (security policy). Enable it in the Caddyfile
 only after verifying `N8N_BASIC_AUTH_ACTIVE=true` is set.
