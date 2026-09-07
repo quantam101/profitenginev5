@@ -152,7 +152,7 @@ upsert_env GMAOS_GEMINI_MODEL         "gemini-1.5-flash"
 upsert_env GMAOS_GEMINI_TIMEOUT       "60"
 SITE_DOMAIN="${SITE_DOMAIN:-$(existing_env SITE_DOMAIN)}"
 if [[ -z "${SITE_DOMAIN:-}" ]]; then
-  die "SITE_DOMAIN is required (e.g., profitengine.alreadyherellc.com — must not be the same as the backend API host)"
+  die "SITE_DOMAIN is required (e.g., alreadyherellc.com — must not be the same as the backend API host)"
 fi
 upsert_env SITE_DOMAIN                "${SITE_DOMAIN}"
 upsert_env ACME_EMAIL                 "${ACME_EMAIL:-ops@alreadyherellc.com}"

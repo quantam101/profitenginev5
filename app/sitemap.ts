@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://profitengine.alreadyherellc.com';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.alreadyherellc.com';
 
 const routes = [
   '/',
