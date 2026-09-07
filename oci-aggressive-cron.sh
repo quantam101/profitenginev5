@@ -59,8 +59,8 @@
 # INSTALLATION INSTRUCTIONS
 # ════════════════════════════════════════════════════════════════════════
 
-# 1. SSH into OCI server:
-#    ssh ubuntu@129.146.236.177
+# 1. SSH into a live OCI server (set OCI_HOST; 129.146.236.177 is decommissioned):
+#    ssh ubuntu@${OCI_HOST}
 #
 # 2. Make scripts executable:
 #    chmod +x /home/ubuntu/scripts/aggressive_posting_scheduler.py
