@@ -1,6 +1,15 @@
 #!/bin/bash
 # Real-time Post Monitor with Direct Links
 # Watch OCI logs and display posts with clickable links
+#
+# OCI host 129.146.236.177 is decommissioned. Set OCI_HOST to a live host.
+
+DEAD_OCI_IP="129.146.236.177"
+OCI_HOST="${OCI_HOST:-}"
+if [ -z "$OCI_HOST" ] || [ "$OCI_HOST" = "$DEAD_OCI_IP" ]; then
+  echo "ERROR: The OCI host $DEAD_OCI_IP is decommissioned. Set OCI_HOST to a live host to monitor logs." >&2
+  exit 1
+fi
 
 echo "════════════════════════════════════════════════════════════════"
 echo "  PROFITENGINE v5 - REAL-TIME POST MONITOR"
@@ -10,7 +19,7 @@ echo "Watching for posts... (Ctrl+C to stop)"
 echo ""
 
 # SSH into OCI and stream logs with real-time filtering
-ssh -i ~/.ssh/cmdos_deploy_key ubuntu@129.146.236.177 << 'EOF' &
+ssh -i ~/.ssh/cmdos_deploy_key "ubuntu@${OCI_HOST}" << 'EOF' &
 
 LOGFILE="/home/ubuntu/video_generation.log"
 

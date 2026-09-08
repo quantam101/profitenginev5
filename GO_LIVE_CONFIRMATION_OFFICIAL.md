@@ -21,7 +21,7 @@ ProfitEngine v5 is a **complete, operational, revenue-generating system** with a
 
 ### Frontend — Next.js 15 on Vercel
 - **Status:** LIVE ✅
-- **URL:** profitengine-tau.vercel.app
+- **URL:** app.alreadyherellc.com
 - **Build:** v0.1.6-supervised-autopublish-gate
 - **Health:** npm ci | npm run build | npm start — PASS
 - **Performance:** Next.js 15.5.18, React 19.0.0, production optimized
@@ -117,7 +117,7 @@ ProfitEngine v5 is a **complete, operational, revenue-generating system** with a
 - **Active Channels:** 6 (Amazon, Stripe, Printify, Email, OpenMontage, Google Ads)
 - **Daily Tracking:** Automated via income-streams.yml (runs 08:00–20:00 UTC daily)
 - **Ledger:** MongoDB `revenue_ledger`, `transaction_log`, `referral_attribution`
-- **Reporting:** Dashboard live at profitengine-tau.vercel.app/dashboard
+- **Reporting:** Dashboard live at app.alreadyherellc.com/dashboard
 
 ### Q3 2026 Projections
 - **Baseline (conservative):** $180K/month (Associates + Stripe)
@@ -168,7 +168,7 @@ Videos to record (scripts ready in YOUTUBE_LAUNCH_PACKAGE.md):
 
 ## DEPLOYMENT CHECKLIST — 100% COMPLETE
 
-- ✅ Frontend built and deployed to Vercel (profitengine-tau.vercel.app)
+- ✅ Frontend built and deployed to Vercel (app.alreadyherellc.com)
 - ✅ Backend running on OCI Always Free (129.146.236.177:8001)
 - ✅ MongoDB Atlas cluster operational (3 collections: revenue_ledger, transaction_log, referral_attribution)
 - ✅ GitHub Actions pipelines live (ci.yml, deploy.yml, daily-content.yml, income-streams.yml)
@@ -222,7 +222,7 @@ Date: 2026-06-25 14:00 UTC
 ```
 User (YouTube/Affiliate Search)
     ↓
-[Vercel] profitengine-tau.vercel.app
+[Vercel] app.alreadyherellc.com
     ├── Dashboard (React 19 + Next.js 15)
     ├── Blog/SEO (Content Factory output)
     └── Affiliate Link Router
@@ -254,7 +254,7 @@ User (YouTube/Affiliate Search)
 2. Link passes through Link Router (adds attribution)
 3. Purchase on target (Amazon/Printify/etc.)
 4. Webhook → OCI → MongoDB revenue_ledger
-5. Dashboard updates live (profitengine-tau.vercel.app/revenue)
+5. Dashboard updates live (app.alreadyherellc.com/revenue)
 6. Daily email digest sent (08:00 UTC)
 
 ### Content Path (Automated)
@@ -281,7 +281,7 @@ To verify system status at any time:
 
 ```bash
 # Frontend health
-curl https://profitengine-tau.vercel.app/health
+curl https://app.alreadyherellc.com/health
 
 # Backend health
 curl http://129.146.236.177:8001/api/health

@@ -6,7 +6,7 @@ PROJECT: ProfitEngine YouTube Channel Launch
 DATE: 2026-06-25 (3-hour execution window)
 CHANNEL: @ProfitEngineTrading
 GUMROAD LINK: https://gumroad.com/profitengine
-DASHBOARD: https://profitengine-tau.vercel.app
+DASHBOARD: https://app.alreadyherellc.com
 
 ================================================================================
 MISSION (3 HOURS EXACT)
@@ -75,7 +75,7 @@ VIDEO 1: System Overview (18 min)
     - Outro: Subscribe (17:30–18:00)
   Calls-to-Action:
     - Verbal: "Check out our dashboard"
-    - Text overlay: "https://profitengine-tau.vercel.app"
+    - Text overlay: "https://app.alreadyherellc.com"
     - Link in description: "Get Started"
 
 VIDEO 2: Affiliate Strategy (18 min)
@@ -161,7 +161,7 @@ EXTERNAL LINKS (ALL 3 REQUIRED IN DESCRIPTIONS)
 ================================================================================
 
 PRIMARY (Business):
-  https://profitengine-tau.vercel.app
+  https://app.alreadyherellc.com
   Purpose: Main dashboard, live metrics, trading interface
   Audience: Users ready to trade
   Required in: V1, V2, V3, V4, V5 (all 5 videos)
@@ -265,7 +265,7 @@ PHASE 0.2: DESCRIPTION & BRANDING (20 min)
   1. Go to Settings → About tab
   2. Paste description (copy from YOUTUBE_METADATA_TEMPLATE.txt)
   3. Add external links:
-     • Dashboard: https://profitengine-tau.vercel.app
+     • Dashboard: https://app.alreadyherellc.com
      • Gumroad: https://gumroad.com/profitengine
      • Content: https://quantam101.github.io/content
   4. Add keywords (algorithmic trading, affiliate marketing, passive income, etc.)
@@ -486,7 +486,7 @@ OFFICIAL:
   • YouTube Help: https://support.google.com/youtube
 
 PROFITENGINE LINKS:
-  • Dashboard: https://profitengine-tau.vercel.app
+  • Dashboard: https://app.alreadyherellc.com
   • Gumroad: https://gumroad.com/profitengine
   • Content: https://quantam101.github.io/content
 
@@ -517,7 +517,7 @@ DOCUMENTATION (Do Before Hour 0):
   □ Have YOUTUBE_LAUNCH_TIMELINE.txt open (quick reference)
 
 LINKS (Do Before Hour 0):
-  □ Test Dashboard link: https://profitengine-tau.vercel.app (loads?)
+  □ Test Dashboard link: https://app.alreadyherellc.com (loads?)
   □ Test Gumroad link: https://gumroad.com/profitengine (accessible?)
   □ Test Content link: https://quantam101.github.io/content (accessible?)
 

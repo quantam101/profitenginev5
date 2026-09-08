@@ -56,7 +56,7 @@ DISTILLATION_EXPENSIVE_MODEL=gemini-2.5-flash
 DISTILLATION_CACHE_TTL_HOURS=168
 COHORT_TOTAL_SEATS=100
 COHORT_LABEL=Cohort 1
-APP_PUBLIC_URL=https://profitengine.alreadyherellc.com
+APP_PUBLIC_URL=https://app.alreadyherellc.com
 EOF
 
 # 6. Run the backend:
@@ -67,12 +67,12 @@ docker run -d --name pev5 --restart unless-stopped \
 # 7. Set up an HTTPS reverse proxy with Caddy (auto SSL):
 sudo apt install -y caddy
 sudo tee /etc/caddy/Caddyfile <<EOF
-api.YOURDOMAIN.com {
+api.alreadyherellc.com {
     reverse_proxy localhost:8001
 }
 EOF
 sudo systemctl reload caddy
-# point api.YOURDOMAIN.com DNS → your Oracle public IP
+# point api.alreadyherellc.com DNS → your Oracle public IP
 ```
 
 ### Option B — Koyeb (one-click, sleeps after inactivity)
@@ -104,16 +104,16 @@ sudo systemctl reload caddy
 3. **Framework Preset**: Other
 4. **Root Directory**: leave empty (the `vercel.json` at repo root handles it)
 5. **Environment Variables**:
-   - `REACT_APP_BACKEND_URL` = `https://api.YOURDOMAIN.com` (or your Koyeb/Render URL)
-6. **Deploy**. Vercel gives you `https://profitenginev5.vercel.app`.
-7. **Custom domain**: add `profitengine.yourdomain.com` → Vercel auto-issues SSL.
+   - `REACT_APP_BACKEND_URL` = `https://api.alreadyherellc.com` (or your Koyeb/Render URL)
+6. **Deploy**. Vercel gives you a preview URL.
+7. **Custom domain**: add `app.alreadyherellc.com` (or your domain) → Vercel auto-issues SSL.
 
 ---
 
 ## Step 4 — Stripe webhook (production)
 
 1. https://dashboard.stripe.com/webhooks → **Add endpoint**
-2. URL: `https://api.YOURDOMAIN.com/api/webhook/stripe`
+2. URL: `https://api.alreadyherellc.com/api/webhook/stripe`
 3. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Copy the **Signing secret** (`whsec_…`) → set as `STRIPE_WEBHOOK_SECRET` in your backend env
 5. Restart the backend container/service to pick it up
@@ -124,7 +124,7 @@ sudo systemctl reload caddy
 
 ```bash
 # Replace with your actual production URL:
-BASE=https://api.YOURDOMAIN.com
+BASE=https://api.alreadyherellc.com
 
 curl -sS $BASE/api/health
 curl -sS $BASE/api/launch/social-proof
@@ -132,7 +132,7 @@ curl -sS $BASE/api/agents | python3 -c "import sys,json;print(len(json.load(sys.
 # Should print "20 agents"
 ```
 
-Then open `https://profitengine.yourdomain.com` and click **Get early access** → checkout flow should redirect to a real Stripe checkout page on `checkout.stripe.com`.
+Then open `https://app.alreadyherellc.com` and click **Get early access** → checkout flow should redirect to a real Stripe checkout page on `checkout.stripe.com`.
 
 ---
 

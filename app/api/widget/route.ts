@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const ref   = (searchParams.get('ref')   ?? '').replace(/[^A-Za-z0-9_-]/g, '');
   const theme = (searchParams.get('theme') ?? 'dark').replace(/[^a-z]/g, '');
-  const host  = request.headers.get('host') ?? 'profitengine.alreadyherellc.com';
+  const host  = request.headers.get('host') ?? 'app.alreadyherellc.com';
   const proto = host.startsWith('127.') || process.env.NODE_ENV === 'development' ? 'http' : 'https';
   const origin = `${proto}://${host}`;
 

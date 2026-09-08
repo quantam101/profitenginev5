@@ -123,7 +123,7 @@ HOUR 2: UPLOAD & SCHEDULING (02:15 – 03:00) [45 minutes]
 │ 02:15  │ Open text editor                  │ 🟦 IN     │ Editor loaded         │
 │ 02:16  │ Copy metadata from template       │ 🟦 IN     │ All 5 sections copied │
 │ 02:18  │ Verify all 3 URLs active:         │ 🟦 VERIFY │ Links test passed     │
-│ 02:18  │  • profitengine-tau.vercel.app    │ 🟦 VERIFY │ ✓ Dashboard live      │
+│ 02:18  │  • app.alreadyherellc.com    │ 🟦 VERIFY │ ✓ Dashboard live      │
 │ 02:19  │  • gumroad.com/profitengine       │ 🟦 VERIFY │ ✓ Shop page live      │
 │ 02:20  │  • quantam101.github.io/content   │ 🟦 VERIFY │ ✓ Docs live           │
 │ 02:22  │ Check timestamps match videos     │ 🟦 VERIFY │ All ~18 min correct   │
@@ -279,7 +279,7 @@ FINAL COMPLETION DASHBOARD
         └────────────────────────────────────────────────────┘
 
         ┌─ LAUNCH LINKS VERIFIED ACTIVE ─────────────────────┐
-        │ ✅ Dashboard: https://profitengine-tau.vercel.app    │
+        │ ✅ Dashboard: https://app.alreadyherellc.com    │
         │ ✅ Gumroad: https://gumroad.com/profitengine        │
         │ ✅ Content: https://quantam101.github.io/content     │
         │ All links tested, clickable, in all 5 descriptions  │

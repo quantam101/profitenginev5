@@ -46,4 +46,4 @@ jobs:
           echo "Agent: ${{ github.event.inputs.agent_type }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Directive: ${{ github.event.inputs.directive }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Dispatched at: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
-          echo "OCI Server: 129.146.236.177" >> "$GITHUB_STEP_SUMMARY"
+          echo "Runtime URL: ${{ secrets.RUNTIME_API_URL != '' && 'configured' || 'not set' }}" >> "$GITHUB_STEP_SUMMARY"

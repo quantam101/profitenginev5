@@ -26,10 +26,10 @@
 All 4 A records set in GoDaddy → 129.146.236.177. TLS certs live.
 
 Live URLs:
-- https://profitengine.alreadyherellc.com        ← main dashboard
-- https://api.profitengine.alreadyherellc.com     ← API
-- https://status.profitengine.alreadyherellc.com  ← Uptime Kuma
-- https://app.profitengine.alreadyherellc.com     ← app
+- https://app.alreadyherellc.com        ← main dashboard
+- https://api.alreadyherellc.com     ← API
+- https://status.alreadyherellc.com  ← Uptime Kuma
+- https://app.alreadyherellc.com     ← app
 
 ### 2. Blog Publishing API Keys (revenue-enabling)
 Add these to GitHub Secrets (https://github.com/quantam101/profitenginev5/settings/secrets/actions):
@@ -109,7 +109,7 @@ C:\Users\alrea\profitengine-ed25519.pub    # public key
 
 ```powershell
 # Trigger deploy (uses current GH_TOKEN session)
-$env:GH_TOKEN = "YOUR_GITHUB_PAT_HERE"
+$env:GH_TOKEN = (Read-Host "GitHub PAT")
 gh workflow run deploy.yml -R quantam101/profitenginev5 --ref main
 gh run watch --repo quantam101/profitenginev5
 
@@ -119,8 +119,8 @@ gh workflow run docker-guard.yml -R quantam101/profitenginev5 --ref main
 
 ```powershell
 # Update a GitHub secret (example: DEVTO_API_KEY)
-$env:GH_TOKEN = "YOUR_GITHUB_PAT_HERE"
-gh secret set DEVTO_API_KEY --body "your-key-here" -R quantam101/profitenginev5
+$env:GH_TOKEN = (Read-Host "GitHub PAT")
+gh secret set DEVTO_API_KEY --body (Read-Host "Secret value") -R quantam101/profitenginev5
 ```
 
 ---

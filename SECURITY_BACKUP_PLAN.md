@@ -124,7 +124,7 @@ gh secret list --repo quantam101/profitenginev5 | grep -E "OCI_|TWITTER|TIKTOK|L
 ## Tier 3: VERCEL (Frontend Deployment)
 
 ### What Goes to Vercel
-- ✅ Next.js frontend (profitengine-tau.vercel.app)
+- ✅ Next.js frontend (app.alreadyherellc.com)
 - ✅ Environment variables
 - ✅ Domain configuration
 - ✅ Auto-deployments from main
@@ -135,8 +135,8 @@ gh secret list --repo quantam101/profitenginev5 | grep -E "OCI_|TWITTER|TIKTOK|L
 # Set these in Vercel Console → Settings → Environment Variables
 
 # API endpoints
-NEXT_PUBLIC_API_URL=https://profitengine-tau.vercel.app
-PROFITENGINE_URL=https://profitengine-tau.vercel.app
+NEXT_PUBLIC_API_URL=https://app.alreadyherellc.com
+PROFITENGINE_URL=https://app.alreadyherellc.com
 
 # Social credentials (if needed on frontend)
 NEXT_PUBLIC_TWITTER_HANDLE=@alreadyherellc
@@ -346,7 +346,7 @@ vercel --prod
 | System | Location | Access | Backup |
 |--------|----------|--------|--------|
 | GitHub | quantam101/profitenginev5 | https://github.com | ✅ |
-| Vercel | profitengine-tau.vercel.app | https://vercel.com | ✅ |
+| Vercel | app.alreadyherellc.com | https://vercel.com | ✅ |
 | OCI | 129.146.236.177 | SSH key | ✅ |
 | Docker Hub | quantam101/profitengine | https://hub.docker.com | ✅ |
 | Local | ~/profitengine-backups | Encrypted GPG | ✅ |

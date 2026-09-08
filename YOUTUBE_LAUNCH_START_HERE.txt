@@ -42,7 +42,7 @@ PREREQUISITES (Have these ready):
   □ Google account (verified email for YouTube)
   □ Backup storage (Google Drive, OneDrive, AWS S3)
   □ All 3 external links verified active:
-      • https://profitengine-tau.vercel.app
+      • https://app.alreadyherellc.com
       • https://gumroad.com/profitengine
       • https://quantam101.github.io/content
 

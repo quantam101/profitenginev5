@@ -1,7 +1,14 @@
 #!/bin/bash
 # TokenForge server full setup — run via OCI Run Command or serial console
-# Server: 129.146.236.177
+# The OCI host 129.146.236.177 is decommissioned. Set OCI_HOST to a live host.
 set -e
+
+DEAD_OCI_IP="129.146.236.177"
+OCI_HOST="${OCI_HOST:-}"
+if [ -z "$OCI_HOST" ] || [ "$OCI_HOST" = "$DEAD_OCI_IP" ]; then
+  echo "ERROR: OCI host $DEAD_OCI_IP is decommissioned. Set OCI_HOST to a live host." >&2
+  exit 1
+fi
 
 echo "=== TokenForge Server Setup ==="
 echo "Started: $(date)"

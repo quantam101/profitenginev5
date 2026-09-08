@@ -19,8 +19,8 @@
 │  │                                                          │
 │  FRONTEND LAYER                                             │
 │  ├─ Vercel (Next.js, auto-deploy, serverless)              │
-│  │  ├─ profitengine-tau.vercel.app                         │
-│  │  └─ profitenginev5.vercel.app (prod)                    │
+│  │  ├─ app.alreadyherellc.com                         │
+│  │  └─ app.alreadyherellc.com (prod)                    │
 │  │                                                          │
 │  DATABASE LAYER                                             │
 │  ├─ Neon PostgreSQL (shared, multi-database)               │
@@ -127,7 +127,7 @@ Workflow:
 5. Live in 2-3 minutes
 
 Repos deployed:
-├── profitenginev5 → profitengine-tau.vercel.app
+├── profitenginev5 → app.alreadyherellc.com
 ├── profitenginev5-staging → staging.vercel.app
 └── future-project → future-project.vercel.app
 ```

@@ -7,7 +7,7 @@ Set it in your `.env` file before deploying:
 
 ```bash
 # .env
-SITE_DOMAIN=profitengine.alreadyherellc.com
+SITE_DOMAIN=app.alreadyherellc.com
 ACME_EMAIL=ops@alreadyherellc.com
 ```
 
@@ -112,7 +112,7 @@ docker-compose.yml       Uses ${SITE_DOMAIN} env var
 [ ] Record OCI public IP
 [ ] Add DNS records (A + CNAMEs)
 [ ] Copy .env.example to .env on server
-[ ] Set SITE_DOMAIN=profitengine.alreadyherellc.com in .env
+[ ] Set SITE_DOMAIN=app.alreadyherellc.com in .env
 [ ] Set ACME_EMAIL=ops@alreadyherellc.com in .env
 [ ] Replace server-side passwords in .env
 [ ] Run docker compose up -d --build

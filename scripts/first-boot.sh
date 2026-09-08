@@ -102,6 +102,14 @@ else
   }
 fi
 
+# ── 0. OCI host guard (the old 129.146.236.177 box is decommissioned) ─
+DEAD_OCI_IP="129.146.236.177"
+OCI_HOST="${OCI_HOST:-}"
+if [ -z "$OCI_HOST" ] || [ "$OCI_HOST" = "$DEAD_OCI_IP" ]; then
+  echo "ERROR: OCI host $DEAD_OCI_IP is decommissioned. Set OCI_HOST to a live host before running first-boot." >&2
+  exit 1
+fi
+
 # ── 5. Run bootstrap with all secrets ─────────────────────────────
 log "Running bootstrap-server.sh …"
 cd "$REPO_DIR"
@@ -112,10 +120,11 @@ export AMAZON_PARTNER_TAG DEVTO_API_KEY HASHNODE_API_KEY HASHNODE_PUB_ID MEDIUM_
 bash scripts/bootstrap-server.sh
 
 log ""
+HOST_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo '$OCI_HOST')
 log "╔══════════════════════════════════════════════════════════════╗"
 log "║  FIRST BOOT COMPLETE                                         ║"
 log "╠══════════════════════════════════════════════════════════════╣"
-log "║  Dashboard: http://129.146.236.177:3000                       ║"
-log "║  Health:    http://129.146.236.177:3000/api/health            ║"
+log "║  Dashboard: http://${HOST_IP}:3000                           ║"
+log "║  Health:    http://${HOST_IP}:3000/api/health                ║"
 log "║  CI/CD:     every git push to main auto-deploys now          ║"
 log "╚══════════════════════════════════════════════════════════════╝"

@@ -8,7 +8,9 @@ import json
 import os
 import urllib.request
 
-RECIPIENT = "yourfriends@medium.com"
+RECIPIENT = os.getenv("MEDIUM_CONTACT_EMAIL", "")
+if not RECIPIENT:
+    raise SystemExit("Set MEDIUM_CONTACT_EMAIL to the real Medium API contact address.")
 SUBJECT = "API Access Request - ProfitEngine v5 / Already Here LLC"
 SENDER = "Stephen - Already Here LLC <dispatch@alreadyherellc.com>"
 
@@ -22,7 +24,7 @@ body = (
     "Medium is the final distribution channel we want to activate.\n\n"
     "Details:\n"
     "- Company: Already Here LLC\n"
-    "- Website: https://profitengine.alreadyherellc.com\n"
+    "- Website: https://www.alreadyherellc.com\n"
     "- Use case: Automated cross-posting of original long-form articles (1,000-1,500 words) "
     "on AI tools, passive income, and developer productivity\n"
     "- Scopes needed: basicProfile, publishPost\n"
@@ -38,7 +40,7 @@ body = (
     "Stephen\n"
     "Already Here LLC\n"
     "dispatch@alreadyherellc.com\n"
-    "https://profitengine.alreadyherellc.com"
+    "https://www.alreadyherellc.com"
 )
 
 

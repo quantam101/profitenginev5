@@ -46,14 +46,14 @@
    affiliate strategies, and autonomous wealth-building systems.
    
    Official links:
-   Dashboard: https://profitengine-tau.vercel.app
+   Dashboard: https://app.alreadyherellc.com
    Resources: https://gumroad.com/profitengine
    
    Disclaimer: Not financial advice. Trading involves risk. 
    See terms for affiliate disclosures.
    ```
 4. Add channel links:
-   - Website: https://profitengine-tau.vercel.app
+   - Website: https://app.alreadyherellc.com
    - Gumroad: https://gumroad.com/profitengine
 5. Add channel keywords:
    - algorithmic trading, affiliate marketing, automated systems, crypto trading, wealth building
@@ -273,7 +273,7 @@ Description:
   Welcome to ProfitEngine Trading! Learn how our algorithmic system 
   automates profitable trades 24/7.
   
-  📊 Dashboard: https://profitengine-tau.vercel.app
+  📊 Dashboard: https://app.alreadyherellc.com
   🛍️ Get Started: https://gumroad.com/profitengine
   📚 Docs: https://quantam101.github.io/content
   
@@ -492,7 +492,7 @@ VIDEO 5 (Earnings Proof)
 ✓ YouTube channel accessible: youtube.com/@ProfitEngineTrading
 ✓ Description displays: "ProfitEngine Trading — Real-time algorithmic..."
 ✓ Gumroad link clickable: https://gumroad.com/profitengine
-✓ Dashboard link clickable: https://profitengine-tau.vercel.app
+✓ Dashboard link clickable: https://app.alreadyherellc.com
 ✓ Profile image visible (branded logo)
 ✓ Upload count: 0 (until first publish date)
 ✓ Subscriber count: 0
@@ -655,7 +655,7 @@ NEXT MILESTONE:   Jun 26, 2026 9:00 AM PT — Video 1 auto-publishes
 - Analytics: https://www.youtube.com/analytics
 
 **Content Resources:**
-- Dashboard: https://profitengine-tau.vercel.app
+- Dashboard: https://app.alreadyherellc.com
 - Gumroad: https://gumroad.com/profitengine
 - Docs: https://quantam101.github.io/content
 

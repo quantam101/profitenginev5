@@ -3,7 +3,7 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Daily Execution Checklist — 8am, 12pm, 3pm, 6pm | Weekly: Sunday 6pm
-Open: https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/
+Open: (paste the live Google Sheets URL here)
 Files: DAILY_EXECUTION_CHECKLIST.md | SLACK_METRIC_TEMPLATES.json | METRIC_QUICK_REFERENCE_CARD.txt
 
 TARGETS: Daily $150+ | Weekly $1,000+ | Email >2.5% CTR | Video >3% engagement | Signals >55% win rate
@@ -21,7 +21,7 @@ COPY-PASTE INTO CHANNEL DESCRIPTION:
 📊 PROFITENGINE DAILY METRICS TRACKING
 Daily standup times: 8 AM | 12 PM | 3 PM | 6 PM
 Weekly report: Sunday 6 PM
-Spreadsheet: [YOUR_SHEET_LINK]
+Spreadsheet: (paste the live Google Sheets link here)
 
 QUICK TARGETS
 • Daily Revenue: $150+ (Email $50 + Video $30 + Signals $70)
@@ -52,27 +52,27 @@ COPY-PASTE INTO CHANNEL BOOKMARKS:
 
 Bookmark 1:
 Title: Morning Standup (8 AM)
-Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Link: (link to DAILY_EXECUTION_CHECKLIST.md in the repo or documentation site)
 Emoji: :sunrise:
 
 Bookmark 2:
 Title: Evening Summary (6 PM)
-Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Link: (link to DAILY_EXECUTION_CHECKLIST.md in the repo or documentation site)
 Emoji: :sunset:
 
 Bookmark 3:
 Title: Weekly Report (Sunday)
-Link: [Link to DAILY_EXECUTION_CHECKLIST.md]
+Link: (link to DAILY_EXECUTION_CHECKLIST.md in the repo or documentation site)
 Emoji: :calendar:
 
 Bookmark 4:
 Title: Quick Reference Card
-Link: [Link to METRIC_QUICK_REFERENCE_CARD.txt]
+Link: (link to METRIC_QUICK_REFERENCE_CARD.txt in the repo or documentation site)
 Emoji: :lightning:
 
 Bookmark 5:
 Title: Metrics Tracking Sheet
-Link: [YOUR_GOOGLE_SHEETS_LINK]
+Link: (paste the live Google Sheets link here)
 Emoji: :bar_chart:
 
 ---
@@ -95,7 +95,7 @@ TOTAL: $150+
 
 WEEKLY TARGET: $1,000+
 
-SPREADSHEET: [INSERT_LINK]
+SPREADSHEET: (paste the live Google Sheets link here)
 
 ---
 
@@ -165,8 +165,8 @@ TIER SYSTEM FOR CONTENT PERFORMANCE:
 
 IMPORTANT NOTES:
 ✅ Affiliate tag: alreadyhere-20 (required in all links)
-✅ OCI Backend: 129.146.236.177 (check health at 8 AM)
-✅ Vercel Frontend: profitengine-tau.vercel.app (check deployment)
+✅ API / runtime: https://api.alreadyherellc.com/api/health and https://profitengine-runtime.onrender.com/health (check at 8 AM)
+✅ Vercel Frontend: https://app.alreadyherellc.com (check deployment)
 ✅ No placeholders in production URLs
 ✅ All revenue targets are daily minimums
 

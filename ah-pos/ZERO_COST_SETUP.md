@@ -128,7 +128,7 @@ psql $DATABASE_URL -c "SELECT COUNT(*) FROM alerts WHERE status = 'new'"
 
 ### Check Live System
 
-- **Frontend:** https://profitengine-tau.vercel.app
+- **Frontend:** https://app.alreadyherellc.com
 - **Database:** Neon dashboard
 - **Logs:** GitHub Actions → daily-sync workflow
 

@@ -18,7 +18,7 @@ ProfitEngine Trading System Overview | Automated Wealth Building
 DESCRIPTION:
 Welcome to ProfitEngine Trading! Learn how our algorithmic system automates profitable trades 24/7.
 
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 
@@ -52,7 +52,7 @@ How to Monetize Trading Insights | Affiliate Profit Walkthrough
 DESCRIPTION:
 Discover how to earn passive income by promoting trading tools and affiliate programs. We walk through real commission structures, account setup, and first-month projections.
 
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 
@@ -86,7 +86,7 @@ Risk Management & Backtesting | Staying Profitable Long-Term
 DESCRIPTION:
 Learn how to protect your capital and stay profitable through proper risk management. We demonstrate drawdown limits, position sizing, and 2-year backtest results.
 
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 
@@ -120,7 +120,7 @@ Get Started in 15 Minutes | Complete Setup Guide
 DESCRIPTION:
 Follow along as we set up ProfitEngine from scratch. Account creation, broker integration, and your first trade — all in 15 minutes.
 
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 
@@ -159,7 +159,7 @@ Earnings Proof & Success Stories | Real Results from ProfitEngine
 DESCRIPTION:
 See real results from ProfitEngine users. Dashboard metrics, success stories, and community wins — all anonymized and verified.
 
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 
@@ -251,7 +251,7 @@ https://gumroad.com/profitengine
 [Status: Active] [Click-through tracked: Yes]
 
 SECONDARY LINK (Dashboard):
-https://profitengine-tau.vercel.app
+https://app.alreadyherellc.com
 [Status: Active] [Live metrics: Yes]
 
 TERTIARY LINK (Content/Docs):
@@ -301,7 +301,7 @@ COPY-PASTE QUICK REFERENCE
 
 DESCRIPTION FOOTER (Paste in all 5 videos):
 ────────────────────────────────────────
-📊 Dashboard: https://profitengine-tau.vercel.app
+📊 Dashboard: https://app.alreadyherellc.com
 🛍️ Get Started: https://gumroad.com/profitengine
 📚 Docs: https://quantam101.github.io/content
 

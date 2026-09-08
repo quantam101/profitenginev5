@@ -30,7 +30,7 @@ PHASE 0.2: DESCRIPTION & BRANDING
 ✅ About tab displays full description (300+ characters)
 ✅ First line readable: "ProfitEngine Trading — Real-time algorithmic..."
 ✅ All 3 external links present:
-   ✓ Dashboard link: https://profitengine-tau.vercel.app (clickable)
+   ✓ Dashboard link: https://app.alreadyherellc.com (clickable)
    ✓ Gumroad link: https://gumroad.com/profitengine (clickable)
    ✓ Content link: https://quantam101.github.io/content (clickable)
 ✅ Profile image uploaded (shows branded logo)
@@ -284,7 +284,7 @@ PHASE 2.1: METADATA PREPARATION
    ✓ V4: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
    ✓ V5: 0:00, 0:30, 4:00, 9:00, 13:00, 16:00, 17:30 (7 chapters)
 ✅ All 3 external links verified active:
-   ✓ https://profitengine-tau.vercel.app (responds <2 sec)
+   ✓ https://app.alreadyherellc.com (responds <2 sec)
    ✓ https://gumroad.com/profitengine (product page loads)
    ✓ https://quantam101.github.io/content (docs accessible)
 ✅ No placeholder text remaining (no "<replace>", "TODO", "your-domain", etc.)
