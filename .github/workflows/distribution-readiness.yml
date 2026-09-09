@@ -1,0 +1,69 @@
+name: Distribution Readiness
+
+on:
+  schedule:
+    # Run ten minutes before the canonical daily publisher.
+    - cron: '55 6 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/distribution-readiness.yml'
+      - 'scripts/distribution_preflight.py'
+      - '.github/workflows/daily-content.yml'
+      - 'runtime/eaos/social_engine.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distribution-readiness
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Verify distribution credential coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+      DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+      HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+      HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
+      MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+      MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+      TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+      TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+      TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+      TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+      LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+      REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+      REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+      REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+      REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+      TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Validate readiness checker
+        run: python -m py_compile scripts/distribution_preflight.py
+
+      - name: Audit configured channels
+        run: python scripts/distribution_preflight.py
