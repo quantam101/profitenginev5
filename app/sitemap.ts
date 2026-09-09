@@ -4,6 +4,8 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.alreadyherellc.
 
 const routes = [
   '/',
+  '/newsletter',
+  '/newsletter/30-day-checklist',
   '/command-center/agents',
   '/command-center/approvals',
   '/command-center/changelog',
