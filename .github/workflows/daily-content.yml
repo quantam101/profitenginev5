@@ -1,15 +1,21 @@
 name: Daily Content Publisher
 
 # Publishes one SEO article per day to GitHub Pages (quantam101/content).
-# Model IDs are pinned to current production endpoints and can be overridden
-# by repository/environment configuration when needed.
-# Zero infrastructure required - runs entirely on GitHub's free CI runners.
-# Topics rotate from scripts/article_topics.py (90-topic cycle).
+# The primary publication path is treated as revenue infrastructure: a green
+# workflow now means that a dated post actually exists in the canonical content
+# repository. Optional syndication/social failures remain non-fatal.
 
 on:
   schedule:
-    # 07:05 UTC daily - 5 min after n8n cron on the server (avoids overlap)
+    # 07:05 UTC daily / 00:05 Phoenix (Arizona does not observe DST).
     - cron: '5 7 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/daily-content.yml'
+      - 'scripts/publish_article.py'
+      - 'scripts/article_topics.py'
   workflow_dispatch:
     inputs:
       topic:
@@ -33,19 +39,26 @@ on:
           - 'false'
           - 'true'
 
-# Queue concurrent runs instead of racing — combined with the same-day guard
-# in publish_article.py this makes double-dispatches publish exactly one post.
+permissions:
+  contents: read
+
+# Queue concurrent runs instead of racing. Combined with the same-day guard in
+# publish_article.py, this keeps scheduled/manual/push runs idempotent.
 concurrency:
-  group: daily-content
+  group: daily-content-production
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Generate and publish article
+    name: Generate, publish, and verify article
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CONTENT_OWNER: quantam101
+      CONTENT_REPO: content
+      CONTENT_BRANCH: main
+      CONTENT_DIR: _posts
 
     steps:
       - name: Checkout code
@@ -58,7 +71,44 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install httpx pillow
+        run: python -m pip install --disable-pip-version-check httpx pillow
+
+      - name: Preflight required publisher configuration
+        shell: bash
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CONTENT_REPO_TOKEN}" ]]; then
+            echo '::error::CONTENT_REPO_TOKEN is missing; canonical article publishing cannot work.'
+            exit 1
+          fi
+          if [[ -z "${GROQ_API_KEY}" && -z "${GEMINI_API_KEY}" ]]; then
+            echo '::error::Both GROQ_API_KEY and GEMINI_API_KEY are missing.'
+            exit 1
+          fi
+          python - <<'PY'
+          import os
+          import httpx
+
+          token = os.environ['CONTENT_REPO_TOKEN']
+          r = httpx.get(
+              'https://api.github.com/repos/quantam101/content',
+              headers={
+                  'Authorization': f'token {token}',
+                  'Accept': 'application/vnd.github+json',
+                  'User-Agent': 'ProfitEngine-Daily-Content-Preflight',
+              },
+              timeout=20,
+          )
+          if r.status_code != 200:
+              raise SystemExit(
+                  f'CONTENT_REPO_TOKEN cannot access quantam101/content: HTTP {r.status_code}'
+              )
+          print('[OK] Canonical content repository is reachable with publisher token')
+          PY
 
       - name: Publish article + social blast
         id: publish
@@ -66,12 +116,13 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GMAOS_GROQ_MODEL: openai/gpt-oss-20b
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GMAOS_GEMINI_MODEL: gemini-3.7-flash
+          GMAOS_GEMINI_MODEL: gemini-3.8-flash
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
           GITHUB_CONTENT_OWNER: quantam101
           GITHUB_CONTENT_REPO: content
           GITHUB_CONTENT_BRANCH: main
           GITHUB_CONTENT_DIR: _posts
+          CONTENT_SITE_BASE: https://www.alreadyherellc.com/content
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
@@ -83,8 +134,7 @@ jobs:
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
           FORCE_PUBLISH: ${{ github.event.inputs.force_publish }}
-          PYTHONUTF8: "1"
-          # EAOS Social credentials - add these secrets to enable each platform
+          PYTHONUTF8: '1'
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
@@ -106,10 +156,123 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: python scripts/publish_article.py
 
+      - name: Verify canonical post exists
+        if: ${{ github.event.inputs.verify_only != 'true' }}
+        id: verify_post
+        shell: bash
+        env:
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import time
+          from datetime import datetime, timezone
+          import httpx
+
+          date_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+          url = 'https://api.github.com/repos/quantam101/content/contents/_posts'
+          headers = {
+              'Authorization': f"token {os.environ['CONTENT_REPO_TOKEN']}",
+              'Accept': 'application/vnd.github+json',
+              'User-Agent': 'ProfitEngine-Daily-Content-Verifier',
+          }
+
+          last_error = None
+          for attempt in range(3):
+              try:
+                  r = httpx.get(url, headers=headers, params={'ref': 'main'}, timeout=30)
+                  r.raise_for_status()
+                  posts = r.json()
+                  matches = [p.get('name', '') for p in posts if p.get('name', '').startswith(date_str)]
+                  if matches:
+                      print(f'[OK] Canonical daily article verified: {matches[-1]}')
+                      with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+                          out.write('verified=true\n')
+                          out.write(f'post={matches[-1]}\n')
+                      raise SystemExit(0)
+                  last_error = f'No _posts entry dated {date_str}'
+              except Exception as exc:
+                  last_error = str(exc)
+              time.sleep(5 * (attempt + 1))
+
+          print(f'[WARN] Primary verification failed after retries: {last_error}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write('verified=false\n')
+          PY
+
+      - name: Self-heal one missed primary publication
+        if: ${{ github.event.inputs.verify_only != 'true' && steps.verify_post.outputs.verified != 'true' }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GMAOS_GROQ_MODEL: openai/gpt-oss-20b
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAOS_GEMINI_MODEL: gemini-3.8-flash
+          GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+          GITHUB_CONTENT_OWNER: quantam101
+          GITHUB_CONTENT_REPO: content
+          GITHUB_CONTENT_BRANCH: main
+          GITHUB_CONTENT_DIR: _posts
+          CONTENT_SITE_BASE: https://www.alreadyherellc.com/content
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
+          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
+          MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
+          MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
+          AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+          CONTENT_VERIFY_ONLY: 'false'
+          FORCE_PUBLISH: 'true'
+          PYTHONUTF8: '1'
+        run: |
+          echo '[RECOVERY] No canonical post was detected. Retrying publication once.'
+          python scripts/publish_article.py
+
+      - name: Final canonical verification
+        if: ${{ github.event.inputs.verify_only != 'true' }}
+        shell: bash
+        env:
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          import httpx
+
+          date_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+          r = httpx.get(
+              'https://api.github.com/repos/quantam101/content/contents/_posts',
+              headers={
+                  'Authorization': f"token {os.environ['CONTENT_REPO_TOKEN']}",
+                  'Accept': 'application/vnd.github+json',
+                  'User-Agent': 'ProfitEngine-Daily-Content-Final-Verifier',
+              },
+              params={'ref': 'main'},
+              timeout=30,
+          )
+          r.raise_for_status()
+          matches = [
+              p.get('name', '')
+              for p in r.json()
+              if p.get('name', '').startswith(date_str)
+          ]
+          if not matches:
+              raise SystemExit(
+                  f'Canonical publication failed: no _posts entry dated {date_str}. '
+                  'This workflow is intentionally failing instead of reporting a false green.'
+              )
+          print(f'[OK] Final production proof: {matches[-1]}')
+          PY
+
       - name: Summary
         if: always()
         run: |
-          echo "### Content Pipeline" >> $GITHUB_STEP_SUMMARY
-          echo "Ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
-          echo "Site: https://quantam101.github.io/content" >> $GITHUB_STEP_SUMMARY
-          echo "Dev.to: https://dev.to/quantam101" >> $GITHUB_STEP_SUMMARY
+          echo '### Daily Content Pipeline' >> "$GITHUB_STEP_SUMMARY"
+          echo "Ran at: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Canonical site: https://www.alreadyherellc.com/content' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Content repository: https://github.com/quantam101/content' >> "$GITHUB_STEP_SUMMARY"
+          echo 'AI primary: Groq openai/gpt-oss-20b' >> "$GITHUB_STEP_SUMMARY"
+          echo 'AI fallback: Gemini gemini-3.8-flash' >> "$GITHUB_STEP_SUMMARY"
