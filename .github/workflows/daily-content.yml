@@ -2,8 +2,11 @@ name: Daily Content Publisher
 
 # Publishes one SEO article per day to GitHub Pages (quantam101/content).
 # The primary publication path is treated as revenue infrastructure: a green
-# workflow now means that a dated post actually exists in the canonical content
+# workflow means that a dated post actually exists in the canonical content
 # repository. Optional syndication/social failures remain non-fatal.
+# Pre-produced articles in data/scheduled_articles/YYYY-MM-DD.json are used
+# first, allowing tomorrow's article to be completed early without bypassing
+# the normal publication and distribution controls.
 
 on:
   schedule:
@@ -15,7 +18,9 @@ on:
     paths:
       - '.github/workflows/daily-content.yml'
       - 'scripts/publish_article.py'
+      - 'scripts/publish_scheduled_article.py'
       - 'scripts/article_topics.py'
+      - 'data/scheduled_articles/**'
   workflow_dispatch:
     inputs:
       topic:
@@ -42,8 +47,6 @@ on:
 permissions:
   contents: read
 
-# Queue concurrent runs instead of racing. Combined with the same-day guard in
-# publish_article.py, this keeps scheduled/manual/push runs idempotent.
 concurrency:
   group: daily-content-production
   cancel-in-progress: false
@@ -73,6 +76,11 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check httpx pillow
 
+      - name: Validate publisher code
+        run: |
+          python -m py_compile scripts/publish_article.py
+          python -m py_compile scripts/publish_scheduled_article.py
+
       - name: Preflight required publisher configuration
         shell: bash
         env:
@@ -81,12 +89,14 @@ jobs:
           CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
         run: |
           set -euo pipefail
+          TODAY="$(date -u +%F)"
+          SCHEDULED="data/scheduled_articles/${TODAY}.json"
           if [[ -z "${CONTENT_REPO_TOKEN}" ]]; then
             echo '::error::CONTENT_REPO_TOKEN is missing; canonical article publishing cannot work.'
             exit 1
           fi
-          if [[ -z "${GROQ_API_KEY}" && -z "${GEMINI_API_KEY}" ]]; then
-            echo '::error::Both GROQ_API_KEY and GEMINI_API_KEY are missing.'
+          if [[ ! -f "$SCHEDULED" && -z "${GROQ_API_KEY}" && -z "${GEMINI_API_KEY}" ]]; then
+            echo '::error::No scheduled article exists and both GROQ_API_KEY and GEMINI_API_KEY are missing.'
             exit 1
           fi
           python - <<'PY'
@@ -154,7 +164,17 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python scripts/publish_article.py
+        run: |
+          TODAY="$(date -u +%F)"
+          SCHEDULED="data/scheduled_articles/${TODAY}.json"
+          if [[ "${CONTENT_VERIFY_ONLY}" == "true" ]]; then
+            python scripts/publish_article.py
+          elif [[ -f "$SCHEDULED" ]]; then
+            echo "[SCHEDULED] Publishing pre-produced article: $SCHEDULED"
+            python scripts/publish_scheduled_article.py
+          else
+            python scripts/publish_article.py
+          fi
 
       - name: Verify canonical post exists
         if: ${{ github.event.inputs.verify_only != 'true' }}
@@ -226,9 +246,34 @@ jobs:
           CONTENT_VERIFY_ONLY: 'false'
           FORCE_PUBLISH: 'true'
           PYTHONUTF8: '1'
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           echo '[RECOVERY] No canonical post was detected. Retrying publication once.'
-          python scripts/publish_article.py
+          TODAY="$(date -u +%F)"
+          SCHEDULED="data/scheduled_articles/${TODAY}.json"
+          if [[ -f "$SCHEDULED" ]]; then
+            python scripts/publish_scheduled_article.py
+          else
+            python scripts/publish_article.py
+          fi
 
       - name: Final canonical verification
         if: ${{ github.event.inputs.verify_only != 'true' }}
@@ -270,8 +315,11 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          TODAY="$(date -u +%F)"
+          if [[ -f "data/scheduled_articles/${TODAY}.json" ]]; then MODE='pre-produced scheduled article'; else MODE='AI daily generation'; fi
           echo '### Daily Content Pipeline' >> "$GITHUB_STEP_SUMMARY"
           echo "Ran at: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mode: ${MODE}" >> "$GITHUB_STEP_SUMMARY"
           echo 'Canonical site: https://www.alreadyherellc.com/content' >> "$GITHUB_STEP_SUMMARY"
           echo 'Content repository: https://github.com/quantam101/content' >> "$GITHUB_STEP_SUMMARY"
           echo 'AI primary: Groq openai/gpt-oss-20b' >> "$GITHUB_STEP_SUMMARY"
