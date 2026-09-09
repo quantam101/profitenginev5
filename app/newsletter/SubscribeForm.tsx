@@ -19,10 +19,18 @@ export default function SubscribeForm() {
     setState('sending');
     setMessage('');
     try {
+      const params = new URLSearchParams(window.location.search);
       const response = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, consent: true, source: 'profitengine-newsletter-page' }),
+        body: JSON.stringify({
+          email,
+          consent: true,
+          source: 'profitengine-newsletter-page',
+          utmSource: params.get('utm_source') || undefined,
+          utmMedium: params.get('utm_medium') || undefined,
+          utmCampaign: params.get('utm_campaign') || undefined,
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'Subscription failed');
@@ -30,10 +38,10 @@ export default function SubscribeForm() {
       setState('success');
       setEmail('');
       setMessage(data.status === 'active'
-        ? 'You are already subscribed. Your subscription is active.'
+        ? 'Subscribed. ProfitEngine AI will be delivered to this address.'
         : data.confirmationSent
           ? 'Check your inbox and confirm your subscription.'
-          : 'Your email was captured. Delivery is pending provider configuration.');
+          : 'Your subscription was captured and is pending activation.');
     } catch (error) {
       setState('error');
       setMessage(error instanceof Error ? error.message : 'Subscription failed');

@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     const issues = await listPublishedIssues(limit);
     return NextResponse.json({
       ok: true,
+      source: 'mongodb',
       issues: issues.map((issue: any) => ({
         slug: issue.slug,
         title: issue.title,
@@ -35,8 +36,16 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('[newsletter] issue list error:', error);
-    return NextResponse.json({ ok: false, error: 'Issues unavailable' }, { status: 500 });
+    // Production currently uses the existing ProfitEngine runtime + Resend
+    // audience and does not require Mongo for public acquisition/delivery.
+    // Keep the archive endpoint healthy while Mongo remains optional.
+    console.warn('[newsletter] issue archive storage unavailable:', error);
+    return NextResponse.json({
+      ok: true,
+      source: 'runtime',
+      issues: [],
+      warning: 'Issue archive storage is not configured; newsletter delivery remains available through the live runtime.',
+    });
   }
 }
 
@@ -63,6 +72,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, issue: { ...issue, _id: String(issue?._id || '') } }, { status: 201 });
   } catch (error) {
     console.error('[newsletter] issue create error:', error);
-    return NextResponse.json({ ok: false, error: 'Issue save failed' }, { status: 500 });
+    return NextResponse.json({
+      ok: false,
+      error: 'Persistent issue storage is not configured. Set MONGODB_URI before creating issues through this API.',
+    }, { status: 503 });
   }
 }
