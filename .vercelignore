@@ -1,0 +1,2 @@
+# Generated demonstration artifacts are never part of the deployed application.
+code_merger/demo_output/

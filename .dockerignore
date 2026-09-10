@@ -7,3 +7,4 @@ data
 coverage
 tests
 *.test.js
+code_merger/demo_output

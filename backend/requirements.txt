@@ -1,14 +1,14 @@
 # ── server ───────────────────────────────────────────────────────────────────
-fastapi==0.124.0
+fastapi==0.141.1
 uvicorn[standard]==0.38.0
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 pydantic[email]==2.10.5
 httpx==0.28.1
 
 # ── database ─────────────────────────────────────────────────────────────────
 motor==3.6.0
 
-# ── LLM providers (direct SDKs — no  ────────────────────
+# ── LLM providers (direct SDKs) ──────────────────────────────────────────────
 anthropic>=0.40.0
 google-genai>=1.0.0
 openai>=1.0.0
@@ -18,5 +18,5 @@ stripe>=10.0.0
 resend>=2.0.0
 
 # ── tests ────────────────────────────────────────────────────────────────────
-pytest==8.3.4
-pytest-asyncio==0.24.0
+pytest==9.0.3
+pytest-asyncio==1.4.0
