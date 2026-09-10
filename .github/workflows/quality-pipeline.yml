@@ -1,7 +1,7 @@
 name: ProfitEngine v5 — Quality Pipeline
 
 # Five-stage CI/CD pipeline (Commit → Integration → E2E → Perf/Sec → Deploy)
-# co-exists with the legacy ci.yml. Triggered on push/PR to main and manually.
+# co-exists with ci.yml. Triggered on push/PR to main and manually.
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   PROD_SITE_URL: "https://www.alreadyherellc.com"
   PROD_HEALTH_URL: "https://api.alreadyherellc.com/api/health"
   PROFITENGINE_CANARY_URL: "https://api.alreadyherellc.com"
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with: { python-version: "${{ env.PYTHON_VERSION }}", cache: pip }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -59,8 +59,11 @@ jobs:
       - name: Frontend deps
         run: npm ci
 
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
       - name: ESLint
-        run: npm run lint || echo "lint passed with warnings — skipping"
+        run: npm run lint
 
   # ─── Stage 2 — integration (API contract, service-to-service) ───
   integration:
@@ -124,7 +127,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: package-lock.json }
       - uses: actions/setup-python@v6
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
