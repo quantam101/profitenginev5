@@ -22,7 +22,6 @@ env:
   PROFITENGINE_CANARY_URL: "https://api.alreadyherellc.com"
 
 jobs:
-  # ─── Stage 1 — pre-merge (fast feedback, < 5 min) ───────────────
   pre-merge:
     name: "1 · pre-merge (lint + unit + coverage)"
     runs-on: ubuntu-latest
@@ -65,7 +64,6 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-  # ─── Stage 2 — integration (API contract, service-to-service) ───
   integration:
     name: "2 · integration (api contract)"
     needs: pre-merge
@@ -119,7 +117,6 @@ jobs:
             -H "Content-Type: application/json" -d '{"email":"ci@alreadyherellc.com"}' | \
             python -c "import sys,json; d=json.load(sys.stdin); assert d['position']>=1, d"
 
-  # ─── Stage 3 — acceptance / e2e (critical journeys) ─────────────
   e2e:
     name: "3 · e2e (critical journeys)"
     needs: integration
@@ -151,7 +148,6 @@ jobs:
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:3000 && break; sleep 1; done
           python ci/e2e_smoke.py
 
-  # ─── Stage 4 — non-functional (perf + sec) ──────────────────────
   perf-sec:
     name: "4 · perf + security"
     needs: integration
@@ -181,7 +177,6 @@ jobs:
 
       - name: Install k6
         run: |
-          # Try GitHub releases first; fall back to apt on 5xx/network errors
           if curl -fsSL --retry 3 --retry-delay 10 \
               https://github.com/grafana/k6/releases/download/v0.51.0/k6-v0.51.0-linux-amd64.tar.gz \
               | tar xz --strip-components=1 2>/dev/null; then
@@ -203,14 +198,15 @@ jobs:
         run: k6 run --quiet ci/load_smoke.js
 
       - name: Security — pip-audit
-        continue-on-error: true
-        run: pip install pip-audit && pip-audit -r backend/requirements.txt --strict || true
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt --strict
 
       - name: Security — bandit SAST
-        continue-on-error: true
-        run: pip install bandit && bandit -r backend/ code_merger/ distillation/ -ll || true
+        run: |
+          pip install bandit
+          bandit -r backend/ code_merger/ distillation/ -ll -x code_merger/demo_output
 
-  # ─── Stage 5 — deploy + post-deploy verification ────────────────
   deploy:
     name: "5 · deploy + canary"
     needs: [e2e, perf-sec]
@@ -222,8 +218,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Vercel auto-deploys on push to main via GitHub integration.
-      # Wait up to ~3 min for the new deployment to become live, then verify.
       - name: Wait for Vercel production deployment
         run: |
           PROD_URL="${PROD_HEALTH_URL}"
