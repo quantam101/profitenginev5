@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import {
+  linkBooking,
+  newBookingId,
+  persistLead,
+} from '@/lib/revenue-attribution.mjs';
 
 interface CheckoutRequest {
   tool: string;
   tier: string;
   email?: string;
+  leadId?: string;
+  bookingId?: string;
 }
 
 const toolPricing: Record<string, Record<string, { name: string; price: number }>> = {
@@ -46,32 +53,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { tool, tier, email } = body;
 
     if (!tool || !tier) {
-      return NextResponse.json(
-        { error: 'Tool and tier are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Tool and tier are required' }, { status: 400 });
     }
 
     const pricing = toolPricing[tool]?.[tier];
     if (!pricing) {
-      return NextResponse.json(
-        { error: 'Invalid tool or tier' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid tool or tier' }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.alreadyherellc.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://app.alreadyherellc.com';
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
     if (!stripeKey) {
-      return NextResponse.json(
-        { error: 'Stripe key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Stripe key not configured' }, { status: 500 });
     }
 
-    const stripe = new Stripe(stripeKey);
+    const lead = body.leadId
+      ? { leadId: body.leadId }
+      : await persistLead({
+          email,
+          service: `${tool}:${tier}`,
+          source: 'direct-checkout',
+          landingPage: '/checkout',
+        });
+    const bookingId = body.bookingId || newBookingId();
 
+    const stripe = new Stripe(stripeKey);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -88,18 +95,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&lead_id=${encodeURIComponent(lead.leadId)}&booking_id=${encodeURIComponent(bookingId)}`,
       cancel_url: `${baseUrl}/checkout`,
       ...(email && { customer_email: email }),
       metadata: {
         tool,
         tier,
+        lead_id: lead.leadId,
+        booking_id: bookingId,
       },
+      payment_intent_data: {
+        metadata: {
+          tool,
+          tier,
+          lead_id: lead.leadId,
+          booking_id: bookingId,
+        },
+      },
+    });
+
+    await linkBooking({
+      leadId: lead.leadId,
+      bookingId,
+      provider: 'stripe',
+      checkoutId: session.id,
+      amount: pricing.price,
+      currency: 'usd',
     });
 
     return NextResponse.json({
       sessionId: session.id,
       url: session.url,
+      leadId: lead.leadId,
+      bookingId,
     });
   } catch (error) {
     console.error('Checkout error:', error);
@@ -108,7 +136,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         error: 'Failed to create checkout session',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
