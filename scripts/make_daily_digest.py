@@ -12,9 +12,9 @@ again, matched by id/url AND by title-token similarity, so the same story
 under a different headline is still rejected.
 
 Hard publishing rule: no new source material = no issue. If nothing new is
-available (no new article, no unfeatured upload, no unfeatured trend), the
-send is SKIPPED (exit 0 with a warning) — repeat content is worse than a
-missed day.
+available (no new article, no unfeatured verified upload, no unfeatured trend),
+the send is SKIPPED (exit 0 with a warning) — repeat or unverifiable content is
+worse than a missed day.
 
 Env:
   RUNTIME_API_URL        — required; Render runtime base URL
@@ -37,6 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from generate_shorts import ai_complete  # noqa: E402
+from youtube_publication import verified_youtube_uploads  # noqa: E402
 
 PAGES_BASE = "https://quantam101.github.io/content"
 BLUEPRINT_URL = f"{PAGES_BASE}/ebooks/blueprint/"
@@ -216,19 +217,31 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
         ledger.add("article", a["id"], a["title"], a["url"])
         articles.append(a)
 
+    raw_uploads = _load("youtube_uploads.json") or []
+    verified_uploads = verified_youtube_uploads(raw_uploads)
+    raw_success_count = sum(
+        1 for u in raw_uploads
+        if isinstance(u, dict) and u.get("status") == "success"
+    )
+    suppressed = raw_success_count - len(verified_uploads)
+    if suppressed > 0:
+        print(
+            f"youtube verification: suppressed {suppressed} artifact success "
+            "record(s) that could not be independently verified public"
+        )
+
     uploads = []
-    for u in (_load("youtube_uploads.json") or []):
+    for u in verified_uploads:
         if len(uploads) >= 5:
             break
-        if u.get("status") != "success":
-            continue
         m = manifest.get(u.get("program", ""), {})
-        title = m.get("title", u.get("program", ""))
-        url = u.get("url") or \
-            f"https://www.youtube.com/shorts/{u.get('video_id', '')}"
-        if ledger.seen(u.get("video_id", ""), title, url):
+        title = m.get("title") or u.get("verified_title") or u.get("program", "")
+        url = u["url"]
+        video_id = u["video_id"]
+        if ledger.seen(video_id, title, url):
             continue
-        ledger.add("upload", u.get("video_id", ""), title, url)
+        # Only proven-accessible uploads are allowed into the permanent ledger.
+        ledger.add("upload", video_id, title, url)
         uploads.append(u)
 
     trending = []
@@ -272,12 +285,14 @@ def compose(ledger: Ledger) -> tuple[str, list[dict], str] | None:
         items = []
         for u in uploads:
             m = manifest.get(u.get("program", ""), {})
-            raw_title = m.get("title", u.get("program", "New video"))
-            url = u.get("url") or \
-                f"https://www.youtube.com/shorts/{u.get('video_id', '')}"
+            raw_title = (
+                m.get("title") or u.get("verified_title") or
+                u.get("program", "Verified video")
+            )
+            url = u["url"]
             items.append(f'&bull; <a href="{html.escape(url, quote=True)}">'
                          f'{html.escape(raw_title)}</a>')
-        sections.append({"heading": "Fresh from our channel",
+        sections.append({"heading": "Verified on our channel",
                          "body": "<br>".join(items)})
 
     if trending:
@@ -332,9 +347,9 @@ def main() -> None:
     ledger = Ledger()
     composed = compose(ledger)
     if not composed:
-        print("::warning::no NEW source material (article/uploads/trends all "
+        print("::warning::no NEW source material (article/verified uploads/trends all "
               "already featured or empty) — skipping today's send to avoid "
-              "repeat content")
+              "repeat or unverifiable content")
         return
     headline, sections, cta_url = composed
     print(f"headline: {headline}")
