@@ -33,6 +33,7 @@ from typing import Any, Iterable
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))  # for the runtime pkg
 from generate_shorts import ai_complete  # noqa: E402
+from youtube_publication import verified_youtube_uploads  # noqa: E402
 
 CONTENT_REPO = "quantam101/content"
 PAGES_BASE = "https://quantam101.github.io/content"
@@ -163,14 +164,25 @@ def _collect_sections(limit_per_section: int = 3) -> list[tuple[str, list[dict[s
 def _pipeline_insights() -> list[dict[str, Any]]:
     uploads = _as_items(_load_json("youtube_uploads.json"))
     trending = _as_items(_load_json("trending_topics.json"))[:3]
-    successful = [u for u in uploads if u.get("status") == "success"]
+    verified_uploads = verified_youtube_uploads(uploads)
+    unverified_successes = sum(1 for u in uploads if u.get("status") == "success") - len(verified_uploads)
     insights: list[dict[str, Any]] = []
-    if successful:
+    if verified_uploads:
+        count = len(verified_uploads)
+        noun = "video" if count == 1 else "videos"
         insights.append({
-            "title": f"{len(successful)} new videos published",
-            "summary": "Fresh short-form content shipped by the production pipeline.",
+            "title": f"{count} verified public {noun}",
+            "summary": (
+                "Each linked upload was independently verified as accessible on YouTube "
+                "before inclusion in this issue."
+            ),
             "url": "https://www.youtube.com/@alreadyherellc",
         })
+    if unverified_successes > 0:
+        print(
+            f"youtube verification: suppressed {unverified_successes} artifact "
+            "success record(s) that could not be independently verified public"
+        )
     for topic in trending:
         insights.append({
             "title": _item_title(topic),
