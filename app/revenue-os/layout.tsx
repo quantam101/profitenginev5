@@ -14,6 +14,7 @@ export default function RevenueOsLayout({ children }: { children: ReactNode }) {
           <Link href="/">← Command Center</Link>
           <Link href="/revenue-os">Dashboard</Link>
           <Link href="/revenue-os/revenue-plays">Revenue Plays</Link>
+          <Link href="/revenue-os/passive-income">Passive Income Engine</Link>
           <Link href="/revenue-os/companies">Companies</Link>
           <Link href="/revenue-os/contacts">Contacts</Link>
           <Link href="/revenue-os/opportunities">Opportunities</Link>
