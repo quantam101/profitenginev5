@@ -34,8 +34,8 @@ The learning loop records quality, conversion, acceptance, revenue, refund rate,
 
 Core controls:
 
-- `REVENUE_OS_ENABLED`: must be `true` for execution.
-- `CRON_SECRET`: server-side scheduler authentication secret.
+- `REVENUE_OS_ENABLED`: must be `true` for interactive API execution.
+- `CRON_SECRET`: server-side authentication for the optional HTTP scheduler endpoint.
 - `PASSIVE_INCOME_ZERO_SPEND`: defaults to `true`.
 - `PASSIVE_INCOME_EXTERNAL_WRITES`: defaults to `false`; enable only after provider credentials and policy checks pass.
 - `PASSIVE_INCOME_MIN_QUALITY_SCORE`: defaults to `82`.
@@ -58,7 +58,9 @@ AI credentials remain server-side through the existing ProfitEngine AI Gateway. 
 
 ## Schedule
 
-Vercel Cron calls `/api/revenue-os/passive-income/cron` daily at `12:05 UTC`, which is `05:05 America/Phoenix` year-round. Daily cycles can create technical-product and stock-asset work. The newsletter lane is limited to its configured weekly cadence. `CRON_SECRET` authenticates the scheduled route.
+`.github/workflows/passive-income-engine.yml` is the production scheduler. It runs at `12:05 UTC`, which is `05:05 America/Phoenix` year-round. Daily cycles run the technical-product and stock-asset lanes; Sunday adds the newsletter lane and RSS collection. Every scheduled run executes the passive-income policy test suite first and preserves the resulting cycle JSON as a GitHub Actions artifact for 30 days.
+
+Vercel remains available for preview/build validation and interactive Revenue OS access. The commercial scheduler is deliberately not registered as a Vercel Cron while the connected Vercel team is on Hobby; production commercial scheduling should remain on the GitHub Actions/self-hosted path or move only after the Vercel project is on an appropriate commercial plan.
 
 ## Fail-closed behaviors
 
