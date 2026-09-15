@@ -21,20 +21,31 @@ function authorized(request: NextRequest) {
   return request.headers.get('authorization') === `Bearer ${secret}`;
 }
 
+function scheduledAgents(now = new Date()) {
+  const agents = ['technical_product', 'stock_asset'];
+  if (now.getUTCDay() === 0) agents.push('newsletter');
+  return agents;
+}
+
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return json({ ok: false, error: 'Unauthorized' }, 401);
   if (process.env.REVENUE_OS_ENABLED !== 'true') return json({ ok: false, error: 'Revenue OS is not enabled' }, 503);
 
+  const agents = scheduledAgents();
+  const newsletterRun = agents.includes('newsletter');
   const feedUrls = String(process.env.PASSIVE_INCOME_RSS_FEEDS || '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
-  const rss = feedUrls.length ? await collectRssSources(feedUrls) : { ok: false, sources: [], errors: [] };
+  const rss = newsletterRun && feedUrls.length
+    ? await collectRssSources(feedUrls)
+    : { ok: false, sources: [], errors: [] };
 
   try {
     const result = await runPassiveIncomeCycle({
       publish: true,
+      agents,
       sources: rss.sources,
       newsletterNiche: process.env.PASSIVE_INCOME_NEWSLETTER_NICHE || 'AI operations and infrastructure for small technology businesses',
     }, {
@@ -46,6 +57,8 @@ export async function GET(request: NextRequest) {
       ...result,
       scheduler: {
         trigger: 'vercel_cron',
+        agents,
+        newsletterRun,
         rssFeedsConfigured: feedUrls.length,
         rssItemsCollected: rss.sources.length,
         rssErrors: rss.errors,
