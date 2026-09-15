@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { routeAI } from '@/lib/ai-gateway.mjs';
+import { routePassiveIncomeAI } from '@/lib/revenue-os/passive-income-ai.mjs';
 import {
   collectRssSources,
   runPassiveIncomeCycle,
@@ -44,19 +44,19 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await runPassiveIncomeCycle({
-      publish: true,
+      publish: false,
       agents,
       sources: rss.sources,
       newsletterNiche: process.env.PASSIVE_INCOME_NEWSLETTER_NICHE || 'AI operations and infrastructure for small technology businesses',
     }, {
-      routeAI,
+      routeAI: routePassiveIncomeAI,
       env: process.env,
     });
 
     return json({
       ...result,
       scheduler: {
-        trigger: 'vercel_cron',
+        trigger: 'authenticated_http_scheduler',
         agents,
         newsletterRun,
         rssFeedsConfigured: feedUrls.length,
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       },
     }, result.ok ? 200 : 422);
   } catch (error) {
-    console.error('[passive-income] cron cycle failed:', error);
+    console.error('[passive-income] scheduler cycle failed:', error);
     return json({ ok: false, error: 'Scheduled passive income cycle failed safely' }, 500);
   }
 }
