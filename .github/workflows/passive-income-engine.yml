@@ -43,8 +43,8 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Run policy tests
-        run: node --test tests/passive-income-engine.test.mjs
+      - name: Run policy and artifact tests
+        run: npm run test:passive-income
 
       - name: Run supervised revenue cycle
         run: node scripts/run-passive-income-cycle.mjs
