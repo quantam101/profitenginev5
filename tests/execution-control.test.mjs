@@ -109,6 +109,22 @@ test('circuit transitions CLOSED to OPEN to HALF_OPEN to CLOSED', async () => {
   assert.deepEqual(await control.beforeCircuitCall('provider'), { allowed: true, mode: 'CLOSED' });
 });
 
+test('stale HALF_OPEN probe recovers after a crashed probe owner', async () => {
+  const { control, advance } = fixture();
+  await control.recordCircuitFailure('provider-crash');
+  await control.recordCircuitFailure('provider-crash');
+  advance(1_001);
+  const firstProbe = await control.beforeCircuitCall('provider-crash');
+  assert.equal(firstProbe.mode, 'HALF_OPEN');
+  const blocked = await control.beforeCircuitCall('provider-crash');
+  assert.equal(blocked.mode, 'HALF_OPEN_BUSY');
+  advance(1_001);
+  const recoveredProbe = await control.beforeCircuitCall('provider-crash');
+  assert.equal(recoveredProbe.allowed, true);
+  assert.equal(recoveredProbe.mode, 'HALF_OPEN');
+  assert.notEqual(recoveredProbe.probeOwner, firstProbe.probeOwner);
+});
+
 test('zero-spend and daily budgets are enforced before additional spend', async () => {
   const { control } = fixture();
   assert.equal((await control.reserveBudget({ bucket: 'd1', amountUsd: 0.01, maxUsd: 1, zeroSpend: true })).allowed, false);
@@ -116,10 +132,15 @@ test('zero-spend and daily budgets are enforced before additional spend', async 
   assert.equal((await control.reserveBudget({ bucket: 'd2', amountUsd: 0.5, maxUsd: 1 })).allowed, false);
 });
 
-test('production external writes reject ephemeral execution state', () => {
+test('production external writes require an explicitly durable store', () => {
   assert.throws(
     () => assertProductionControl({ production: true, externalWrite: true, store: new InMemoryExecutionStore() }),
     /durable execution-control store/,
   );
+  assert.throws(
+    () => assertProductionControl({ production: true, externalWrite: true, store: {} }),
+    /durable execution-control store/,
+  );
+  assert.equal(assertProductionControl({ production: true, externalWrite: true, store: { durable: true } }), true);
   assert.equal(assertProductionControl({ production: false, externalWrite: true, store: new InMemoryExecutionStore() }), true);
 });
