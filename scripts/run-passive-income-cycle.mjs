@@ -6,6 +6,7 @@ import {
   runPassiveIncomeCycle,
 } from '../lib/revenue-os/passive-income-engine.mjs';
 import { materializeCycleArtifacts } from '../lib/revenue-os/artifact-factory.mjs';
+import { buildProcessAgentStatus } from '../lib/revenue-os/process-agents.mjs';
 
 const now = new Date();
 const agents = ['technical_product', 'stock_asset'];
@@ -36,15 +37,18 @@ const stamp = now.toISOString().replace(/[:.]/g, '-');
 const cycleDir = resolve(outputDir, result.cycleId || `cycle-${stamp}`);
 await mkdir(cycleDir, { recursive: true });
 const artifacts = await materializeCycleArtifacts(result, cycleDir);
+const processAgents = buildProcessAgentStatus(result, artifacts);
 const outputPath = resolve(cycleDir, `cycle-${stamp}.json`);
-await writeFile(outputPath, `${JSON.stringify({ ...result, rss, artifacts }, null, 2)}\n`, 'utf8');
+await writeFile(outputPath, `${JSON.stringify({ ...result, rss, artifacts, processAgents }, null, 2)}\n`, 'utf8');
 
 const artifactFailures = artifacts.artifacts.filter((artifact) => !artifact.ok);
 const cycleComplete = result.ok && artifactFailures.length === 0;
 console.log(JSON.stringify({
   ok: cycleComplete,
   cycleId: result.cycleId,
-  agents,
+  laneAgents: agents,
+  processAgents: processAgents.length,
+  processAgentAttention: processAgents.filter((agent) => agent.state === 'attention').map((agent) => agent.id),
   metrics: result.metrics,
   reviewQueueItems: result.reviewQueue?.length || 0,
   artifacts: artifacts.artifacts.map((artifact) => ({
