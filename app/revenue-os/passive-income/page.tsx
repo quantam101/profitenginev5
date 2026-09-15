@@ -2,7 +2,54 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type EngineResponse = Record<string, any>;
+type PriorityItem = {
+  agentId: string;
+  score: number;
+  rationale: string;
+};
+
+type PlatformPolicy = {
+  status: string;
+  publishMode: string;
+};
+
+type CycleResult = {
+  id: string;
+  agentId: string;
+  qualityScore: number;
+  profitScore: number;
+  delivery?: { mode?: string; proof?: unknown };
+  decision?: { mode?: string };
+};
+
+type StatusResponse = {
+  readiness?: {
+    zeroSpend?: boolean;
+    externalWrites?: boolean;
+  };
+  plan?: {
+    policyAsOf?: string;
+    agents?: unknown[];
+    priority?: PriorityItem[];
+    platformPolicies?: Record<string, PlatformPolicy>;
+  };
+};
+
+type CycleResponse = {
+  cycleId?: string;
+  metrics?: {
+    meanQualityScore?: number;
+    aiCostUsd?: number;
+    agentsRun?: number;
+    reviewQueueItems?: number;
+    externalActions?: number;
+  };
+  results?: CycleResult[];
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -14,20 +61,20 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export default function PassiveIncomePage() {
-  const [status, setStatus] = useState<EngineResponse | null>(null);
-  const [cycle, setCycle] = useState<EngineResponse | null>(null);
+  const [status, setStatus] = useState<StatusResponse | null>(null);
+  const [cycle, setCycle] = useState<CycleResponse | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
 
   async function loadStatus() {
     const response = await fetch('/api/revenue-os/passive-income', { cache: 'no-store' });
-    const payload = await response.json();
+    const payload = await response.json() as StatusResponse & { error?: string };
     if (!response.ok) throw new Error(payload.error || 'Unable to load engine status');
     setStatus(payload);
   }
 
   useEffect(() => {
-    loadStatus().catch((err) => setError(String(err?.message || err)));
+    loadStatus().catch((err: unknown) => setError(errorMessage(err)));
   }, []);
 
   async function runCycle() {
@@ -39,12 +86,12 @@ export default function PassiveIncomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ publish: false }),
       });
-      const payload = await response.json();
+      const payload = await response.json() as CycleResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || 'Cycle failed');
       setCycle(payload);
       await loadStatus();
-    } catch (err: any) {
-      setError(String(err?.message || err));
+    } catch (err: unknown) {
+      setError(errorMessage(err));
     } finally {
       setRunning(false);
     }
@@ -52,6 +99,7 @@ export default function PassiveIncomePage() {
 
   const priorities = useMemo(() => status?.plan?.priority || [], [status]);
   const metrics = cycle?.metrics || {};
+  const policies = status?.plan?.platformPolicies || {};
 
   return (
     <main className="shell" style={{ paddingBottom: 48 }}>
@@ -61,7 +109,7 @@ export default function PassiveIncomePage() {
             <div style={{ opacity: 0.65, fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase' }}>Revenue OS</div>
             <h1 style={{ margin: '6px 0 8px' }}>Enterprise AI Passive Income Engine</h1>
             <p style={{ maxWidth: 780, margin: 0, opacity: 0.8 }}>
-              One bounded supervisor coordinates a Technical Product Agent, Stock Asset Agent, and Industry Briefing Agent. Policy gates control spend, publishing, platform compliance, and source-code changes.
+              One bounded supervisor coordinates technical products, stock assets, and industry briefings. Policy gates control spend, publishing, platform compliance, and source-code changes.
             </p>
           </div>
           <button onClick={runCycle} disabled={running} style={{ padding: '12px 18px', borderRadius: 10, fontWeight: 700, cursor: running ? 'wait' : 'pointer' }}>
@@ -84,7 +132,7 @@ export default function PassiveIncomePage() {
       <section className="panel" style={{ marginTop: 16, padding: 20 }}>
         <h2 style={{ marginTop: 0 }}>Supervisor priority</h2>
         <div style={{ display: 'grid', gap: 10 }}>
-          {priorities.map((item: any, index: number) => (
+          {priorities.map((item, index) => (
             <div key={item.agentId} style={{ border: '1px solid #263244', borderRadius: 10, padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <strong>{index + 1}. {item.agentId.replaceAll('_', ' ')}</strong>
@@ -102,7 +150,7 @@ export default function PassiveIncomePage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th align="left">Platform</th><th align="left">Policy</th><th align="left">Execution mode</th></tr></thead>
             <tbody>
-              {Object.entries(status?.plan?.platformPolicies || {}).map(([name, policy]: any) => (
+              {Object.entries(policies).map(([name, policy]) => (
                 <tr key={name} style={{ borderTop: '1px solid #263244' }}>
                   <td style={{ padding: '10px 8px' }}>{name.replaceAll('_', ' ')}</td>
                   <td style={{ padding: '10px 8px' }}>{policy.status}</td>
@@ -117,13 +165,13 @@ export default function PassiveIncomePage() {
       {cycle ? (
         <section className="panel" style={{ marginTop: 16, padding: 20 }}>
           <h2 style={{ marginTop: 0 }}>Latest supervised cycle</h2>
-          <p>Cycle: <code>{cycle.cycleId}</code></p>
-          <p>Agents run: {metrics.agentsRun} · Review queue: {metrics.reviewQueueItems} · Verified external actions: {metrics.externalActions}</p>
+          <p>Cycle: <code>{cycle.cycleId || 'n/a'}</code></p>
+          <p>Agents run: {metrics.agentsRun ?? 0} · Review queue: {metrics.reviewQueueItems ?? 0} · Verified external actions: {metrics.externalActions ?? 0}</p>
           <div style={{ display: 'grid', gap: 10 }}>
-            {(cycle.results || []).map((item: any) => (
+            {(cycle.results || []).map((item) => (
               <div key={item.id} style={{ border: '1px solid #263244', borderRadius: 10, padding: 14 }}>
                 <strong>{item.agentId.replaceAll('_', ' ')}</strong>
-                <div style={{ opacity: 0.75, marginTop: 5 }}>Quality {item.qualityScore}/100 · Profit {item.profitScore}/100 · Delivery {item.delivery?.mode || item.decision?.mode}</div>
+                <div style={{ opacity: 0.75, marginTop: 5 }}>Quality {item.qualityScore}/100 · Profit {item.profitScore}/100 · Delivery {item.delivery?.mode || item.decision?.mode || 'review_queue'}</div>
                 {item.delivery?.proof ? <div style={{ marginTop: 6 }}>External proof captured by adapter.</div> : <div style={{ marginTop: 6 }}>No external publication is claimed without provider proof.</div>}
               </div>
             ))}
