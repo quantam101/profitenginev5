@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { routeAI } from '../lib/ai-gateway.mjs';
+import { routePassiveIncomeAI } from '../lib/revenue-os/passive-income-ai.mjs';
 import {
   collectRssSources,
   runPassiveIncomeCycle,
@@ -26,7 +26,7 @@ const result = await runPassiveIncomeCycle({
   sources: rss.sources,
   newsletterNiche: process.env.PASSIVE_INCOME_NEWSLETTER_NICHE || 'AI operations and infrastructure for small technology businesses',
 }, {
-  routeAI,
+  routeAI: routePassiveIncomeAI,
   env: process.env,
 });
 
