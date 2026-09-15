@@ -4,6 +4,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/revenue-os/passive-income/cron",
+      "schedule": "5 12 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
