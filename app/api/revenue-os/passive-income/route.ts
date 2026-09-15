@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { routeAI } from '@/lib/ai-gateway.mjs';
+import { routePassiveIncomeAI } from '@/lib/revenue-os/passive-income-ai.mjs';
 import {
   buildSupervisorPlan,
   getPassiveIncomeConfig,
@@ -35,6 +35,7 @@ export async function GET() {
       revenueOsEnabled: process.env.REVENUE_OS_ENABLED === 'true',
       zeroSpend: config.zeroSpend,
       externalWrites: config.explicitExternalWrites,
+      offlineProductionKernel: true,
       workerConfigured: Boolean(config.workerWebhookUrl),
       storefrontAdapterConfigured: Boolean(config.storefrontWebhookUrl),
       beehiiv: {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await runPassiveIncomeCycle(body, {
-      routeAI,
+      routeAI: routePassiveIncomeAI,
       env: process.env,
     });
     return json(result, result.ok ? 200 : 422);
