@@ -7,7 +7,18 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: '0 2 * * 0'
+    # Daily, 30 minutes after the article publisher's scheduled start.
+    - cron: '35 7 * * *'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/autonomous-video-production.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: autonomous-video-production
+  cancel-in-progress: false
 
 env:
   PYTHON_VERSION: '3.11'
@@ -91,7 +102,7 @@ jobs:
               # Succeeds with any granted scope; videos.insert (next step) needs only
               # youtube.upload, so we do NOT require a read scope here.
               creds.refresh(Request())
-              print('✅ YouTube auth verified (access token minted)')
+              print('YouTube auth verified (access token minted)')
 
               # Best-effort channel readout; skipped quietly if the token is upload-only.
               try:
@@ -102,7 +113,7 @@ jobs:
               except Exception as read_err:
                   print(f'   (channel read skipped — upload-only scope: {read_err})')
           except Exception as e:
-              print(f'❌ YouTube auth failed: {e}')
+              print(f'YouTube auth failed: {e}')
               exit(1)
           "
 
@@ -144,7 +155,8 @@ jobs:
               try:
                   video_path = video['path']
                   if not Path(video_path).exists():
-                      print(f'❌ Video not found: {video_path}')
+                      print(f'Video not found: {video_path}')
+                      uploads.append({'program': video['program'], 'status': 'failed', 'error': 'Video file missing'})
                       continue
 
                   body = {
@@ -173,25 +185,27 @@ jobs:
                       'program': video['program'],
                       'video_id': video_id,
                       'url': f'https://www.youtube.com/shorts/{video_id}',
-                      'status': 'success'
+                      'status': 'uploaded',
+                      'expected_title': video['title'],
+                      'expected_channel_id': response.get('snippet', {}).get('channelId', '')
                   })
 
                   prog = video['program']
-                  print(f'✅ YouTube upload successful: {prog}')
+                  print(f'YouTube upload accepted (public verification pending): {prog}')
                   print(f'   Video ID: {video_id}')
                   print(f'   URL: https://www.youtube.com/shorts/{video_id}')
 
               except Exception as e:
                   prog = video['program']
-                  print(f'❌ Upload failed for {prog}: {e}')
+                  print(f'Upload failed for {prog}: {e}')
                   uploads.append({
                       'program': video['program'],
                       'status': 'failed',
                       'error': str(e)
                   })
 
-          ok_count = sum(1 for u in uploads if u['status'] == 'success')
-          print(f'\\n✅ Campaign complete: {ok_count}/{len(uploads)} uploaded')
+          ok_count = sum(1 for u in uploads if u['status'] == 'uploaded')
+          print(f'\\nCampaign complete: {ok_count}/{len(uploads)} uploaded')
 
           with open('youtube_uploads.json', 'w') as f:
               json.dump(uploads, f, indent=2)
@@ -233,6 +247,45 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: python scripts/repost_top.py || echo "repost failed — new posts unaffected"
 
+      - name: Verify public YouTube publication
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        timeout-minutes: 5
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from scripts.youtube_publication import canonical_video_url, public_video_metadata
+
+          path = Path('youtube_uploads.json')
+          uploads = json.loads(path.read_text())
+          deadline = time.monotonic() + 210
+          pending = [u for u in uploads if u.get('status') == 'uploaded']
+          while pending and time.monotonic() < deadline:
+              for item in list(pending):
+                  if time.monotonic() >= deadline:
+                      break
+                  url = canonical_video_url(item)
+                  metadata = public_video_metadata(url, timeout=8)
+                  expected = item.get('expected_title', '')
+                  if metadata and expected and metadata.get('title') == expected:
+                      item.update(status='success', url=url, verified_public=True,
+                                  verified_public_at=datetime.now(timezone.utc).isoformat(),
+                                  verified_title=metadata['title'])
+                      pending.remove(item)
+              if pending and time.monotonic() < deadline:
+                  time.sleep(10)
+          for item in pending:
+              item['status'] = 'unverified'
+              item['error'] = 'Public accessibility or expected video identity could not be verified'
+          path.write_text(json.dumps(uploads, indent=2))
+          verified = sum(u.get('status') == 'success' for u in uploads)
+          print(f'Public YouTube videos verified: {verified}/{len(uploads)}')
+          if not uploads or verified != len(uploads):
+              raise SystemExit('Video publication incomplete. Inspect youtube_uploads.json; do not blindly re-upload existing IDs.')
+          PY
+
       - name: Extract preview frames + contact sheet
         if: always()
         run: |
@@ -271,11 +324,11 @@ jobs:
       - name: Report results
         if: always()
         run: |
-          echo "=== VIDEO GENERATION & UPLOAD COMPLETE ==="
+          echo "=== VIDEO PIPELINE RESULTS ==="
           echo ""
           if [ -f "youtube_uploads.json" ]; then
-            echo "📺 YouTube Shorts Uploaded:"
-            cat youtube_uploads.json | jq -r '.[] | select(.status=="success") | "  ✅ \(.program): https://www.youtube.com/shorts/\(.video_id)"'
+            echo "YouTube Shorts Uploaded:"
+            cat youtube_uploads.json | jq -r '.[] | select(.status=="success") | "  \(.program): https://www.youtube.com/shorts/\(.video_id)"'
           fi
           echo ""
-          ls -lh videos/openmontage/*.mp4 2>/dev/null | awk '{print "  📁 " $9 " (" $5 ")"}'
+          ls -lh videos/openmontage/*.mp4 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}'
