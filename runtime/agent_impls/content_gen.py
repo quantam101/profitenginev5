@@ -19,11 +19,15 @@ from runtime.inference_cascade import infer
 from runtime.structured_output import OUTPUT_CONSTRAINT_JSON, extract_json
 
 _SYSTEM = (
-    "You are a senior SEO content writer and affiliate marketer. "
-    "Write long-form, helpful, authoritative blog articles that rank on Google, "
-    "provide genuine value, and naturally recommend relevant products. "
-    "Target 1 000–1 500 words with clear H2/H3 subheadings. "
-    "Include 2-3 product/tool recommendations with [AFFILIATE:keyword] tokens."
+    "You are a senior evidence-aware SEO content writer. "
+    "Write long-form, helpful, authoritative, people-first articles designed for durable search visibility. "
+    "Target 1,200–1,800 useful words with clear H2/H3 subheadings, concrete examples, trade-offs, and workflows. "
+    "For current/year-based/product claims, do not invent exact pricing, quotas, features, policies, or ranking effects. "
+    "Current/year-based roundups must include at least two authoritative primary-source markdown links and a Sources section. "
+    "Never claim FAQ schema creates People Also Ask placement or FAQ rich-result gains. "
+    "Use descriptive contextual alt-text guidance, never keyword-stuffing advice. "
+    "Distinguish free from premium features and never guarantee rankings, traffic, or revenue. "
+    "Include 2-3 product/tool recommendations with [AFFILIATE:keyword] tokens only when genuinely relevant."
     "\n\nOutput schema:"
     "\n{"
     '\n  "title": "<Full article title>",'
@@ -96,7 +100,29 @@ class Agent:
         affiliate_map = _load_affiliate_map()
         article["body"] = _inject_affiliate_links(article.get("body", ""), affiliate_map)
 
-        word_count = len(article.get("body", "").split())
+        from scripts.seo_content_quality import validate_article_quality
+
+        quality = validate_article_quality(article)
+        if not quality.ok:
+            return AgentExecution(
+                output=(
+                    "CONTENT_GEN_REJECTED\n"
+                    + "; ".join(quality.errors)
+                ),
+                metrics={
+                    "agent": self.id,
+                    "tier": tier,
+                    "quality_gate_ok": False,
+                    "quality_errors": list(quality.errors),
+                    "word_count": quality.word_count,
+                    "h2_count": quality.h2_count,
+                    "external_links": quality.external_link_count,
+                    "json_parse_ok": parsed.ok,
+                    "distilled": use_distill,
+                },
+            )
+
+        word_count = quality.word_count
 
         output = (
             "CONTENT_GEN_RESULT\n"
@@ -117,5 +143,8 @@ class Agent:
                 "affiliate_links_injected": len(affiliate_map),
                 "json_parse_ok":           parsed.ok,
                 "distilled":               use_distill,
+                "quality_gate_ok":         True,
+                "h2_count":                quality.h2_count,
+                "external_links":          quality.external_link_count,
             },
         )
