@@ -42,7 +42,10 @@ jobs:
       - name: Dependency security audit
         run: npm audit --omit=dev --audit-level=high
       - name: Ruff lint
-        run: ruff check backend code_merger
+        run: ruff check backend code_merger scripts/seo_content_quality.py tests/test_seo_content_quality.py
+
+      - name: SEO content quality regression tests
+        run: python -m pytest tests/test_seo_content_quality.py -q
       - name: Frontend lint
         run: npx --no-install eslint app/ lib/ --max-warnings=0
       - name: Typecheck
