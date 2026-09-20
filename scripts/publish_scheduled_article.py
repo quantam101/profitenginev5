@@ -252,6 +252,18 @@ def notify_cmdos(article: Dict[str, Any], canonical_url: str, urls: Dict[str, Op
 def main() -> None:
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     article = load_article(date_str)
+
+    from scripts.seo_content_quality import format_quality_errors, validate_article_quality
+
+    quality = validate_article_quality(article)
+    for warning in quality.warnings:
+        print(f"[QUALITY][WARN] {warning}")
+    if not quality.ok:
+        raise RuntimeError(
+            "Scheduled article failed publication quality gate: "
+            + format_quality_errors(quality)
+        )
+
     path = canonical_path(date_str, article["slug"])
     if canonical_exists(path):
         print(f"[SKIP] Scheduled canonical already exists: {path}")
