@@ -108,28 +108,35 @@ SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools
 passive income, and digital automation. Write high-quality, helpful articles that
 rank on Google. Always respond with valid JSON only — no markdown code fences."""
 
-ARTICLE_PROMPT = """Write a comprehensive SEO article about: {topic}
+ARTICLE_PROMPT = """Write an evidence-aware, publication-ready SEO article about: {topic}
 
-Return ONLY a valid JSON object (no markdown, no explanation) with these exact fields:
+Return ONLY a valid JSON object (no markdown fences, no explanation) with these exact fields:
 {{
   "title": "exact article title",
   "slug": "url-friendly-slug",
-  "meta_description": "150-160 char description",
+  "meta_description": "120-170 char description",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "body": "full markdown article body (use ## for h2, ### for h3, no H1 — title is H1)"
 }}
 
-The article should be 800-1200 words, include:
-- A brief intro explaining the value
-- 5-7 sections with practical examples
-- A conclusion that summarizes the takeaways and invites the reader to explore
-  the resources featured on this page. Do NOT tell readers to sign up for, buy,
-  or start a free trial of any third-party or competitor product/tool by name
-  (e.g. no "sign up for Buffer/Copy.ai/etc."). A dedicated owned-product CTA is
-  appended to the page automatically — the conclusion must not compete with it
-  or send readers off-site to a competitor.
-- Natural keyword placement for SEO
-- No unresolved tokens or filler text; publish real, useful content"""
+Quality requirements:
+- Target 1,200-1,800 useful words; never pad with filler.
+- Open with a direct answer/value proposition, not generic scene-setting.
+- Use at least 5 substantive H2 sections with concrete workflows, examples, trade-offs, and failure modes.
+- For list/roundup/comparison posts, include a concise comparison table when it improves decision-making.
+- For current, year-based, product, pricing, feature, quota, policy, or platform claims: do not invent exact numbers or capabilities.
+  If you are not confident a time-sensitive number is current, omit the exact number and use durable wording.
+- Link to at least 2 authoritative primary/official references in current/year-based roundups, using normal markdown links.
+- When discussing Google Search behavior, structured data, rankings, indexing, or spam guidance, prefer Google Search Central/Search Console sources.
+- Do not claim that FAQ schema creates People Also Ask placement or a Google FAQ rich-result boost.
+- Describe image alt text for accessibility and context; never recommend keyword stuffing or "keyword-rich alt text."
+- Distinguish free features from paid/premium features.
+- Do not guarantee rankings, traffic, revenue, or SERP gains.
+- Add a "## Sources" or "## Official references" section for current/year-based roundups.
+- End with an evidence-based takeaway and next workflow step. Do NOT tell readers to sign up for, buy,
+  or start a free trial of a third-party competitor. A dedicated owned-product CTA is appended automatically.
+- No unresolved tokens, placeholders, fake citations, fabricated studies, or filler text.
+"""
 
 
 # ── Groq generation ────────────────────────────────────────────────────────────
@@ -258,7 +265,23 @@ def generate_article(topic: str) -> Dict[str, Any]:
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
-    print(f"[OK] Article generated: {article['title']}")
+
+    from scripts.seo_content_quality import format_quality_errors, validate_article_quality
+
+    quality = validate_article_quality(article)
+    for warning in quality.warnings:
+        print(f"[QUALITY][WARN] {warning}")
+    if not quality.ok:
+        raise RuntimeError(
+            "Generated article failed publication quality gate: "
+            + format_quality_errors(quality)
+        )
+
+    print(
+        f"[OK] Article generated: {article['title']} "
+        f"({quality.word_count} words, {quality.h2_count} H2s, "
+        f"{quality.external_link_count} references)"
+    )
     return article
 
 

@@ -36,15 +36,20 @@ Affiliate products to naturally mention: ${(trend.affiliateProducts || cfg().aff
 Trend velocity: ${trend.trendVelocity || 'rising'}
 
 Requirements:
-- ${cfg().minWordCount}-${cfg().maxWordCount} words
-- Compelling H1 title (different from topic if needed)
-- SEO-optimized H2/H3 subheadings
-- Natural affiliate mentions with [AMAZON_LINK] placeholder
-- Engaging hook in first 2 sentences
-- Expert-level insights (not generic)
-- Concrete examples and data points
+- ${Math.max(cfg().minWordCount, 1200)}-${Math.max(cfg().maxWordCount, 1800)} useful words; no filler
+- Compelling, accurate H1 title (different from topic if needed)
+- At least 5 substantive H2/H3 sections
+- Natural affiliate mentions with [AMAZON_LINK] placeholder only when relevant
+- Direct answer/value proposition in the opening; avoid generic scene-setting
+- Expert-level insights, concrete workflows, examples, trade-offs, and failure modes
+- For current/year-based/product/pricing/feature claims: never invent exact numbers or capabilities
+- For current/year-based roundups: include at least 2 authoritative primary-source markdown links plus a Sources section
+- Never claim FAQ schema creates People Also Ask placement or FAQ rich-result gains
+- Recommend descriptive contextual alt text, never keyword stuffing
+- Clearly distinguish free features from premium features
+- Never guarantee rankings, traffic, revenue, or SERP gains
 - Clear action steps in each section
-- Strong CTA at end
+- Evidence-based takeaway at end
 
 Frontmatter required:
 ---
@@ -58,14 +63,38 @@ niche: ${trend.niche || cfg().targetNiches[0]}
 }
 
 async function qualityGate(content, title) {
-  const wordCount = content.split(/\s+/).length;
-  const min = cfg().minWordCount;
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+  const min = Math.max(cfg().minWordCount, 1000);
+  const h2Count = (content.match(/^##\s+\S/gm) || []).length;
+  const externalLinks = (content.match(/\[[^\]]+\]\(https?:\/\/[^)]+\)/g) || []).length;
+  const currentRoundup = /\b(20\d{2}|best|top|review|comparison|\bvs\b)\b/i.test(title || '');
+  const stalePatterns = [
+    /tinypng[\s\S]{0,80}\b500\b[\s\S]{0,40}(compress|image)[\s\S]{0,30}(month|monthly)/i,
+    /yoast[\s\S]{0,120}(free|free version)[\s\S]{0,160}internal[- ]link(ing)? suggestion/i,
+    /faq schema[\s\S]{0,160}(people also ask|rich result|rich snippet|surface|boost)/i,
+    /keyword[- ]rich alt text/i,
+    /\bguarantee(d|s)?\s+(rank|ranking|traffic|results)\b/i,
+  ];
+  const placeholders = /(\[(insert|placeholder|todo|tbd|edit)[^\]]*\]|lorem ipsum|coming soon|example\.com)/i;
+
   if (wordCount < min) {
     logger.warn(`Quality gate: ${title.slice(0,40)} — word count ${wordCount} < ${min}`);
     return false;
   }
-  if (!content.includes('##')) {
-    logger.warn(`Quality gate: missing H2 subheadings`);
+  if (h2Count < 5) {
+    logger.warn(`Quality gate: insufficient H2 depth (${h2Count} < 5)`);
+    return false;
+  }
+  if (placeholders.test(content)) {
+    logger.warn('Quality gate: unresolved placeholder/filler detected');
+    return false;
+  }
+  if (stalePatterns.some((pattern) => pattern.test(content))) {
+    logger.warn('Quality gate: stale or misleading SEO claim detected');
+    return false;
+  }
+  if (currentRoundup && externalLinks < 2) {
+    logger.warn(`Quality gate: current roundup has only ${externalLinks} reference links`);
     return false;
   }
   return true;
@@ -94,7 +123,7 @@ async function generatePost(trend) {
   if (!passes) {
     // Retry once with explicit word count reminder
     try {
-      content = await llm.generate(buildPrompt(trend, contentType) + '\n\nCRITICAL: Must be at least 800 words. Expand each section significantly.', null, 2000);
+      content = await llm.generate(buildPrompt(trend, contentType) + '\n\nCRITICAL: The prior draft failed the publication gate. Produce at least 1,200 useful words, 5+ H2 sections, remove placeholders/stale SEO claims, and add 2+ primary-source links for any current/year-based roundup.', null, 2600);
     } catch { throw new Error('Quality gate failed after retry'); }
   }
 
