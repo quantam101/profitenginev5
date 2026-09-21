@@ -427,7 +427,9 @@ class UltimateVideoEngine:
         with open(srt, "w", encoding="utf-8") as f:
             f.write(srt_text or "1\n00:00:00,000 --> 00:00:03,000\nAlready Here LLC\n")
         with open(concat, "w", encoding="utf-8") as f:
-            f.writelines(f"file '{Path(c).as_posix()}'\n" for c in valid_clips)
+            # ffmpeg resolves concat entries relative to seq.txt's directory —
+            # absolute paths keep this correct regardless of CWD.
+            f.writelines(f"file '{Path(c).resolve().as_posix()}'\n" for c in valid_clips)
 
         subs_filter = (
             f"subtitles='{Path(srt).as_posix()}':"
