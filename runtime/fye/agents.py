@@ -26,6 +26,11 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:48]
 
 
+def xml_escape(text: str) -> str:
+    return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace('"', "&quot;").replace("'", "&#39;"))
+
+
 class ResearchAgent:
     """Picks niche/topic and attaches honest RPM planning priors."""
     name = "research"
@@ -149,7 +154,7 @@ class StillsAgent:
     def _local_still(self, text: str, out_path: Path, idx: int) -> bool:
         """Deterministic SVG title card — real renderable still, zero spend."""
         hue = (idx * 47) % 360
-        words = text[:90]
+        words = xml_escape(text[:90])
         svg = (
             f'<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920">'
             f'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'

@@ -438,9 +438,12 @@ class UltimateVideoEngine:
             f"Shadow=1,MarginV=30'"
         )
 
+        voiceover = audio_path if (audio_path and os.path.exists(audio_path)) else None
         ffmpeg_args = [
             "-f", "concat", "-safe", "0", "-i", concat,
+            *(["-i", voiceover] if voiceover else []),
             "-vf", subs_filter,
+            *( ["-map", "0:v", "-map", "1:a", "-shortest"] if voiceover else [] ),
             "-c:v", "libx264", "-crf", "18", "-preset", "veryfast",
             "-c:a", "aac", "-b:a", "192k",
             output,
