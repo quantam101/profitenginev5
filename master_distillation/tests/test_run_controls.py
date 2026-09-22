@@ -111,9 +111,11 @@ def test_publish_dir_swaps_atomically(tmp_path):
     staging.mkdir()
     (staging / "new.bin").write_text("new")
     publish_dir(staging, final)
+    assert final.is_symlink()  # atomic pointer swap; readers never see a gap
     assert (final / "new.bin").exists()
     assert not (final / "old.bin").exists()
     assert not (tmp_path / "student.previous").exists()
+    assert not (tmp_path / "student.legacy").exists()
     assert not staging.exists()
 
 

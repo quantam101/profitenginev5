@@ -47,23 +47,33 @@ def atomic_save(state, path):
 
 
 def publish_dir(staging, final):
-    """Atomically swap a staged export directory into place."""
+    """Publish a staged export via an atomic symlink swap; readers never see a gap."""
     staging, final = Path(staging), Path(final)
-    previous = final.with_name(final.name + ".previous")
-    if previous.exists():
-        shutil.rmtree(previous)
-    if final.exists():
-        os.rename(final, previous)
-    try:
-        os.rename(staging, final)
-    except Exception:
-        if previous.exists() and not final.exists():
-            os.rename(previous, final)
-        raise
-    fsync_dir(final)
+    if final.is_symlink():
+        pass
+    elif final.exists():
+        # Legacy plain-directory export: one-time migration before symlink publish.
+        legacy = final.with_name(final.name + ".legacy")
+        if legacy.exists():
+            shutil.rmtree(legacy)
+        os.rename(final, legacy)
+    versioned = staging.with_name(f"{final.name}.{os.getpid()}.{int(time.time() * 1000)}")
+    os.rename(staging, versioned)
+    link = final.with_name(final.name + ".new")
+    if link.exists() or link.is_symlink():
+        link.unlink()
+    link.symlink_to(versioned.name)
+    os.replace(link, final)
+    fsync_dir(versioned)
     fsync_dir(final.parent)
-    if previous.exists():
-        shutil.rmtree(previous)
+    for stale in final.parent.glob(final.name + ".*"):
+        if stale == versioned or stale.is_symlink() or stale.name.endswith(".new"):
+            continue
+        if stale.is_dir():
+            shutil.rmtree(stale)
+    legacy = final.with_name(final.name + ".legacy")
+    if legacy.exists():
+        shutil.rmtree(legacy)
 
 
 class RunLock:
@@ -400,16 +410,6 @@ def run(args):
                         f.flush()
                         os.fsync(f.fileno())
                     print(json.dumps(metrics), flush=True)
-                checkpoint(
-                    output / "checkpoint.pt",
-                    module,
-                    engine,
-                    epoch,
-                    contract,
-                    rank,
-                    world_size,
-                    device,
-                )
                 better = metrics["validation_accuracy"] > best["validation_accuracy"] or (
                     metrics["validation_accuracy"] == best["validation_accuracy"]
                     and metrics["validation_loss"] < best["validation_loss"]
@@ -421,6 +421,8 @@ def run(args):
                         validation_loss=metrics["validation_loss"],
                     )
                     if rank == 0:
+                        # best.pt commits before checkpoint.pt: a crash between them
+                        # replays the epoch on resume rather than losing the best model.
                         atomic_save(
                             {
                                 "epoch": epoch,
@@ -429,6 +431,16 @@ def run(args):
                             },
                             best_path,
                         )
+                checkpoint(
+                    output / "checkpoint.pt",
+                    module,
+                    engine,
+                    epoch,
+                    contract,
+                    rank,
+                    world_size,
+                    device,
+                )
             if rank == 0:
                 if not best_path.exists():
                     raise RuntimeError("No best checkpoint recorded; nothing to export")
@@ -505,6 +517,8 @@ def parse_args():
     p.add_argument("--skip-overlap-check", action="store_true")
     p.add_argument("--force-lock", action="store_true")
     args = p.parse_args()
+    if not 0.75 < args.overlap_threshold <= 1:
+        p.error("overlap-threshold must exceed 0.75 (banded MinHash recall bound)")
     if min(args.epochs, args.batch_size, args.accum, args.prefetch_factor) < 1 or args.workers < 0:
         p.error("Invalid batch/epoch/accumulation/worker setting")
     if args.lr <= 0 or args.weight_decay < 0 or args.warmup_steps < 0:

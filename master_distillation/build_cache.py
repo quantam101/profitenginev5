@@ -216,8 +216,11 @@ def main():
     )
     p.add_argument("--overlap-threshold", type=float, default=0.85)
     args = p.parse_args()
-    if args.batch_size < 1 or args.max_length < 1 or not 0 < args.overlap_threshold <= 1:
-        p.error("batch-size/max-length must be positive; threshold in (0, 1]")
+    if args.batch_size < 1 or args.max_length < 1 or not 0.75 < args.overlap_threshold <= 1:
+        p.error(
+            "batch-size/max-length must be positive; threshold in (0.75, 1] "
+            "(banded MinHash recall bound)"
+        )
     build(args)
 
 

@@ -291,8 +291,21 @@ class DDPDistillationEngine:
             stats[3].add_((batch["logits"].argmax(-1) == batch["labels"]).sum())
         reduce(stats)
         loss, correct, n, teacher_correct = stats.cpu().tolist()
-        if not n or confusion is None:
+        if not n:
             raise ValueError("Empty validation dataset")
+        # Ranks with empty validation shards hold no confusion matrix; agree on
+        # class count collectively so every rank enters this reduction.
+        classes = torch.tensor(
+            confusion.shape[0] if confusion is not None else 0,
+            device=self.device,
+            dtype=torch.int64,
+        )
+        reduce(classes, dist.ReduceOp.MAX)
+        classes = int(classes.item())
+        if not classes:
+            raise ValueError("Empty validation dataset")
+        if confusion is None:
+            confusion = torch.zeros(classes, classes, device=self.device, dtype=torch.float64)
         reduce(confusion)
         confusion = confusion.cpu()
         per_class = []

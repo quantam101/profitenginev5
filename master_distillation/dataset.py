@@ -157,6 +157,14 @@ def find_overlap(a_index, b_index, threshold=0.85, bands=16):
     """Exact digest matches plus banded-MinHash near-duplicate candidates."""
     a_text, a_sig = a_index
     b_text, b_sig = b_index
+    # A pair below this bound can spread its mismatches one per band and share no
+    # full band, so candidate generation would never compare it.
+    min_supported = 1 - bands / a_sig.shape[1]
+    if not min_supported < threshold <= 1:
+        raise ValueError(
+            f"Threshold must exceed {min_supported:.2f}: lower values can share no "
+            "full band and would silently miss contaminated splits"
+        )
     width = a_sig.shape[1] // bands
     if a_sig.shape[1] % bands or width < 1:
         raise ValueError("Signature width must divide evenly into bands")

@@ -1,5 +1,16 @@
 # Lifelong Catch and Correct — change record
 
+## 1.1.1 — 2026-09-22
+
+Review hardening: evaluation no longer deadlocks when a rank holds an empty
+validation shard (class count is agreed collectively before the confusion
+reduction); `best.pt` now commits before `checkpoint.pt` so a crash between them
+replays the epoch instead of losing the best model; export publication uses an
+atomic symlink swap onto a versioned directory so readers never see a missing
+model; the overlap threshold is bounded above 0.75 (the banded-MinHash recall
+guarantee) in `find_overlap` and both CLIs; CI coverage moved to the repository
+root workflow scoped to this package.
+
 ## 1.1.0 — 2026-09-22
 
 Strengthened model-quality selection: evaluation now reports per-class
