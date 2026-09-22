@@ -773,16 +773,82 @@ class FyeRunRequest(BaseModel):
     human_reviewed: bool = Field(default=False)
 
 
+def _dispatch_fye_gha(payload: FyeRunRequest) -> Dict[str, Any]:
+    """Delegate the run to the 'FYE pipeline run' GitHub Actions workflow.
+
+    Default executor: free-tier Render (512MB) OOMs on the fye subprocess +
+    ffmpeg, so heavy runs dispatch to fye-run.yml on free GHA runners.
+    Requires GH_FYE_DISPATCH_TOKEN (repo PAT with actions:write/workflow).
+    """
+    import os
+    import urllib.error
+    import urllib.request
+    token = os.environ.get("GH_FYE_DISPATCH_TOKEN", "")
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail="GH_FYE_DISPATCH_TOKEN not configured (set FYE_EXECUTOR=local to run on-host)",
+        )
+    repo = os.environ.get("GH_FYE_REPO", "quantam101/profitenginev5")
+    ref = os.environ.get("GH_FYE_REF", "main")
+    inputs = {
+        "topic": payload.topic,
+        "niche": payload.niche,
+        "title": payload.title,
+        "human_reviewed": "true" if payload.human_reviewed else "false",
+        "monthly_views_target": str(payload.monthly_views_target),
+        "subscribers": str(payload.subscribers),
+        "watch_hours": str(payload.watch_hours),
+        "shorts_views": str(payload.shorts_views),
+    }
+    body = json.dumps({"ref": ref, "inputs": inputs}).encode()
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/actions/workflows/fye-run.yml/dispatches",
+        data=body, method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 -- fixed api.github.com URL
+            code = resp.status
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")[:400]
+        raise HTTPException(
+            status_code=502,
+            detail=f"GitHub dispatch failed ({exc.code}): {detail}",
+        ) from exc
+    if code != 204:
+        raise HTTPException(status_code=502, detail=f"GitHub dispatch returned {code}")
+    return {
+        "ok": True,
+        "executor": "gha",
+        "dispatched": True,
+        "repo": repo,
+        "ref": ref,
+        "inputs": inputs,
+        "runs_url": f"https://github.com/{repo}/actions/workflows/fye-run.yml",
+    }
+
+
 @app.post("/fye/run")
 def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
-    """HTTP-reachable FYE pipeline trigger — runs scripts/fye_run.py on the
-    runtime host (which has DC_WEBHOOK_URL + WEBHOOK_SECRET configured) and
-    returns the package result. Render free services have no job/SSH exec,
-    so this mirrors the /pod/* and /guard/run webhook-trigger pattern."""
+    """HTTP-reachable FYE pipeline trigger.
+
+    Default executor is 'gha' — delegates to the fye-run.yml
+    workflow_dispatch runner (free GitHub runners, ~7GB, ffmpeg installed)
+    because the 512MB free-tier instance OOMs on the subprocess + ffmpeg.
+    Set FYE_EXECUTOR=local to run scripts/fye_run.py on-host instead
+    (e.g. a larger Render plan or another host)."""
     import os
     import subprocess
     from pathlib import Path
     _check_webhook_token(request)
+    if os.environ.get("FYE_EXECUTOR", "gha") != "local":
+        return _dispatch_fye_gha(payload)
     repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
     script = os.path.join(repo_dir, "scripts", "fye_run.py")
     cmd = [
