@@ -1,6 +1,12 @@
 name: FYE pipeline run
 
 on:
+  # Queue-driven automatic runs: merge or push a JSON file into
+  # fye-queue/ and the pipeline picks it up — no Actions-scope token
+  # needed (a plain git push triggers this).
+  push:
+    branches: [main]
+    paths: ["fye-queue/*.json"]
   workflow_dispatch:
     inputs:
       topic:
@@ -39,6 +45,8 @@ on:
 
 # Render free tier (512MB) OOM-kills the FYE subprocess + ffmpeg, so the
 # pipeline runs here instead: free runners have ~7GB and ffmpeg preinstalled.
+permissions:
+  contents: write  # needed to push the processed/ archive commit
 jobs:
   fye:
     name: "FYE run"
@@ -58,17 +66,33 @@ jobs:
 
       - name: Run FYE pipeline
         run: |
-          ARGS=(
-            --topic "${{ inputs.topic }}"
-            --niche "${{ inputs.niche }}"
-            --monthly-views-target "${{ inputs.monthly_views_target }}"
-            --subscribers "${{ inputs.subscribers }}"
-            --watch-hours "${{ inputs.watch_hours }}"
-            --shorts-views "${{ inputs.shorts_views }}"
-          )
-          [ -n "${{ inputs.title }}" ] && ARGS+=(--title "${{ inputs.title }}")
-          [ "${{ inputs.human_reviewed }}" = "true" ] && ARGS+=(--human-reviewed)
-          python scripts/fye_run.py "${ARGS[@]}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ARGS=(
+              --topic "${{ inputs.topic }}"
+              --niche "${{ inputs.niche }}"
+              --monthly-views-target "${{ inputs.monthly_views_target }}"
+              --subscribers "${{ inputs.subscribers }}"
+              --watch-hours "${{ inputs.watch_hours }}"
+              --shorts-views "${{ inputs.shorts_views }}"
+            )
+            [ -n "${{ inputs.title }}" ] && ARGS+=(--title "${{ inputs.title }}")
+            [ "${{ inputs.human_reviewed }}" = "true" ] && ARGS+=(--human-reviewed)
+            python scripts/fye_run.py "${ARGS[@]}"
+          else
+            # push trigger: run every queued request committed under fye-queue/
+            python scripts/fye_queue.py run
+          fi
+
+      - name: Archive processed queue entries
+        if: github.event_name == 'push' && always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fye-queue
+          git diff --cached --quiet || {
+            git commit -m "chore(fye-queue): archive processed requests [skip ci]"
+            git push
+          }
 
       - name: Upload package artifacts
         if: always()
