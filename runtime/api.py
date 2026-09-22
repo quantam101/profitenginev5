@@ -808,10 +808,12 @@ def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"fye run failed: {exc}") from exc
     result = None
-    brace = proc.stdout.rfind("\n{")
-    if brace != -1:
+    stdout = proc.stdout.strip()
+    brace = stdout.rfind("\n{")
+    candidate = stdout[brace + 1:] if brace != -1 else stdout
+    if candidate:
         try:
-            result = json.loads(proc.stdout[brace + 1:])
+            result = json.loads(candidate)
         except ValueError:
             result = None
     return {
