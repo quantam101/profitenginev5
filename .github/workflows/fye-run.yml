@@ -20,6 +20,22 @@ on:
         default: "false"
         type: choice
         options: ["false", "true"]
+      monthly_views_target:
+        description: "Planning-prior monthly views target"
+        required: false
+        default: "100000"
+      subscribers:
+        description: "Channel subscribers (for the YPP gate)"
+        required: false
+        default: "0"
+      watch_hours:
+        description: "Channel watch hours (for the YPP gate)"
+        required: false
+        default: "0"
+      shorts_views:
+        description: "Channel Shorts views (for the YPP gate)"
+        required: false
+        default: "0"
 
 # Render free tier (512MB) OOM-kills the FYE subprocess + ffmpeg, so the
 # pipeline runs here instead: free runners have ~7GB and ffmpeg preinstalled.
@@ -42,7 +58,14 @@ jobs:
 
       - name: Run FYE pipeline
         run: |
-          ARGS=(--topic "${{ inputs.topic }}" --niche "${{ inputs.niche }}")
+          ARGS=(
+            --topic "${{ inputs.topic }}"
+            --niche "${{ inputs.niche }}"
+            --monthly-views-target "${{ inputs.monthly_views_target }}"
+            --subscribers "${{ inputs.subscribers }}"
+            --watch-hours "${{ inputs.watch_hours }}"
+            --shorts-views "${{ inputs.shorts_views }}"
+          )
           [ -n "${{ inputs.title }}" ] && ARGS+=(--title "${{ inputs.title }}")
           [ "${{ inputs.human_reviewed }}" = "true" ] && ARGS+=(--human-reviewed)
           python scripts/fye_run.py "${ARGS[@]}"
