@@ -53,8 +53,8 @@ jobs:
         with:
           name: fye-package-${{ github.run_id }}
           path: |
-            datacenter/fye/**/manifest.json
-            datacenter/fye/**/*.mp4
-            datacenter/fye/journal.jsonl
+            data/fye/**/manifest.json
+            data/fye/**/*.mp4
+            data/fye/journal.jsonl
           if-no-files-found: warn
           retention-days: 14
