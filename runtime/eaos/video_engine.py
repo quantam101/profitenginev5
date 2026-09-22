@@ -427,7 +427,9 @@ class UltimateVideoEngine:
         with open(srt, "w", encoding="utf-8") as f:
             f.write(srt_text or "1\n00:00:00,000 --> 00:00:03,000\nAlready Here LLC\n")
         with open(concat, "w", encoding="utf-8") as f:
-            f.writelines(f"file '{Path(c).as_posix()}'\n" for c in valid_clips)
+            # ffmpeg resolves concat entries relative to seq.txt's directory —
+            # absolute paths keep this correct regardless of CWD.
+            f.writelines(f"file '{Path(c).resolve().as_posix()}'\n" for c in valid_clips)
 
         subs_filter = (
             f"subtitles='{Path(srt).as_posix()}':"
@@ -436,9 +438,12 @@ class UltimateVideoEngine:
             f"Shadow=1,MarginV=30'"
         )
 
+        voiceover = audio_path if (audio_path and os.path.exists(audio_path)) else None
         ffmpeg_args = [
             "-f", "concat", "-safe", "0", "-i", concat,
+            *(["-i", voiceover] if voiceover else []),
             "-vf", subs_filter,
+            *( ["-map", "0:v", "-map", "1:a", "-shortest"] if voiceover else [] ),
             "-c:v", "libx264", "-crf", "18", "-preset", "veryfast",
             "-c:a", "aac", "-b:a", "192k",
             output,
