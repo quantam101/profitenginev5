@@ -7,12 +7,18 @@ side of the Command OS contract.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
+
+try:
+    import fcntl
+except ImportError:  # non-POSIX fallback — Windows uses msvcrt locking
+    fcntl = None  # type: ignore[assignment]
 
 
 class DecisionJournal:
@@ -32,19 +38,46 @@ class DecisionJournal:
         entries = self._entries()
         return entries[-1]["hash"] if entries else "genesis"
 
+    @contextlib.contextmanager
+    def _locked(self) -> Iterator[None]:
+        """Serialize read-compute-append across processes. Without this the
+        last-hash read and the write race, producing sibling entries that
+        break chain verification."""
+        lock_path = self.path.with_suffix(self.path.suffix + ".lock")
+        with open(lock_path, "a+b") as lock:
+            if fcntl is not None:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            else:
+                import msvcrt
+                lock.seek(0, os.SEEK_END)
+                if lock.tell() == 0:
+                    lock.write(b"\0")
+                    lock.flush()
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                if fcntl is not None:
+                    fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+                else:
+                    lock.seek(0)
+                    msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+
     def append(self, agent: str, decision: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        entry = {
-            "ts": time.time(),
-            "agent": agent,
-            "decision": decision,
-            "data": data,
-            "prev": self._last_hash(),
-        }
-        entry["hash"] = hashlib.sha256(
-            json.dumps(entry, sort_keys=True).encode()
-        ).hexdigest()
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, sort_keys=True) + "\n")
+        with self._locked():
+            entry = {
+                "ts": time.time(),
+                "agent": agent,
+                "decision": decision,
+                "data": data,
+                "prev": self._last_hash(),
+            }
+            entry["hash"] = hashlib.sha256(
+                json.dumps(entry, sort_keys=True).encode()
+            ).hexdigest()
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, sort_keys=True) + "\n")
         return entry
 
     def verify_chain(self) -> bool:

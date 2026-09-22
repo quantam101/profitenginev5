@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import sys
 import time
@@ -759,3 +760,86 @@ async def pod_push(request: Request) -> Dict[str, Any]:
         "uploaded": saved,
         "output": proc.stdout + proc.stderr,
     }
+
+
+class FyeRunRequest(BaseModel):
+    topic: str = Field(min_length=1, max_length=200)
+    niche: str = Field(default="science-explainer", max_length=80)
+    title: str = Field(default="", max_length=300)
+    monthly_views_target: int = Field(default=100_000, ge=0)
+    subscribers: int = Field(default=0, ge=0)
+    watch_hours: float = Field(default=0.0, ge=0.0)
+    shorts_views: int = Field(default=0, ge=0)
+    human_reviewed: bool = Field(default=False)
+
+
+@app.post("/fye/run")
+def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
+    """HTTP-reachable FYE pipeline trigger — runs scripts/fye_run.py on the
+    runtime host (which has DC_WEBHOOK_URL + WEBHOOK_SECRET configured) and
+    returns the package result. Render free services have no job/SSH exec,
+    so this mirrors the /pod/* and /guard/run webhook-trigger pattern."""
+    import os
+    import subprocess
+    from pathlib import Path
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
+    script = os.path.join(repo_dir, "scripts", "fye_run.py")
+    cmd = [
+        sys.executable, script,
+        "--topic", payload.topic,
+        "--niche", payload.niche,
+        "--monthly-views-target", str(payload.monthly_views_target),
+        "--subscribers", str(payload.subscribers),
+        "--watch-hours", str(payload.watch_hours),
+        "--shorts-views", str(payload.shorts_views),
+    ]
+    if payload.title:
+        cmd += ["--title", payload.title]
+    if payload.human_reviewed:
+        cmd.append("--human-reviewed")
+    try:
+        proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
+            cmd,
+            cwd=repo_dir,
+            capture_output=True, text=True, timeout=900,
+            shell=False,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"fye run failed: {exc}") from exc
+    result = None
+    stdout = proc.stdout.strip()
+    brace = stdout.rfind("\n{")
+    candidate = stdout[brace + 1:] if brace != -1 else stdout
+    if candidate:
+        try:
+            result = json.loads(candidate)
+        except ValueError:
+            result = None
+    return {
+        "ok": proc.returncode == 0,
+        "exit_code": proc.returncode,
+        "result": result,
+        "output": proc.stdout + proc.stderr,
+    }
+
+
+@app.get("/fye/status")
+def fye_status(request: Request) -> Dict[str, Any]:
+    """FYE wiring + journal stats on the runtime host (auth required)."""
+    import os
+    import subprocess
+    from pathlib import Path
+    _check_webhook_token(request)
+    repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
+    script = os.path.join(repo_dir, "scripts", "fye_run.py")
+    try:
+        proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
+            [sys.executable, script, "--status"],
+            cwd=repo_dir,
+            capture_output=True, text=True, timeout=60,
+            shell=False,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"fye status failed: {exc}") from exc
+    return {"ok": proc.returncode == 0, "exit_code": proc.returncode, "output": proc.stdout + proc.stderr}
