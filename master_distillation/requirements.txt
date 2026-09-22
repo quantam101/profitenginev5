@@ -1,0 +1,8 @@
+# Install the hardware-appropriate torch==2.14.0 wheel first.
+# CPU integration-tested versions, not a CUDA compatibility certification.
+transformers==5.17.0
+lmdb==2.3.0
+safetensors==0.8.0
+zstandard==0.25.0
+pytest==9.1.1
+ruff==0.16.8
