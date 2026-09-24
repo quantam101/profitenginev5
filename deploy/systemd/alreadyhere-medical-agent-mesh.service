@@ -1,0 +1,15 @@
+[Unit]
+Description=Already Here Medical Logistics Agent Mesh
+After=ollama.service
+Requires=ollama.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/alreadyhere/profitenginev5
+EnvironmentFile=/etc/alreadyhere/medical-agent-mesh.env
+ExecStart=/opt/alreadyhere/profitenginev5/.venv-medical-mesh/bin/python agent_mesh.py
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/alreadyhere/profitenginev5/data
+

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Already Here Medical Agent Mesh daily
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 America/Phoenix
+Persistent=true
+RandomizedDelaySec=30
+Unit=alreadyhere-medical-agent-mesh.service
+
+[Install]
+WantedBy=timers.target
