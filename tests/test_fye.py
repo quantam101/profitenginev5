@@ -143,3 +143,208 @@ class TestCommandOs:
                         dc_webhook_url="https://dc.example/api/events/webhook",
                         webhook_secret="x")
         assert cfg.dc_base_url == "https://dc.example"
+
+
+FIELDS = {
+    "topic": "Compound interest", "niche": "personal-finance",
+    "title": "T", "channel": "@chan", "monthly_views_target": 100000,
+    "subscribers": 0, "watch_hours": 0, "shorts_views": 0,
+    "human_reviewed": False,
+}
+
+
+class TestJobStore:
+    def _store(self, tmp_path):
+        from runtime.fye.jobs import FyeJobStore
+        return FyeJobStore(_cfg(tmp_path))
+
+    def test_create_is_immutable_and_idempotent(self, tmp_path):
+        from runtime.fye.jobs import PayloadMismatch
+        s = self._store(tmp_path)
+        j1 = s.create(job_id="j1", approval_id="a1", fields=FIELDS)
+        assert j1["status"] == "DRAFT" and j1["approval_id"] == "a1"
+        # duplicate dispatch — same job_id + payload -> existing record
+        j2 = s.create(job_id="j1", approval_id="a1", fields=FIELDS)
+        assert j2["job_id"] == "j1" and j2["replayed"] is True
+        # altered payload on same job_id -> rejected
+        import pytest
+        with pytest.raises(PayloadMismatch):
+            s.create(job_id="j1", approval_id="a1",
+                     fields={**FIELDS, "topic": "altered"})
+
+    def test_lifecycle_transitions_are_validated(self, tmp_path):
+        import pytest
+        from runtime.fye.jobs import IllegalTransition
+        s = self._store(tmp_path)
+        s.create(job_id="j2", approval_id="a1", fields=FIELDS)
+        with pytest.raises(IllegalTransition):
+            s.transition("j2", "PUBLISHED")  # DRAFT -> PUBLISHED illegal
+        s.approve("j2")
+        s.enqueue("j2")
+        assert s.get("j2")["status"] == "QUEUED"
+        j = s.get("j2")
+        assert [h["to"] for h in j["history"]] == ["APPROVED", "QUEUED"]
+
+    def test_expired_approval_blocks_execution(self, tmp_path):
+        import pytest
+        from runtime.fye.jobs import JobError
+        cfg = _cfg(tmp_path)
+        from runtime.fye.jobs import FyeJobStore
+        s = FyeJobStore(FyeConfig(**{**cfg.__dict__, "job_ttl_s": -1}))
+        s.create(job_id="j3", approval_id="a1", fields=FIELDS)
+        with pytest.raises(JobError):
+            s.approve("j3")
+        assert s.get("j3")["status"] == "EXPIRED"
+
+    def test_single_lease_winner(self, tmp_path):
+        s = self._store(tmp_path)
+        s.create(job_id="j4", approval_id="a1", fields=FIELDS)
+        s.approve("j4")
+        s.enqueue("j4")
+        assert s.claim("j4", "worker-a") is True
+        assert s.claim("j4", "worker-b") is False  # concurrent loser
+        assert s.claim("j4", "worker-a") is True   # owner re-claim ok
+
+    def test_lease_expiry_allows_recovery(self, tmp_path):
+        s = self._store(tmp_path)
+        s.create(job_id="j5", approval_id="a1", fields=FIELDS)
+        s.approve("j5")
+        s.enqueue("j5")
+        assert s.claim("j5", "worker-a", ttl_s=-1) is True
+        # crashed worker's lease expired — recoverable, not stuck
+        assert s.claim("j5", "worker-b") is True
+
+    def test_artifact_sha_and_size_limit(self, tmp_path):
+        import pytest
+        from runtime.fye.jobs import JobError
+        s = self._store(tmp_path)
+        s.create(job_id="j6", approval_id="a1", fields=FIELDS)
+        art = tmp_path / "master.mp4"
+        art.write_bytes(b"x" * 500)
+        job = s.record_artifact("j6", str(art))
+        entry = job["artifacts"]["master.mp4"]
+        import hashlib
+        assert entry["sha256"] == hashlib.sha256(b"x" * 500).hexdigest()
+        big = tmp_path / "big.mp4"
+        big.write_bytes(b"y" * 200)
+        with pytest.raises(JobError):
+            s.record_artifact("j6", str(big), max_bytes=100)
+        with pytest.raises(JobError):
+            s.record_artifact("j6", str(tmp_path / "missing.mp4"))
+
+    def test_transitions_land_in_journal(self, tmp_path):
+        s = self._store(tmp_path)
+        s.create(job_id="j7", approval_id="a1", fields=FIELDS)
+        s.approve("j7")
+        entries = s.journal.find(decision="job.transition")
+        assert entries and entries[-1]["data"]["to"] == "APPROVED"
+        assert s.journal.verify_chain() is True
+
+
+class TestDispatch:
+    def test_dispatch_requires_token(self, tmp_path):
+        from runtime.fye import dispatch
+        cfg = _cfg(tmp_path)
+        job = {"job_id": "j", "status": "APPROVED", "payload": FIELDS,
+               "payload_hash": dispatch.payload_hash(FIELDS),
+               "approval_id": "a1"}
+        res = dispatch.dispatch_job(cfg, job)
+        assert res["ok"] is False  # fail closed without credential
+
+    def test_dispatch_refuses_unapproved_job(self, tmp_path):
+        from runtime.fye import dispatch
+        cfg = FyeConfig(root=str(tmp_path), dispatch_token="tok")
+        res = dispatch.dispatch_job(
+            cfg, {"job_id": "j", "status": "DRAFT", "payload": {}})
+        assert res["ok"] is False
+
+    def test_worker_rejects_altered_payload(self, tmp_path):
+        import pytest
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import JobError
+        cfg = _cfg(tmp_path)
+        ph = dispatch.payload_hash(FIELDS)
+        altered = {**FIELDS, "topic": "different topic"}
+        with pytest.raises(JobError):
+            dispatch.verify_worker_inputs(
+                cfg, job_id="j", approval_id="a",
+                expected_hash=ph, fields=altered)
+
+    def test_worker_fails_closed_without_command_os(self, tmp_path):
+        import pytest
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import JobError
+        cfg = _cfg(tmp_path)  # dc not configured
+        ph = dispatch.payload_hash(FIELDS)
+        with pytest.raises(JobError):
+            dispatch.verify_worker_inputs(
+                cfg, job_id="j", approval_id="a",
+                expected_hash=ph, fields=FIELDS)
+
+    def test_worker_rejects_nonapproved_decision(self, tmp_path):
+        import pytest
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import JobError
+        cfg = FyeConfig(root=str(tmp_path),
+                        dc_webhook_url="https://dc.example/api/events/webhook",
+                        webhook_secret="s")
+        fake = type("C", (), {"journaled_decision":
+                              staticmethod(lambda c, i: {"status": "pending"})})
+        with pytest.raises(JobError):
+            dispatch.verify_worker_inputs(
+                cfg, job_id="j", approval_id="a",
+                expected_hash=dispatch.payload_hash(FIELDS),
+                fields=FIELDS, command_os=fake)
+
+
+class TestPublish:
+    def _ready(self, tmp_path):
+        from runtime.fye.jobs import FyeJobStore
+        s = FyeJobStore(_cfg(tmp_path))
+        s.create(job_id="jp", approval_id="a1", fields=FIELDS)
+        s.approve("jp")
+        s.enqueue("jp")
+        s.claim("jp", "w")
+        s.transition("jp", "RENDERING")
+        s.transition("jp", "QA")
+        s.transition("jp", "READY")
+        return s
+
+    def test_publish_requires_own_approval(self, tmp_path):
+        import pytest
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        with pytest.raises(publish.PublishRefused):
+            publish.publish_job(s.cfg, s, "jp",
+                                publisher=publish.DryRunPublisher())
+
+    def test_duplicate_publish_one_post(self, tmp_path):
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        s.transition("jp", "PUBLISH_APPROVED")
+        r1 = publish.publish_job(s.cfg, s, "jp",
+                                 publisher=publish.DryRunPublisher())
+        r2 = publish.publish_job(s.cfg, s, "jp",
+                                 publisher=publish.DryRunPublisher())
+        assert r1["post_id"] == r2["post_id"] and r2["replayed"] is True
+        assert s.get("jp")["status"] == "PUBLISHED"
+
+    def test_missing_credential_fails_closed(self, tmp_path):
+        import pytest
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        s.transition("jp", "PUBLISH_APPROVED")
+        with pytest.raises(publish.PublishRefused):
+            publish.publisher_for(s.cfg)  # no adapter, no dry run
+        # failed publish must not invalidate the rendered asset
+        assert s.get("jp")["status"] == "PUBLISH_APPROVED"
+
+    def test_published_event_carries_attribution(self, tmp_path):
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        s.transition("jp", "PUBLISH_APPROVED")
+        publish.publish_job(s.cfg, s, "jp",
+                            publisher=publish.DryRunPublisher())
+        ev = publish.published_event(s.get("jp"))
+        assert ev["asset_id"] == "jp" and ev["state"] == "PUBLISHED"
+        assert "channel_id" in ev and "campaign" in ev

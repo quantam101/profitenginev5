@@ -17,15 +17,19 @@ Honesty constraints baked in (per the build doc):
 """
 
 from .config import FyeConfig
+from .jobs import FyeJobStore, JobError, payload_hash
 from .journal import DecisionJournal
 from .orchestrator import FyeOrchestrator
 from .rpm_priors import RPM_PRIORS, RpmPrior, ypp_gate
 
 __all__ = [
     "FyeConfig",
+    "FyeJobStore",
     "FyeOrchestrator",
     "DecisionJournal",
+    "JobError",
     "RPM_PRIORS",
     "RpmPrior",
+    "payload_hash",
     "ypp_gate",
 ]

@@ -1,21 +1,40 @@
 name: FYE pipeline run
 
+# Approval-driven execution only. A merge or push must never double as
+# authorization to generate/publish production content: jobs are created
+# by the FYE control plane (scripts/fye_dispatch.py) after a Command OS
+# approval, and dispatched here with job_id + approval_id + payload_hash.
+# The worker re-verifies all three before rendering — this file must
+# never gain a push/pull_request_target trigger on the production path.
 on:
   workflow_dispatch:
     inputs:
+      job_id:
+        description: "Immutable FYE job id (fye-job-...)"
+        required: true
+      approval_id:
+        description: "Command OS approval id authorizing this render"
+        required: true
+      payload_hash:
+        description: "sha256 of the canonical dispatch payload"
+        required: true
       topic:
-        description: "Video topic (e.g. 'How compound interest actually works')"
+        description: "Video topic"
         required: true
       niche:
-        description: "Niche key for RPM priors (personal-finance, science-explainer, tech, ...)"
+        description: "Niche key for RPM priors"
         required: false
         default: "science-explainer"
       title:
         description: "Optional video title"
         required: false
         default: ""
+      channel:
+        description: "Destination channel id (attribution spine)"
+        required: false
+        default: ""
       human_reviewed:
-        description: "Mark the package human-reviewed (per YouTube synthetic-media disclosure flow)"
+        description: "Package human-reviewed (YouTube synthetic-media disclosure)"
         required: false
         default: "false"
         type: choice
@@ -25,23 +44,33 @@ on:
         required: false
         default: "100000"
       subscribers:
-        description: "Channel subscribers (for the YPP gate)"
+        description: "Channel subscribers (YPP gate)"
         required: false
         default: "0"
       watch_hours:
-        description: "Channel watch hours (for the YPP gate)"
+        description: "Channel watch hours (YPP gate)"
         required: false
         default: "0"
       shorts_views:
-        description: "Channel Shorts views (for the YPP gate)"
+        description: "Channel Shorts views (YPP gate)"
         required: false
         default: "0"
 
-# Render free tier (512MB) OOM-kills the FYE subprocess + ffmpeg, so the
-# pipeline runs here instead: free runners have ~7GB and ffmpeg preinstalled.
+# Least privilege: when explicit permissions are supplied, every
+# unspecified permission becomes none — the worker reads the repo and
+# nothing else. Elevation happens per-step only if ever required.
+permissions:
+  contents: read
+
+# One job_id = one active worker. A duplicate dispatch of a running job
+# waits behind the lease instead of rendering twice.
+concurrency:
+  group: fye-job-${{ inputs.job_id }}
+  cancel-in-progress: false
+
 jobs:
   fye:
-    name: "FYE run"
+    name: "FYE job ${{ inputs.job_id }}"
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -49,6 +78,9 @@ jobs:
       WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
       REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
       GMAOS_PAID_ADAPTERS_ENABLED: ${{ secrets.GMAOS_PAID_ADAPTERS_ENABLED }}
+      # Resource controls (defaults in runtime/fye/config.py).
+      FYE_RENDER_TIMEOUT_S: ${{ vars.FYE_RENDER_TIMEOUT_S || '1200' }}
+      FYE_MAX_ARTIFACT_MB: ${{ vars.FYE_MAX_ARTIFACT_MB || '500' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -56,11 +88,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run FYE pipeline
+      - name: Run FYE job (approval-verified, hash-checked, leased)
         run: |
           ARGS=(
+            --job-id "${{ inputs.job_id }}"
+            --approval-id "${{ inputs.approval_id }}"
+            --payload-hash "${{ inputs.payload_hash }}"
             --topic "${{ inputs.topic }}"
             --niche "${{ inputs.niche }}"
+            --channel "${{ inputs.channel }}"
             --monthly-views-target "${{ inputs.monthly_views_target }}"
             --subscribers "${{ inputs.subscribers }}"
             --watch-hours "${{ inputs.watch_hours }}"
@@ -68,16 +104,17 @@ jobs:
           )
           [ -n "${{ inputs.title }}" ] && ARGS+=(--title "${{ inputs.title }}")
           [ "${{ inputs.human_reviewed }}" = "true" ] && ARGS+=(--human-reviewed)
-          python scripts/fye_run.py "${ARGS[@]}"
+          python scripts/fye_worker.py "${ARGS[@]}"
 
-      - name: Upload package artifacts
+      - name: Upload job record + artifacts
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: fye-package-${{ github.run_id }}
+          name: fye-job-${{ inputs.job_id }}
           path: |
-            data/fye/**/manifest.json
-            data/fye/**/*.mp4
+            data/fye/jobs/${{ inputs.job_id }}.json
+            data/fye/${{ inputs.job_id }}/manifest.json
+            data/fye/${{ inputs.job_id }}/**/*.mp4
             data/fye/journal.jsonl
           if-no-files-found: warn
           retention-days: 14

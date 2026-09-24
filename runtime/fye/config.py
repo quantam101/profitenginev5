@@ -32,6 +32,28 @@ class FyeConfig:
     approval_timeout_s: float = field(default_factory=lambda: float(
         os.environ.get("FYE_APPROVAL_TIMEOUT_S", "86400")))
 
+    # Dispatch credential: fine-grained GitHub token (or App installation
+    # token) scoped to Actions:write on this repo ONLY. No broad repo PAT.
+    dispatch_token: str = field(default_factory=lambda: os.environ.get(
+        "FYE_DISPATCH_TOKEN", "").strip())
+    dispatch_repo: str = field(default_factory=lambda: os.environ.get(
+        "FYE_DISPATCH_REPO", "quantam101/profitenginev5").strip())
+    dispatch_workflow: str = field(default_factory=lambda: os.environ.get(
+        "FYE_DISPATCH_WORKFLOW", "fye-run.yml").strip())
+    dispatch_ref: str = field(default_factory=lambda: os.environ.get(
+        "FYE_DISPATCH_REF", "main").strip())
+
+    # Resource controls — keep the Actions worker from becoming the same
+    # cost/runtime problem the Render box was.
+    job_ttl_s: float = field(default_factory=lambda: float(
+        os.environ.get("FYE_JOB_TTL_S", "86400")))
+    render_timeout_s: float = field(default_factory=lambda: float(
+        os.environ.get("FYE_RENDER_TIMEOUT_S", "1200")))
+    max_artifact_bytes: int = field(default_factory=lambda: int(
+        os.environ.get("FYE_MAX_ARTIFACT_MB", "500")) * 1024 * 1024)
+    max_attempts: int = field(default_factory=lambda: int(
+        os.environ.get("FYE_MAX_ATTEMPTS", "3")))
+
     @property
     def dc_base_url(self) -> str:
         """Base URL of daily-command-os derived from the webhook URL."""
