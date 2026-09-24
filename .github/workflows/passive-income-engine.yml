@@ -1,0 +1,59 @@
+name: Passive Income Engine
+
+on:
+  schedule:
+    - cron: '5 12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: passive-income-engine
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PASSIVE_INCOME_ZERO_SPEND: 'true'
+      PASSIVE_INCOME_EXTERNAL_WRITES: ${{ vars.PASSIVE_INCOME_EXTERNAL_WRITES || 'false' }}
+      PASSIVE_INCOME_MIN_QUALITY_SCORE: ${{ vars.PASSIVE_INCOME_MIN_QUALITY_SCORE || '82' }}
+      PASSIVE_INCOME_MIN_PROFIT_SCORE: ${{ vars.PASSIVE_INCOME_MIN_PROFIT_SCORE || '68' }}
+      PASSIVE_INCOME_NEWSLETTER_NICHE: ${{ vars.PASSIVE_INCOME_NEWSLETTER_NICHE }}
+      PASSIVE_INCOME_RSS_FEEDS: ${{ vars.PASSIVE_INCOME_RSS_FEEDS }}
+      PASSIVE_INCOME_STOREFRONT_WEBHOOK_URL: ${{ secrets.PASSIVE_INCOME_STOREFRONT_WEBHOOK_URL }}
+      PASSIVE_INCOME_WORKER_WEBHOOK_URL: ${{ secrets.PASSIVE_INCOME_WORKER_WEBHOOK_URL }}
+      PASSIVE_INCOME_WORKER_TOKEN: ${{ secrets.PASSIVE_INCOME_WORKER_TOKEN }}
+      BEEHIIV_PLAN: ${{ vars.BEEHIIV_PLAN }}
+      BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+      BEEHIIV_PUBLICATION_ID: ${{ vars.BEEHIIV_PUBLICATION_ID }}
+      AI_GATEWAY_ENABLE_NVIDIA_QWEN: ${{ vars.AI_GATEWAY_ENABLE_NVIDIA_QWEN || 'false' }}
+      AI_GATEWAY_QWEN_STAGE: ${{ vars.AI_GATEWAY_QWEN_STAGE || 'experimental' }}
+      AI_GATEWAY_NVIDIA_TOKEN: ${{ secrets.AI_GATEWAY_NVIDIA_TOKEN }}
+      AI_GATEWAY_OFFLINE_MODE: ${{ vars.AI_GATEWAY_OFFLINE_MODE || 'false' }}
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run policy and artifact tests
+        run: npm run test:passive-income
+
+      - name: Run supervised revenue cycle
+        run: node scripts/run-passive-income-cycle.mjs
+
+      - name: Preserve proof of work
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: passive-income-cycle-${{ github.run_id }}
+          path: .runtime/passive-income/
+          if-no-files-found: warn
+          retention-days: 30
