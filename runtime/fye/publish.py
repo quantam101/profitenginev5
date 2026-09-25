@@ -87,9 +87,12 @@ def publish_job(cfg: FyeConfig, store: FyeJobStore, job_id: str, *,
     if job["status"] == "PUBLISHED":
         return {"ok": True, "replayed": True,
                 "post_id": job["publish"]["post_id"]}
-    if store.is_expired(job):
+    # Publish authorization has its own TTL — granted at PUBLISH_APPROVED
+    # time, so a late human publish decision isn't killed by the render
+    # job's creation deadline.
+    if store.publish_expired(job):
         store.transition(job_id, "EXPIRED")
-        raise PublishRefused(f"job {job_id} approval expired")
+        raise PublishRefused(f"job {job_id} publish approval expired")
 
     pub = publisher if publisher is not None else publisher_for(cfg)
 

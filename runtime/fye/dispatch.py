@@ -21,7 +21,8 @@ import urllib.request
 from typing import Any, Dict, Optional
 
 from .config import FyeConfig
-from .jobs import JobError, canonical_payload, payload_hash
+from .jobs import (JobError, PayloadMismatch, canonical_payload,
+                   legal_targets, payload_hash)
 
 logger = logging.getLogger("fye.dispatch")
 
@@ -65,6 +66,25 @@ def dispatch_job(cfg: FyeConfig, job: Dict[str, Any]) -> Dict[str, Any]:
         "approval_id": job.get("approval_id", ""),
         "payload_hash": job["payload_hash"],
     })
+    # Journal the authorized hash BEFORE firing the workflow: the
+    # ephemeral worker has no job store, so this ledger entry is the
+    # durable binding that stops an approved job_id from being replayed
+    # against different render fields.
+    try:
+        from runtime.daily_command_producer import emit
+        emit("fye.job_event", {
+            "job_id": job["job_id"], "state": job["status"],
+            "payload_hash": job["payload_hash"],
+            "asset_id": job.get("attribution", {}).get(
+                "asset_id", job["job_id"]),
+            "channel_id": job.get("attribution", {}).get("channel_id", ""),
+            "campaign": job.get("attribution", {}).get("campaign", ""),
+            "source": job.get("attribution", {}).get("source", "fye"),
+        }, source="profitenginev5",
+            idempotency_key=f"fye-dispatch-{job['job_id']}")
+    except Exception as exc:  # ledger write failure must fail closed
+        return {"ok": False,
+                "error": f"could not journal dispatch binding: {exc}"}
     # 4 inputs total — well under GitHub's 10-input workflow_dispatch cap.
     body = json.dumps({"ref": cfg.dispatch_ref, "inputs": inputs}).encode()
     url = (f"{_API}/repos/{cfg.dispatch_repo}/actions/workflows/"
@@ -154,20 +174,44 @@ def verify_worker_inputs(cfg: FyeConfig, *, job_id: str, approval_id: str,
         raise JobError("payload altered: inputs do not match payload_hash")
     verify_approval(cfg, job_id=job_id, approval_id=approval_id,
                     command_os=command_os)
-    if job_store is not None:
-        existing = job_store.get(job_id)
-        if existing is not None:
-            if existing["status"] in ("FAILED", "REJECTED", "EXPIRED",
-                                      "CANCELLED", "PUBLISHED"):
-                raise JobError(
-                    f"job {job_id} is {existing['status']} — terminal "
-                    "jobs are never re-executed")
-            if job_store.is_expired(existing):
-                with contextlib.suppress(JobError):
-                    job_store.transition(job_id, "EXPIRED")
-                raise JobError(f"job {job_id} approval expired")
-            if int(existing.get("attempts", 0)) >= cfg.max_attempts:
-                raise JobError("job exceeded retry budget")
+    existing = job_store.get(job_id) if job_store is not None else None
+    if existing is not None:
+        if existing["payload_hash"] != expected_hash:
+            raise PayloadMismatch(
+                f"job {job_id} stored payload_hash differs from inputs")
+    else:
+        # Ephemeral worker: the job record lives only on the dispatching
+        # control plane. Its payload_hash was journaled into the Command
+        # OS event ledger at dispatch time — that signed entry is the
+        # durable binding between this job_id and its authorized fields.
+        if command_os is None:
+            from . import command_os as command_os  # noqa: PLC0415
+        events = command_os.job_events(cfg, job_id)
+        if events is None:
+            raise JobError("journaled dispatch binding unavailable — "
+                           "failing closed")
+        journaled = next(
+            (ev.get("payload_hash") for ev in events
+             if ev.get("payload_hash")), None)
+        if journaled is None:
+            raise JobError("no journaled payload_hash for job "
+                           f"{job_id} — failing closed")
+        if journaled != expected_hash:
+            raise JobError(
+                f"payload_hash does not match the journaled dispatch "
+                f"binding for {job_id} — unapproved render parameters")
+    if existing is not None:
+        if existing["status"] in ("FAILED", "REJECTED", "EXPIRED",
+                                  "CANCELLED", "PUBLISHED"):
+            raise JobError(
+                f"job {job_id} is {existing['status']} — terminal "
+                "jobs are never re-executed")
+        if job_store.is_expired(existing):
+            with contextlib.suppress(JobError):
+                job_store.transition(job_id, "EXPIRED")
+            raise JobError(f"job {job_id} approval expired")
+        if int(existing.get("attempts", 0)) >= cfg.max_attempts:
+            raise JobError("job exceeded retry budget")
     return {"job_id": job_id, "payload_hash": recomputed,
             "approval_id": approval_id, "payload": canonical_payload(fields)}
 

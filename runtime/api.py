@@ -916,7 +916,11 @@ def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
         proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
             cmd,
             cwd=repo_dir,
-            capture_output=True, text=True, timeout=900,
+            capture_output=True, text=True,
+            # Bound above the worker's own render deadline plus
+            # setup/QA overhead — the worker enforces the render
+            # timeout itself; the API only guards a hung process.
+            timeout=FyeConfig().render_timeout_s + 900,
             shell=False,
         )
     except Exception as exc:

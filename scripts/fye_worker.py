@@ -102,6 +102,7 @@ def _emit_state(job: dict, detail: str = "") -> None:
     """Mirror lifecycle into the Command OS audit ledger. Fail-soft —
     the local journal is authoritative."""
     data = {"job_id": job["job_id"], "state": job["status"],
+            "payload_hash": job.get("payload_hash", ""),
             "asset_id": job.get("attribution", {}).get("asset_id", job["job_id"]),
             "channel_id": job.get("attribution", {}).get("channel_id", ""),
             "campaign": job.get("attribution", {}).get("campaign", ""),

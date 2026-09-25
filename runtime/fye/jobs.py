@@ -21,6 +21,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -57,6 +58,10 @@ _TRANSITIONS: Dict[str, List[str]] = {
 }
 
 TERMINAL = {"FAILED", "REJECTED", "EXPIRED", "CANCELLED", "PUBLISHED"}
+
+
+def legal_targets(frm: str) -> List[str]:
+    return list(_TRANSITIONS.get(frm, []))
 
 # Fields hashed into payload_hash — the dispatch contract. An altered
 # payload produces a different hash and the worker refuses to run.
@@ -128,8 +133,13 @@ class FyeJobStore:
 
     # ---------- storage ----------
 
+    _JOB_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+
     def _path(self, job_id: str) -> Path:
-        if "/" in job_id or ".." in job_id:
+        # Strict allowlist — the id becomes a filename on every store
+        # host, so control chars, separators, and platform-unsafe glyphs
+        # are refused before the filesystem is ever touched.
+        if not self._JOB_ID_RE.fullmatch(job_id) or ".." in job_id:
             raise JobError(f"invalid job_id {job_id!r}")
         return self.dir / f"{job_id}.json"
 
@@ -223,6 +233,11 @@ class FyeJobStore:
         if to not in _TRANSITIONS.get(frm, []):
             raise IllegalTransition(f"{frm} → {to} not allowed")
         job["status"] = to
+        if to == "PUBLISH_APPROVED":
+            # Publish authorization has its own TTL, starting when the
+            # publish decision is granted — a late human approval must
+            # not inherit the render job's creation deadline.
+            job["publish_expires_at"] = time.time() + self.cfg.job_ttl_s
         event = {"from": frm, "to": to, "at": time.time()}
         event.update(meta)
         job["history"].append(event)
@@ -243,6 +258,12 @@ class FyeJobStore:
 
     def is_expired(self, job: Dict[str, Any]) -> bool:
         return time.time() > float(job.get("expires_at", 0))
+
+    def publish_expired(self, job: Dict[str, Any]) -> bool:
+        """Publish-authorization TTL — set when PUBLISH_APPROVED is
+        granted, independent of the render job's creation deadline."""
+        deadline = job.get("publish_expires_at") or job.get("expires_at", 0)
+        return time.time() > float(deadline)
 
     def approve(self, job_id: str, *, approved_by: str = "") -> Dict[str, Any]:
         with self._locked(job_id):
