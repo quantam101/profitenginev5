@@ -48,9 +48,10 @@ class FyeOrchestrator:
             title: str = "", monthly_views_target: int = 100_000,
             subscribers: int = 0, watch_hours: float = 0.0,
             shorts_views: int = 0, human_reviewed: bool = False,
+            package_id: str = "",
             on_agent: Optional[Callable[[str, Dict[str, Any]], None]] = None
             ) -> Dict[str, Any]:
-        pkg_id = package_id_for(topic)
+        pkg_id = package_id or package_id_for(topic)
         pkg_dir = self.root / pkg_id
         pkg_dir.mkdir(parents=True, exist_ok=True)
 

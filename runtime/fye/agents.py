@@ -317,9 +317,12 @@ class PublishGateAgent:
         }
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
+        # Publishing carries its own approval: target fye:<job>-publish is
+        # distinct from the render authorization fye:<job>, so a render
+        # approval never self-authorizes a channel post.
         res = command_os.request_publish_approval(
             self.cfg,
-            package_id=ctx["package_id"],
+            package_id=f"{ctx['package_id']}-publish",
             title=ctx["script"]["title"],
             description=ctx["script"]["description"][:2000],
             channel=ctx["research"]["niche"],

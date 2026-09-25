@@ -771,6 +771,11 @@ class FyeRunRequest(BaseModel):
     watch_hours: float = Field(default=0.0, ge=0.0)
     shorts_views: int = Field(default=0, ge=0)
     human_reviewed: bool = Field(default=False)
+    channel: str = Field(default="")
+    # Approval-driven dispatch contract — all three required.
+    job_id: str = Field(default="")
+    approval_id: str = Field(default="")
+    payload_hash: str = Field(default="")
 
 
 def _dispatch_fye_gha(payload: FyeRunRequest) -> Dict[str, Any]:
@@ -778,28 +783,40 @@ def _dispatch_fye_gha(payload: FyeRunRequest) -> Dict[str, Any]:
 
     Default executor: free-tier Render (512MB) OOMs on the fye subprocess +
     ffmpeg, so heavy runs dispatch to fye-run.yml on free GHA runners.
-    Requires GH_FYE_DISPATCH_TOKEN (repo PAT with actions:write/workflow).
+    Credential: FYE_DISPATCH_TOKEN — the scoped fine-grained token /
+    GitHub App installation token (Actions:write only). The legacy
+    GH_FYE_DISPATCH_TOKEN name is accepted only as a fallback; a broad
+    repo PAT is out of policy.
     """
     import os
     import urllib.error
     import urllib.request
-    token = os.environ.get("GH_FYE_DISPATCH_TOKEN", "")
+    token = (os.environ.get("FYE_DISPATCH_TOKEN", "")
+             or os.environ.get("GH_FYE_DISPATCH_TOKEN", ""))
     if not token:
         raise HTTPException(
             status_code=503,
-            detail="GH_FYE_DISPATCH_TOKEN not configured (set FYE_EXECUTOR=local to run on-host)",
+            detail="FYE_DISPATCH_TOKEN not configured (set FYE_EXECUTOR=local to run on-host)",
         )
     repo = os.environ.get("GH_FYE_REPO", "quantam101/profitenginev5")
     ref = os.environ.get("GH_FYE_REF", "main")
+    # workflow_dispatch caps at 10 inputs: the three contract identifiers
+    # plus one serialized render payload the worker decodes + verifies.
     inputs = {
-        "topic": payload.topic,
-        "niche": payload.niche,
-        "title": payload.title,
-        "human_reviewed": "true" if payload.human_reviewed else "false",
-        "monthly_views_target": str(payload.monthly_views_target),
-        "subscribers": str(payload.subscribers),
-        "watch_hours": str(payload.watch_hours),
-        "shorts_views": str(payload.shorts_views),
+        "job_id": payload.job_id,
+        "approval_id": payload.approval_id,
+        "payload_hash": payload.payload_hash,
+        "payload": json.dumps({
+            "topic": payload.topic,
+            "niche": payload.niche,
+            "title": payload.title,
+            "channel": payload.channel,
+            "human_reviewed": payload.human_reviewed,
+            "monthly_views_target": payload.monthly_views_target,
+            "subscribers": payload.subscribers,
+            "watch_hours": payload.watch_hours,
+            "shorts_views": payload.shorts_views,
+        }),
     }
     body = json.dumps({"ref": ref, "inputs": inputs}).encode()
     req = urllib.request.Request(
@@ -841,34 +858,69 @@ def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
     Default executor is 'gha' — delegates to the fye-run.yml
     workflow_dispatch runner (free GitHub runners, ~7GB, ffmpeg installed)
     because the 512MB free-tier instance OOMs on the subprocess + ffmpeg.
-    Set FYE_EXECUTOR=local to run scripts/fye_run.py on-host instead
-    (e.g. a larger Render plan or another host)."""
+    Set FYE_EXECUTOR=local to run scripts/fye_worker.py on-host instead
+    (e.g. a larger Render plan or another host). Both executors require
+    the approval-driven job contract — there is no ungated path."""
     import os
     import subprocess
     from pathlib import Path
     _check_webhook_token(request)
+
+    # Approval-driven contract: a bare topic is NOT authorization to
+    # render production content. job_id + approval_id + payload_hash come
+    # from an immutable job record created via scripts/fye_dispatch.py
+    # after a Command OS approval; the worker re-verifies all three.
+    if not (payload.job_id and payload.approval_id and payload.payload_hash):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "approval-driven dispatch required: create the job via "
+                "scripts/fye_dispatch.py (Command OS approval → immutable "
+                "job record) and pass job_id, approval_id, payload_hash"
+            ),
+        )
+    fields = {
+        "topic": payload.topic, "niche": payload.niche,
+        "title": payload.title, "channel": payload.channel,
+        "monthly_views_target": payload.monthly_views_target,
+        "subscribers": payload.subscribers,
+        "watch_hours": payload.watch_hours,
+        "shorts_views": payload.shorts_views,
+        "human_reviewed": payload.human_reviewed,
+    }
+    from runtime.fye import command_os as fye_command_os
+    from runtime.fye import dispatch as fye_dispatch
+    from runtime.fye.config import FyeConfig
+    from runtime.fye.jobs import FyeJobStore, JobError as FyeJobError
+    try:
+        fye_dispatch.verify_worker_inputs(
+            FyeConfig(), job_id=payload.job_id,
+            approval_id=payload.approval_id,
+            expected_hash=payload.payload_hash, fields=fields,
+            command_os=fye_command_os, job_store=FyeJobStore())
+    except FyeJobError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
     if os.environ.get("FYE_EXECUTOR", "gha") != "local":
         return _dispatch_fye_gha(payload)
     repo_dir = os.environ.get("REPO_DIR") or str(Path(__file__).resolve().parents[1])
-    script = os.path.join(repo_dir, "scripts", "fye_run.py")
+    script = os.path.join(repo_dir, "scripts", "fye_worker.py")
     cmd = [
         sys.executable, script,
-        "--topic", payload.topic,
-        "--niche", payload.niche,
-        "--monthly-views-target", str(payload.monthly_views_target),
-        "--subscribers", str(payload.subscribers),
-        "--watch-hours", str(payload.watch_hours),
-        "--shorts-views", str(payload.shorts_views),
+        "--job-id", payload.job_id,
+        "--approval-id", payload.approval_id,
+        "--payload-hash", payload.payload_hash,
+        "--payload", json.dumps(fields),
     ]
-    if payload.title:
-        cmd += ["--title", payload.title]
-    if payload.human_reviewed:
-        cmd.append("--human-reviewed")
     try:
         proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
             cmd,
             cwd=repo_dir,
-            capture_output=True, text=True, timeout=900,
+            capture_output=True, text=True,
+            # Bound above the worker's own render deadline plus
+            # setup/QA overhead — the worker enforces the render
+            # timeout itself; the API only guards a hung process.
+            timeout=FyeConfig().render_timeout_s + 900,
             shell=False,
         )
     except Exception as exc:
