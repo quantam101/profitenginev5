@@ -304,18 +304,29 @@ class TestTimeoutValidation:
         return results
 
     def test_requests_calls_have_timeout(self):
-        """All requests.get/post/etc. calls must include timeout="""
+        """All requests.get/post/etc. calls must include timeout= (AST-based —
+        the old regex false-positived on nested parens inside call args)."""
         violations = []
-        pat = re.compile(r'requests\.(get|post|put|patch|delete|head)\s*\(([^)]*)\)')
+        HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head"}
         for path in self._py_files():
             try:
                 src = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
+                tree = ast.parse(src)
+            except (OSError, SyntaxError):
                 continue
-            for m in pat.finditer(src):
-                if "timeout=" not in m.group(2):
-                    line = src[:m.start()].count("\n") + 1
-                    violations.append(f"{path.relative_to(ROOT)}:{line}")
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if not (
+                    isinstance(func, ast.Attribute)
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "requests"
+                    and func.attr in HTTP_METHODS
+                ):
+                    continue
+                if not any(kw.arg == "timeout" for kw in node.keywords):
+                    violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
         assert not violations, (
             f"{len(violations)} requests call(s) missing timeout=:\n" +
             "\n".join(f"  {v}" for v in violations[:10])
@@ -352,18 +363,32 @@ class TestTimeoutValidation:
         )
 
     def test_urllib_calls_have_timeout(self):
-        """All urllib.request.urlopen calls must have timeout argument."""
+        """All urllib.request.urlopen calls must have a timeout (AST-based —
+        keyword arg or a numeric positional at index >= 2)."""
         violations = []
-        pat = re.compile(r'urlopen\s*\(([^)]*)\)')
         for path in self._py_files():
             try:
                 src = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
+                tree = ast.parse(src)
+            except (OSError, SyntaxError):
                 continue
-            for m in pat.finditer(src):
-                if "timeout=" not in m.group(1) and not re.search(r',\s*\d+\s*\)', m.group(0)):
-                    line = src[:m.start()].count("\n") + 1
-                    violations.append(f"{path.relative_to(ROOT)}:{line} -- {m.group(0)[:60]}")
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                named_urlopen = (
+                    (isinstance(func, ast.Name) and func.id == "urlopen")
+                    or (isinstance(func, ast.Attribute) and func.attr == "urlopen")
+                )
+                if not named_urlopen:
+                    continue
+                has_kw = any(kw.arg == "timeout" for kw in node.keywords)
+                has_positional = any(
+                    isinstance(arg, ast.Constant) and isinstance(arg.value, (int, float))
+                    for arg in node.args[2:]
+                )
+                if not (has_kw or has_positional):
+                    violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
         assert not violations, (
             f"{len(violations)} urlopen call(s) missing timeout:\n" +
             "\n".join(f"  {v}" for v in violations[:10])
