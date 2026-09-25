@@ -44,6 +44,17 @@ def main() -> int:
         if job is None:
             raise JobError(f"unknown job {args.job_id}")
 
+        # The render ran on an ephemeral GHA runner — its transitions only
+        # exist there and in Command OS fye.job_event records. Reconcile so
+        # a runner-side READY reaches the control-plane store before any
+        # publish decision.
+        try:
+            job = dispatch.reconcile_job(cfg, store, args.job_id,
+                                         command_os=command_os)
+        except Exception as exc:
+            print(json.dumps({"warning": f"reconcile failed: {exc}"}),
+                  file=sys.stderr)
+
         if args.cmd == "request":
             if job["status"] != "READY":
                 raise JobError(f"job {args.job_id} is {job['status']}, "

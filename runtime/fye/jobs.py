@@ -44,7 +44,11 @@ _TRANSITIONS: Dict[str, List[str]] = {
     "RENDERING": ["QA", "CLAIMED", "FAILED", "EXPIRED", "CANCELLED"],
     "QA": ["READY", "FAILED"],
     "READY": ["PUBLISH_APPROVED", "FAILED", "EXPIRED", "CANCELLED"],
-    "PUBLISH_APPROVED": ["PUBLISHED", "FAILED", "EXPIRED", "CANCELLED"],
+    # PUBLISHING is the single-flight publish lease: the channel call
+    # happens only after this transition commits, so two concurrent
+    # publishers cannot both reach the adapter.
+    "PUBLISH_APPROVED": ["PUBLISHING", "FAILED", "EXPIRED", "CANCELLED"],
+    "PUBLISHING": ["PUBLISHED", "PUBLISH_APPROVED", "FAILED", "CANCELLED"],
     "PUBLISHED": [],
     "FAILED": ["QUEUED"],  # retry allowed only via explicit re-queue
     "REJECTED": [],
@@ -131,6 +135,7 @@ class FyeJobStore:
 
     @contextlib.contextmanager
     def _locked(self, job_id: str) -> Iterator[None]:
+        self._path(job_id)  # validate before touching the filesystem
         lock_path = self.dir / f"{job_id}.lock"
         with open(lock_path, "a+b") as lock:
             if fcntl is not None:
@@ -322,6 +327,30 @@ class FyeJobStore:
                                  "bytes": p.stat().st_size})
             return job
 
+    def begin_publish(self, job_id: str) -> Dict[str, Any]:
+        """Atomic publish lease: PUBLISH_APPROVED → PUBLISHING before any
+        channel call. A concurrent caller sees PUBLISHING (not
+        PUBLISH_APPROVED) and is refused — one channel post per job.
+        Returns a replay marker for an already-PUBLISHED job."""
+        with self._locked(job_id):
+            job = self.get(job_id)
+            if job is None:
+                raise JobError(f"unknown job {job_id}")
+            if job["status"] == "PUBLISHED":
+                job["replayed"] = True
+                return job
+            return self._transition_locked(job, "PUBLISHING")
+
+    def end_publish_failure(self, job_id: str, error: str) -> Dict[str, Any]:
+        """Adapter call failed after the publish lease — roll the job back
+        to PUBLISH_APPROVED so a retry can re-lease it."""
+        with self._locked(job_id):
+            job = self.get(job_id)
+            if job is None:
+                raise JobError(f"unknown job {job_id}")
+            return self._transition_locked(job, "PUBLISH_APPROVED",
+                                           error=error)
+
     def record_publish(self, job_id: str, post_id: str) -> Dict[str, Any]:
         """Idempotent publish record — a second call with the same job_id
         returns the existing post, guaranteeing one channel post per job."""
@@ -332,7 +361,7 @@ class FyeJobStore:
             if job["status"] == "PUBLISHED":
                 job["replayed"] = True
                 return job
-            if job["status"] != "PUBLISH_APPROVED":
+            if job["status"] not in ("PUBLISHING", "PUBLISH_APPROVED"):
                 raise IllegalTransition(
                     f"cannot publish job in {job['status']}")
             job["publish"]["post_id"] = post_id

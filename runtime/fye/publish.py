@@ -27,7 +27,11 @@ class ChannelPublisher:
 
     name = "abstract"
 
-    def publish(self, job: Dict[str, Any]) -> Dict[str, Any]:
+    def publish(self, job: Dict[str, Any], *, idempotency_key: str
+                ) -> Dict[str, Any]:
+        """One channel post per job. Adapters MUST pass idempotency_key
+        to the channel's dedupe mechanism where one exists so a retried
+        side effect cannot double-post."""
         raise NotImplementedError
 
 
@@ -38,7 +42,8 @@ class DryRunPublisher(ChannelPublisher):
 
     name = "dry-run"
 
-    def publish(self, job: Dict[str, Any]) -> Dict[str, Any]:
+    def publish(self, job: Dict[str, Any], *, idempotency_key: str
+                ) -> Dict[str, Any]:
         return {"post_id": f"dryrun-{job['job_id']}",
                 "channel": job["attribution"].get("channel_id", ""),
                 "dry_run": True}
@@ -76,14 +81,34 @@ def publish_job(cfg: FyeConfig, store: FyeJobStore, job_id: str, *,
         store.transition(job_id, "EXPIRED")
         raise PublishRefused(f"job {job_id} approval expired")
 
-    pub = publisher or publisher_for(cfg)
-    result = pub.publish(job)
-    post_id = result.get("post_id")
-    if not post_id:
-        raise PublishRefused("publisher returned no post id")
-    store.record_publish(job_id, post_id)
+    # Single-flight lease BEFORE the channel call: a concurrent caller
+    # sees PUBLISHING and is refused, so two callers can never both reach
+    # the adapter for the same job.
+    lease = store.begin_publish(job_id)
+    if lease.get("replayed"):
+        return {"ok": True, "replayed": True,
+                "post_id": lease["publish"]["post_id"]}
+    idem = job["publish"]["idempotency_key"]
+
+    try:
+        pub = publisher or publisher_for(cfg)
+        result = pub.publish(job, idempotency_key=idem)
+        post_id = result.get("post_id")
+        if not post_id:
+            raise PublishRefused("publisher returned no post id")
+        store.record_publish(job_id, post_id)
+    except Exception as exc:
+        # Roll the lease back so a retry can re-lease; the rendered asset
+        # stays READY-side, never invalidated by a channel failure.
+        try:
+            store.end_publish_failure(job_id, str(exc))
+        except JobError:
+            pass
+        if isinstance(exc, JobError):
+            raise
+        raise PublishRefused(f"publisher failed: {exc}") from exc
     return {"ok": True, "post_id": post_id,
-            "idempotency_key": job["publish"]["idempotency_key"],
+            "idempotency_key": idem,
             "dry_run": bool(result.get("dry_run"))}
 
 

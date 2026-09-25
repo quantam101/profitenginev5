@@ -95,6 +95,21 @@ def journaled_decision(cfg: FyeConfig, approval_id: str) -> Optional[Dict[str, A
     return res.get("approval")
 
 
+def job_events(cfg: FyeConfig, job_id: str) -> Optional[List[Dict[str, Any]]]:
+    """Journaled lifecycle events for one FYE job, oldest-first:
+    GET /api/events?type=fye.job_event&job_id=<id>, signed like the
+    approvals read (HMAC of the job_id). The worker emits these from the
+    runner, so this is the control plane's read-back channel."""
+    if not cfg.dc_configured or not job_id:
+        return None
+    res = _get_json(
+        f"{cfg.dc_base_url}/api/events?type=fye.job_event&job_id={job_id}",
+        sign_payload=job_id, cfg=cfg)
+    if res is None:
+        return None
+    return res.get("events", [])
+
+
 def pending_package_ids(cfg: FyeConfig) -> Optional[List[str]]:
     """Pending FYE package ids, derived from approval targets `fye:<id>`."""
     rows = pending_approvals(cfg)

@@ -13,6 +13,7 @@ the dispatch repo. Anything broader is out of policy.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import urllib.error
@@ -115,20 +116,24 @@ def verify_approval(cfg: FyeConfig, *, job_id: str, approval_id: str,
     if decision.get("status") != "approved":
         raise JobError(f"approval {approval_id} is "
                        f"{decision.get('status')}, not approved")
-    target = decision.get("target", "")
-    if target and target != f"fye:{job_id}":
-        raise JobError(f"approval {approval_id} targets {target}, "
-                       f"not fye:{job_id}")
+    # Exact binding required: an approval with no target, or one for a
+    # different job, never authorizes this render/publish.
+    if decision.get("target") != f"fye:{job_id}":
+        raise JobError(f"approval {approval_id} does not target "
+                       f"fye:{job_id} (target={decision.get('target')!r})")
 
 
 def verify_worker_inputs(cfg: FyeConfig, *, job_id: str, approval_id: str,
                          expected_hash: str, fields: Dict[str, Any],
-                         command_os: Optional[Any] = None
+                         command_os: Optional[Any] = None,
+                         job_store: Optional[Any] = None
                          ) -> Dict[str, Any]:
-    """Fail-closed gate for stateless workers (the GitHub Actions runner
-    has no durable job store): the payload hash must self-verify against
-    the dispatched inputs, and Command OS must hold an approved decision
-    for exactly this job_id. Returns the recomputed hash record."""
+    """Fail-closed gate for workers. The payload hash must self-verify
+    against the dispatched inputs, and Command OS must hold an approved
+    decision for exactly this job_id. When a job store is available the
+    job must also be live: terminal (FAILED/REJECTED/EXPIRED/CANCELLED)
+    or expired records refuse — a cancelled job's approval never
+    re-authorizes a render."""
     if not job_id or not approval_id or not expected_hash:
         raise JobError("job_id, approval_id and payload_hash are required")
     recomputed = payload_hash(fields)
@@ -136,5 +141,64 @@ def verify_worker_inputs(cfg: FyeConfig, *, job_id: str, approval_id: str,
         raise JobError("payload altered: inputs do not match payload_hash")
     verify_approval(cfg, job_id=job_id, approval_id=approval_id,
                     command_os=command_os)
+    if job_store is not None:
+        existing = job_store.get(job_id)
+        if existing is not None:
+            if existing["status"] in ("FAILED", "REJECTED", "EXPIRED",
+                                      "CANCELLED", "PUBLISHED"):
+                raise JobError(
+                    f"job {job_id} is {existing['status']} — terminal "
+                    "jobs are never re-executed")
+            if job_store.is_expired(existing):
+                with contextlib.suppress(JobError):
+                    job_store.transition(job_id, "EXPIRED")
+                raise JobError(f"job {job_id} approval expired")
+            if int(existing.get("attempts", 0)) >= cfg.max_attempts:
+                raise JobError("job exceeded retry budget")
     return {"job_id": job_id, "payload_hash": recomputed,
             "approval_id": approval_id, "payload": canonical_payload(fields)}
+
+
+# Forward-only reconciliation order: the worker emits fye.job_event for
+# every transition, so the control plane (whose FYE_ROOT never sees the
+# ephemeral runner's files) can pull the latest state back from the
+# Command OS audit ledger.
+_STATE_ORDER = [
+    "DRAFT", "APPROVED", "QUEUED", "CLAIMED", "RENDERING", "QA",
+    "READY", "PUBLISH_APPROVED", "PUBLISHING", "PUBLISHED",
+]
+_TERMINAL = {"FAILED", "REJECTED", "EXPIRED", "CANCELLED"}
+
+
+def reconcile_job(cfg: FyeConfig, job_store: Any, job_id: str,
+                  command_os: Optional[Any] = None) -> Dict[str, Any]:
+    """Pull the runner's reported state back into the control-plane store.
+
+    The Actions worker emits fye.job_event on every transition; the local
+    ledger here only knows about pre-dispatch states. Reconcile applies
+    every reported forward transition (walking the legal path) so publish
+    tooling sees the real READY instead of a stale QUEUED. Terminal
+    events are applied as-is; an event for an unknown job is refused.
+    """
+    if command_os is None:
+        from . import command_os as command_os  # noqa: PLC0415
+    job = job_store.get(job_id)
+    if job is None:
+        raise JobError(f"unknown job {job_id}")
+    events = command_os.job_events(cfg, job_id) or []
+    for ev in events:
+        target = ev.get("state")
+        if not target or target == job["status"]:
+            continue
+        if target in _TERMINAL:
+            job_store.transition(job_id, target, source="reconcile")
+        else:
+            # Walk forward through every intermediate legal state.
+            cur = _STATE_ORDER.index(job["status"])
+            want = _STATE_ORDER.index(target)
+            for step in _STATE_ORDER[cur + 1:want + 1]:
+                if step in ("PUBLISHING",):
+                    break  # publish lease is local-only
+                job_store.transition(job_id, step, source="reconcile")
+        job = job_store.get(job_id)
+    return job

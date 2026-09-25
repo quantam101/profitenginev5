@@ -296,6 +296,57 @@ class TestDispatch:
                 expected_hash=dispatch.payload_hash(FIELDS),
                 fields=FIELDS, command_os=fake)
 
+    def test_worker_rejects_approval_for_different_job(self, tmp_path):
+        import pytest
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import JobError
+        cfg = FyeConfig(root=str(tmp_path),
+                        dc_webhook_url="https://dc.example/api/events/webhook",
+                        webhook_secret="s")
+        fake = type("C", (), {"journaled_decision": staticmethod(
+            lambda c, i: {"status": "approved", "target": "fye:other"})})
+        with pytest.raises(JobError):
+            dispatch.verify_worker_inputs(
+                cfg, job_id="j", approval_id="a",
+                expected_hash=dispatch.payload_hash(FIELDS),
+                fields=FIELDS, command_os=fake)
+
+    def test_worker_rejects_terminal_job(self, tmp_path):
+        import pytest
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import FyeJobStore, JobError
+        cfg = FyeConfig(root=str(tmp_path),
+                        dc_webhook_url="https://dc.example/api/events/webhook",
+                        webhook_secret="s")
+        store = FyeJobStore(cfg)
+        store.create(job_id="j", approval_id="a", fields=FIELDS)
+        store.approve("j")
+        store.enqueue("j")
+        store.claim("j", "w")
+        store.transition("j", "FAILED")
+        fake = type("C", (), {"journaled_decision": staticmethod(
+            lambda c, i: {"status": "approved", "target": "fye:j"})})
+        with pytest.raises(JobError):
+            dispatch.verify_worker_inputs(
+                cfg, job_id="j", approval_id="a",
+                expected_hash=dispatch.payload_hash(FIELDS),
+                fields=FIELDS, command_os=fake, job_store=store)
+
+    def test_reconcile_applies_runner_events(self, tmp_path):
+        from runtime.fye import dispatch
+        from runtime.fye.jobs import FyeJobStore
+        cfg = FyeConfig(root=str(tmp_path),
+                        dc_webhook_url="https://dc.example/api/events/webhook",
+                        webhook_secret="s")
+        store = FyeJobStore(cfg)
+        store.create(job_id="j", approval_id="a", fields=FIELDS)
+        store.approve("j")
+        store.enqueue("j")
+        fake = type("C", (), {"job_events": staticmethod(
+            lambda c, i: [{"state": "READY"}])})
+        job = dispatch.reconcile_job(cfg, store, "j", command_os=fake)
+        assert job["status"] == "READY"
+
 
 class TestPublish:
     def _ready(self, tmp_path):
@@ -338,6 +389,24 @@ class TestPublish:
             publish.publisher_for(s.cfg)  # no adapter, no dry run
         # failed publish must not invalidate the rendered asset
         assert s.get("jp")["status"] == "PUBLISH_APPROVED"
+
+    def test_publish_failure_rolls_back_lease(self, tmp_path):
+        import pytest
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        s.transition("jp", "PUBLISH_APPROVED")
+
+        class Failing(publish.ChannelPublisher):
+            def publish(self, job, *, idempotency_key):
+                raise publish.PublishRefused("no channel credential")
+
+        with pytest.raises(publish.PublishRefused):
+            publish.publish_job(s.cfg, s, "jp", publisher=Failing())
+        # Lease released: a later retry can take it again.
+        assert s.get("jp")["status"] == "PUBLISH_APPROVED"
+        publish.publish_job(s.cfg, s, "jp",
+                            publisher=publish.DryRunPublisher())
+        assert s.get("jp")["status"] == "PUBLISHED"
 
     def test_published_event_carries_attribution(self, tmp_path):
         from runtime.fye import publish

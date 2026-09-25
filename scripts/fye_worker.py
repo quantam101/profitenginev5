@@ -22,6 +22,7 @@ import argparse
 import concurrent.futures
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -84,11 +85,14 @@ def main() -> int:
     fields = _fields(args)
 
     try:
-        # Stateless gate: hash self-verification + journaled approval.
+        # Gate: hash self-verification + journaled approval + (when the
+        # store has a record) live-status/expiry/retry-budget checks — a
+        # cancelled or expired job never re-executes even though its
+        # approval stays 'approved' in Command OS.
         dispatch.verify_worker_inputs(
             cfg, job_id=args.job_id, approval_id=args.approval_id,
             expected_hash=args.payload_hash, fields=fields,
-            command_os=command_os)
+            command_os=command_os, job_store=store)
 
         # Local ledger: on a durable FYE_ROOT this is the control-plane
         # record; on the ephemeral runner it is the run's audit artifact.
@@ -101,6 +105,14 @@ def main() -> int:
                               "status": job["status"],
                               "artifacts": job["artifacts"]}, indent=2))
             return 0
+        # A fresh runner creates the record in DRAFT — the approval was
+        # already verified above, so advance it through the legal path
+        # (DRAFT→APPROVED→QUEUED) before claiming the render lease.
+        if job["status"] == "DRAFT":
+            store.approve(args.job_id, approved_by=worker)
+            store.enqueue(args.job_id)
+        elif job["status"] == "APPROVED":
+            store.enqueue(args.job_id)
         if not store.claim(args.job_id, worker):
             raise JobError(f"job {args.job_id} lease held by another worker")
 
@@ -129,10 +141,16 @@ def main() -> int:
             raise JobError(f"render failed: {result.get('error') or result.get('issues')}")
 
         store.transition(args.job_id, "QA")
-        master = result["master"]
+        # The video engine writes the master outside the package dir
+        # (datacenter/video_pipeline/distribution_masters) — copy it
+        # into the job package so the artifact upload and any later
+        # consumer see one self-contained bundle.
+        pkg_dir = Path(cfg.root) / args.job_id
+        pkg_dir.mkdir(parents=True, exist_ok=True)
+        master = shutil.copy2(result["master"], pkg_dir / Path(result["master"]).name)
         # QA gate: artifact exists, is non-trivial, inside size limit,
         # SHA256 pinned into the job record.
-        store.record_artifact(args.job_id, master)
+        store.record_artifact(args.job_id, os.fspath(master))
         store.transition(args.job_id, "READY")
         _emit_state(store.get(args.job_id), detail="render complete")
         print(json.dumps({"ok": True, "job_id": args.job_id,
