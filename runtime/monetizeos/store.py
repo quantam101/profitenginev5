@@ -22,15 +22,14 @@ from __future__ import annotations
 import json
 import os
 import random
-import re
 import sqlite3
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
-from runtime.monetizeos.contracts import CompletionReport, TaskContract
-from runtime.monetizeos.states import IllegalTransition, check
+from runtime.monetizeos.contracts import CompletionReport, TaskContract, redact_text
+from runtime.monetizeos.states import IllegalTransition, TERMINAL_STATES, check
 
 
 class FencingStale(RuntimeError):
@@ -153,25 +152,6 @@ CREATE TABLE IF NOT EXISTS changelog (
 
 DEFAULT_DB = Path(os.getenv("MONETIZEOS_DB", "data/monetizeos.db"))
 
-# Secret-looking values in specialist reports must never persist to disk
-# (spec §6: redact secrets and sensitive data from logs/shared context).
-_REDACT_PATTERNS = [
-    re.compile(r"AKIA[0-9A-Z]{16}"),                                   # AWS access key
-    re.compile(r"(?:sk|pk|rk|ghp|gho|ghu|ghs|ghr|glpat|xox[baprs])-[A-Za-z0-9_-]{8,}"),
-    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}"),  # JWT
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[^-]*-----END [A-Z ]*PRIVATE KEY-----", re.S),
-    re.compile(r"(?i)(bearer|token|api[_-]?key|secret|password|passwd)"
-               r"(\s*[:=]\s*|\s+)(['\"]?)[^\s'\"]{8,}\3"),
-]
-
-
-def redact_text(text: str) -> str:
-    """Replace credential-shaped substrings with a fixed marker."""
-    for pat in _REDACT_PATTERNS:
-        text = pat.sub("[REDACTED]", text)
-    return text
-
-
 def _now() -> float:
     return time.time()
 
@@ -252,6 +232,17 @@ class Store:
             )
             return fencing
 
+    def release_director(self, project_id: str, holder: str) -> bool:
+        """Clean shutdown: drop THIS holder's lease so a subsequent legitimate
+        invocation (e.g. the next CLI command) is not mistaken for a competing
+        Director.  Only the current holder may release its own lease."""
+        with self.tx() as c:
+            cur = c.execute(
+                "DELETE FROM directors WHERE project_id=? AND holder=?",
+                (project_id, holder),
+            )
+            return cur.rowcount == 1
+
     def _check_fencing(self, c: sqlite3.Connection, project_id: str, fencing: int) -> None:
         row = c.execute("SELECT fencing, lease_expires_at, holder FROM directors WHERE project_id=?",
                         (project_id,)).fetchone()
@@ -263,9 +254,11 @@ class Store:
 
     # ----- tasks -----
     def create_task(self, project_id: str, contract: TaskContract,
-                    fencing: int | None = None, priority: int = 100) -> str:
+                    fencing: int, priority: int = 100) -> str:
         """Idempotent on contract.idempotency_key (or task_id).  Returns task_id.
-        Raises DuplicateIdempotencyKey when the key exists with a different payload."""
+        Task creation is a Director mutation — a live fencing token is required
+        (no optional bypass).  Raises DuplicateIdempotencyKey when the key
+        exists with a different payload."""
         errors = contract.validate()
         if errors:
             raise ValueError(f"invalid contract: {'; '.join(errors)}")
@@ -275,8 +268,7 @@ class Store:
         key = f"{project_id}:{contract.idempotency_key or f'task:{contract.task_id}'}"
         now = _now()
         with self.tx() as c:
-            if fencing is not None:
-                self._check_fencing(c, project_id, fencing)
+            self._check_fencing(c, project_id, fencing)
             existing = c.execute(
                 "SELECT task_id, fingerprint FROM tasks WHERE idempotency_key=?", (key,)
             ).fetchone()
@@ -338,13 +330,20 @@ class Store:
         # dead-letter policy as a failed attempt — an expired lease still
         # consumes one attempt of the retry budget.
         for r in c.execute(
-            "SELECT task_id, project_id, attempt, contract_json FROM tasks"
+            "SELECT task_id, project_id, attempt, contract_json, cancel_requested FROM tasks"
             " WHERE state IN ('running','verifying') AND lease_expires_at IS NOT NULL"
             " AND lease_expires_at<=?",
             (now,),
         ).fetchall():
             contract = json.loads(r["contract_json"])
-            if r["attempt"] <= contract.get("retry_limit", 0):
+            if r["cancel_requested"]:
+                # Cancellation takes precedence over retry/dead-letter.
+                c.execute(
+                    "UPDATE tasks SET state='cancelled', lease_owner=NULL,"
+                    " lease_expires_at=NULL, updated_at=? WHERE task_id=?",
+                    (now, r["task_id"]),
+                )
+            elif r["attempt"] <= contract.get("retry_limit", 0):
                 c.execute(
                     "UPDATE tasks SET state='retry_wait', lease_owner=NULL,"
                     " lease_expires_at=NULL, next_attempt_at=?, updated_at=? WHERE task_id=?",
@@ -446,11 +445,24 @@ class Store:
             raise ValueError(f"invalid completion report: {'; '.join(errors)}")
         now = _now()
         with self.tx() as c:
-            row = c.execute("SELECT state, lease_owner FROM tasks WHERE task_id=?", (task_id,)).fetchone()
+            row = c.execute("SELECT state, lease_owner, cancel_requested FROM tasks WHERE task_id=?",
+                            (task_id,)).fetchone()
             if row is None:
                 raise KeyError(task_id)
             if row["lease_owner"] != worker:
                 raise LeaseConflict(f"task {task_id} is not leased by {worker}")
+            if row["cancel_requested"]:
+                # Worker acknowledged cancellation — finalize the attempt and
+                # terminalize instead of pushing to verifying.
+                c.execute(
+                    "UPDATE attempts SET ended_at=?, status='cancelled' WHERE task_id=?"
+                    " AND ended_at IS NULL",
+                    (now, task_id),
+                )
+                self._transition(c, task_id, "cancelled")
+                c.execute("UPDATE tasks SET lease_owner=NULL, lease_expires_at=NULL WHERE task_id=?",
+                          (task_id,))
+                return
             self._transition(c, task_id, "verifying", expected=("running",))
             c.execute(
                 "UPDATE attempts SET ended_at=?, status=?, report_json=? WHERE task_id=?"
@@ -468,14 +480,14 @@ class Store:
                      redact_text(a["ref"]), fp["fingerprint"], now),
                 )
 
-    def accept(self, task_id: str, fencing: int | None = None) -> None:
-        """Director/verifier accepts evidence → completed.  Records cost events."""
+    def accept(self, task_id: str, fencing: int) -> None:
+        """Director/verifier accepts evidence → completed.  Records cost events.
+        Requires a live fencing token — no optional bypass."""
         with self.tx() as c:
             row = c.execute("SELECT project_id, contract_json FROM tasks WHERE task_id=?", (task_id,)).fetchone()
             if row is None:
                 raise KeyError(task_id)
-            if fencing is not None:
-                self._check_fencing(c, row["project_id"], fencing)
+            self._check_fencing(c, row["project_id"], fencing)
             self._transition(c, task_id, "completed", expected=("verifying",))
             report = c.execute(
                 "SELECT report_json FROM attempts WHERE task_id=? AND status='completed'"
@@ -490,23 +502,26 @@ class Store:
                 )
             c.execute("UPDATE tasks SET lease_owner=NULL, lease_expires_at=NULL WHERE task_id=?", (task_id,))
 
-    def reject(self, task_id: str, reason: str, fencing: int | None = None) -> str:
-        """Verification failed → retry or dead-letter."""
+    def reject(self, task_id: str, reason: str, fencing: int) -> str:
+        """Verification failed → retry or dead-letter (fencing required)."""
         return self._fail_common(task_id, reason, fencing, from_verifying=True)
 
-    def fail(self, task_id: str, reason: str, fencing: int | None = None) -> str:
+    def fail(self, task_id: str, reason: str, fencing: int) -> str:
         return self._fail_common(task_id, reason, fencing, from_verifying=False)
 
-    def _fail_common(self, task_id: str, reason: str, fencing: int | None,
+    def _fail_common(self, task_id: str, reason: str, fencing: int,
                      from_verifying: bool) -> str:
         now = _now()
+        reason = redact_text(reason)  # handler errors may carry credentials
         with self.tx() as c:
             row = c.execute("SELECT project_id, attempt, contract_json, state FROM tasks WHERE task_id=?",
                             (task_id,)).fetchone()
             if row is None:
                 raise KeyError(task_id)
-            if fencing is not None:
-                self._check_fencing(c, row["project_id"], fencing)
+            if row["state"] in TERMINAL_STATES:
+                # Already terminal (e.g. cancelled mid-handler) — nothing to fail.
+                return row["state"]
+            self._check_fencing(c, row["project_id"], fencing)
             contract = json.loads(row["contract_json"])
             c.execute(
                 "UPDATE attempts SET ended_at=?, status='failed', error=?"
@@ -543,16 +558,19 @@ class Store:
                 outcome = "failed"
             return outcome
 
-    def cancel(self, task_id: str, fencing: int | None = None) -> None:
+    def cancel(self, task_id: str, fencing: int) -> None:
+        """Request cancellation (fencing required).  Running/verifying tasks
+        get the flag only — the worker acknowledges and finalizes its own
+        attempt via submit_report or lease sweep, so cancellation never races
+        a live handler into an illegal transition."""
         with self.tx() as c:
             row = c.execute("SELECT project_id, state FROM tasks WHERE task_id=?", (task_id,)).fetchone()
             if row is None:
                 raise KeyError(task_id)
-            if fencing is not None:
-                self._check_fencing(c, row["project_id"], fencing)
-            # Flag first so a running worker can observe and abort cleanly.
+            self._check_fencing(c, row["project_id"], fencing)
             c.execute("UPDATE tasks SET cancel_requested=1 WHERE task_id=?", (task_id,))
-            self._transition(c, task_id, "cancelled")
+            if row["state"] not in ("running", "verifying"):
+                self._transition(c, task_id, "cancelled")
 
     def cancel_requested(self, task_id: str) -> bool:
         row = self._conn.execute("SELECT cancel_requested FROM tasks WHERE task_id=?", (task_id,)).fetchone()
@@ -562,13 +580,14 @@ class Store:
     def record_decision(self, project_id: str, fencing: int, kind: str, detail: dict) -> int:
         with self.tx() as c:
             self._check_fencing(c, project_id, fencing)
+            detail_json = redact_text(json.dumps(detail, sort_keys=True))
             cur = c.execute(
                 "INSERT INTO decisions(project_id,fencing,kind,detail_json,created_at) VALUES(?,?,?,?,?)",
-                (project_id, fencing, kind, json.dumps(detail, sort_keys=True), _now()),
+                (project_id, fencing, kind, detail_json, _now()),
             )
             c.execute(
                 "INSERT INTO changelog(project_id,fencing,entry,created_at) VALUES(?,?,?,?)",
-                (project_id, fencing, f"decision:{kind} {json.dumps(detail, sort_keys=True)}", _now()),
+                (project_id, fencing, f"decision:{kind} {detail_json}", _now()),
             )
             return int(cur.lastrowid)
 
@@ -596,7 +615,8 @@ class Store:
         with self.tx() as c:
             cur = c.execute(
                 "INSERT INTO incidents(project_id,task_id,kind,detail_json,created_at) VALUES(?,?,?,?,?)",
-                (project_id, task_id, kind, json.dumps(detail, sort_keys=True), _now()),
+                (project_id, task_id, kind,
+                 redact_text(json.dumps(detail, sort_keys=True)), _now()),
             )
             return int(cur.lastrowid)
 

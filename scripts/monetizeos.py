@@ -59,6 +59,7 @@ def cmd_audit(args) -> int:
     baseline = {"audit": report.artifact_refs, "at": time.time()}
     d.store.update_baseline(args.project_id, baseline)
     print(report.to_json())
+    d.release()
     return 0
 
 
@@ -68,6 +69,7 @@ def cmd_enqueue(args) -> int:
     contract = TaskContract(**spec)
     task_id = d.delegate(contract, priority=args.priority)
     print(json.dumps({"task_id": task_id, "state": d.store.get_task(task_id)["state"]}))
+    d.release()
     return 0
 
 
@@ -82,6 +84,7 @@ def cmd_run(args) -> int:
             break
         cycles += 1
     print(json.dumps(d.status(), default=str))
+    d.release()
     return 0
 
 
@@ -111,6 +114,7 @@ def cmd_cancel(args) -> int:
     d = _director(args.db, args.project_id)
     d.store.cancel(args.task_id, fencing=d.fencing)
     print(json.dumps({"cancelled": args.task_id}))
+    d.release()
     return 0
 
 
@@ -125,6 +129,7 @@ def cmd_gate_pass(args) -> int:
     evidence = json.loads(args.evidence) if args.evidence else {}
     GateBoard(d.store, args.project_id).mark_passed(args.gate, d.fencing, evidence)
     print(json.dumps({"passed": args.gate}))
+    d.release()
     return 0
 
 

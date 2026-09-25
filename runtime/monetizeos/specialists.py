@@ -127,11 +127,13 @@ def repository_audit_handler(contract: TaskContract, ctx: dict[str, Any]) -> Com
         with open(ref, "w") as fh:
             _json.dump(inventory, fh, indent=2)
         refs.append(ref)
-    refs.append(f"files={inventory['files']} tests={inventory['test_files']}")
+    summary = f"files={inventory['files']} tests={inventory['test_files']}"
+    refs.append(summary)
     return CompletionReport(
         task_id=contract.task_id, status="completed",
         artifact_refs=refs,
-        tests_run=[{"name": "audit", "command": "walk repo_root", "result": "passed"}],
+        tests_run=[{"name": "audit", "command": "walk repo_root", "result": "passed",
+                    "output": summary}],
         limitations=["static scan only; no license attestation"],
     )
 
@@ -145,14 +147,16 @@ def command_check_handler(command: list[str]) -> SpecialistHandler:
         except subprocess.TimeoutExpired:
             return CompletionReport(task_id=contract.task_id, status="failed",
                                     tests_run=[{"name": command[0], "command": " ".join(command),
-                                                "result": "failed"}],
+                                                "result": "failed",
+                                                "output": f"timeout after {contract.budget_seconds}s"}],
                                     limitations=["timeout"])
         result = "passed" if proc.returncode == 0 else "failed"
         tail = (proc.stdout + proc.stderr).strip().splitlines()[-3:]
         return CompletionReport(
             task_id=contract.task_id,
             status="completed" if result == "passed" else "failed",
-            tests_run=[{"name": command[0], "command": " ".join(command), "result": result}],
+            tests_run=[{"name": command[0], "command": " ".join(command), "result": result,
+                        "output": "\n".join(tail)}],
             artifact_refs=tail,
             limitations=[f"exit code {proc.returncode}"],
         )

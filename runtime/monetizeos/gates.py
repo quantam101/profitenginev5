@@ -76,11 +76,20 @@ class GateBoard:
         for earlier in RELEASE_GATES[:RELEASE_GATES.index(gate)]:
             if not recorded.get(earlier, {}).get("passed"):
                 raise RuntimeError(f"gate {earlier} must pass before {gate}")
-        if gate in MANDATORY_EVIDENCE_GATES and not (evidence or {}).get("passed"):
-            raise RuntimeError(
-                f"mandatory evidence gate {gate} cannot be declared passed "
-                "without a passing evidence record"
-            )
+        if gate in MANDATORY_EVIDENCE_GATES:
+            if not (evidence or {}).get("passed"):
+                raise RuntimeError(
+                    f"mandatory evidence gate {gate} cannot be declared passed "
+                    "without a passing evidence record"
+                )
+            # A bare `passed: true` is a declaration, not evidence — the record
+            # must point at the artifact/run/task that produced the result.
+            if not any(v for k, v in evidence.items() if k != "passed" and v):
+                raise RuntimeError(
+                    f"mandatory evidence gate {gate} requires a reference to the "
+                    "recorded check (artifact, run id, or verified task) — "
+                    "a bare passed flag is not evidence"
+                )
         self.store.record_decision(self.project_id, fencing, "gate",
                                    {"name": gate, "passed": True,
                                     "evidence": evidence or {}, "at": time.time()})
