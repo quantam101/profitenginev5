@@ -128,6 +128,7 @@ def test_sovereign_orchestrator_claude_fallback_when_ollama_absent(monkeypatch):
 def test_router_local_model_tier_when_ollama_enabled(monkeypatch):
     """Router selects LOCAL_MODEL tier for medium complexity when Ollama is enabled."""
     monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENABLED", "true")
+    monkeypatch.setenv("GMAOS_LOCAL_MODEL_ENDPOINT", "http://127.0.0.1:11434")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     import importlib
     import runtime.local_model_router as mod
@@ -164,6 +165,9 @@ def test_router_human_review_when_no_models_high_complexity(monkeypatch):
 def test_sovereign_orchestrator_fallback_without_key(monkeypatch):
     """Without an API key the orchestrator returns a deterministic fallback."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    # Zero-key safety net disabled too — deterministic_fallback must be reachable
+    import runtime.pollinations_gateway as pg
+    monkeypatch.setattr(pg, "call_pollinations", lambda s, p, max_tokens=1024: None)
     # Reload module to pick up env change
     import importlib
     import runtime.agent_impls.sovereign_orchestrator as mod
@@ -193,6 +197,8 @@ def test_sovereign_orchestrator_with_mocked_claude(monkeypatch):
 def test_lifelong_catch_correct_fallback_without_key(tmp_path, monkeypatch):
     """Without an API key the LC&C agent skips recording and returns a stub."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    import runtime.pollinations_gateway as pg
+    monkeypatch.setattr(pg, "call_pollinations", lambda s, p, max_tokens=1024: None)
     monkeypatch.setenv("GMAOS_CORRECTIONS_PATH", str(tmp_path / "corrections.jsonl"))
     import importlib
     import runtime.agent_impls.lifelong_catch_correct as mod

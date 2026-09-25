@@ -9,8 +9,12 @@ def test_llm_router_defaults_to_ollama(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("OLLAMA_API_KEY", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
-    from agents.taylor.llm_router import get_router
+    import importlib
+    import agents.taylor.llm_router as llm_router
+    importlib.reload(llm_router)  # PROVIDERS snapshot env at import time
+    get_router = llm_router.get_router
 
     active = get_router().active_provider()
     assert active is not None
