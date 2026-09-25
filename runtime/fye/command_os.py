@@ -60,9 +60,11 @@ def _get_json(url: str, timeout: float = 20.0,
         headers["x-dc-signature"] = hmac.new(
             cfg.webhook_secret.encode(), sign_payload.encode(),
             hashlib.sha256).hexdigest()
-    req = urllib.request.Request(url, headers=headers)
+    req = urllib.request.Request(  # noqa: S310 -- dc_base_url is operator-configured
+        url, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(  # noqa: S310 -- dc_base_url is operator-configured
+                req, timeout=timeout) as r:
             return json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as exc:
         logger.warning("DC GET %s -> HTTP %s", url, exc.code)
@@ -97,14 +99,15 @@ def journaled_decision(cfg: FyeConfig, approval_id: str) -> Optional[Dict[str, A
 
 def job_events(cfg: FyeConfig, job_id: str) -> Optional[List[Dict[str, Any]]]:
     """Journaled lifecycle events for one FYE job, oldest-first:
-    GET /api/events?type=fye.job_event&job_id=<id>, signed like the
-    approvals read (HMAC of the job_id). The worker emits these from the
+    GET /api/events?type=fye.job_event&job_id=<id>; the HMAC binds the
+    event type and job_id (`fye.job_event:<id>`) so a signature can't be
+    replayed against another event type. The worker emits these from the
     runner, so this is the control plane's read-back channel."""
     if not cfg.dc_configured or not job_id:
         return None
     res = _get_json(
         f"{cfg.dc_base_url}/api/events?type=fye.job_event&job_id={job_id}",
-        sign_payload=job_id, cfg=cfg)
+        sign_payload=f"fye.job_event:{job_id}", cfg=cfg)
     if res is None:
         return None
     return res.get("events", [])
