@@ -18,43 +18,11 @@ on:
       payload_hash:
         description: "sha256 of the canonical dispatch payload"
         required: true
-      topic:
-        description: "Video topic"
+      # workflow_dispatch caps at 10 inputs — render params travel inside
+      # one serialized JSON input the worker decodes and hash-verifies.
+      payload:
+        description: "JSON-encoded canonical render payload"
         required: true
-      niche:
-        description: "Niche key for RPM priors"
-        required: false
-        default: "science-explainer"
-      title:
-        description: "Optional video title"
-        required: false
-        default: ""
-      channel:
-        description: "Destination channel id (attribution spine)"
-        required: false
-        default: ""
-      human_reviewed:
-        description: "Package human-reviewed (YouTube synthetic-media disclosure)"
-        required: false
-        default: "false"
-        type: choice
-        options: ["false", "true"]
-      monthly_views_target:
-        description: "Planning-prior monthly views target"
-        required: false
-        default: "100000"
-      subscribers:
-        description: "Channel subscribers (YPP gate)"
-        required: false
-        default: "0"
-      watch_hours:
-        description: "Channel watch hours (YPP gate)"
-        required: false
-        default: "0"
-      shorts_views:
-        description: "Channel Shorts views (YPP gate)"
-        required: false
-        default: "0"
 
 # Least privilege: when explicit permissions are supplied, every
 # unspecified permission becomes none — the worker reads the repo and
@@ -96,31 +64,13 @@ jobs:
           IN_JOB_ID: ${{ inputs.job_id }}
           IN_APPROVAL_ID: ${{ inputs.approval_id }}
           IN_PAYLOAD_HASH: ${{ inputs.payload_hash }}
-          IN_TOPIC: ${{ inputs.topic }}
-          IN_NICHE: ${{ inputs.niche }}
-          IN_TITLE: ${{ inputs.title }}
-          IN_CHANNEL: ${{ inputs.channel }}
-          IN_MONTHLY_VIEWS_TARGET: ${{ inputs.monthly_views_target }}
-          IN_SUBSCRIBERS: ${{ inputs.subscribers }}
-          IN_WATCH_HOURS: ${{ inputs.watch_hours }}
-          IN_SHORTS_VIEWS: ${{ inputs.shorts_views }}
-          IN_HUMAN_REVIEWED: ${{ inputs.human_reviewed }}
+          IN_PAYLOAD: ${{ inputs.payload }}
         run: |
-          ARGS=(
-            --job-id "$IN_JOB_ID"
-            --approval-id "$IN_APPROVAL_ID"
-            --payload-hash "$IN_PAYLOAD_HASH"
-            --topic "$IN_TOPIC"
-            --niche "$IN_NICHE"
-            --channel "$IN_CHANNEL"
-            --monthly-views-target "$IN_MONTHLY_VIEWS_TARGET"
-            --subscribers "$IN_SUBSCRIBERS"
-            --watch-hours "$IN_WATCH_HOURS"
-            --shorts-views "$IN_SHORTS_VIEWS"
-          )
-          [ -n "$IN_TITLE" ] && ARGS+=(--title "$IN_TITLE")
-          [ "$IN_HUMAN_REVIEWED" = "true" ] && ARGS+=(--human-reviewed)
-          python scripts/fye_worker.py "${ARGS[@]}"
+          python scripts/fye_worker.py \
+            --job-id "$IN_JOB_ID" \
+            --approval-id "$IN_APPROVAL_ID" \
+            --payload-hash "$IN_PAYLOAD_HASH" \
+            --payload "$IN_PAYLOAD"
 
       - name: Upload job record + artifacts
         if: always()

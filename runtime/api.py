@@ -783,32 +783,40 @@ def _dispatch_fye_gha(payload: FyeRunRequest) -> Dict[str, Any]:
 
     Default executor: free-tier Render (512MB) OOMs on the fye subprocess +
     ffmpeg, so heavy runs dispatch to fye-run.yml on free GHA runners.
-    Requires GH_FYE_DISPATCH_TOKEN (repo PAT with actions:write/workflow).
+    Credential: FYE_DISPATCH_TOKEN — the scoped fine-grained token /
+    GitHub App installation token (Actions:write only). The legacy
+    GH_FYE_DISPATCH_TOKEN name is accepted only as a fallback; a broad
+    repo PAT is out of policy.
     """
     import os
     import urllib.error
     import urllib.request
-    token = os.environ.get("GH_FYE_DISPATCH_TOKEN", "")
+    token = (os.environ.get("FYE_DISPATCH_TOKEN", "")
+             or os.environ.get("GH_FYE_DISPATCH_TOKEN", ""))
     if not token:
         raise HTTPException(
             status_code=503,
-            detail="GH_FYE_DISPATCH_TOKEN not configured (set FYE_EXECUTOR=local to run on-host)",
+            detail="FYE_DISPATCH_TOKEN not configured (set FYE_EXECUTOR=local to run on-host)",
         )
     repo = os.environ.get("GH_FYE_REPO", "quantam101/profitenginev5")
     ref = os.environ.get("GH_FYE_REF", "main")
+    # workflow_dispatch caps at 10 inputs: the three contract identifiers
+    # plus one serialized render payload the worker decodes + verifies.
     inputs = {
         "job_id": payload.job_id,
         "approval_id": payload.approval_id,
         "payload_hash": payload.payload_hash,
-        "topic": payload.topic,
-        "niche": payload.niche,
-        "title": payload.title,
-        "channel": payload.channel,
-        "human_reviewed": "true" if payload.human_reviewed else "false",
-        "monthly_views_target": str(payload.monthly_views_target),
-        "subscribers": str(payload.subscribers),
-        "watch_hours": str(payload.watch_hours),
-        "shorts_views": str(payload.shorts_views),
+        "payload": json.dumps({
+            "topic": payload.topic,
+            "niche": payload.niche,
+            "title": payload.title,
+            "channel": payload.channel,
+            "human_reviewed": payload.human_reviewed,
+            "monthly_views_target": payload.monthly_views_target,
+            "subscribers": payload.subscribers,
+            "watch_hours": payload.watch_hours,
+            "shorts_views": payload.shorts_views,
+        }),
     }
     body = json.dumps({"ref": ref, "inputs": inputs}).encode()
     req = urllib.request.Request(
@@ -902,18 +910,8 @@ def fye_run(payload: FyeRunRequest, request: Request) -> Dict[str, Any]:
         "--job-id", payload.job_id,
         "--approval-id", payload.approval_id,
         "--payload-hash", payload.payload_hash,
-        "--topic", payload.topic,
-        "--niche", payload.niche,
-        "--channel", payload.channel,
-        "--monthly-views-target", str(payload.monthly_views_target),
-        "--subscribers", str(payload.subscribers),
-        "--watch-hours", str(payload.watch_hours),
-        "--shorts-views", str(payload.shorts_views),
+        "--payload", json.dumps(fields),
     ]
-    if payload.title:
-        cmd += ["--title", payload.title]
-    if payload.human_reviewed:
-        cmd.append("--human-reviewed")
     try:
         proc = subprocess.run(  # noqa: S603 -- authenticated webhook, fixed script path
             cmd,

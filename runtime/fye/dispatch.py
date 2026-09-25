@@ -29,11 +29,23 @@ _API = "https://api.github.com"
 
 
 def dispatch_inputs(fields: Dict[str, Any]) -> Dict[str, str]:
-    """workflow_dispatch inputs are strings; encode the render params."""
-    p = canonical_payload(fields)
-    return {k: json.dumps(v) if isinstance(v, (dict, list))
-            else str(v).lower() if isinstance(v, bool) else str(v)
-            for k, v in p.items()}
+    """workflow_dispatch is capped at 10 inputs — the three contract
+    identifiers stay separate and every render param travels inside one
+    serialized `payload` input the worker decodes back into fields."""
+    return {"payload": json.dumps(canonical_payload(fields))}
+
+
+def unpack_payload(payload_input: str) -> Dict[str, Any]:
+    """Decode the `payload` dispatch input back into render fields."""
+    if not payload_input:
+        raise JobError("payload input missing")
+    try:
+        fields = json.loads(payload_input)
+    except ValueError as exc:
+        raise JobError(f"payload input is not valid JSON: {exc}") from exc
+    if not isinstance(fields, dict) or not fields.get("topic"):
+        raise JobError("payload input missing required render fields")
+    return fields
 
 
 def dispatch_job(cfg: FyeConfig, job: Dict[str, Any]) -> Dict[str, Any]:
@@ -53,6 +65,7 @@ def dispatch_job(cfg: FyeConfig, job: Dict[str, Any]) -> Dict[str, Any]:
         "approval_id": job.get("approval_id", ""),
         "payload_hash": job["payload_hash"],
     })
+    # 4 inputs total — well under GitHub's 10-input workflow_dispatch cap.
     body = json.dumps({"ref": cfg.dispatch_ref, "inputs": inputs}).encode()
     url = (f"{_API}/repos/{cfg.dispatch_repo}/actions/workflows/"
            f"{cfg.dispatch_workflow}/dispatches")
@@ -193,6 +206,9 @@ def reconcile_job(cfg: FyeConfig, job_store: Any, job_id: str,
         if target in _TERMINAL:
             job_store.transition(job_id, target, source="reconcile")
         else:
+            artifacts = ev.get("artifacts")
+            if artifacts:
+                job_store.record_reported_artifacts(job_id, artifacts)
             # Walk forward through every intermediate legal state.
             cur = _STATE_ORDER.index(job["status"])
             want = _STATE_ORDER.index(target)

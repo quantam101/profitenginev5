@@ -408,6 +408,38 @@ class TestPublish:
                             publisher=publish.DryRunPublisher())
         assert s.get("jp")["status"] == "PUBLISHED"
 
+    def test_uncertain_publish_holds_then_resolves(self, tmp_path):
+        import pytest
+        from runtime.fye import publish
+        s = self._ready(tmp_path)
+        s.transition("jp", "PUBLISH_APPROVED")
+
+        class Flaky(publish.ChannelPublisher):
+            def __init__(self):
+                self.posted = False
+
+            def publish(self, job, *, idempotency_key):
+                # Channel accepted the post but the response was lost.
+                self.posted = True
+                raise ConnectionError("response lost")
+
+            def lookup(self, idempotency_key):
+                return "yt-42" if self.posted else None
+
+        flaky = Flaky()
+        with pytest.raises(publish.PublishRefused):
+            publish.publish_job(s.cfg, s, "jp", publisher=flaky)
+        # NOT rolled back — a retry would otherwise double-post.
+        assert s.get("jp")["status"] == "PUBLISHING"
+        # A concurrent caller cannot re-lease either.
+        with pytest.raises(publish.PublishRefused):
+            publish.publish_job(s.cfg, s, "jp",
+                                publisher=publish.DryRunPublisher())
+        # The adapter resolves the uncertain result by idempotency key.
+        r = publish.publish_job(s.cfg, s, "jp", publisher=flaky)
+        assert r["post_id"] == "yt-42" and r["resolved_uncertain"]
+        assert s.get("jp")["status"] == "PUBLISHED"
+
     def test_published_event_carries_attribution(self, tmp_path):
         from runtime.fye import publish
         s = self._ready(tmp_path)

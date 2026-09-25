@@ -327,6 +327,32 @@ class FyeJobStore:
                                  "bytes": p.stat().st_size})
             return job
 
+    def record_reported_artifacts(self, job_id: str,
+                                  artifacts: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge artifact metadata reported by a remote worker (via the
+        Command OS event ledger) — the control plane never sees the
+        runner's files, so this carries only the verified metadata the
+        runner already recorded: name → {path, sha256, bytes}."""
+        if not isinstance(artifacts, dict):
+            raise JobError("reported artifacts must be a dict")
+        with self._locked(job_id):
+            job = self.get(job_id)
+            if job is None:
+                raise JobError(f"unknown job {job_id}")
+            merged = dict(job.get("artifacts") or {})
+            for name, meta in artifacts.items():
+                if name in merged and merged[name].get("sha256") != \
+                        (meta or {}).get("sha256"):
+                    raise JobError(
+                        f"artifact {name} hash conflict on reconcile")
+                merged[name] = meta
+            job["artifacts"] = merged
+            self._write(job)
+            self.journal.append("job_store", "job.artifact.reconciled",
+                                {"job_id": job_id,
+                                 "names": sorted(artifacts)})
+            return job
+
     def begin_publish(self, job_id: str) -> Dict[str, Any]:
         """Atomic publish lease: PUBLISH_APPROVED → PUBLISHING before any
         channel call. A concurrent caller sees PUBLISHING (not

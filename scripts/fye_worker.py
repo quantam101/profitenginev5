@@ -19,8 +19,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import concurrent.futures
 import json
+import multiprocessing as mp
 import os
 import shutil
 import sys
@@ -48,6 +48,56 @@ def _fields(args: argparse.Namespace) -> dict:
     }
 
 
+def _render_child(q: "mp.Queue", fields: dict, job_id: str) -> None:
+    """Subprocess target: run the render and hand the result dict back.
+    Fork inherits the parent's env, so FyeConfig() reads identically."""
+    from runtime.fye import FyeOrchestrator  # noqa: E402
+    from runtime.fye.config import FyeConfig  # noqa: E402
+    orch = FyeOrchestrator(FyeConfig())
+    try:
+        q.put(orch.run(
+            topic=fields["topic"], niche=fields["niche"],
+            title=fields.get("title") or "",
+            monthly_views_target=fields["monthly_views_target"],
+            subscribers=fields["subscribers"],
+            watch_hours=fields["watch_hours"],
+            shorts_views=fields["shorts_views"],
+            human_reviewed=fields["human_reviewed"],
+            package_id=job_id))
+    except Exception as exc:  # report, don't crash silently
+        q.put({"ok": False, "error": f"render subprocess: {exc}"})
+
+
+def _render_killable(fields: dict, job_id: str,
+                     timeout_s: int) -> dict:
+    """Run the render in a child process with a hard deadline.
+
+    A thread can't be killed — a timed-out render would keep burning the
+    Actions timeout while the worker waits on executor shutdown. A
+    subprocess is terminated for real; the job stays in a recoverable
+    CLAIMED/RENDERING state (lease expiry → re-claim).
+    """
+    ctx = mp.get_context("fork")
+    q = ctx.Queue()
+    proc = ctx.Process(target=_render_child,
+                       args=(q, fields, job_id))
+    proc.start()
+    proc.join(timeout_s)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(10)
+        if proc.is_alive():
+            proc.kill()
+        return {"ok": False,
+                "error": f"render exceeded {timeout_s}s — terminated"}
+    try:
+        return q.get_nowait()
+    except Exception:
+        return {"ok": False,
+                "error": f"render subprocess exited {proc.exitcode} "
+                         "with no result"}
+
+
 def _emit_state(job: dict, detail: str = "") -> None:
     """Mirror lifecycle into the Command OS audit ledger. Fail-soft —
     the local journal is authoritative."""
@@ -58,6 +108,10 @@ def _emit_state(job: dict, detail: str = "") -> None:
             "source": job.get("attribution", {}).get("source", "fye")}
     if detail:
         data["detail"] = detail[:500]
+    if job.get("artifacts"):
+        # Carry verified artifact metadata so the control plane can
+        # reconcile hashes it will never see on the runner filesystem.
+        data["artifacts"] = job["artifacts"]
     emit("fye.job_event", data, source="profitenginev5",
          idempotency_key=f"fye-{job['job_id']}-{job['status']}-"
                          f"{len(job.get('history', []))}")
@@ -68,7 +122,9 @@ def main() -> int:
     ap.add_argument("--job-id", required=True)
     ap.add_argument("--approval-id", required=True)
     ap.add_argument("--payload-hash", required=True)
-    ap.add_argument("--topic", required=True)
+    ap.add_argument("--payload", default="",
+                    help="JSON canonical render payload (from dispatch)")
+    ap.add_argument("--topic", default="")
     ap.add_argument("--niche", default="science-explainer")
     ap.add_argument("--title", default="")
     ap.add_argument("--channel", default="")
@@ -82,7 +138,16 @@ def main() -> int:
     cfg = FyeConfig()
     store = FyeJobStore(cfg)
     worker = os.environ.get("GITHUB_RUN_ID") or f"pid-{os.getpid()}"
-    fields = _fields(args)
+    try:
+        fields = dispatch.unpack_payload(args.payload) if args.payload \
+            else _fields(args)
+    except JobError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}))
+        return 1
+    if not fields.get("topic"):
+        print(json.dumps({"ok": False,
+                          "error": "topic required (via --payload or --topic)"}))
+        return 1
 
     try:
         # Gate: hash self-verification + journaled approval + (when the
@@ -96,6 +161,18 @@ def main() -> int:
 
         # Local ledger: on a durable FYE_ROOT this is the control-plane
         # record; on the ephemeral runner it is the run's audit artifact.
+        # Durable replay: the runner filesystem is ephemeral, so a
+        # finished job's record lives in the Command OS event ledger —
+        # not here. If the ledger already reports READY (or beyond),
+        # replay instead of rendering the same job twice.
+        prior = command_os.job_events(cfg, args.job_id) or []
+        if any(e.get("state") in ("READY", "PUBLISH_APPROVED",
+                                  "PUBLISHING", "PUBLISHED")
+               for e in prior):
+            print(json.dumps({"ok": True, "replayed": True,
+                              "status": "READY"}, indent=2))
+            return 0
+
         job = store.get(args.job_id) or store.create(
             job_id=args.job_id, approval_id=args.approval_id,
             fields=fields)
@@ -119,23 +196,12 @@ def main() -> int:
         store.transition(args.job_id, "RENDERING")
         _emit_state(store.get(args.job_id))
 
-        orch = FyeOrchestrator(cfg)
-        # Resource ceiling: the render must finish inside
-        # FYE_RENDER_TIMEOUT_S; an interrupt leaves the job in a
+        # Resource ceiling: the render runs in a killable subprocess —
+        # a timed-out FFmpeg pipeline is actually terminated (unlike a
+        # thread, which Python cannot cancel) and the job is left in a
         # recoverable CLAIMED/RENDERING state (lease expiry → re-claim).
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            fut = pool.submit(
-                orch.run,
-                topic=fields["topic"], niche=fields["niche"],
-                title=fields["title"] or "",
-                monthly_views_target=fields["monthly_views_target"],
-                subscribers=fields["subscribers"],
-                watch_hours=fields["watch_hours"],
-                shorts_views=fields["shorts_views"],
-                human_reviewed=fields["human_reviewed"],
-                package_id=args.job_id,
-            )
-            result = fut.result(timeout=cfg.render_timeout_s)
+        result = _render_killable(fields, args.job_id,
+                                  cfg.render_timeout_s)
 
         if not result.get("ok"):
             raise JobError(f"render failed: {result.get('error') or result.get('issues')}")
