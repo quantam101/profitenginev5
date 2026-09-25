@@ -11,6 +11,7 @@ callables registered per role.  The Director may mark a role
 """
 from __future__ import annotations
 
+import fnmatch
 import subprocess
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -77,6 +78,22 @@ def check_permissions(contract: TaskContract) -> list[str]:
         return [f"unknown process owner {contract.process_owner!r}"]
     granted = set(role.allowed_tools) | set(role.external_actions) | {"read"}
     return [t for t in contract.allowed_tools + contract.external_actions if t not in granted]
+
+
+def check_report_scope(contract: TaskContract, report: CompletionReport) -> list[str]:
+    """Execution-time scope check: when a contract declares allowed_files,
+    every file the handler claims to have touched must fall under one of
+    those prefixes/globs.  A report outside scope fails verification —
+    an agent cannot act beyond its delegated boundary unobserved."""
+    allowed = [p.rstrip("/") for p in contract.allowed_files]
+    if not allowed:
+        return []
+    violations: list[str] = []
+    for f in report.files_changed:
+        if not any(fnmatch.fnmatch(f, p) or fnmatch.fnmatch(f, f"{p}/*")
+                   or f == p or f.startswith(f"{p}/") for p in allowed):
+            violations.append(f"{f} is outside allowed_files")
+    return violations
 
 
 # ----- built-in handlers (deterministic; AI judgment layered on top) -----

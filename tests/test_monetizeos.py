@@ -236,3 +236,100 @@ class TestFencingOnMutations:
         Director(store=store, project_id="p1", holder="d2").acquire()
         with pytest.raises(FencingStale):
             store.cancel("t1", fencing=d1.fencing)
+
+
+class TestReviewHardening:
+    def test_default_directors_conflict(self, store):
+        """Two Director instances with default identity must not both acquire."""
+        d1 = Director(store=store, project_id="p1")
+        d1.acquire()
+        assert d1.holder != "director" and d1.holder.startswith("director-")
+        with pytest.raises(LeaseConflict):
+            Director(store=store, project_id="p1").acquire()
+
+    def test_long_task_outlives_director_ttl(self, store):
+        """A handler slower than the Director TTL still verifies: the lease
+        is extended to cover the contract's budget window."""
+        d = Director(store=store, project_id="p1", holder="d1", lease_ttl_s=0.2)
+        d.acquire()
+        d.delegate(contract(budget_seconds=5.0))
+        calls = {"n": 0}
+
+        def slow_handler(c, ctx):
+            calls["n"] += 1
+            time.sleep(0.3)  # exceeds the 0.2s director TTL
+            return report(c.task_id)
+
+        d.handlers["core_product_engineer"] = slow_handler
+        assert d.run_once("w1", {}) == "completed"
+
+    def test_sweep_respects_retry_limit(self, store):
+        """Expired running leases past the retry budget dead-letter, not retry."""
+        d = director(store)
+        d.delegate(contract(retry_limit=0))
+        task = store.claim("p1", "w1", ttl_s=0.01)
+        assert task is not None
+        time.sleep(0.02)
+        assert store.claim("p1", "w2") is None  # swept to failed, not retry_wait
+        assert store.get_task("t1")["state"] == "failed"
+        inc = store._conn.execute(
+            "SELECT kind FROM incidents WHERE task_id='t1'").fetchone()
+        assert inc["kind"] == "dead_letter"
+
+    def test_late_dependent_starts_ready(self, store):
+        """A task created after its deps completed must not stay pending."""
+        d = director(store)
+        d.delegate(contract("a"))
+        store.claim("p1", "w")
+        store.submit_report("a", "w", report("a"))
+        store.accept("a", fencing=d.fencing)
+        d.delegate(contract("b", dependencies=["a"]))
+        assert store.get_task("b")["state"] == "ready"
+
+    def test_idempotency_key_scoped_to_project(self, store):
+        store.create_project("p2", "proj2", {}, {})
+        d = director(store)
+        d.delegate(contract("a", idempotency_key="k"))
+        # Same key + same fingerprint in another project → its own task.
+        store.create_task("p2", contract("b", idempotency_key="k"))
+        assert store.get_task("b")["project_id"] == "p2"
+
+    def test_changed_contract_reuses_nothing(self, store):
+        d = director(store)
+        d.delegate(contract("a", idempotency_key="k", budget_seconds=60))
+        with pytest.raises(DuplicateIdempotencyKey):
+            d.delegate(contract("a2", idempotency_key="k", budget_seconds=600))
+
+    def test_positive_budget_rejected(self, store):
+        with pytest.raises(ValueError, match="budget_usd"):
+            store.create_task("p1", contract(budget_usd=5.0))
+
+    def test_scope_violation_fails_task(self, store):
+        d = director(store)
+        d.delegate(contract(allowed_files=["src/"]))
+
+        def out_of_scope(c, ctx):
+            r = report(c.task_id)
+            r.files_changed = ["etc/passwd"]
+            return r
+
+        d.handlers["core_product_engineer"] = out_of_scope
+        outcome = d.run_once("w1", {})
+        assert outcome in ("retry_wait", "failed")
+        inc = store._conn.execute(
+            "SELECT kind FROM incidents WHERE task_id='t1'").fetchone()
+        assert inc["kind"] == "scope_violation"
+
+    def test_report_secrets_redacted(self, store):
+        d = director(store)
+        d.delegate(contract())
+        store.claim("p1", "w")
+        r = report("t1")
+        r.limitations = ["uses token ghp_abcdef1234567890"]
+        store.submit_report("t1", "w", r, artifacts=[{
+            "artifact_id": "a1", "ref": "s3://bucket?key=AKIAIOSFODNN7EXAMPLE"}])
+        row = store._conn.execute(
+            "SELECT report_json FROM attempts WHERE task_id='t1'").fetchone()
+        assert "ghp_" not in row["report_json"]
+        art = store._conn.execute("SELECT ref FROM artifacts").fetchone()
+        assert "AKIA" not in art["ref"]

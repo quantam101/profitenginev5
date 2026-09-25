@@ -40,21 +40,20 @@ class TaskContract:
                 errors.append(f"{attr} is required")
         if self.budget_seconds <= 0:
             errors.append("budget_seconds must be positive")
+        if self.budget_usd != 0:
+            # Repository policy is max_cost_usd: 0 — a contract that
+            # budgets spend violates the mandatory zero-cost boundary.
+            errors.append("budget_usd must be 0 (zero-spend policy)")
         if self.retry_limit < 0:
             errors.append("retry_limit must be >= 0")
         return errors
 
     def fingerprint(self) -> str:
-        """Stable hash of the execution-relevant contract fields.  When the
-        contract changes, artifacts produced under the old fingerprint are stale."""
-        payload = {
-            k: getattr(self, k)
-            for k in (
-                "process_owner", "objective", "input_artifacts", "dependencies",
-                "required_outputs", "acceptance_criteria", "verification_method",
-            )
-        }
-        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        """Stable hash of the ENTIRE contract — every field that defines the
+        work (scope, budgets, tools, permissions) participates, so a changed
+        contract can never silently reuse the old task or its artifacts."""
+        return hashlib.sha256(
+            json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()
 
 
 @dataclass

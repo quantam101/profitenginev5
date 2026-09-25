@@ -11,7 +11,9 @@ failed mandatory security/verification gate as passed.
 """
 from __future__ import annotations
 
+import json
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -21,6 +23,7 @@ from runtime.monetizeos.specialists import (
     SPECIALIST_ROLES,
     SpecialistHandler,
     check_permissions,
+    check_report_scope,
 )
 from runtime.monetizeos.store import FencingStale, Store
 
@@ -33,7 +36,9 @@ class Escalation(RuntimeError):
 class Director:
     store: Store
     project_id: str
-    holder: str = "director"
+    # Each Director instance owns a persistent unique identity — two
+    # Directors created with defaults must conflict, not both acquire.
+    holder: str = field(default_factory=lambda: f"director-{uuid.uuid4().hex[:12]}")
     lease_ttl_s: float = 60.0
     handlers: dict[str, SpecialistHandler] = field(default_factory=lambda: dict(DEFAULT_HANDLERS))
     fencing: int = 0
@@ -83,7 +88,6 @@ class Director:
         report = self.store._conn.execute(
             "SELECT report_json FROM attempts WHERE task_id=? AND ended_at IS NOT NULL"
             " ORDER BY id DESC LIMIT 1", (task_id,)).fetchone()
-        import json
         report_ok = bool(report and json.loads(report["report_json"]).get("status") == "completed")
         if report_ok:
             self.store.accept(task_id, fencing=self.fencing)
@@ -107,6 +111,12 @@ class Director:
             return "idle"
         task_id = task["task_id"]
         contract = TaskContract(**task["contract"])
+        # The supervision lease must outlive the delegated work — extend it
+        # to cover the contract's budget window so a long handler cannot
+        # strand completed work behind an expired fencing token.
+        if contract.budget_seconds + 60 > self.lease_ttl_s:
+            self.fencing = self.store.acquire_director(
+                self.project_id, self.holder, contract.budget_seconds + 60)
         handler = self.handlers.get(contract.process_owner)
         if handler is None:
             # No registered handler — do not pretend the agent ran.
@@ -122,6 +132,17 @@ class Director:
                 return "cancelled"
             report = handler(contract, ctx)
             report.duration_seconds = time.monotonic() - started
+            self.renew()  # refresh authority before any post-execution mutations
+            scope_violations = check_report_scope(contract, report)
+            if scope_violations:
+                self.store.submit_report(task_id, worker, report)
+                outcome = self.store.fail(
+                    task_id, f"report outside contract scope: {scope_violations}",
+                    fencing=self.fencing)
+                self.store.record_incident(self.project_id, "scope_violation",
+                                           {"task_id": task_id, "files": scope_violations},
+                                           task_id=task_id)
+                return outcome
             self.store.submit_report(task_id, worker, report)
             if report.status != "completed":
                 outcome = self.store.fail(task_id, f"handler reported {report.status}",

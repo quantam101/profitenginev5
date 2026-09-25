@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -152,6 +153,24 @@ CREATE TABLE IF NOT EXISTS changelog (
 
 DEFAULT_DB = Path(os.getenv("MONETIZEOS_DB", "data/monetizeos.db"))
 
+# Secret-looking values in specialist reports must never persist to disk
+# (spec §6: redact secrets and sensitive data from logs/shared context).
+_REDACT_PATTERNS = [
+    re.compile(r"AKIA[0-9A-Z]{16}"),                                   # AWS access key
+    re.compile(r"(?:sk|pk|rk|ghp|gho|ghu|ghs|ghr|glpat|xox[baprs])-[A-Za-z0-9_-]{8,}"),
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}"),  # JWT
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[^-]*-----END [A-Z ]*PRIVATE KEY-----", re.S),
+    re.compile(r"(?i)(bearer|token|api[_-]?key|secret|password|passwd)"
+               r"(\s*[:=]\s*|\s+)(['\"]?)[^\s'\"]{8,}\3"),
+]
+
+
+def redact_text(text: str) -> str:
+    """Replace credential-shaped substrings with a fixed marker."""
+    for pat in _REDACT_PATTERNS:
+        text = pat.sub("[REDACTED]", text)
+    return text
+
 
 def _now() -> float:
     return time.time()
@@ -251,7 +270,9 @@ class Store:
         if errors:
             raise ValueError(f"invalid contract: {'; '.join(errors)}")
         fingerprint = contract.fingerprint()
-        key = contract.idempotency_key or f"task:{contract.task_id}"
+        # Scope the dedupe key to the project — two projects may legitimately
+        # use the same human-meaningful key without sharing tasks.
+        key = f"{project_id}:{contract.idempotency_key or f'task:{contract.task_id}'}"
         now = _now()
         with self.tx() as c:
             if fencing is not None:
@@ -266,7 +287,23 @@ class Store:
                         "with a different contract"
                     )
                 return existing["task_id"]
-            state = "pending" if contract.dependencies else "ready"
+            if not contract.dependencies:
+                state = "ready"
+            else:
+                # Deps may already be complete (task enqueued late) — count
+                # any dependency that is not completed; unknown dep ids also
+                # keep the task pending until something creates them.
+                ph = ",".join("?" * len(contract.dependencies))
+                incomplete = c.execute(
+                    f"SELECT COUNT(*) n FROM tasks WHERE task_id IN ({ph})"  # noqa: S608
+                    " AND state != 'completed'",
+                    tuple(contract.dependencies),
+                ).fetchone()["n"]
+                missing = len(set(contract.dependencies)) - c.execute(
+                    f"SELECT COUNT(*) n FROM tasks WHERE task_id IN ({ph})",  # noqa: S608
+                    tuple(contract.dependencies),
+                ).fetchone()["n"]
+                state = "ready" if (incomplete == 0 and missing == 0) else "pending"
             c.execute(
                 "INSERT INTO tasks(task_id,project_id,contract_json,fingerprint,state,priority,"
                 "idempotency_key,fencing,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -297,14 +334,42 @@ class Store:
     def _sweep(self, c: sqlite3.Connection) -> None:
         """Recover expired retry_wait tasks and dead worker leases."""
         now = _now()
-        # Worker vanished or timed out: running/verifying lease expired → retry_wait
-        # (immediately eligible again; a hard budget timeout is its own signal).
-        c.execute(
-            "UPDATE tasks SET state='retry_wait', lease_owner=NULL, next_attempt_at=?, updated_at=?"
+        # Worker vanished or timed out: apply the same attempt-limit /
+        # dead-letter policy as a failed attempt — an expired lease still
+        # consumes one attempt of the retry budget.
+        for r in c.execute(
+            "SELECT task_id, project_id, attempt, contract_json FROM tasks"
             " WHERE state IN ('running','verifying') AND lease_expires_at IS NOT NULL"
             " AND lease_expires_at<=?",
-            (now, now, now),
-        )
+            (now,),
+        ).fetchall():
+            contract = json.loads(r["contract_json"])
+            if r["attempt"] <= contract.get("retry_limit", 0):
+                c.execute(
+                    "UPDATE tasks SET state='retry_wait', lease_owner=NULL,"
+                    " lease_expires_at=NULL, next_attempt_at=?, updated_at=? WHERE task_id=?",
+                    (now, now, r["task_id"]),
+                )
+            else:
+                c.execute(
+                    "UPDATE tasks SET state='failed', lease_owner=NULL,"
+                    " lease_expires_at=NULL, updated_at=? WHERE task_id=?",
+                    (now, r["task_id"]),
+                )
+                c.execute(
+                    "INSERT INTO incidents(project_id,task_id,kind,detail_json,created_at)"
+                    " VALUES(?,?,?,?,?)",
+                    (r["project_id"], r["task_id"], "dead_letter",
+                     json.dumps({"reason": "lease expired after retry budget exhausted",
+                                 "attempts": r["attempt"]}), now),
+                )
+                for dep in c.execute("SELECT task_id FROM edges WHERE depends_on=?",
+                                     (r["task_id"],)).fetchall():
+                    c.execute(
+                        "UPDATE tasks SET state='blocked', updated_at=? WHERE task_id=?"
+                        " AND state IN ('pending','ready','blocked')",
+                        (now, dep["task_id"]),
+                    )
         c.execute(
             "UPDATE tasks SET state='ready', updated_at=? WHERE state='retry_wait' AND next_attempt_at<=?",
             (now, now),
@@ -390,7 +455,9 @@ class Store:
             c.execute(
                 "UPDATE attempts SET ended_at=?, status=?, report_json=? WHERE task_id=?"
                 " AND ended_at IS NULL",
-                (now, report.status, report.to_json(), task_id),
+                # Reports cross agent trust boundaries — strip credential-shaped
+                # values before they land in durable storage.
+                (now, report.status, redact_text(report.to_json()), task_id),
             )
             for a in artifacts or []:
                 fp = c.execute("SELECT fingerprint FROM tasks WHERE task_id=?", (task_id,)).fetchone()
@@ -398,7 +465,7 @@ class Store:
                     "INSERT OR REPLACE INTO artifacts(artifact_id,task_id,kind,ref,fingerprint,created_at)"
                     " VALUES(?,?,?,?,?,?)",
                     (a["artifact_id"], task_id, a.get("kind", "output"),
-                     a["ref"], fp["fingerprint"], now),
+                     redact_text(a["ref"]), fp["fingerprint"], now),
                 )
 
     def accept(self, task_id: str, fencing: int | None = None) -> None:
