@@ -167,6 +167,12 @@ GEMINI_MODELS: List[str] = list(dict.fromkeys([
 
 import time as _time  # noqa: E402
 
+from scripts.seo_content_quality import format_quality_errors, validate_article_quality  # noqa: E402
+
+# Reasoning models (gpt-oss, Gemini thinking) spend output tokens on reasoning before the
+# answer; a 1,200-1,800 word JSON article plus reasoning needs well over 3k tokens.
+MAX_OUTPUT_TOKENS = int(os.getenv("GMAOS_MAX_OUTPUT_TOKENS", "8000"))
+
 def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
     """Call fn(); on 429 wait base_delay * 2^attempt seconds and retry."""
     for attempt in range(max_retries + 1):
@@ -197,16 +203,19 @@ def _call_groq(prompt: str, model: str | None = None) -> str:
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": 3000,
+                "max_tokens": MAX_OUTPUT_TOKENS,
                 "temperature": 0.7,
+                "response_format": {"type": "json_object"},
             },
             timeout=120,
         )
         resp.raise_for_status()
-        message = resp.json()["choices"][0]["message"]
-        text = (message.get("content") or "").strip()
+        choice = resp.json()["choices"][0]
+        text = (choice["message"].get("content") or "").strip()
         if not text:
             raise RuntimeError(f"Groq/{m} returned empty content")
+        if choice.get("finish_reason") == "length":
+            raise RuntimeError(f"Groq/{m} output truncated at {MAX_OUTPUT_TOKENS} tokens")
         return text
     return _retry_post(_do, max_retries=1, base_delay=5)
 
@@ -224,17 +233,21 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
                     {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
                 ],
                 "generationConfig": {
-                    "maxOutputTokens": 3072,
+                    "maxOutputTokens": MAX_OUTPUT_TOKENS,
+                    "responseMimeType": "application/json",
                     "thinkingConfig": {"thinkingLevel": "low"},
                 },
             },
             timeout=120,
         )
         resp.raise_for_status()
-        parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        candidate = resp.json().get("candidates", [{}])[0]
+        parts = candidate.get("content", {}).get("parts", [])
         text = "".join(part.get("text", "") for part in parts).strip()
         if not text:
             raise RuntimeError(f"Gemini/{m} returned empty content")
+        if candidate.get("finishReason") == "MAX_TOKENS":
+            raise RuntimeError(f"Gemini/{m} output truncated at {MAX_OUTPUT_TOKENS} tokens")
         return text
     return _retry_post(_do, max_retries=1, base_delay=5)
 
@@ -244,45 +257,36 @@ def generate_article(topic: str) -> Dict[str, Any]:
         sys.exit("❌ Neither GROQ_API_KEY nor GEMINI_API_KEY is set")
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
-    # Try each Groq model in priority order, then fall back to Gemini
-    raw = ""
+    # Each provider/model attempt must produce parseable JSON that passes the
+    # quality gate; otherwise fall through to the next candidate.
+    candidates: List[tuple[str, str]] = []
     if GROQ_KEY:
-        for model in GROQ_MODELS:
-            try:
-                raw = _call_groq(prompt, model=model)
-                print(f"[AI] Provider: Groq ({model})")
-                break
-            except Exception as e:
-                print(f"[AI] Groq/{model} failed ({e}), trying next...")
-    if not raw and GEMINI_KEY:
-        for model in GEMINI_MODELS:
-            try:
-                raw = _call_gemini(prompt, model=model)
-                print(f"[AI] Provider: Gemini ({model})")
-                break
-            except Exception as e:
-                print(f"[AI] Gemini/{model} failed ({e}), trying next...")
-    if not raw:
-        sys.exit("❌ All LLM providers failed — check API keys and rate limits")
-    article = _parse_article_json(raw)
+        candidates += [("Groq", m) for m in GROQ_MODELS]
+    if GEMINI_KEY:
+        candidates += [("Gemini", m) for m in GEMINI_MODELS]
 
-    from scripts.seo_content_quality import format_quality_errors, validate_article_quality
+    last_error = "no providers configured"
+    for provider, model in candidates:
+        try:
+            raw = _call_groq(prompt, model=model) if provider == "Groq" else _call_gemini(prompt, model=model)
+            print(f"[AI] Provider: {provider} ({model})")
+            article = _parse_article_json(raw)
+            quality = validate_article_quality(article)
+            for warning in quality.warnings:
+                print(f"[QUALITY][WARN] {warning}")
+            if not quality.ok:
+                raise RuntimeError("failed publication quality gate: " + format_quality_errors(quality))
+            print(
+                f"[OK] Article generated: {article['title']} "
+                f"({quality.word_count} words, {quality.h2_count} H2s, "
+                f"{quality.external_link_count} references)"
+            )
+            return article
+        except Exception as e:
+            last_error = f"{provider}/{model}: {e}"
+            print(f"[AI] {last_error}, trying next...")
 
-    quality = validate_article_quality(article)
-    for warning in quality.warnings:
-        print(f"[QUALITY][WARN] {warning}")
-    if not quality.ok:
-        raise RuntimeError(
-            "Generated article failed publication quality gate: "
-            + format_quality_errors(quality)
-        )
-
-    print(
-        f"[OK] Article generated: {article['title']} "
-        f"({quality.word_count} words, {quality.h2_count} H2s, "
-        f"{quality.external_link_count} references)"
-    )
-    return article
+    raise RuntimeError(f"All LLM providers failed to produce a publishable article — last error: {last_error}")
 
 
 def _parse_article_json(raw: str) -> Dict[str, Any]:
@@ -310,19 +314,9 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
             return json.loads(candidate, strict=False)
         except json.JSONDecodeError:
             pass
-    # 6. Last resort: synthesize a minimal article from the raw text
-    print("[WARN] JSON parse failed — synthesizing minimal article from raw text")
-    title_m = re.search(r'"title"\s*:\s*"([^"]+)"', raw)
-    slug_m  = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
-    title   = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
-    slug    = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
-    return {
-        "title": title,
-        "slug": slug,
-        "meta_description": f"Discover {title}",
-        "tags": ["ai", "passiveincome", "automation"],
-        "body": raw[:8000],  # publish the raw output as-is if parsing fully fails
-    }
+    # Raw text is never publishable as an article (it fails the quality gate),
+    # so signal the caller to try the next model instead of synthesizing one.
+    raise ValueError(f"model output is not valid JSON ({len(raw)} chars)")
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
