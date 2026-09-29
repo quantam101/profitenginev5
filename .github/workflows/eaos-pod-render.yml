@@ -43,9 +43,16 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
-      RUNTIME_BASE: ${{ secrets.RUNTIME_API_URL || 'http://129.146.236.177' }}
+      RUNTIME_BASE: ${{ secrets.RUNTIME_API_URL }}
 
     steps:
+      - name: Require runtime API URL
+        run: |
+          if [ -z "${RUNTIME_BASE}" ]; then
+            echo "::error::RUNTIME_API_URL secret is not set — refusing to run against an unknown runtime"
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v6

@@ -1,27 +1,18 @@
 """
 Ollama local inference gateway for GMAOS runtime agents.
 
-Calls the Ollama native chat API at:
-  http://<GMAOS_LOCAL_MODEL_ENDPOINT>/api/chat
+Calls the Ollama native chat API at `<base_url>/api/chat`.
 
 Environment variables:
   GMAOS_LOCAL_MODEL_ENABLED   — "true" to activate (default: false)
-  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (required when enabled, no default)
-                                 Docker example: http://ollama:11434
+  GMAOS_LOCAL_MODEL_ENDPOINT  — Ollama base URL (default: http://ollama:11434)
+                                 Docker service: http://ollama:11434
   GMAOS_LOCAL_MODEL_NAME      — model tag (default: llama3.1:8b)
   GMAOS_LOCAL_MODEL_TIMEOUT   — per-request timeout seconds (default: 120)
 
 Returns None  — if disabled or Ollama is unreachable (degrade to next tier).
 Returns str   — reply text on success.
 Returns str   — "OLLAMA_ERROR: ..." on unexpected non-network error.
-
-OCI A1 ARM guidance:
-  4 OCPUs / 24 GB RAM — runs 7-8B 4-bit models (~15-30 tok/s CPU-only).
-  Recommended models (in order of quality/speed trade-off):
-    llama3.1:8b   — best all-round general intelligence  (default)
-    qwen2.5:7b    — strong for SEO/multilingual content
-    phi3.5:3.8b   — fastest, good for short structured tasks
-    mistral:7b    — good for coding / reasoning tasks
 """
 from __future__ import annotations
 

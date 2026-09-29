@@ -38,7 +38,8 @@ class LLMProvider:
         if self.state is LLMState.FAILED:
             return False
         if self.provider == "ollama":
-            return bool(self.endpoint) and bool(self.api_key)
+            local_enabled = os.getenv("GMAOS_LOCAL_MODEL_ENABLED", "false").lower() == "true"
+            return local_enabled and bool(self.endpoint) and bool(self.api_key)
         return bool(self.api_key)
 
 

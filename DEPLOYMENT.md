@@ -9,7 +9,7 @@
 ## Table of contents
 
 1. [Prerequisites](#1-prerequisites)
-2. [Quick start (OCI Always Free — recommended)](#2-quick-start-oci-always-free--recommended)
+2. [Quick start](#2-quick-start)
 3. [Environment variables reference](#3-environment-variables-reference)
 4. [First-run Ollama model setup](#4-first-run-ollama-model-setup)
 5. [DNS & HTTPS with Caddy](#5-dns--https-with-caddy)
@@ -27,8 +27,8 @@
 | Requirement | Minimum | Recommended |
 |---|---|---|
 | OS | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
-| RAM | 8 GB | 24 GB (OCI A1 ARM) |
-| CPU | 2 cores | 4 OCPUs (ARM Ampere A1) |
+| RAM | 8 GB | 24 GB |
+| CPU | 2 cores | 4 cores (x86_64 or ARM) |
 | Storage | 50 GB | 100 GB block volume |
 | Docker | 24+ | latest |
 | Docker Compose | 2.20+ | latest |
@@ -44,10 +44,10 @@ newgrp docker
 
 ---
 
-## 2. Quick start (OCI Always Free — recommended)
+## 2. Quick start
 
-OCI Always Free gives you 4 ARM OCPUs + 24 GB RAM + 200 GB storage at **$0/month**.
-This is the reference deployment target.
+Any Docker host with 8+ GB RAM works. Vercel hosts the Next.js frontend;
+the Docker stack hosts the runtime, backend, Taylor, Ollama, and Caddy.
 
 ```bash
 # 1. Clone the repo
@@ -83,7 +83,7 @@ Copy `.env.example` to `.env` and fill in the values below.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `SITE_DOMAIN` | ✅ | — | Root domain, e.g. `profitengine.alreadyherellc.com` |
+| `SITE_DOMAIN` | ✅ | — | Root domain, e.g. `alreadyherellc.com` |
 | `ACME_EMAIL` | ✅ | — | Email for Let's Encrypt certificates |
 | `POSTGRES_DB` | ✅ | — | Database name |
 | `POSTGRES_USER` | ✅ | — | Database user |
@@ -107,7 +107,7 @@ Copy `.env.example` to `.env` and fill in the values below.
 The Ollama service starts automatically but the model must be pulled once:
 
 ```bash
-# Default — best all-round (4.7 GB, ~15-30 tok/s on OCI A1 ARM)
+# Default — best all-round (4.7 GB, ~15-30 tok/s on a 4-core CPU)
 docker compose exec ollama ollama pull llama3.1:8b
 
 # Alternatives by use-case:
@@ -127,14 +127,14 @@ After the pull the inference cascade activates automatically on the next executi
 Point your DNS records to your server IP **before** running the deploy script.
 Caddy handles TLS automatically via Let's Encrypt.
 
-Required DNS records — A records pointing to `129.146.236.177`:
+Required DNS records — A records pointing to the Docker host public IP:
 
-| Subdomain | Points to | Purpose |
-|---|---|---|
-| `profitengine.alreadyherellc.com` | `129.146.236.177` | Marketing site |
-| `app.profitengine.alreadyherellc.com` | `129.146.236.177` | Command center (Next.js) |
-| `api.profitengine.alreadyherellc.com` | `129.146.236.177` | Runtime API (FastAPI) |
-| `status.profitengine.alreadyherellc.com` | `129.146.236.177` | Uptime Kuma monitoring |
+| Subdomain | Purpose |
+|---|---|
+| `{SITE_DOMAIN}` | Marketing site |
+| `app.{SITE_DOMAIN}` | Command center (Next.js) |
+| `api.{SITE_DOMAIN}` | Runtime API (FastAPI) |
+| `status.{SITE_DOMAIN}` | Uptime Kuma monitoring |
 
 n8n is NOT publicly exposed by default (security policy). Enable it in the Caddyfile
 only after verifying `N8N_BASIC_AUTH_ACTIVE=true` is set.
@@ -189,7 +189,7 @@ curl -s -X POST http://localhost:8080/execute \
 
 ### Check the dashboard
 
-Visit `https://app.<your-domain>` — the dashboard now shows live data from
+Visit `https://app.{SITE_DOMAIN}` — the dashboard now shows live data from
 the execution ledger: total cycles, success rate, tier distribution, and an
 activity feed of recent runs.
 
@@ -242,7 +242,6 @@ Any VPS with 8+ GB RAM and Docker works:
 - **Hetzner**: €8/mo (8 GB CX31) — best price/performance in EU
 - **Linode/Akamai**: $48/mo
 - **AWS EC2 t4g.xlarge (ARM)**: ~$100/mo
-- **OCI Always Free**: $0/mo ← what this repo runs on
 
 All that changes is the server IP in your DNS records.
 
@@ -256,14 +255,14 @@ See `docs/AGENT_ROADMAP.md` for the future agents roadmap.
 
 ## 8. Scaling beyond one server
 
-The current architecture is intentionally single-node to stay on OCI Free.
+The current architecture is intentionally single-node to keep costs at zero.
 When you're ready to scale:
 
 | Component | Scale strategy |
 |---|---|
 | Next.js web | Vercel or multiple replicas behind a load balancer |
 | FastAPI runtime | Add replicas; put Postgres behind PgBouncer |
-| Ollama | Each node gets its own Ollama — no shared GPU needed on ARM CPU |
+| Ollama | Each node gets its own Ollama — no shared GPU needed on CPU |
 | n8n | n8n Enterprise or self-hosted queue mode |
 | Postgres | Managed Postgres (Supabase, Neon, RDS) when DB load grows |
 
@@ -295,7 +294,7 @@ Before going live, verify each item:
 - [ ] `ANTHROPIC_API_KEY` is set only in server `.env`, never in source
 - [ ] `POSTGRES_PASSWORD` is a random 32+ character string
 - [ ] `N8N_BASIC_AUTH_PASSWORD` is a random 32+ character string
-- [ ] Only ports 22, 80, 443 are open in your firewall / OCI Security List
+- [ ] Only ports 22, 80, 443 are open in the host firewall
 - [ ] n8n is NOT publicly exposed (Caddy n8n block is commented out)
 - [ ] `npm run ci:all` passes (includes `npm run security:scan`)
 - [ ] `node scripts/agent-healthcheck.mjs` returns `ok: true`
@@ -313,7 +312,7 @@ docker compose logs runtime
 Common causes: missing `.env` values, Python dependency error, port conflict.
 
 **Ollama inference is slow:**
-This is expected on CPU — llama3.1:8b generates ~15-30 tok/s on OCI A1 ARM.
+This is expected on CPU — llama3.1:8b generates ~15-30 tok/s on a 4-core host.
 For short structured tasks, switch to phi3.5:3.8b (~45-60 tok/s).
 
 **Health score below 100%:**
@@ -339,4 +338,4 @@ Ensure `POSTGRES_PASSWORD` is set and non-empty in `.env`.
 
 ---
 
-*Built on OCI Always Free ARM · Zero-spend AI runtime · Runs globally on any VPS*
+*Zero-spend AI runtime · Runs globally on any Docker host*

@@ -254,7 +254,7 @@ jobs:
       - name: Canary smoke — runtime API reachable
         run: |
           STATUS=$(curl -sf --max-time 10 \
-            "https://api.profitengine.alreadyherellc.com/health" \
+            "https://api.alreadyherellc.com/health" \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('ok') else 'fail')" 2>/dev/null \
             || echo "unreachable")
           echo "Runtime health: $STATUS"

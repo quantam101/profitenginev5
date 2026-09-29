@@ -1,6 +1,6 @@
 #!/bin/bash
-# OCI Aggressive Posting Cron Configuration (3-5x daily strategic timing)
-# Install on OCI server with: crontab < oci-aggressive-cron.sh
+# Aggressive Posting Cron Configuration (3-5x daily strategic timing)
+# Install on the Docker/automation host with: crontab < oci-aggressive-cron.sh
 
 # ════════════════════════════════════════════════════════════════════════
 # PROFITENGINE v5 - AGGRESSIVE POSTING SCHEDULE (UTC)
@@ -56,8 +56,8 @@
 # INSTALLATION INSTRUCTIONS
 # ════════════════════════════════════════════════════════════════════════
 
-# 1. SSH into OCI server:
-#    ssh ubuntu@129.146.236.177
+# 1. SSH into the automation host (use the host recorded in your ops runbook):
+#    ssh ubuntu@<automation-host>
 #
 # 2. Make scripts executable:
 #    chmod +x /home/ubuntu/scripts/aggressive_posting_scheduler.py

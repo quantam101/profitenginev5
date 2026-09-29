@@ -44,6 +44,7 @@ _PRODUCTION_GLOBS = (
     "caddy/**",
     "deploy/**",
     "scripts/*",
+    ".github/workflows/*",
     "docker-compose.yml",
     "package.json",
     "next.config.*",
