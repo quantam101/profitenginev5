@@ -29,7 +29,8 @@ jobs:
             --status=success --limit 1 --json databaseId -q '.[0].databaseId' || echo "")
           if [ -n "$RUN_ID" ]; then
             echo "using production run $RUN_ID"
-            gh run download "$RUN_ID" -n youtube-uploads -D artifacts || true
+            # bounded: an unresponsive artifact download must not hang the job
+            timeout 180 gh run download "$RUN_ID" -n youtube-uploads -D artifacts || true
             # flatten the files the composer reads into the workspace root
             find artifacts -name '*.json' -exec cp {} . \; 2>/dev/null || true
             ls -la *.json || true

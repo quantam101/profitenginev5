@@ -308,7 +308,7 @@ def publish_page(html_page: str) -> None:
     encoded = base64.b64encode(html_page.encode()).decode()
     probe = subprocess.run(
         ["gh", "api", f"repos/{CONTENT_REPO}/contents/{dest}"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=60,
     )
     args = [
         "gh", "api", "-X", "PUT", f"repos/{CONTENT_REPO}/contents/{dest}",
@@ -316,7 +316,7 @@ def publish_page(html_page: str) -> None:
     ]
     if probe.returncode == 0:
         args += ["-f", f"sha={json.loads(probe.stdout)['sha']}"]
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60)
     if result.returncode == 0:
         print(f"issue page: {PAGES_BASE}/newsletters/{slug}/")
     else:
