@@ -271,11 +271,49 @@ def generate_article(topic: str) -> Dict[str, Any]:
     quality = validate_article_quality(article)
     for warning in quality.warnings:
         print(f"[QUALITY][WARN] {warning}")
+
     if not quality.ok:
-        raise RuntimeError(
-            "Generated article failed publication quality gate: "
-            + format_quality_errors(quality)
-        )
+        defects = format_quality_errors(quality)
+        print(f"[QUALITY][REPAIR] Initial draft rejected: {defects}")
+        repair_prompt = f"""Repair the JSON article below so it passes every listed deterministic quality defect.
+Preserve the topic, factual caution, useful content, and existing authoritative links.
+Do not weaken, remove, or work around the quality requirements.
+Return ONLY the complete repaired JSON object with the same fields.
+
+QUALITY DEFECTS:
+{defects}
+
+ORIGINAL ARTICLE:
+{json.dumps(article, ensure_ascii=False)}
+"""
+        repair_attempts: list[tuple[str, Any]] = []
+        if GROQ_KEY:
+            repair_attempts.append((f"Groq/{GROQ_MODELS[0]}", lambda: _call_groq(repair_prompt, model=GROQ_MODELS[0])))
+        if GEMINI_KEY:
+            repair_attempts.append((f"Gemini/{GEMINI_MODELS[0]}", lambda: _call_gemini(repair_prompt, model=GEMINI_MODELS[0])))
+
+        last_defects = defects
+        for provider_name, repair_call in repair_attempts[:2]:
+            try:
+                repaired = _parse_article_json(repair_call())
+                repaired_quality = validate_article_quality(repaired)
+                for warning in repaired_quality.warnings:
+                    print(f"[QUALITY][WARN] {provider_name} repair: {warning}")
+                if repaired_quality.ok:
+                    article = repaired
+                    quality = repaired_quality
+                    print(f"[QUALITY][REPAIR] Passed after bounded repair via {provider_name}")
+                    break
+                last_defects = format_quality_errors(repaired_quality)
+                print(f"[QUALITY][REPAIR] {provider_name} repair rejected: {last_defects}")
+            except Exception as exc:
+                last_defects = str(exc)
+                print(f"[QUALITY][REPAIR] {provider_name} repair failed: {exc}")
+        else:
+            raise RuntimeError(
+                "Generated article failed publication quality gate after bounded repair attempts: "
+                + last_defects
+            )
 
     print(
         f"[OK] Article generated: {article['title']} "
