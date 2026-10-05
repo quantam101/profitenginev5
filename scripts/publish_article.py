@@ -120,7 +120,7 @@ Return ONLY a valid JSON object (no markdown fences, no explanation) with these 
 }}
 
 Quality requirements:
-- Target 1,200-1,800 useful words; never pad with filler.
+- Target 1,400-1,800 useful words; never pad with filler. The publication gate requires at least 1,000 words, so leave sufficient margin.
 - Open with a direct answer/value proposition, not generic scene-setting.
 - Use at least 5 substantive H2 sections with concrete workflows, examples, trade-offs, and failure modes.
 - For list/roundup/comparison posts, include a concise comparison table when it improves decision-making.
@@ -239,7 +239,7 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
     return _retry_post(_do, max_retries=1, base_delay=5)
 
 
-def generate_article(topic: str) -> Dict[str, Any]:
+def generate_article(topic: str, quality_retry: int = 0) -> Dict[str, Any]:
     if not GROQ_KEY and not GEMINI_KEY:
         sys.exit("❌ Neither GROQ_API_KEY nor GEMINI_API_KEY is set")
     print(f"[AI] Generating article: {topic}")
@@ -272,9 +272,13 @@ def generate_article(topic: str) -> Dict[str, Any]:
     for warning in quality.warnings:
         print(f"[QUALITY][WARN] {warning}")
     if not quality.ok:
+        detail = format_quality_errors(quality)
+        if quality_retry < 1:
+            print(f"[QUALITY][RETRY] First draft failed gate: {detail}")
+            print("[QUALITY][RETRY] Regenerating once with the same evidence-aware requirements.")
+            return generate_article(topic, quality_retry=quality_retry + 1)
         raise RuntimeError(
-            "Generated article failed publication quality gate: "
-            + format_quality_errors(quality)
+            "Generated article failed publication quality gate after retry: " + detail
         )
 
     print(
