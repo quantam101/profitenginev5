@@ -1,0 +1,39 @@
+name: Revenue Pipeline Repair CI
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/passive-income-engine.yml'
+      - '.github/workflows/daily-content.yml'
+      - 'scripts/publish_article.py'
+      - 'scripts/seo_content_quality.py'
+      - 'tests/passive-income-*.test.mjs'
+      - 'tests/intelligent-process-mesh.test.mjs'
+      - 'tests/execution-control.test.mjs'
+      - 'tests/controlled-ai-route.test.mjs'
+      - 'tests/safe-delivery.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install locked Node dependencies
+        run: npm ci --ignore-scripts
+      - name: Compile publisher
+        run: |
+          python -m py_compile scripts/publish_article.py
+          python -m py_compile scripts/seo_content_quality.py
+      - name: Run passive-income policy tests
+        run: npm run test:passive-income
