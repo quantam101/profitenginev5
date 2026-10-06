@@ -56,6 +56,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      # ffmpeg is required for video compilation — the Sep 22 FYE runs
+      # failed compliance with "master video missing or empty" because the
+      # runner image lacks it.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
       - name: Run FYE job (approval-verified, hash-checked, leased)
         # Inputs arrive through env vars, never inline in the script —
         # a crafted value (e.g. topic containing $(...)) stays data and
