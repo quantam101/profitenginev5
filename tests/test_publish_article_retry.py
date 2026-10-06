@@ -86,3 +86,25 @@ def test_passing_first_draft_does_not_repair(provider_env):
 
     assert groq.call_count == 1
     gemini.assert_not_called()
+
+
+
+def test_local_structure_repair_avoids_second_provider_call(provider_env):
+    raw = json.dumps({
+        "title": "Durable Email Marketing Workflow",
+        "meta_description": "short",
+        "body": " ".join(["evidence-aware implementation guidance"] * 350),
+    })
+
+    with patch.object(pa, "_call_groq", return_value=raw) as groq, \
+         patch.object(pa, "_call_gemini") as gemini, \
+         patch("scripts.seo_content_quality.validate_article_quality",
+               side_effect=[_fake_quality(False, 1400), _fake_quality(True, 1400)]), \
+         patch("scripts.seo_content_quality.format_quality_errors",
+               return_value="insufficient section depth"):
+        article = pa.generate_article("topic")
+
+    assert groq.call_count == 1
+    gemini.assert_not_called()
+    assert article["body"].count("## ") >= 5
+    assert 120 <= len(article["meta_description"]) <= 170
