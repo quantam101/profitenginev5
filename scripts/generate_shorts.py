@@ -53,7 +53,12 @@ FONT = next((f for f in (
     "C:/Windows/Fonts/arialbd.ttf",
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
 ) if os.path.exists(f)), "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-VOICES = ["en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural"]
+VOICES = [
+    "en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural",
+    "en-US-EricNeural", "en-US-JennyNeural", "en-US-SteffanNeural",
+    "en-GB-RyanNeural", "en-GB-SoniaNeural",
+    "en-AU-WilliamNeural", "en-AU-NatashaNeural",
+]
 
 PROGRAMS = [
     {"name": "semrush", "product": "Semrush",
@@ -115,6 +120,36 @@ PROGRAMS = [
                   "reserves capacity monthly so you're never in the queue"],
      "pain": "juggling five one-off contractors across one state",
      "link": "https://www.alreadyherellc.com/arizona-field-coverage"},
+    # ── High-CPM consumer programs — wider niche coverage so the daily batch
+    #    isn't one vertical. Affiliate URL comes from AFFILIATE_LINKS when the
+    #    program key exists there; the owned links always monetize regardless.
+    {"name": "shopify", "product": "Shopify",
+     "angle": "store builder that runs itself",
+     "keywords": "online store ecommerce shopping products",
+     "cta": "Start your store — link below",
+     "benefits": ["launches a real store in an afternoon, no code",
+                  "takes payments, shipping, and taxes off your plate",
+                  "scales from first sale to full-time brand",
+                  "comes with a free trial to test your idea"],
+     "pain": "dreaming about a store but never launching one"},
+    {"name": "nordvpn", "product": "NordVPN",
+     "angle": "one-tap online privacy",
+     "keywords": "hacker security privacy technology dark",
+     "cta": "Lock it down — link below",
+     "benefits": ["hides your traffic from your ISP and public WiFi snoops",
+                  "covers 10 devices with one account",
+                  "blocks trackers and malicious sites automatically",
+                  "costs less than a coffee a month"],
+     "pain": "browsing on public WiFi with zero protection"},
+    {"name": "notion", "product": "Notion",
+     "angle": "one workspace that replaces five apps",
+     "keywords": "productivity workspace notes planning desk",
+     "cta": "Try it free — link below",
+     "benefits": ["replaces notes, docs, wikis, and project boards in one app",
+                  "has AI that drafts and summarizes inside your docs",
+                  "is free for personal use — no card needed",
+                  "syncs instantly across every device"],
+     "pain": "drowning in scattered notes and to-do apps"},
 ]
 
 
@@ -617,6 +652,36 @@ def compose(bg: Path, vo: Path, ass: Path, music: Path, swoosh: Path,
     return out.exists() and out.stat().st_size > 20000
 
 
+# ── Retention priors → title bias ──────────────────────────────────────────────
+# The weekly feedback job (runtime/fye/retention.py, youtube-retention.yml)
+# commits data/fye/retention_priors.json. When it names a preferred pattern we
+# title Shorts the same way — one feedback loop serving both pipelines.
+_PRIORS_PATH = Path("data/fye/retention_priors.json")
+_PATTERN_TITLES = {
+    "question": lambda p: f"{p['product']} — Does It Actually Work?",
+    "how_to": lambda p: f"How {p['product']} Actually Works",
+    "why": lambda p: f"Why {p['product']} Beats the Default Approach",
+    "numbered": lambda p: f"5 {p['product']} Rules That Actually Matter",
+    "versus": lambda p: f"{p['product']} vs. the Common Approach",
+    "negative": lambda p: f"Stop Getting {p['product']} Wrong",
+    "year_number": lambda p: f"{p['product']} in {datetime.now().year}",
+    "statement": lambda p: f"{p['product']} — {p['angle'].title()}",
+}
+
+
+def _title_for(prog: dict) -> str:
+    pat = None
+    try:
+        pat = json.loads(_PRIORS_PATH.read_text()).get("preferred_pattern")
+    except Exception as e:  # noqa: S110 — priors are an optional bias, absence is normal
+        print(f"   (priors unread: {e})")
+    if pat in _PATTERN_TITLES and prog.get("format") not in ("story", "micro"):
+        return _PATTERN_TITLES[pat](prog)
+    if prog.get("format") in ("story", "micro"):
+        return f"{prog['product']} — {prog['angle'].title()} #Shorts"
+    return f"{prog['product']} Review — {prog['angle'].title()} ({datetime.now().year})"
+
+
 async def make_one(prog: dict) -> dict | None:
     name = prog["name"]
     work = TMP / name
@@ -671,9 +736,7 @@ async def make_one(prog: dict) -> dict | None:
     print(f"   ✅ {out.name} ({size//1024} KB, {dur:.0f}s)")
     return {
         "program": name,
-        "title": (f"{prog['product']} — {prog['angle'].title()} #Shorts"
-                  if prog.get("format") in ("story", "micro")
-                  else f"{prog['product']} Review — {prog['angle'].title()} (2026)"),
+        "title": _title_for(prog),
         "description": (
             f"{script}\n\n{link_block(prog)}\n\n#shorts #fieldservice #arizona #{name}"
             if prog.get("link") else
