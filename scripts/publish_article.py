@@ -925,13 +925,10 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
-    # Hashnode uses Authorization: Bearer {HASHNODE_KEY} as of their v2 API migration
-    # follow_redirects=True so 301 redirects are followed automatically
-    auth_header = (
-        HASHNODE_KEY
-        if HASHNODE_KEY.lower().startswith("bearer ")
-        else f"Bearer {HASHNODE_KEY}"
-    )
+    # Hashnode personal-access tokens authenticate as a bare
+    # `Authorization: <key>` header — the same form the readiness probe
+    # proves works. A `Bearer ` prefix gets an HTML 401 (unparseable JSON).
+    auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else HASHNODE_KEY
     r = httpx.post(
         "https://gql.hashnode.com",
         headers={"Authorization": auth_header, "Content-Type": "application/json"},
