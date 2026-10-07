@@ -324,3 +324,9 @@ jobs:
           echo 'Content repository: https://github.com/quantam101/content' >> "$GITHUB_STEP_SUMMARY"
           echo 'AI primary: Groq openai/gpt-oss-20b' >> "$GITHUB_STEP_SUMMARY"
           echo 'AI fallback: Gemini gemini-3.8-flash' >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "data/distribution_health.json" ]]; then
+            echo '### Distribution health (real per-channel outcomes)' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat data/distribution_health.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi

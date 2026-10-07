@@ -15,8 +15,23 @@ import hashlib
 import asyncio
 import logging
 import urllib.request
-import urllib.parse
 import urllib.error
+
+
+def _urlopen_json(req: urllib.request.Request, timeout: int = 30) -> dict:
+    """urlopen + json, preserving the API's real error body on failure."""
+    try:
+        raw = urllib.request.urlopen(req, timeout=timeout).read()
+        return json.loads(raw) if raw.strip() else {"ok": True}
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read()[:400].decode("utf-8", "replace")
+        except Exception:
+            body = ""
+        raise RuntimeError(f"HTTP {e.code}: {body}") from e
+
+
+import urllib.parse
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
@@ -131,8 +146,7 @@ async def _post_twitter(post: SocialPost) -> Optional[bool]:
     try:
         req = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": header, "Content-Type": "application/json"})
-        resp = urllib.request.urlopen(req, timeout=15)
-        data = json.loads(resp.read())
+        data = _urlopen_json(req, timeout=15)
         tweet_id = data.get("data", {}).get("id", "")
         logger.info(f"[Twitter] Posted tweet id={tweet_id}")
 
@@ -145,8 +159,7 @@ async def _post_twitter(post: SocialPost) -> Optional[bool]:
             t_header = _twitter_auth_header("POST", url, {})
             t_req = urllib.request.Request(url, data=t_body, method="POST",
                 headers={"Authorization": t_header, "Content-Type": "application/json"})
-            t_resp = urllib.request.urlopen(t_req, timeout=15)
-            reply_to = json.loads(t_resp.read()).get("data", {}).get("id", reply_to)
+            reply_to = _urlopen_json(t_req, timeout=15).get("data", {}).get("id", reply_to)
         return True
     except Exception as exc:
         logger.error(f"[Twitter] Post failed: {exc}")
@@ -177,8 +190,8 @@ async def _post_linkedin(post: SocialPost) -> Optional[bool]:
         req = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
                      "X-Restli-Protocol-Version": "2.0.0"})
-        resp = urllib.request.urlopen(req, timeout=15)
-        logger.info(f"[LinkedIn] Posted — status {resp.status}")
+        _urlopen_json(req, timeout=15)
+        logger.info("[LinkedIn] Posted")
         return True
     except Exception as exc:
         logger.error(f"[LinkedIn] Post failed: {exc}")
@@ -207,7 +220,7 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
             headers={"Authorization": f"Basic {creds}", "User-Agent": "ProfitEngine/5.0"},
             method="POST",
         )
-        token = json.loads(urllib.request.urlopen(auth_req, timeout=10).read()).get("access_token", "")
+        token = _urlopen_json(auth_req, timeout=10).get("access_token", "")
         if not token:
             return False
         # Submit link/text post
@@ -223,7 +236,7 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
             headers={"Authorization": f"bearer {token}", "User-Agent": "ProfitEngine/5.0"},
             method="POST",
         )
-        urllib.request.urlopen(submit_req, timeout=15)
+        _urlopen_json(submit_req, timeout=15)
         logger.info(f"[Reddit] r/{subreddit} post submitted")
         return True
     except Exception as exc:
@@ -245,7 +258,7 @@ async def _post_telegram(post: SocialPost) -> Optional[bool]:
                            "parse_mode": "HTML", "disable_web_page_preview": False}).encode()
         req  = urllib.request.Request(url, data=body, method="POST",
             headers={"Content-Type": "application/json"})
-        urllib.request.urlopen(req, timeout=10)
+        _urlopen_json(req, timeout=10)
         logger.info("[Telegram] Message sent")
         return True
     except Exception as exc:
@@ -275,7 +288,7 @@ async def _post_tiktok(post: SocialPost) -> Optional[bool]:
                                             "chunk_size": os.path.getsize(post.media_path), "total_chunk_count": 1}}).encode()
         req  = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=UTF-8"})
-        data = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        data = _urlopen_json(req, timeout=15)
         upload_url = data.get("data", {}).get("upload_url", "")
         if not upload_url:
             return False
@@ -284,7 +297,7 @@ async def _post_tiktok(post: SocialPost) -> Optional[bool]:
         upload_req = urllib.request.Request(upload_url, data=video_bytes, method="PUT",
             headers={"Content-Type": "video/mp4",
                      "Content-Range": f"bytes 0-{len(video_bytes)-1}/{len(video_bytes)}"})
-        urllib.request.urlopen(upload_req, timeout=120)
+        _urlopen_json(upload_req, timeout=120)
         logger.info("[TikTok] Video uploaded successfully")
         return True
     except Exception as exc:
@@ -309,7 +322,7 @@ async def _post_facebook(post: SocialPost) -> Optional[bool]:
         req  = urllib.request.Request(
             f"https://graph.facebook.com/v21.0/{page_id}/feed",
             data=body, method="POST")
-        resp = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        resp = _urlopen_json(req, timeout=15)
         logger.info(f"[Facebook] Posted: {resp.get('id','?')}")
         return True
     except Exception as exc:
@@ -329,6 +342,18 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
         caption = post.text_content[:2200]
         base    = "https://graph.facebook.com/v21.0"
 
+        # Pre-probe: proves the token can even see this IG account, so a
+        # later 400 is known to be a media/permission issue, not auth.
+        probe = urllib.request.Request(
+            f"{base}/{ig_user_id}?fields=id,username,account_type&access_token={page_token}")
+        account = _urlopen_json(probe, timeout=15)
+        logger.info(f"[Instagram] acting as @{account.get('username','?')}"
+                    f" ({account.get('account_type','?')})")
+        if account.get("account_type") not in ("BUSINESS", "CREATOR", None):
+            logger.error("[Instagram] Account is not Business/Creator — "
+                         "media publishing is not permitted on personal accounts")
+            return False
+
         if post.media_path and post.media_path.endswith(".mp4"):
             # Reel upload
             params = urllib.parse.urlencode({
@@ -338,7 +363,7 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
                 "access_token": page_token,
             }).encode()
             req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
-            data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+            data = _urlopen_json(req, timeout=30)
         else:
             # Image post — use a hosted image URL or skip
             img_url = extra.get("image_url", "")
@@ -351,7 +376,7 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
                 "access_token": page_token,
             }).encode()
             req  = urllib.request.Request(f"{base}/{ig_user_id}/media", data=params, method="POST")
-            data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+            data = _urlopen_json(req, timeout=30)
 
         creation_id = data.get("id", "")
         if not creation_id:
@@ -363,7 +388,7 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
         }).encode()
         pub_req = urllib.request.Request(f"{base}/{ig_user_id}/media_publish",
                                           data=pub_params, method="POST")
-        pub_data = json.loads(urllib.request.urlopen(pub_req, timeout=30).read())
+        pub_data = _urlopen_json(pub_req, timeout=30)
         logger.info(f"[Instagram] Published: {pub_data.get('id','?')}")
         return True
     except Exception as exc:
@@ -393,7 +418,7 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
         token_req  = urllib.request.Request("https://oauth2.googleapis.com/token",
                                              data=token_body, method="POST",
                                              headers={"Content-Type": "application/x-www-form-urlencoded"})
-        token_data = json.loads(urllib.request.urlopen(token_req, timeout=15).read())
+        token_data = _urlopen_json(token_req, timeout=15)
         access_token = token_data.get("access_token", "")
         if not access_token:
             logger.error("[YouTube] Failed to refresh access token")
@@ -433,7 +458,7 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
             headers={"Content-Type": "video/mp4",
                      "Content-Length": str(len(video_bytes)),
                      "Authorization": f"Bearer {access_token}"})
-        result = json.loads(urllib.request.urlopen(upload_req, timeout=300).read())
+        result = _urlopen_json(upload_req, timeout=300)
         video_id = result.get("id", "")
         logger.info(f"[YouTube] Uploaded: https://youtube.com/watch?v={video_id}")
         return True

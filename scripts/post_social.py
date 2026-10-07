@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -25,18 +26,50 @@ GRAPH = "https://graph.facebook.com/v21.0"
 GRAPH_IG = "https://graph.instagram.com/v21.0"  # Instagram-Login tokens (IGAA…) only work here
 
 
+def _extract_error(e: Exception) -> dict:
+    """Turn an HTTPError into the platform's own error dict so logs and the
+    health ledger show the real rejection reason, not 'HTTP 400'."""
+    if isinstance(e, urllib.error.HTTPError):
+        try:
+            body = json.loads(e.read())
+            if isinstance(body, dict) and body.get("error"):
+                err = body["error"]
+                return {"message": err.get("message", ""),
+                        "code": err.get("code", e.code),
+                        "type": err.get("type", "")}
+        except Exception:
+            pass
+        return {"message": f"HTTP {e.code}", "code": e.code}
+    return {"message": str(e)[:200]}
+
+
 def _post(url: str, data: dict) -> dict:
     req = urllib.request.Request(
         url, data=urllib.parse.urlencode(data).encode(), method="POST",
         headers={"User-Agent": "already-here-poster/1.0"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"error": _extract_error(e)}
 
 
 def _get(url: str) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "already-here-poster/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"error": _extract_error(e)}
+
+
+def _utm(url: str, source: str) -> str:
+    """Tag links that drive traffic so downstream conversions are attributable."""
+    if not url:
+        return url
+    sep = "&" if "?" in url else "?"
+    return (f"{url}{sep}utm_source={source}&utm_medium=social"
+            f"&utm_campaign=alreadyhere-video")
 
 
 def post_facebook(video: dict) -> str | None:
@@ -63,6 +96,19 @@ def post_instagram(video: dict) -> str | None:
     if not (ig and tok and video.get("url")):
         return None
     base = GRAPH_IG if tok.startswith("IG") else GRAPH
+    # Pre-probe: distinguishes "token can't see this IG account" (auth/scope
+    # problem) from "account visible but media rejected" (media/URL problem).
+    probe = _get(f"{base}/{ig}?fields=id,username,account_type&access_token={urllib.parse.quote(tok)}")
+    if probe.get("error"):
+        print(f"   ❌ Instagram: auth probe failed — "
+              f"{probe['error'].get('message')[:160]} "
+              f"(token likely lacks instagram_content_publish or IG_USER_ID is wrong)")
+        return {"error": probe["error"], "stage": "auth_probe"}
+    if probe.get("account_type") not in ("BUSINESS", "CREATOR"):
+        msg = f"account_type={probe.get('account_type') or 'UNKNOWN'} — Reels require a Business/Creator account"
+        print(f"   ❌ Instagram: {msg}")
+        return {"error": {"message": msg}, "stage": "account_type"}
+    print(f"   ℹ️  Instagram: @{probe.get('username','?')} ({probe.get('account_type')})")
     try:
         caption = f"{video['title']}\n\n{video.get('description', '')[:1800]}"
         # 1) create the Reels container
@@ -72,7 +118,7 @@ def post_instagram(video: dict) -> str | None:
         cid = c.get("id")
         if not cid:
             print(f"   ❌ Instagram: {c.get('error', {}).get('message', c)}")
-            return None
+            return {"error": c.get("error", {}), "stage": "container"}
         # 2) poll until the async upload is FINISHED (IG processes the video)
         for _ in range(30):
             time.sleep(6)
@@ -81,16 +127,17 @@ def post_instagram(video: dict) -> str | None:
                 break
             if s.get("status_code") == "ERROR":
                 print("   ❌ Instagram: container processing ERROR")
-                return None
+                return {"error": {"message": "container processing error"}, "stage": "processing"}
         # 3) publish
         p = _post(f"{base}/{ig}/media_publish", {"creation_id": cid, "access_token": tok})
         if p.get("id"):
             print(f"   ✅ Instagram: posted (id={p['id']})")
             return p["id"]
         print(f"   ❌ Instagram: {p.get('error', {}).get('message', p)}")
+        return {"error": p.get("error", {}), "stage": "publish"}
     except Exception as e:
         print(f"   ❌ Instagram: {str(e)[:120]}")
-    return None
+        return {"error": {"message": str(e)[:200]}, "stage": "exception"}
 
 
 GRAPH_THREADS = "https://graph.threads.net/v1.0"
@@ -113,7 +160,7 @@ def post_threads(video: dict) -> str | None:
     if not tok:
         return None
     try:
-        link = _yt_link(video["program"]) or video.get("url") or ""
+        link = _utm(_yt_link(video["program"]) or video.get("url") or "", "threads")
         text = f"{video['title']}\n\n{link}".strip()
         c = _post(f"{GRAPH_THREADS}/me/threads",
                   {"media_type": "TEXT", "text": text[:495], "access_token": tok})
@@ -146,12 +193,23 @@ def main() -> None:
                         "facebook": post_facebook(v),
                         "instagram": post_instagram(v),
                         "threads": post_threads(v)})
+    # Honest health: count a channel as OK only when it returned a real id.
+    def _ok(v):
+        return isinstance(v, str) and bool(v)
+    failures = {r["program"]: {c: r[c] for c in ("facebook", "instagram", "threads")
+                               if r.get(c) and not _ok(r[c])}
+                for r in results}
+    failures = {k: v for k, v in failures.items() if v}
     Path("social_posts.json").write_text(json.dumps(results, indent=2))
-    fb = sum(1 for r in results if r["facebook"])
-    ig = sum(1 for r in results if r["instagram"])
-    th = sum(1 for r in results if r["threads"])
+    fb = sum(1 for r in results if _ok(r["facebook"]))
+    ig = sum(1 for r in results if _ok(r["instagram"]))
+    th = sum(1 for r in results if _ok(r["threads"]))
     print(f"\n✅ Social: Facebook {fb}/{len(videos)}, Instagram {ig}/{len(videos)}, "
           f"Threads {th}/{len(videos)}")
+    for prog, chans in failures.items():
+        for ch, err in chans.items():
+            print(f"::error::{ch} post failed for {prog}: "
+                  f"{err.get('error', {}).get('message', err)[:160]}")
 
 
 if __name__ == "__main__":
