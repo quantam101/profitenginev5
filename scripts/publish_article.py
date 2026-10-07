@@ -173,8 +173,7 @@ GROQ_MODELS: List[str] = list(
             _GROQ_DEFAULT,
             "openai/gpt-oss-20b",
             "openai/gpt-oss-120b",
-            "groq/compound-mini",
-            "groq/compound",
+            "llama-3.3-70b-versatile",
         ]
     )
 )
@@ -317,7 +316,7 @@ def _normalize_tables(body: str) -> str:
             (i for i, c in enumerate(cells) if re.fullmatch(r":?[—–\-]{2,}:?", c)),
             -1,
         )
-        if sep_idx < 0 or sep_idx == len(cells) - 1:
+        if sep_idx < 1 or sep_idx == len(cells) - 1:
             fixed_lines.append(line)
             continue
         n_cols = sep_idx  # header cells = columns; separator marks the end
@@ -459,6 +458,11 @@ def generate_article(topic: str) -> Dict[str, Any]:
         repair_prompt = f"""Repair the JSON article below so it passes every listed deterministic quality defect.
 Preserve the topic, factual caution, useful content, and existing authoritative links.
 Do not weaken, remove, or work around the quality requirements.
+Hard structural requirements for the body field:
+- At least 5 section headings, each on its own line starting exactly with "## "
+  (two hashes, one space). Bold text like "**Section**" does NOT count.
+- At least 1000 words total.
+- No literal placeholder text (e.g. "example.com", "lorem ipsum", "coming soon").
 Return ONLY the complete repaired JSON object with the same fields.
 
 QUALITY DEFECTS:
@@ -921,13 +925,10 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
       publishPost(input: $input) { post { url id } }
     }
     """
-    # Hashnode uses Authorization: Bearer {HASHNODE_KEY} as of their v2 API migration
-    # follow_redirects=True so 301 redirects are followed automatically
-    auth_header = (
-        HASHNODE_KEY
-        if HASHNODE_KEY.lower().startswith("bearer ")
-        else f"Bearer {HASHNODE_KEY}"
-    )
+    # Hashnode personal-access tokens authenticate as a bare
+    # `Authorization: <key>` header — the same form the readiness probe
+    # proves works. A `Bearer ` prefix gets an HTML 401 (unparseable JSON).
+    auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else HASHNODE_KEY
     r = httpx.post(
         "https://gql.hashnode.com",
         headers={"Authorization": auth_header, "Content-Type": "application/json"},

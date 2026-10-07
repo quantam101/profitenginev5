@@ -746,17 +746,27 @@ async def make_one(prog: dict) -> dict | None:
     }
 
 
+def _camp(url: str, program: str, source: str = "youtube") -> str:
+    """Tag a link with a distinct campaign identifier per program+channel
+    so clicks in analytics are attributable to this placement."""
+    sep = "&" if "?" in url else "?"
+    return (f"{url}{sep}utm_source={source}&utm_medium=video"
+            f"&utm_campaign=yt-shorts-{program}")
+
+
 def link_block(prog: dict) -> str:
     """The clickable links every description must carry — the whole funnel.
     Program-specific affiliate URL from AFFILIATE_LINKS (JSON map, env),
     then our owned links (always present, always monetizable).
     B2B programs (with a "link" key) advertise our own service instead."""
+    name = str(prog.get("name") or "general").lower().replace(" ", "-")
     if prog.get("link"):
         return "\n".join([
-            f"→ Reserve Arizona field coverage: {prog['link']}",
+            f"→ Reserve Arizona field coverage: {_camp(prog['link'], name)}",
             "→ Full service catalog (fixed prices): "
-            "https://www.alreadyherellc.com/services-catalog",
-            "→ Dispatch a request: https://www.alreadyherellc.com/dispatch",
+            + _camp("https://www.alreadyherellc.com/services-catalog", name),
+            "→ Dispatch a request: "
+            + _camp("https://www.alreadyherellc.com/dispatch", name),
             "Questions: dispatch@alreadyherellc.com",
         ])
     links = {}
@@ -767,12 +777,12 @@ def link_block(prog: dict) -> str:
     lines = []
     url = links.get(prog["name"]) or links.get(prog["product"].lower())
     if url:
-        lines.append(f"→ Try {prog['product']}: {url}")
+        lines.append(f"→ Try {prog['product']}: {_camp(url, name)}")
     lines.append("→ Free playbook — The $0 Content Engine: "
-                 "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/")
+                 + _camp("https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/", name))
     lines.append("→ The Complete Blueprint (full build manual): "
-                 "https://quantam101.github.io/content/ebooks/blueprint/")
-    lines.append("→ Our tools & kits: https://alreadyhere.gumroad.com")
+                 + _camp("https://quantam101.github.io/content/ebooks/blueprint/", name))
+    lines.append("→ Our tools & kits: " + _camp("https://alreadyhere.gumroad.com", name))
     return "\n".join(lines)
 
 

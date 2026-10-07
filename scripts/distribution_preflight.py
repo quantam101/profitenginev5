@@ -295,6 +295,15 @@ def main() -> int:
 
     if waiting:
         print(f"::warning::{len(waiting)} optional distribution channel(s) are waiting for account authorization")
+
+    # A configured-but-failing channel is a broken revenue path, not a
+    # green check. Any FAILED channel makes the run DEGRADED (nonzero) —
+    # "success" must mean every channel that is configured can publish.
+    if failed:
+        names = ", ".join(row["name"] for row in failed)
+        print(f"::error::DEGRADED — {len(failed)} configured channel(s) cannot "
+              f"publish: {names}")
+        return 2
     return 0
 
 

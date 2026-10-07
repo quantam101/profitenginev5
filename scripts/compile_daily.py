@@ -114,8 +114,10 @@ def main() -> int:
         "description": (
             "Today's full batch in one watch.\n\n"
             "→ Free playbook — The $0 Content Engine: "
-            "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/\n"
-            "→ Our tools & kits: https://alreadyhere.gumroad.com\n\n"
+            "https://quantam101.github.io/content/ebooks/zero-dollar-content-engine/"
+            "?utm_source=youtube&utm_medium=video&utm_campaign=yt-daily-compilation\n"
+            "→ Our tools & kits: https://alreadyhere.gumroad.com"
+            "?utm_source=youtube&utm_medium=video&utm_campaign=yt-daily-compilation\n\n"
             "Affiliate disclosure: links may earn a commission at no cost to you."),
         "path": str(out),
         "size_bytes": out.stat().st_size,
