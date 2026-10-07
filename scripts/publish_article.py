@@ -173,8 +173,7 @@ GROQ_MODELS: List[str] = list(
             _GROQ_DEFAULT,
             "openai/gpt-oss-20b",
             "openai/gpt-oss-120b",
-            "groq/compound-mini",
-            "groq/compound",
+            "llama-3.3-70b-versatile",
         ]
     )
 )
@@ -459,6 +458,11 @@ def generate_article(topic: str) -> Dict[str, Any]:
         repair_prompt = f"""Repair the JSON article below so it passes every listed deterministic quality defect.
 Preserve the topic, factual caution, useful content, and existing authoritative links.
 Do not weaken, remove, or work around the quality requirements.
+Hard structural requirements for the body field:
+- At least 5 section headings, each on its own line starting exactly with "## "
+  (two hashes, one space). Bold text like "**Section**" does NOT count.
+- At least 1000 words total.
+- No literal placeholder text (e.g. "example.com", "lorem ipsum", "coming soon").
 Return ONLY the complete repaired JSON object with the same fields.
 
 QUALITY DEFECTS:
