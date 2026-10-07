@@ -317,7 +317,7 @@ def _normalize_tables(body: str) -> str:
             (i for i, c in enumerate(cells) if re.fullmatch(r":?[—–\-]{2,}:?", c)),
             -1,
         )
-        if sep_idx < 0 or sep_idx == len(cells) - 1:
+        if sep_idx < 1 or sep_idx == len(cells) - 1:
             fixed_lines.append(line)
             continue
         n_cols = sep_idx  # header cells = columns; separator marks the end
