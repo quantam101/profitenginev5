@@ -90,12 +90,30 @@ def post_facebook(video: dict) -> str | None:
     return None
 
 
+def _resolve_ig_id(ig: str, tok: str, base: str) -> str:
+    """When IG_USER_ID doesn't resolve (commonly a Page ID was set),
+    find the real instagram_business_account via the configured FB page."""
+    probe = _get(f"{base}/{ig}?fields=id&access_token={urllib.parse.quote(tok)}")
+    if not probe.get("error"):
+        return ig
+    page = os.getenv("FB_PAGE_ID", "").strip()
+    if not page:
+        return ig
+    r = _get(f"{base}/{page}?fields=instagram_business_account&access_token={urllib.parse.quote(tok)}")
+    real = (r.get("instagram_business_account") or {}).get("id")
+    if real:
+        print(f"   ℹ️  Instagram: IG_USER_ID invalid — resolved {real} via page {page}")
+        return str(real)
+    return ig
+
+
 def post_instagram(video: dict) -> str | None:
     ig = os.getenv("IG_USER_ID", "").strip()
     tok = (os.getenv("IG_ACCESS_TOKEN") or os.getenv("FB_PAGE_ACCESS_TOKEN") or "").strip()
     if not (ig and tok and video.get("url")):
         return None
     base = GRAPH_IG if tok.startswith("IG") else GRAPH
+    ig = _resolve_ig_id(ig, tok, base)
     # Pre-probe: distinguishes "token can't see this IG account" (auth/scope
     # problem) from "account visible but media rejected" (media/URL problem).
     probe = _get(f"{base}/{ig}?fields=id,username,account_type&access_token={urllib.parse.quote(tok)}")

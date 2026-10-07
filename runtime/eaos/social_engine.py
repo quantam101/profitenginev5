@@ -347,6 +347,19 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
         probe = urllib.request.Request(
             f"{base}/{ig_user_id}?fields=id,username,account_type&access_token={page_token}")
         account = _urlopen_json(probe, timeout=15)
+        if account.get("error") and os.environ.get("FB_PAGE_ID"):
+            # IG_USER_ID misconfigured (Page ID set instead): resolve the
+            # real instagram_business_account attached to the Page.
+            resolved = _urlopen_json(urllib.request.Request(
+                f"{base}/{os.environ['FB_PAGE_ID']}"
+                f"?fields=instagram_business_account{{id,username,account_type}}"
+                f"&access_token={page_token}"), timeout=15)
+            real = (resolved.get("instagram_business_account") or {}).get("id")
+            if real:
+                logger.info(f"[Instagram] IG_USER_ID invalid — resolved {real} "
+                            f"via page {os.environ['FB_PAGE_ID']}")
+                ig_user_id = str(real)
+                account = resolved.get("instagram_business_account") or {}
         logger.info(f"[Instagram] acting as @{account.get('username','?')}"
                     f" ({account.get('account_type','?')})")
         if account.get("account_type") not in ("BUSINESS", "CREATOR", None):
