@@ -378,7 +378,8 @@ def _repair_article_structure(article: Dict[str, Any]) -> Dict[str, Any]:
         for index, heading in enumerate(headings):
             chunk = units[index * bucket : (index + 1) * bucket]
             if chunk:
-                sections.append(f"## {heading}\n\n{'\n\n'.join(chunk)}")
+                chunk_body = "\n\n".join(chunk)
+                sections.append(f"## {heading}\n\n{chunk_body}")
         repaired["body"] = "\n\n".join(sections)
         print(
             f"[QUALITY][LOCAL-REPAIR] Added {len(sections)} deterministic H2 sections "
@@ -983,6 +984,46 @@ def publish_medium(article: Dict[str, Any], canonical_url: str) -> Optional[str]
     return url
 
 
+# ── Attribution & channel health ───────────────────────────────────────────────
+def _utm(url: str, source: str) -> str:
+    """Append tracking params so downstream traffic is attributable.
+
+    Canonical/syndication URLs must stay clean (SEO canonical fields),
+    so UTM tags are applied only to links that drive traffic.
+    """
+    if not url:
+        return url
+    sep = "&" if "?" in url else "?"
+    return (f"{url}{sep}utm_source={source}&utm_medium=distribution"
+            f"&utm_campaign=alreadyhere-content")
+
+
+def _record_outcome(health: dict, channel: str, url: Optional[str],
+                    configured: bool, error: str = "") -> None:
+    if not configured:
+        health[channel] = {"status": "unconfigured"}
+    elif url:
+        health[channel] = {"status": "published", "url": url}
+    else:
+        health[channel] = {"status": "failed", "error": error[:300]}
+        print(f"::error::{channel} publication failed: {error[:200]}")
+
+
+def _write_health(health: dict, date_str: str, canonical_url: str) -> None:
+    """Persist the day's distribution truth so revenue/attribution claims
+    can be checked against real per-channel outcomes."""
+    health["_meta"] = {
+        "date": date_str,
+        "canonical_url": canonical_url,
+        "truth_note": "status values come from real publish calls; "
+                      "'failed' means the platform rejected the post.",
+    }
+    path = pathlib.Path("data/distribution_health.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(health, indent=2) + "\n", encoding="utf-8")
+    print(f"[Health] distribution outcomes -> {path}")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main() -> None:
     if VERIFY_ONLY:
@@ -1010,8 +1051,11 @@ def main() -> None:
     article["body"] = _inject_affiliates(article.get("body", ""))
     jekyll_md = make_jekyll_post(article, date_str)
 
+    health: dict = {}
+
     # 1. GitHub Pages (canonical URL)
     canonical_url = ""
+    canonical_err = ""
     try:
         canonical_url = publish_github(
             filename=filename,
@@ -1019,53 +1063,71 @@ def main() -> None:
             commit_msg=f"Add post: {article['title']}",
         )
     except Exception as exc:
+        canonical_err = str(exc)
         print(f"[FAIL] GitHub publish failed: {exc}")
+    _record_outcome(health, "github_pages", canonical_url, True, canonical_err)
 
     # 2. Dev.to
     devto_url = None
+    devto_err = ""
     try:
         devto_url = publish_devto(article, canonical_url)
     except Exception as exc:
+        devto_err = str(exc)
         print(f"[FAIL] Dev.to publish failed: {exc}")
+    _record_outcome(health, "devto", devto_url, bool(DEVTO_KEY), devto_err)
 
     # 3. Hashnode
     hashnode_url = None
+    hashnode_err = ""
     try:
         hashnode_url = publish_hashnode(article, canonical_url)
     except Exception as exc:
+        hashnode_err = str(exc)
         print(f"[FAIL] Hashnode publish failed: {exc}")
+    _record_outcome(health, "hashnode", hashnode_url,
+                    bool(HASHNODE_KEY and HASHNODE_PUB_ID), hashnode_err)
 
     # 4. Medium
     medium_url = None
+    medium_err = ""
     try:
         medium_url = publish_medium(article, canonical_url)
     except Exception as exc:
+        medium_err = str(exc)
         print(f"[FAIL] Medium publish failed: {exc}")
+    _record_outcome(health, "medium", medium_url,
+                    bool(MEDIUM_KEY and MEDIUM_AUTHOR_ID), medium_err)
 
-    # 5. EAOS Social Blast — posts to all configured platforms simultaneously
+    # 5. EAOS Social Blast — posts to all configured platforms simultaneously.
+    # Links carry UTM tags so any resulting traffic is attributable.
+    social_ok = False
     if canonical_url:
+        tracked_url = _utm(canonical_url, "social")
         try:
             from runtime.eaos.social_engine import ProductionSocialEngine
 
             tags = article.get("tags", [])
             title_text = article["title"]
             thread_tweets = [
-                f"New post: {title_text} {canonical_url}",
-                f"Read more on GitHub Pages, Dev.to, and Hashnode → {canonical_url}",
+                f"New post: {title_text} {tracked_url}",
+                f"Read more on GitHub Pages, Dev.to, and Hashnode → {tracked_url}",
                 "#ProfitEngine #AIContent #PassiveIncome #AlreadyHereLLC",
             ]
             engine = ProductionSocialEngine()
             asyncio.run(
                 engine.publish_all_platforms(
                     text=title_text,
-                    url=canonical_url,
+                    url=tracked_url,
                     tags=tags[:5],
                     thread_tweets=thread_tweets,
                 )
             )
             print("[OK] EAOS social blast dispatched")
+            social_ok = True
         except Exception as exc:
             print(f"[WARN] EAOS social blast skipped: {exc}")
+    health["social_blast"] = {"status": "dispatched" if social_ok else "skipped"}
 
     print("\n== Summary ==")
     print(f"Title   : {article['title']}")
@@ -1111,8 +1173,12 @@ def main() -> None:
                 timeout=8,
             )
             print("[ContentSync] Published article logged to Growth Command OS")
+            health["contentsync"] = {"status": "logged"}
         except Exception as e:
+            health["contentsync"] = {"status": "failed", "error": str(e)[:200]}
             print(f"[ContentSync] Could not log to dashboard (non-fatal): {e}")
+
+    _write_health(health, date_str, canonical_url)
 
 
 if __name__ == "__main__":
