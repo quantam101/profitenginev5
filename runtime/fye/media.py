@@ -38,7 +38,12 @@ FONT = next((f for f in (
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
 ) if os.path.exists(f)), "sans-serif")
 
-VOICES = ["en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural"]
+VOICES = [
+    "en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural",
+    "en-US-JennyNeural", "en-US-EricNeural", "en-US-AndrewNeural",
+    "en-GB-RyanNeural", "en-GB-SoniaNeural",
+    "en-AU-NatashaNeural", "en-AU-WilliamNeural",
+]
 
 
 def _run(cmd: List[str], timeout: int = 120) -> subprocess.CompletedProcess:
@@ -123,7 +128,9 @@ def build_ass(words: List[Tuple[float, float, str]], ass: Path, total: float,
         col = _ACCENTS[i % len(_ACCENTS)]
         eff = (f"{{\\an5\\pos({W // 2},{int(H * 0.625)})\\c{col}&\\fad(60,40)"
                f"\\fscx52\\fscy52\\t(0,120,\\fscx110\\fscy110)\\t(120,200,\\fscx100\\fscy100)}}")
-        clean = re.sub(r"[,;:]", "", txt).upper().strip()
+        # Strip ASS override-syntax chars so script text can't inject
+        # {\...} command blocks into the rendered captions.
+        clean = re.sub(r"[,;:{}\\]", "", txt).upper().strip()
         lines.append(f"Dialogue: 0,{_ass_time(st)},{_ass_time(en)},Cap,,0,0,0,,{eff}{clean}")
     ass.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
 
@@ -135,9 +142,15 @@ _BROLL_MAX_BYTES = 150 * 1024 * 1024  # stock clips are seconds long; cap abuse
 
 
 def _allowed_broll_url(url: str) -> bool:
-    parts = urllib.parse.urlparse(url)
+    try:
+        parts = urllib.parse.urlparse(url)
+        port = parts.port  # raises ValueError on a malformed port
+    except ValueError:
+        return False
     return (parts.scheme == "https"
-            and (parts.hostname or "").lower().endswith(_BROLL_HOSTS))
+            and (parts.hostname or "").lower().endswith(_BROLL_HOSTS)
+            and parts.username is None and parts.password is None
+            and port in (None, 443))
 
 
 class _AllowlistRedirect(urllib.request.HTTPRedirectHandler):
@@ -155,10 +168,8 @@ def _download(url: str, dest: Path, timeout: int = 90) -> bool:
     """Fetch one clip with SSRF + size guards: https only, stock-CDN hosts
     only, bounded read. Anything else is rejected, not fetched."""
     try:
-        parts = urllib.parse.urlparse(url)
-        host = (parts.hostname or "").lower()
-        if parts.scheme != "https" or not host.endswith(_BROLL_HOSTS):
-            logger.warning("[B-roll] rejected URL host %r", host)
+        if not _allowed_broll_url(url):
+            logger.warning("[B-roll] rejected URL %r", url[:120])
             return False
         req = urllib.request.Request(url,  # noqa: S310 — host allowlisted above
                                      headers={"User-Agent": "already-here-fye/1.0"})
@@ -258,10 +269,11 @@ def scene_from_broll(clip: Path, duration: float, out: Path) -> bool:
 
 def scene_from_image(img: Path, duration: float, out: Path) -> bool:
     """Ken Burns pan-zoom on a still."""
-    r = _run(["ffmpeg", "-y", "-loop", "1", "-t", f"{duration:.3f}", "-i", str(img),
+    r = _run(["ffmpeg", "-y", "-loop", "1", "-framerate", "30",
+              "-t", f"{duration:.3f}", "-i", str(img),
               "-vf", (f"scale={W * 2}:{H * 2}:force_original_aspect_ratio=increase,crop={W * 2}:{H * 2},"
                       f"zoompan=z='min(zoom+0.0008,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-                      f":d={int(duration * 30)}:s={W}x{H}:fps=30,setsar=1"),
+                      f":d=1:s={W}x{H}:fps=30,setsar=1"),
               "-an", "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(out)],
              timeout=120)
     return r.returncode == 0 and out.exists() and out.stat().st_size > 10_000

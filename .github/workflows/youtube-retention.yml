@@ -1,0 +1,38 @@
+name: YouTube Retention Priors
+
+# Weekly: pull per-video retention via the YouTube Analytics API and commit
+# data/fye/retention_priors.json. The FYE ScriptAgent reads that file and
+# biases future titles/hooks toward patterns that actually held viewers.
+on:
+  schedule:
+    - cron: "30 6 * * 1"   # Mondays 06:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  priors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch retention priors (stdlib only — no deps)
+        run: python3 -m runtime.fye.retention data/fye/retention_priors.json
+
+      - name: Commit priors if changed
+        run: |
+          if git diff --quiet -- data/fye/retention_priors.json; then
+            echo "no change"
+            exit 0
+          fi
+          git config user.name "fye-priors[bot]"
+          git config user.email "fye-priors[bot]@users.noreply.github.com"
+          git add data/fye/retention_priors.json
+          git commit -m "chore(fye): refresh youtube retention priors"
+          git push
