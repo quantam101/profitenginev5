@@ -26,6 +26,16 @@ class FyeConfig:
     paid_adapters_enabled: bool = field(default_factory=lambda: os.environ.get(
         "GMAOS_PAID_ADAPTERS_ENABLED", "false").lower() == "true")
 
+    # Free-tier stock B-roll sources (no cost, used before Flux/SVG).
+    pexels_key: str = field(default_factory=lambda: os.environ.get(
+        "PEXELS_API_KEY", "").strip())
+    pixabay_key: str = field(default_factory=lambda: os.environ.get(
+        "PIXABAY_API_KEY", "").strip())
+
+    # Voiceover voice (edge-tts neural voice name).
+    tts_voice: str = field(default_factory=lambda: os.environ.get(
+        "FYE_TTS_VOICE", "").strip())
+
     # Approval polling.
     approval_poll_s: float = field(default_factory=lambda: float(
         os.environ.get("FYE_APPROVAL_POLL_S", "30")))
@@ -70,3 +80,7 @@ class FyeConfig:
     @property
     def replicate_enabled(self) -> bool:
         return bool(self.replicate_token) and self.paid_adapters_enabled
+
+    @property
+    def broll_enabled(self) -> bool:
+        return bool(self.pexels_key or self.pixabay_key)

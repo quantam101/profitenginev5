@@ -13,6 +13,7 @@ import os
 import re
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -183,40 +184,97 @@ class StillsAgent:
         return True
 
     def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Priority per shot: stock B-roll clip > Flux still (opt-in) > SVG card.
+        B-roll entries carry an mp4 path the assembly agent renders directly."""
+        from . import media
+
         stills_dir = Path(ctx["pkg_dir"]) / "stills"
         stills_dir.mkdir(parents=True, exist_ok=True)
         rendered = []
-        source = "flux" if self.cfg.replicate_enabled else "local-svg"
+        used_broll = False
         for shot in ctx["shots"]["shots"]:
             i = shot["shot"]
-            path = stills_dir / (f"shot_{i:03d}.png" if source == "flux"
-                                 else f"shot_{i:03d}.svg")
-            if source == "flux" and self._flux_still(shot["visual_prompt"], path):
-                rendered.append({"shot": i, "path": os.fspath(path), "source": "flux"})
-            else:
-                path = stills_dir / f"shot_{i:03d}.svg"
-                if self._local_still(shot["visual_prompt"], path, i):
-                    rendered.append({"shot": i, "path": os.fspath(path), "source": "local-svg"})
+            prompt = shot["visual_prompt"]
+            if self.cfg.broll_enabled:
+                query = " ".join(prompt.split()[:4])
+                broll_path = stills_dir / f"shot_{i:03d}.mp4"
+                src = media.fetch_broll(query, broll_path,
+                                        self.cfg.pexels_key, self.cfg.pixabay_key)
+                if src:
+                    rendered.append({"shot": i, "path": os.fspath(broll_path),
+                                     "source": src, "kind": "broll"})
+                    used_broll = True
+                    continue
+            if self.cfg.replicate_enabled:
+                flux_path = stills_dir / f"shot_{i:03d}.png"
+                if self._flux_still(prompt, flux_path):
+                    rendered.append({"shot": i, "path": os.fspath(flux_path),
+                                     "source": "flux", "kind": "still"})
+                    continue
+            svg_path = stills_dir / f"shot_{i:03d}.svg"
+            if self._local_still(prompt, svg_path, i):
+                rendered.append({"shot": i, "path": os.fspath(svg_path),
+                                 "source": "local-svg", "kind": "still"})
+        source = ("broll" if used_broll else
+                  "flux" if self.cfg.replicate_enabled else "local-svg")
         return {"stills": rendered, "source": source}
 
 
 class VoiceoverAgent:
-    """HF TTS cascade via the shared video engine, else silent track."""
+    """Voice cascade: edge-tts neural voice (word timings) → HF TTS → silent."""
     name = "voiceover"
 
     def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        from . import media
         from ..eaos import video_engine  # lazy: heavy module
 
         audio_dir = Path(ctx["pkg_dir"]) / "audio"
         audio_dir.mkdir(parents=True, exist_ok=True)
-        out = audio_dir / "voiceover.wav"
-        text = ctx["script"]["script_body"][:512]
-        ok = asyncio.run(video_engine._hf_tts(text, os.fspath(out)))
+        text = ctx["script"]["script_body"]
+        duration = sum(s["duration_s"] for s in ctx["shots"]["shots"])
+        words: List[Any] = []
+        provider = "silent"
+
+        # Tier 1: edge-tts neural voice — free, no key, word-level timings.
+        out = audio_dir / "voiceover.mp3"
+        voice = self._pick_voice()
+        try:
+            words, ok = asyncio.run(media.synth_voiceover(text, out, voice))
+        except Exception as exc:
+            logger.warning("[Voiceover] edge-tts failed (%s) — HF fallback", exc)
+            ok = False
+        if ok:
+            provider = f"edge-tts:{voice}"
+        else:
+            # Tier 2: HuggingFace Inference TTS (needs HF_TOKEN).
+            out = audio_dir / "voiceover.wav"
+            ok = asyncio.run(video_engine._hf_tts(text[:512], os.fspath(out)))
+            if ok:
+                provider = "huggingface-tts"
+
         if not ok:
-            duration = sum(s["duration_s"] for s in ctx["shots"]["shots"])
+            out = audio_dir / "voiceover.wav"
             ok = asyncio.run(video_engine._silent_audio(max(duration, 5), os.fspath(out)))
+
+        audio_seconds = media.media_seconds(out) or float(max(duration, 5))
         return {"audio_path": os.fspath(out), "generated": bool(ok),
-                "provider": "huggingface-tts" if video_engine.HF_TOKEN else "silent"}
+                "provider": provider, "words": words,
+                "audio_seconds": round(audio_seconds, 2)}
+
+    def _pick_voice(self) -> str:
+        from . import media
+        try:
+            voice = self._cfg_voice()
+        except Exception:
+            voice = ""
+        return voice or media._rng.choice(media.VOICES)
+
+    def _cfg_voice(self) -> str:
+        # cfg is optional on this agent — read env directly when absent.
+        cfg = getattr(self, "cfg", None)
+        if cfg is not None and getattr(cfg, "tts_voice", ""):
+            return cfg.tts_voice
+        return os.environ.get("FYE_TTS_VOICE", "").strip()
 
 
 class AssemblyAgent:
@@ -224,8 +282,71 @@ class AssemblyAgent:
     name = "assembly"
 
     def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
-        from ..eaos.video_engine import get_engine
+        """Per-shot scenes (B-roll > Ken Burns still > gradient card) → xfade
+        stitch → word-timed captions → VO + music duck → master MP4."""
+        from . import media
 
+        pkg = Path(ctx["pkg_dir"])
+        scenes_dir = pkg / "scenes"
+        scenes_dir.mkdir(parents=True, exist_ok=True)
+        stills_by_shot = {s["shot"]: s for s in ctx.get("stills", {}).get("stills", [])}
+        voiceover = ctx.get("voiceover", {})
+        vo_path = Path(voiceover["audio_path"]) if voiceover.get("audio_path") else None
+        words = voiceover.get("words") or []
+        total = float(voiceover.get("audio_seconds") or
+                      sum(s["duration_s"] for s in ctx["shots"]["shots"]))
+        n = len(ctx["shots"]["shots"])
+        per = total / max(n, 1)
+
+        # ── Scenes: render each shot to a normalized mp4, concurrently. ──
+        def _render_scene(i: int, shot: Dict[str, Any]) -> Optional[Path]:
+            out = scenes_dir / f"scene_{i:03d}.mp4"
+            entry = stills_by_shot.get(shot["shot"])
+            dur = shot.get("duration_s") or per
+            if entry and entry.get("kind") == "broll":
+                if media.scene_from_broll(Path(entry["path"]), dur, out):
+                    return out
+            if entry and str(entry.get("path", "")).endswith((".png", ".jpg")):
+                if media.scene_from_image(Path(entry["path"]), dur, out):
+                    return out
+            if media.scene_from_svg(Path(entry["path"]) if entry else scenes_dir / "x.svg",
+                                    shot["visual_prompt"], dur, out):
+                return out
+            return None
+
+        scene_paths: List[Path] = []
+        with ThreadPoolExecutor(max_workers=min(4, n)) as pool:
+            futs = [pool.submit(_render_scene, i + 1, s)
+                    for i, s in enumerate(ctx["shots"]["shots"])]
+            for f in futs:
+                p = f.result()
+                if p:
+                    scene_paths.append(p)
+
+        bg = scenes_dir / "_bg.mp4"
+        if not media.stitch_scenes(scene_paths, bg, total):
+            logger.error("[Assembly] stitch failed — falling back to engine compile")
+            return self._legacy_compile(ctx)
+
+        # ── Captions + audio duck → master. ──
+        ass = pkg / "captions.ass"
+        media.build_ass(words, ass, total, script=ctx["script"]["script_body"])
+        music = pkg / "audio" / "music.m4a"
+        media.music_bed(total, music)
+
+        out = pkg / "master.mp4"
+        ok = media.compose_master(bg, vo_path, ass, music if music.exists() else None,
+                                  ctx["script"].get("title", ""), out, total)
+        if not ok:
+            return self._legacy_compile(ctx)
+        return {"master_path": os.fspath(out),
+                "exists": True,
+                "scene_count": len(scene_paths),
+                "captions": "ass-word-timed" if words else "ass-even-fallback"}
+
+    def _legacy_compile(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Old path via UltimateVideoEngine — kept as last-resort fallback."""
+        from ..eaos.video_engine import get_engine
         engine = get_engine()
 
         async def _build() -> str:
@@ -246,7 +367,8 @@ class AssemblyAgent:
 
         out = asyncio.run(_build())
         return {"master_path": out,
-                "exists": os.path.exists(out) and os.path.getsize(out) > 100}
+                "exists": os.path.exists(out) and os.path.getsize(out) > 100,
+                "fallback": "engine-slideshow"}
 
 
 def video_srt(sentences: List[str], durations: List[int]) -> str:
