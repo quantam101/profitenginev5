@@ -134,6 +134,23 @@ _BROLL_HOSTS = (".pexels.com", ".pixabay.com")
 _BROLL_MAX_BYTES = 150 * 1024 * 1024  # stock clips are seconds long; cap abuse
 
 
+def _allowed_broll_url(url: str) -> bool:
+    parts = urllib.parse.urlparse(url)
+    return (parts.scheme == "https"
+            and (parts.hostname or "").lower().endswith(_BROLL_HOSTS))
+
+
+class _AllowlistRedirect(urllib.request.HTTPRedirectHandler):
+    """Re-validates every redirect target against the stock-CDN allowlist."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _allowed_broll_url(newurl):
+            raise urllib.error.HTTPError(req.full_url, code,
+                                         f"redirect to disallowed host: {newurl}",
+                                         headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def _download(url: str, dest: Path, timeout: int = 90) -> bool:
     """Fetch one clip with SSRF + size guards: https only, stock-CDN hosts
     only, bounded read. Anything else is rejected, not fetched."""
@@ -145,7 +162,10 @@ def _download(url: str, dest: Path, timeout: int = 90) -> bool:
             return False
         req = urllib.request.Request(url,  # noqa: S310 — host allowlisted above
                                      headers={"User-Agent": "already-here-fye/1.0"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+        # A poisoned stock-API response could 302 to an internal host, so
+        # re-run the allowlist on every redirect target before following it.
+        opener = urllib.request.build_opener(_AllowlistRedirect())
+        with opener.open(req, timeout=timeout) as resp:  # noqa: S310
             data = resp.read(_BROLL_MAX_BYTES + 1)
         if len(data) > _BROLL_MAX_BYTES:
             dest.unlink(missing_ok=True)
@@ -251,7 +271,9 @@ def _wrap_text(text: str, width: int = 16, max_lines: int = 4) -> list:
     """Wrap words to ~width-char lines, capped at max_lines."""
     # drawtext text= values can re-enter the ffmpeg filter parser — strip
     # every character that could start/alter a filter or close a string.
-    words = re.sub(r"[':\[\]{};,\\%()]", " ", text).split()
+    # '%' is kept and escaped at the drawtext site (as '%%') so claims
+    # like "10%" still render correctly.
+    words = re.sub(r"[':\[\]{};,\\()]", " ", text).split()
     lines, cur = [], ""
     for w in words:
         if len(cur) + len(w) + 1 > width and cur:
@@ -272,7 +294,7 @@ def scene_from_svg(svg: Path, text: str, duration: float, out: Path) -> bool:
     c0, c1, c2 = palettes[sum(map(ord, svg.name)) % len(palettes)]
     lines = _wrap_text(text)
     dt = ",".join(
-        f"drawtext=fontfile={FONT}:text='{ln}':fontsize=64:fontcolor=white:"
+        f"drawtext=fontfile={FONT}:text='{esc_drawtext(ln)}':fontsize=64:fontcolor=white:"
         f"borderw=3:bordercolor=black@0.6:x=(w-text_w)/2:y=(h-{len(lines)*80})/2+{i*80}"
         for i, ln in enumerate(lines))
     vf = (f"zoompan=z='min(zoom+0.0006,1.12)':d=1:s={W}x{H}:fps=30,{dt}")
@@ -283,8 +305,11 @@ def scene_from_svg(svg: Path, text: str, duration: float, out: Path) -> bool:
     return r.returncode == 0 and out.exists() and out.stat().st_size > 10_000
 
 
-def stitch_scenes(scene_paths: List[Path], out: Path, duration: float) -> bool:
-    """Concat scenes with xfade transitions; total length == duration."""
+def stitch_scenes(scene_paths: List[Path], out: Path, duration: float,
+                  scene_durs: Optional[List[float]] = None) -> bool:
+    """Concat scenes with xfade transitions; total length == duration.
+    `scene_durs` gives each scene's rendered length — required when shots
+    have unequal durations so xfade offsets stay cumulative and correct."""
     n = len(scene_paths)
     if n == 0:
         return False
@@ -294,14 +319,25 @@ def stitch_scenes(scene_paths: List[Path], out: Path, duration: float) -> bool:
                  timeout=240)
         return r.returncode == 0 and out.exists() and out.stat().st_size > 10_000
     x = 0.5
-    seg = (duration + (n - 1) * x) / n
+    if scene_durs and len(scene_durs) == n:
+        segs = scene_durs
+    else:
+        seg = (duration + (n - 1) * x) / n
+        segs = [seg] * n
+    # Transition i overlaps the tail of scene i: offset = cumulative length
+    # of scenes 1..i minus the i overlaps already consumed.
+    offsets: List[float] = []
+    acc = 0.0
+    for i in range(1, n):
+        acc += segs[i - 1]
+        offsets.append(acc - i * x)
     inputs: List[str] = []
     for sp in scene_paths:
         inputs += ["-i", str(sp)]
     fc: List[str] = []
     prev = "[0:v]"
     for i in range(1, n):
-        off = i * (seg - x)
+        off = offsets[i - 1]
         lbl = "[bg]" if i == n - 1 else f"[x{i}]"
         fc.append(f"{prev}[{i}:v]xfade=transition={_TRANSITIONS[(i - 1) % len(_TRANSITIONS)]}"
                   f":duration={x}:offset={off:.3f}{lbl}")
@@ -337,7 +373,8 @@ def music_bed(duration: float, out: Path, music_dir: Optional[Path] = None) -> b
 # ── Final compose ─────────────────────────────────────────────────────────────
 
 def esc_drawtext(t: str) -> str:
-    return re.sub(r"([':\\])", r"\\\1", t)
+    # '%' starts a drawtext expansion sequence — double it to print literally.
+    return re.sub(r"([':\\])", r"\\\1", t.replace("%", "%%"))
 
 
 def compose_master(bg: Path, vo: Optional[Path], ass: Optional[Path], music: Optional[Path],

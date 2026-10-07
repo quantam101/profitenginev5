@@ -15,7 +15,7 @@ import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .config import FyeConfig
 from .rpm_priors import prior_for, revenue_band, ypp_gate
@@ -296,38 +296,45 @@ class AssemblyAgent:
         total = float(voiceover.get("audio_seconds") or
                       sum(s["duration_s"] for s in ctx["shots"]["shots"]))
         n = len(ctx["shots"]["shots"])
-        # Each scene must cover its stitch segment (seg = share + share of
-        # xfade overlap), or the stitched video ends before the narration.
+        # Each scene must cover its stitch segment (share of the timeline +
+        # share of the xfade overlap), or the stitched video ends before the
+        # narration. Scale each shot's planned duration_s to the real total so
+        # long/short shots keep their relative screen time.
         xfade = 0.5
-        per = (total + (n - 1) * xfade) / max(n, 1)
+        planned = [max(float(s.get("duration_s") or 0), 0.1)
+                   for s in ctx["shots"]["shots"]]
+        span = total + (n - 1) * xfade
+        scale = span / max(sum(planned), 0.1)
 
         # ── Scenes: render each shot to a normalized mp4, concurrently. ──
-        def _render_scene(i: int, shot: Dict[str, Any]) -> Optional[Path]:
+        def _render_scene(i: int, shot: Dict[str, Any]) -> Optional[Tuple[Path, float]]:
             out = scenes_dir / f"scene_{i:03d}.mp4"
             entry = stills_by_shot.get(shot["shot"])
-            dur = per
+            dur = planned[i] * scale
             if entry and entry.get("kind") == "broll":
                 if media.scene_from_broll(Path(entry["path"]), dur, out):
-                    return out
+                    return out, dur
             if entry and str(entry.get("path", "")).endswith((".png", ".jpg")):
                 if media.scene_from_image(Path(entry["path"]), dur, out):
-                    return out
+                    return out, dur
             if media.scene_from_svg(Path(entry["path"]) if entry else scenes_dir / "x.svg",
                                     shot["visual_prompt"], dur, out):
-                return out
+                return out, dur
             return None
 
         scene_paths: List[Path] = []
+        scene_durs: List[float] = []
         with ThreadPoolExecutor(max_workers=min(4, n)) as pool:
-            futs = [pool.submit(_render_scene, i + 1, s)
+            futs = [pool.submit(_render_scene, i, s)
                     for i, s in enumerate(ctx["shots"]["shots"])]
             for f in futs:
-                p = f.result()
-                if p:
-                    scene_paths.append(p)
+                res = f.result()
+                if res:
+                    scene_paths.append(res[0])
+                    scene_durs.append(res[1])
 
         bg = scenes_dir / "_bg.mp4"
-        if not media.stitch_scenes(scene_paths, bg, total):
+        if not media.stitch_scenes(scene_paths, bg, total, scene_durs=scene_durs):
             logger.error("[Assembly] stitch failed — falling back to engine compile")
             return self._legacy_compile(ctx)
 
