@@ -1,5 +1,23 @@
 import importlib.util
 from pathlib import Path
+from unittest.mock import patch
+
+
+def _passing_quality_gate():
+    """Stub the publication quality gate — these tests cover provider
+    failover, not quality. Returns a mock with an ok-typed result."""
+
+    class _Q:
+        ok = True
+        warnings: list = []
+        errors: list = []
+        word_count = 1500
+        h2_count = 6
+        external_link_count = 2
+
+    return patch(
+        "scripts.seo_content_quality.validate_article_quality", return_value=_Q()
+    )
 
 
 def load_publisher():
@@ -22,10 +40,15 @@ def test_primary_model_failure_falls_back_to_secondary_groq(monkeypatch):
         calls.append(model)
         if model == "bad-primary":
             raise RuntimeError("primary unavailable")
-        return '{"title":"Fallback works","slug":"fallback-works","meta_description":"verified fallback","tags":["test"],"body":"' + ("x" * 400) + '"}'
+        return (
+            '{"title":"Fallback works","slug":"fallback-works","meta_description":"verified fallback","tags":["test"],"body":"'
+            + ("x" * 400)
+            + '"}'
+        )
 
     monkeypatch.setattr(publisher, "_call_groq", fake_groq)
-    article = publisher.generate_article("Provider failover test")
+    with _passing_quality_gate():
+        article = publisher.generate_article("Provider failover test")
     assert article["title"] == "Fallback works"
     assert calls == ["bad-primary", "good-secondary"]
 
@@ -45,11 +68,16 @@ def test_all_groq_failures_fall_back_to_gemini(monkeypatch):
 
     def fake_gemini(prompt, model=None):
         gemini_calls.append(model)
-        return '{"title":"Gemini fallback","slug":"gemini-fallback","meta_description":"verified fallback","tags":["test"],"body":"' + ("y" * 400) + '"}'
+        return (
+            '{"title":"Gemini fallback","slug":"gemini-fallback","meta_description":"verified fallback","tags":["test"],"body":"'
+            + ("y" * 400)
+            + '"}'
+        )
 
     monkeypatch.setattr(publisher, "_call_groq", fake_groq)
     monkeypatch.setattr(publisher, "_call_gemini", fake_gemini)
-    article = publisher.generate_article("Cross-provider failover test")
+    with _passing_quality_gate():
+        article = publisher.generate_article("Cross-provider failover test")
     assert article["title"] == "Gemini fallback"
     assert groq_calls == ["g1", "g2"]
     assert gemini_calls == ["gemini-secondary"]

@@ -22,17 +22,15 @@ Niches supported (configurable via CITY_SEO_NICHES env var):
 
 Scale: 500 US cities × 10 niches = 5,000 indexed pages
 """
+
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
 import re
-import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("CitySEOEngine")
@@ -42,143 +40,243 @@ logger = logging.getLogger("CitySEOEngine")
 
 _CITIES: List[Tuple[str, str, str]] = [
     # Tier A — highest traffic potential
-    ("New York", "NY", "A"), ("Los Angeles", "CA", "A"), ("Chicago", "IL", "A"),
-    ("Houston", "TX", "A"), ("Phoenix", "AZ", "A"), ("Philadelphia", "PA", "A"),
-    ("San Antonio", "TX", "A"), ("San Diego", "CA", "A"), ("Dallas", "TX", "A"),
-    ("San Jose", "CA", "A"), ("Austin", "TX", "A"), ("Jacksonville", "FL", "A"),
-    ("Fort Worth", "TX", "A"), ("Columbus", "OH", "A"), ("Charlotte", "NC", "A"),
-    ("Indianapolis", "IN", "A"), ("San Francisco", "CA", "A"), ("Seattle", "WA", "A"),
-    ("Denver", "CO", "A"), ("Nashville", "TN", "A"), ("Oklahoma City", "OK", "A"),
-    ("El Paso", "TX", "A"), ("Washington", "DC", "A"), ("Boston", "MA", "A"),
-    ("Las Vegas", "NV", "A"), ("Memphis", "TN", "A"), ("Louisville", "KY", "A"),
-    ("Baltimore", "MD", "A"), ("Milwaukee", "WI", "A"), ("Albuquerque", "NM", "A"),
-    ("Tucson", "AZ", "A"), ("Fresno", "CA", "A"), ("Sacramento", "CA", "A"),
-    ("Mesa", "AZ", "A"), ("Kansas City", "MO", "A"), ("Atlanta", "GA", "A"),
-    ("Omaha", "NE", "A"), ("Colorado Springs", "CO", "A"), ("Raleigh", "NC", "A"),
-    ("Long Beach", "CA", "A"), ("Virginia Beach", "VA", "A"), ("Minneapolis", "MN", "A"),
-    ("Tampa", "FL", "A"), ("New Orleans", "LA", "A"), ("Arlington", "TX", "A"),
-    ("Bakersfield", "CA", "A"), ("Honolulu", "HI", "A"), ("Anaheim", "CA", "A"),
-    ("Aurora", "CO", "A"), ("Santa Ana", "CA", "A"),
+    ("New York", "NY", "A"),
+    ("Los Angeles", "CA", "A"),
+    ("Chicago", "IL", "A"),
+    ("Houston", "TX", "A"),
+    ("Phoenix", "AZ", "A"),
+    ("Philadelphia", "PA", "A"),
+    ("San Antonio", "TX", "A"),
+    ("San Diego", "CA", "A"),
+    ("Dallas", "TX", "A"),
+    ("San Jose", "CA", "A"),
+    ("Austin", "TX", "A"),
+    ("Jacksonville", "FL", "A"),
+    ("Fort Worth", "TX", "A"),
+    ("Columbus", "OH", "A"),
+    ("Charlotte", "NC", "A"),
+    ("Indianapolis", "IN", "A"),
+    ("San Francisco", "CA", "A"),
+    ("Seattle", "WA", "A"),
+    ("Denver", "CO", "A"),
+    ("Nashville", "TN", "A"),
+    ("Oklahoma City", "OK", "A"),
+    ("El Paso", "TX", "A"),
+    ("Washington", "DC", "A"),
+    ("Boston", "MA", "A"),
+    ("Las Vegas", "NV", "A"),
+    ("Memphis", "TN", "A"),
+    ("Louisville", "KY", "A"),
+    ("Baltimore", "MD", "A"),
+    ("Milwaukee", "WI", "A"),
+    ("Albuquerque", "NM", "A"),
+    ("Tucson", "AZ", "A"),
+    ("Fresno", "CA", "A"),
+    ("Sacramento", "CA", "A"),
+    ("Mesa", "AZ", "A"),
+    ("Kansas City", "MO", "A"),
+    ("Atlanta", "GA", "A"),
+    ("Omaha", "NE", "A"),
+    ("Colorado Springs", "CO", "A"),
+    ("Raleigh", "NC", "A"),
+    ("Long Beach", "CA", "A"),
+    ("Virginia Beach", "VA", "A"),
+    ("Minneapolis", "MN", "A"),
+    ("Tampa", "FL", "A"),
+    ("New Orleans", "LA", "A"),
+    ("Arlington", "TX", "A"),
+    ("Bakersfield", "CA", "A"),
+    ("Honolulu", "HI", "A"),
+    ("Anaheim", "CA", "A"),
+    ("Aurora", "CO", "A"),
+    ("Santa Ana", "CA", "A"),
     # Tier B
-    ("Corpus Christi", "TX", "B"), ("Riverside", "CA", "B"), ("Lexington", "KY", "B"),
-    ("St. Louis", "MO", "B"), ("Pittsburgh", "PA", "B"), ("Stockton", "CA", "B"),
-    ("Anchorage", "AK", "B"), ("Cincinnati", "OH", "B"), ("St. Paul", "MN", "B"),
-    ("Greensboro", "NC", "B"), ("Toledo", "OH", "B"), ("Newark", "NJ", "B"),
-    ("Plano", "TX", "B"), ("Henderson", "NV", "B"), ("Lincoln", "NE", "B"),
-    ("Buffalo", "NY", "B"), ("Fort Wayne", "IN", "B"), ("Jersey City", "NJ", "B"),
-    ("Chula Vista", "CA", "B"), ("Orlando", "FL", "B"), ("St. Petersburg", "FL", "B"),
-    ("Norfolk", "VA", "B"), ("Chandler", "AZ", "B"), ("Laredo", "TX", "B"),
-    ("Madison", "WI", "B"), ("Durham", "NC", "B"), ("Lubbock", "TX", "B"),
-    ("Winston-Salem", "NC", "B"), ("Garland", "TX", "B"), ("Glendale", "AZ", "B"),
-    ("Hialeah", "FL", "B"), ("Reno", "NV", "B"), ("Baton Rouge", "LA", "B"),
-    ("Irvine", "CA", "B"), ("Chesapeake", "VA", "B"), ("Irving", "TX", "B"),
-    ("Scottsdale", "AZ", "B"), ("North Las Vegas", "NV", "B"), ("Fremont", "CA", "B"),
-    ("Gilbert", "AZ", "B"), ("San Bernardino", "CA", "B"), ("Birmingham", "AL", "B"),
-    ("Rochester", "NY", "B"), ("Richmond", "VA", "B"), ("Spokane", "WA", "B"),
-    ("Des Moines", "IA", "B"), ("Montgomery", "AL", "B"), ("Modesto", "CA", "B"),
-    ("Fayetteville", "NC", "B"), ("Tacoma", "WA", "B"), ("Shreveport", "LA", "B"),
+    ("Corpus Christi", "TX", "B"),
+    ("Riverside", "CA", "B"),
+    ("Lexington", "KY", "B"),
+    ("St. Louis", "MO", "B"),
+    ("Pittsburgh", "PA", "B"),
+    ("Stockton", "CA", "B"),
+    ("Anchorage", "AK", "B"),
+    ("Cincinnati", "OH", "B"),
+    ("St. Paul", "MN", "B"),
+    ("Greensboro", "NC", "B"),
+    ("Toledo", "OH", "B"),
+    ("Newark", "NJ", "B"),
+    ("Plano", "TX", "B"),
+    ("Henderson", "NV", "B"),
+    ("Lincoln", "NE", "B"),
+    ("Buffalo", "NY", "B"),
+    ("Fort Wayne", "IN", "B"),
+    ("Jersey City", "NJ", "B"),
+    ("Chula Vista", "CA", "B"),
+    ("Orlando", "FL", "B"),
+    ("St. Petersburg", "FL", "B"),
+    ("Norfolk", "VA", "B"),
+    ("Chandler", "AZ", "B"),
+    ("Laredo", "TX", "B"),
+    ("Madison", "WI", "B"),
+    ("Durham", "NC", "B"),
+    ("Lubbock", "TX", "B"),
+    ("Winston-Salem", "NC", "B"),
+    ("Garland", "TX", "B"),
+    ("Glendale", "AZ", "B"),
+    ("Hialeah", "FL", "B"),
+    ("Reno", "NV", "B"),
+    ("Baton Rouge", "LA", "B"),
+    ("Irvine", "CA", "B"),
+    ("Chesapeake", "VA", "B"),
+    ("Irving", "TX", "B"),
+    ("Scottsdale", "AZ", "B"),
+    ("North Las Vegas", "NV", "B"),
+    ("Fremont", "CA", "B"),
+    ("Gilbert", "AZ", "B"),
+    ("San Bernardino", "CA", "B"),
+    ("Birmingham", "AL", "B"),
+    ("Rochester", "NY", "B"),
+    ("Richmond", "VA", "B"),
+    ("Spokane", "WA", "B"),
+    ("Des Moines", "IA", "B"),
+    ("Montgomery", "AL", "B"),
+    ("Modesto", "CA", "B"),
+    ("Fayetteville", "NC", "B"),
+    ("Tacoma", "WA", "B"),
+    ("Shreveport", "LA", "B"),
     # Tier C — long-tail, lower competition
-    ("Akron", "OH", "C"), ("Aurora", "IL", "C"), ("Yonkers", "NY", "C"),
-    ("Columbus", "GA", "C"), ("Glendale", "CA", "C"), ("Huntington Beach", "CA", "C"),
-    ("Little Rock", "AR", "C"), ("Knoxville", "TN", "C"), ("Oxnard", "CA", "C"),
-    ("Providence", "RI", "C"), ("Garden Grove", "CA", "C"), ("Chattanooga", "TN", "C"),
-    ("Oceanside", "CA", "C"), ("Fort Lauderdale", "FL", "C"), ("Rancho Cucamonga", "CA", "C"),
-    ("Santa Clarita", "CA", "C"), ("Grand Rapids", "MI", "C"), ("Overland Park", "KS", "C"),
-    ("Tallahassee", "FL", "C"), ("Worcester", "MA", "C"), ("Cape Coral", "FL", "C"),
-    ("Tempe", "AZ", "C"), ("Ontario", "CA", "C"), ("Vancouver", "WA", "C"),
-    ("Sioux Falls", "SD", "C"), ("Peoria", "IL", "C"), ("Springfield", "MO", "C"),
-    ("Elk Grove", "CA", "C"), ("Pembroke Pines", "FL", "C"), ("Salem", "OR", "C"),
-    ("Eugene", "OR", "C"), ("Corona", "CA", "C"), ("Cary", "NC", "C"),
-    ("Fort Collins", "CO", "C"), ("Jackson", "MS", "C"), ("Alexandria", "VA", "C"),
-    ("Hayward", "CA", "C"), ("Clarksville", "TN", "C"), ("Lancaster", "CA", "C"),
-    ("Salinas", "CA", "C"), ("Sunnyvale", "CA", "C"), ("Pomona", "CA", "C"),
-    ("Escondido", "CA", "C"), ("Kansas City", "KS", "C"), ("Palmdale", "CA", "C"),
-    ("Rockford", "IL", "C"), ("Paterson", "NJ", "C"), ("Torrance", "CA", "C"),
-    ("Bridgeport", "CT", "C"), ("McAllen", "TX", "C"),
+    ("Akron", "OH", "C"),
+    ("Aurora", "IL", "C"),
+    ("Yonkers", "NY", "C"),
+    ("Columbus", "GA", "C"),
+    ("Glendale", "CA", "C"),
+    ("Huntington Beach", "CA", "C"),
+    ("Little Rock", "AR", "C"),
+    ("Knoxville", "TN", "C"),
+    ("Oxnard", "CA", "C"),
+    ("Providence", "RI", "C"),
+    ("Garden Grove", "CA", "C"),
+    ("Chattanooga", "TN", "C"),
+    ("Oceanside", "CA", "C"),
+    ("Fort Lauderdale", "FL", "C"),
+    ("Rancho Cucamonga", "CA", "C"),
+    ("Santa Clarita", "CA", "C"),
+    ("Grand Rapids", "MI", "C"),
+    ("Overland Park", "KS", "C"),
+    ("Tallahassee", "FL", "C"),
+    ("Worcester", "MA", "C"),
+    ("Cape Coral", "FL", "C"),
+    ("Tempe", "AZ", "C"),
+    ("Ontario", "CA", "C"),
+    ("Vancouver", "WA", "C"),
+    ("Sioux Falls", "SD", "C"),
+    ("Peoria", "IL", "C"),
+    ("Springfield", "MO", "C"),
+    ("Elk Grove", "CA", "C"),
+    ("Pembroke Pines", "FL", "C"),
+    ("Salem", "OR", "C"),
+    ("Eugene", "OR", "C"),
+    ("Corona", "CA", "C"),
+    ("Cary", "NC", "C"),
+    ("Fort Collins", "CO", "C"),
+    ("Jackson", "MS", "C"),
+    ("Alexandria", "VA", "C"),
+    ("Hayward", "CA", "C"),
+    ("Clarksville", "TN", "C"),
+    ("Lancaster", "CA", "C"),
+    ("Salinas", "CA", "C"),
+    ("Sunnyvale", "CA", "C"),
+    ("Pomona", "CA", "C"),
+    ("Escondido", "CA", "C"),
+    ("Kansas City", "KS", "C"),
+    ("Palmdale", "CA", "C"),
+    ("Rockford", "IL", "C"),
+    ("Paterson", "NJ", "C"),
+    ("Torrance", "CA", "C"),
+    ("Bridgeport", "CT", "C"),
+    ("McAllen", "TX", "C"),
 ]
 
 # ── Niches ─────────────────────────────────────────────────────────────────────
 
 _NICHES: Dict[str, Dict[str, str]] = {
     "it-support": {
-        "title":    "Best IT Support Services in {city}, {state} ({year})",
-        "h1":       "Top IT Support Companies in {city}, {state}",
-        "keyword":  "IT support {city}",
+        "title": "Best IT Support Services in {city}, {state} ({year})",
+        "h1": "Top IT Support Companies in {city}, {state}",
+        "keyword": "IT support {city}",
         "category": "Technology",
-        "cta":      "Get a Free IT Audit",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Get a Free IT Audit",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "ai-chatbots": {
-        "title":    "AI Chatbot Services for {city}, {state} Businesses ({year})",
-        "h1":       "Custom AI Chatbots for {city} Small Businesses",
-        "keyword":  "AI chatbot {city}",
+        "title": "AI Chatbot Services for {city}, {state} Businesses ({year})",
+        "h1": "Custom AI Chatbots for {city} Small Businesses",
+        "keyword": "AI chatbot {city}",
         "category": "Technology",
-        "cta":      "Get Your Free Chatbot Demo",
-        "cta_url":  "https://alreadyherellc.com/chatbot",
+        "cta": "Get Your Free Chatbot Demo",
+        "cta_url": "https://alreadyherellc.com/chatbot",
     },
     "automation-agency": {
-        "title":    "Business Automation Agency in {city}, {state} — Already Here LLC",
-        "h1":       "AI Workflow Automation for {city} Businesses",
-        "keyword":  "business automation {city}",
+        "title": "Business Automation Agency in {city}, {state} — Already Here LLC",
+        "h1": "AI Workflow Automation for {city} Businesses",
+        "keyword": "business automation {city}",
         "category": "Business Services",
-        "cta":      "Automate Your Business Today",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Automate Your Business Today",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "social-media-management": {
-        "title":    "Social Media Management Services in {city}, {state} ({year})",
-        "h1":       "Affordable Social Media Management in {city}",
-        "keyword":  "social media management {city}",
+        "title": "Social Media Management Services in {city}, {state} ({year})",
+        "h1": "Affordable Social Media Management in {city}",
+        "keyword": "social media management {city}",
         "category": "Marketing",
-        "cta":      "Get a Free Content Audit",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Get a Free Content Audit",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "roofers": {
-        "title":    "Best Roofers in {city}, {state} — Top-Rated Roofing Companies ({year})",
-        "h1":       "Find Trusted Roofing Contractors in {city}, {state}",
-        "keyword":  "roofers {city}",
+        "title": "Best Roofers in {city}, {state} — Top-Rated Roofing Companies ({year})",
+        "h1": "Find Trusted Roofing Contractors in {city}, {state}",
+        "keyword": "roofers {city}",
         "category": "Home Services",
-        "cta":      "Get 3 Free Roofing Quotes",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Get 3 Free Roofing Quotes",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "plumbers": {
-        "title":    "Best Plumbers in {city}, {state} — Licensed & Insured ({year})",
-        "h1":       "Top Plumbing Services in {city}, {state}",
-        "keyword":  "plumbers {city}",
+        "title": "Best Plumbers in {city}, {state} — Licensed & Insured ({year})",
+        "h1": "Top Plumbing Services in {city}, {state}",
+        "keyword": "plumbers {city}",
         "category": "Home Services",
-        "cta":      "Get Emergency Plumbing Help",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Get Emergency Plumbing Help",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "accountants": {
-        "title":    "Best Accountants & CPAs in {city}, {state} ({year})",
-        "h1":       "Top-Rated Accountants in {city}, {state}",
-        "keyword":  "accountants {city}",
+        "title": "Best Accountants & CPAs in {city}, {state} ({year})",
+        "h1": "Top-Rated Accountants in {city}, {state}",
+        "keyword": "accountants {city}",
         "category": "Finance",
-        "cta":      "Book a Free Tax Consultation",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Book a Free Tax Consultation",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "real-estate-agents": {
-        "title":    "Best Real Estate Agents in {city}, {state} ({year})",
-        "h1":       "Top Real Estate Agents in {city}, {state}",
-        "keyword":  "real estate agents {city}",
+        "title": "Best Real Estate Agents in {city}, {state} ({year})",
+        "h1": "Top Real Estate Agents in {city}, {state}",
+        "keyword": "real estate agents {city}",
         "category": "Real Estate",
-        "cta":      "Find Your Agent Today",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Find Your Agent Today",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "dog-grooming": {
-        "title":    "Best Dog Groomers in {city}, {state} — Top-Rated ({year})",
-        "h1":       "Dog Grooming Services in {city}, {state}",
-        "keyword":  "dog grooming {city}",
+        "title": "Best Dog Groomers in {city}, {state} — Top-Rated ({year})",
+        "h1": "Dog Grooming Services in {city}, {state}",
+        "keyword": "dog grooming {city}",
         "category": "Pet Services",
-        "cta":      "Book a Grooming Appointment",
-        "cta_url":  "https://alreadyherellc.com/contact",
+        "cta": "Book a Grooming Appointment",
+        "cta_url": "https://alreadyherellc.com/contact",
     },
     "coffee-shops": {
-        "title":    "Best Coffee Shops in {city}, {state} ({year}) — Local Guide",
-        "h1":       "Top Coffee Shops in {city}, {state}",
-        "keyword":  "coffee shops {city}",
+        "title": "Best Coffee Shops in {city}, {state} ({year}) — Local Guide",
+        "h1": "Top Coffee Shops in {city}, {state}",
+        "keyword": "coffee shops {city}",
         "category": "Food & Drink",
-        "cta":      "Discover {city} Coffee Culture",
-        "cta_url":  "https://alreadyherellc.com",
+        "cta": "Discover {city} Coffee Culture",
+        "cta_url": "https://alreadyherellc.com",
     },
 }
 
@@ -188,43 +286,61 @@ _FTC = (
     "[FTC Disclosure](https://alreadyherellc.com/disclosure)*"
 )
 
-def _schema_json(h1: str, description: str, city: str, state: str) -> str:
-    """JSON-LD LocalBusiness schema. Built with json.dumps — a str.format
-    template can't hold literal JSON braces, and this escapes quotes in
-    titles/descriptions correctly."""
-    return json.dumps({
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": h1,
-        "description": description,
-        "areaServed": {
-            "@type": "City",
-            "name": city,
-            "containedInPlace": {"@type": "State", "name": state},
+
+def _schema_json(h1: str, description: str, city: str, state: str, slug: str) -> str:
+    """JSON-LD Article schema for the editorial roundup page.
+
+    These pages are curated guides, not the business entity itself, so
+    ``Article`` (not ``LocalBusiness``) is the accurate type — a mismatched
+    LocalBusiness claim on a directory page is a structured-data violation.
+    Built with json.dumps so quotes in titles/descriptions escape correctly."""
+    return json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": h1,
+            "description": description,
+            "author": {
+                "@type": "Organization",
+                "name": "Already Here LLC",
+                "url": "https://alreadyherellc.com",
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Already Here LLC",
+                "url": "https://alreadyherellc.com",
+            },
+            "about": {
+                "@type": "City",
+                "name": city,
+                "containedInPlace": {"@type": "State", "name": state},
+            },
+            "mainEntityOfPage": f"https://alreadyherellc.com/city-pages/{slug}",
         },
-        "url": "https://alreadyherellc.com",
-    }, indent=2)
+        indent=2,
+    )
 
 
 # ── Page generator ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class CityPage:
-    city:       str
-    state:      str
-    niche:      str
-    slug:       str
-    title:      str
-    h1:         str
-    keyword:    str
-    body_md:    str
+    city: str
+    state: str
+    niche: str
+    slug: str
+    title: str
+    h1: str
+    keyword: str
+    body_md: str
     schema_json: str
-    file_path:  str    # relative path in content repo
+    file_path: str  # relative path in content repo
     word_count: int
 
 
 def _slug(city: str, niche: str) -> str:
-    city_slug  = re.sub(r"[^a-z0-9]+", "-", city.lower()).strip("-")
+    city_slug = re.sub(r"[^a-z0-9]+", "-", city.lower()).strip("-")
     niche_slug = niche.replace("_", "-")
     return f"{niche_slug}/{city_slug}"
 
@@ -235,38 +351,66 @@ def _gen_body(city: str, state: str, niche_cfg: Dict[str, str], year: int) -> st
     Falls back to a template-only version if LLM unavailable.
     """
     keyword = niche_cfg["keyword"].format(city=city, state=state)
-    h1      = niche_cfg["h1"].format(city=city, state=state)
-    cta     = niche_cfg["cta"].format(city=city)
+    cta = niche_cfg["cta"].format(city=city)
     cta_url = niche_cfg["cta_url"]
 
     try:
         from runtime.inference_cascade import infer
+
         system = (
-            "You are an SEO content writer. Write a factual, helpful, locally-relevant "
-            "article body in Markdown. Use natural language. Do NOT use lists. "
-            "Write 3 paragraphs. Total word count: 180-220 words. No headings. No preamble."
+            "You are an SEO content writer producing genuinely useful local service guides. "
+            "Write factual, locally-relevant Markdown body content — no H1, no preamble. "
+            "Use ## headings, short paragraphs, and bullet lists where they aid scanning. "
+            "Total word count: 420-560 words. Be specific and actionable; never pad."
         )
         prompt = (
-            f"Write a helpful article body about '{keyword}' for {city}, {state}. "
-            f"Year: {year}. Mention local context where possible. "
-            f"End with a clear call to action for: {cta}"
+            f"Write a helpful local guide about '{keyword}' for {city}, {state} (year {year}).\n"
+            "Required structure:\n"
+            f"## What {city} {keyword.split()[0].title()} Services Cover\n"
+            "  1-2 paragraphs on typical offerings in this niche.\n"
+            "## How to Choose a Provider\n"
+            "  Bulleted checklist: licensing/insurance verification, reviews, written estimates, "
+            "response time, warranties.\n"
+            "## Typical Costs and What Affects Price\n"
+            "  Qualitative pricing guidance (ranges allowed only as broad typical bands; "
+            "never fabricate precise local prices).\n"
+            "## Questions to Ask Before Hiring\n"
+            "  3-5 bullets.\n"
+            f"End with a short paragraph and this call to action: {cta}"
         )
-        body, _ = infer(system, prompt, max_tokens=350)
-        if body.startswith("INFERENCE_STUB") or len(body) < 100:
+        body, _ = infer(system, prompt, max_tokens=900)
+        if body.startswith("INFERENCE_STUB") or len(body) < 300:
             raise ValueError("inference unavailable")
         return body
     except Exception:
-        # Deterministic fallback — always produces a valid unique page
+        # Deterministic fallback — structured, still useful at zero inference cost
+        service = niche_cfg["keyword"].split()[0]
         return (
-            f"Finding reliable {keyword.split()[0]} services in {city}, {state} can be "
-            f"challenging with so many options available. Whether you're a homeowner, "
-            f"small business owner, or property manager in {city}, working with experienced "
-            f"local professionals saves time and reduces costly mistakes.\n\n"
+            f"## What {city} {service.title()} Services Cover\n\n"
+            f"Finding reliable {service} services in {city}, {state} means comparing "
+            f"providers on more than price. Local {service} professionals in {city} "
+            "typically handle everything from routine work to urgent same-day calls, "
+            "and the right choice depends on response time, credentials, and fit for "
+            "your specific job.\n\n"
+            "## How to Choose a Provider\n\n"
+            "- Verify current licensing and insurance before any work begins.\n"
+            "- Check recent reviews on at least two independent platforms.\n"
+            "- Get written estimates from 2-3 providers — compare scope, not just price.\n"
+            "- Ask about warranties or guarantees on completed work.\n"
+            "- Confirm who actually performs the work (employees vs. subcontractors).\n\n"
+            "## Typical Costs and What Affects Price\n\n"
+            f"In {city}, pricing for {service} work varies with job complexity, materials, "
+            "urgency, and provider experience. Emergency or after-hours service usually "
+            "costs more. Always request an itemized quote so you can compare providers "
+            "on equal terms — the cheapest quote is not always the best value.\n\n"
+            "## Questions to Ask Before Hiring\n\n"
+            "- How long have you served the "
+            f"{city} area?\n"
+            "- Can you provide proof of licensing and insurance?\n"
+            "- What does the estimate include — and exclude?\n"
+            "- What is the expected timeline, and how are delays handled?\n\n"
             f"Already Here LLC connects {city} residents and businesses with vetted, "
-            f"top-rated {niche_cfg['keyword'].split()[0]} providers. Our AI-powered matching "
-            f"system analyzes reviews, licensing, response times, and pricing to recommend "
-            f"the best fit for your specific situation in {city}.\n\n"
-            f"Ready to find the right solution in {city}, {state}? "
+            f"top-rated {service} providers. "
             f"[{cta}]({cta_url}) — free, no obligation."
         )
 
@@ -283,24 +427,24 @@ def generate_page(
         logger.warning(f"[CitySEO] Unknown niche: {niche}")
         return None
 
-    year   = datetime.now(timezone.utc).year
-    fmt    = {"city": city, "state": state, "year": year}
-    title  = niche_cfg["title"].format(**fmt)
-    h1     = niche_cfg["h1"].format(**fmt)
-    kw     = niche_cfg["keyword"].format(**fmt)
-    slug   = _slug(city, niche)
-    body   = _gen_body(city, state, niche_cfg, year)
-    desc   = f"Find the best {kw} providers in {city}, {state}. Curated by AI, updated {year}."
+    year = datetime.now(timezone.utc).year
+    fmt = {"city": city, "state": state, "year": year}
+    title = niche_cfg["title"].format(**fmt)
+    h1 = niche_cfg["h1"].format(**fmt)
+    kw = niche_cfg["keyword"].format(**fmt)
+    slug = _slug(city, niche)
+    body = _gen_body(city, state, niche_cfg, year)
+    desc = f"Find the best {kw} providers in {city}, {state}. Curated by AI, updated {year}."
 
-    schema = _schema_json(h1, desc[:150], city, state)
+    schema = _schema_json(h1, desc[:150], city, state, slug)
 
     md = f"""---
 title: "{title}"
 description: "{desc}"
-date: "{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+date: "{datetime.now(timezone.utc).strftime("%Y-%m-%d")}"
 keywords: ["{kw}", "{city} {niche}", "{city} {state}"]
 schema: |
-{chr(10).join('  ' + l for l in schema.splitlines())}
+{chr(10).join("  " + line for line in schema.splitlines())}
 ---
 
 # {h1}
@@ -309,28 +453,36 @@ schema: |
 
 ---
 
-**[{niche_cfg['cta'].format(city=city)}]({niche_cfg['cta_url']})**
+**[{niche_cfg["cta"].format(city=city)}]({niche_cfg["cta_url"]})**
 
 {_FTC}
 """
-    file_path  = f"city-pages/{slug}.md"
+    file_path = f"city-pages/{slug}.md"
     word_count = len(md.split())
 
     return CityPage(
-        city=city, state=state, niche=niche, slug=slug,
-        title=title, h1=h1, keyword=kw,
-        body_md=md, schema_json=schema,
-        file_path=file_path, word_count=word_count,
+        city=city,
+        state=state,
+        niche=niche,
+        slug=slug,
+        title=title,
+        h1=h1,
+        keyword=kw,
+        body_md=md,
+        schema_json=schema,
+        file_path=file_path,
+        word_count=word_count,
     )
 
 
 # ── Batch publisher ────────────────────────────────────────────────────────────
 
+
 def generate_batch(
-    niches:   Optional[List[str]] = None,
-    tiers:    Optional[List[str]] = None,
-    limit:    int = 50,
-    dry_run:  bool = False,
+    niches: Optional[List[str]] = None,
+    tiers: Optional[List[str]] = None,
+    limit: int = 50,
+    dry_run: bool = False,
 ) -> Dict[str, Any]:
     """
     Generate and commit city pages to the GitHub content repo.
@@ -347,7 +499,7 @@ def generate_batch(
     from runtime.github_client import commit_file
 
     active_niches = niches or list(_NICHES.keys())
-    active_tiers  = tiers  or ["A", "B", "C"]
+    active_tiers = tiers or ["A", "B", "C"]
 
     env_niches = os.environ.get("CITY_SEO_NICHES", "").strip()
     if env_niches:
@@ -365,7 +517,6 @@ def generate_batch(
                 break
 
             # Dedup check via deterministic slug
-            slug = _slug(city, niche)
             page = generate_page(city, state, niche, tier)
             if not page:
                 continue
@@ -373,14 +524,16 @@ def generate_batch(
             pages_generated += 1
 
             if dry_run:
-                logger.info(f"[CitySEO] DRY RUN: {page.file_path} ({page.word_count} words)")
+                logger.info(
+                    f"[CitySEO] DRY RUN: {page.file_path} ({page.word_count} words)"
+                )
                 continue
 
             try:
                 ok = commit_file(
-                    path    = page.file_path,
-                    content = page.body_md,
-                    message = f"seo: add city page {city}, {state} — {niche}",
+                    path=page.file_path,
+                    content=page.body_md,
+                    message=f"seo: add city page {city}, {state} — {niche}",
                 )
                 if ok:
                     pages_committed += 1
@@ -394,11 +547,11 @@ def generate_batch(
             break
 
     return {
-        "ok":               len(errors) == 0,
-        "pages_generated":  pages_generated,
-        "pages_committed":  pages_committed,
-        "errors":           errors[:20],
-        "dry_run":          dry_run,
-        "niches":           active_niches,
-        "tiers":            active_tiers,
+        "ok": len(errors) == 0,
+        "pages_generated": pages_generated,
+        "pages_committed": pages_committed,
+        "errors": errors[:20],
+        "dry_run": dry_run,
+        "niches": active_niches,
+        "tiers": active_tiers,
     }

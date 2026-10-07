@@ -4,6 +4,7 @@ The gate is intentionally deterministic and zero-cost. It catches structural def
 known stale SEO claims, placeholders, and weak source hygiene before publication.
 It does not attempt to replace editorial judgment or live web research.
 """
+
 from __future__ import annotations
 
 import re
@@ -30,15 +31,24 @@ _PLACEHOLDER_PATTERNS: tuple[re.Pattern[str], ...] = (
 # Claims we know are stale or materially misleading as of 2026-09-20.
 _STALE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
-        re.compile(r"tinypng.{0,80}\b500\b.{0,40}(?:compress|image).{0,30}(?:month|monthly)", re.I | re.S),
+        re.compile(
+            r"tinypng.{0,80}\b500\b.{0,40}(?:compress|image).{0,30}(?:month|monthly)",
+            re.I | re.S,
+        ),
         "TinyPNG web usage is not a 500-compressions-per-month limit; distinguish the web optimizer from API quotas.",
     ),
     (
-        re.compile(r"yoast.{0,120}(?:free|free version).{0,160}internal[- ]link(?:ing)? suggestion", re.I | re.S),
+        re.compile(
+            r"yoast.{0,120}(?:free|free version).{0,160}internal[- ]link(?:ing)? suggestion",
+            re.I | re.S,
+        ),
         "Yoast internal-linking suggestions are not a core free feature; do not attribute them to Yoast Free.",
     ),
     (
-        re.compile(r"faq schema.{0,160}(?:people also ask|rich result|rich snippet|surface|boost)", re.I | re.S),
+        re.compile(
+            r"faq schema.{0,160}(?:people also ask|rich result|rich snippet|surface|boost)",
+            re.I | re.S,
+        ),
         "Do not recommend FAQ schema as a 2026 Google rich-result or People Also Ask tactic.",
     ),
     (
@@ -47,7 +57,14 @@ _STALE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
-_CURRENT_ROUNDUP = re.compile(r"\b(?:20\d{2}|best|top|review|comparison| vs\.? )\b", re.I)
+_CURRENT_ROUNDUP = re.compile(
+    r"\b(?:20\d{2}|best|top|review|comparison| vs\.? )\b", re.I
+)
+# A table row separator cell (---, ———, :-:) appearing mid-line means a whole
+# table was flattened onto one line; markdown then renders it as plain text.
+_COLLAPSED_TABLE = re.compile(
+    r"\|[^\n|]+\|[ \t]*\|[^\n|]*[—–\-:]{2,}[^\n|]*\|[^\n|]+\|"
+)
 _MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((https?://[^)]+)\)")
 _H2 = re.compile(r"^##\s+\S", re.M)
 
@@ -68,7 +85,9 @@ def validate_article_quality(
 ) -> QualityResult:
     title = str(article.get("title") or "").strip()
     body = str(article.get("body") or "").strip()
-    meta = str(article.get("meta_description") or article.get("description") or "").strip()
+    meta = str(
+        article.get("meta_description") or article.get("description") or ""
+    ).strip()
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -92,6 +111,11 @@ def validate_article_quality(
         if pattern.search(body):
             errors.append(f"unresolved placeholder matched: {pattern.pattern}")
 
+    if _COLLAPSED_TABLE.search(body):
+        errors.append(
+            "markdown table flattened onto a single line — rows must be newline-separated to render"
+        )
+
     combined = f"{title}\n{body}"
     for pattern, message in _STALE_PATTERNS:
         if pattern.search(combined):
@@ -99,11 +123,19 @@ def validate_article_quality(
 
     if require_sources_for_current_roundups and _CURRENT_ROUNDUP.search(title):
         if len(links) < 2:
-            errors.append("current/year-based roundup requires at least two outbound reference links")
-        if not re.search(r"^##\s+(?:Sources|Official references|References)\b", body, re.I | re.M):
-            warnings.append("current/year-based roundup should include a dedicated Sources/Official references section")
+            errors.append(
+                "current/year-based roundup requires at least two outbound reference links"
+            )
+        if not re.search(
+            r"^##\s+(?:Sources|Official references|References)\b", body, re.I | re.M
+        ):
+            warnings.append(
+                "current/year-based roundup should include a dedicated Sources/Official references section"
+            )
 
-    if re.search(r"\bguarantee(?:d|s)?\s+(?:rank|ranking|traffic|results)\b", body, re.I):
+    if re.search(
+        r"\bguarantee(?:d|s)?\s+(?:rank|ranking|traffic|results)\b", body, re.I
+    ):
         errors.append("remove guaranteed SEO outcome language")
 
     if re.search(r"\bwatch your (?:blog|site|page).{0,30}climb the serp", body, re.I):
