@@ -296,13 +296,16 @@ class AssemblyAgent:
         total = float(voiceover.get("audio_seconds") or
                       sum(s["duration_s"] for s in ctx["shots"]["shots"]))
         n = len(ctx["shots"]["shots"])
-        per = total / max(n, 1)
+        # Each scene must cover its stitch segment (seg = share + share of
+        # xfade overlap), or the stitched video ends before the narration.
+        xfade = 0.5
+        per = (total + (n - 1) * xfade) / max(n, 1)
 
         # ── Scenes: render each shot to a normalized mp4, concurrently. ──
         def _render_scene(i: int, shot: Dict[str, Any]) -> Optional[Path]:
             out = scenes_dir / f"scene_{i:03d}.mp4"
             entry = stills_by_shot.get(shot["shot"])
-            dur = shot.get("duration_s") or per
+            dur = per
             if entry and entry.get("kind") == "broll":
                 if media.scene_from_broll(Path(entry["path"]), dur, out):
                     return out

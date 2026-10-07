@@ -8,15 +8,18 @@ free-tier or local ffmpeg synthesis.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import secrets
-import shutil
 import subprocess
 import urllib.parse
 import urllib.request
+
 from pathlib import Path
 from typing import List, Optional, Tuple
+
+logger = logging.getLogger("fye.media")
 
 _rng = secrets.SystemRandom()
 
@@ -127,12 +130,28 @@ def build_ass(words: List[Tuple[float, float, str]], ass: Path, total: float,
 
 # ── Visuals: Pexels/Pixabay B-roll (free-tier keys) ───────────────────────────
 
+_BROLL_HOSTS = (".pexels.com", ".pixabay.com")
+_BROLL_MAX_BYTES = 150 * 1024 * 1024  # stock clips are seconds long; cap abuse
+
+
 def _download(url: str, dest: Path, timeout: int = 90) -> bool:
+    """Fetch one clip with SSRF + size guards: https only, stock-CDN hosts
+    only, bounded read. Anything else is rejected, not fetched."""
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "already-here-fye/1.0"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp, open(dest, "wb") as fh:  # noqa: S310
-            shutil.copyfileobj(resp, fh)
-        return dest.exists() and dest.stat().st_size > 10_000
+        parts = urllib.parse.urlparse(url)
+        host = (parts.hostname or "").lower()
+        if parts.scheme != "https" or not host.endswith(_BROLL_HOSTS):
+            logger.warning("[B-roll] rejected URL host %r", host)
+            return False
+        req = urllib.request.Request(url,  # noqa: S310 — host allowlisted above
+                                     headers={"User-Agent": "already-here-fye/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            data = resp.read(_BROLL_MAX_BYTES + 1)
+        if len(data) > _BROLL_MAX_BYTES:
+            dest.unlink(missing_ok=True)
+            return False
+        dest.write_bytes(data)
+        return dest.stat().st_size > 10_000
     except Exception:
         return False
 
@@ -184,19 +203,19 @@ def pixabay_clip_urls(query: str, key: str, want: int) -> List[str]:
 def fetch_broll(query: str, dest: Path,
                 pexels_key: str = "", pixabay_key: str = "") -> Optional[str]:
     """One stock clip for a shot. Pexels first, Pixabay fallback. None if neither."""
+    # Combine candidates from both sources so a broken Pexels clip doesn't
+    # discard good Pixabay footage (and vice versa).
     urls: List[str] = []
     if pexels_key:
         try:
-            urls = pexels_clip_urls(query, pexels_key, 3)
-        except Exception:
-            pass
-    if len(urls) < 2 and pixabay_key:
+            urls += pexels_clip_urls(query, pexels_key, 3)
+        except Exception as exc:
+            logger.warning("[B-roll] Pexels lookup failed: %s", exc)
+    if pixabay_key:
         try:
-            pb = pixabay_clip_urls(query, pixabay_key, 3)
-            if len(pb) > len(urls):
-                urls = pb
-        except Exception:
-            pass
+            urls += pixabay_clip_urls(query, pixabay_key, 3)
+        except Exception as exc:
+            logger.warning("[B-roll] Pixabay lookup failed: %s", exc)
     for u in urls:
         if _download(u, dest):
             return "pexels" if "pexels" in u else "pixabay"
@@ -230,7 +249,9 @@ def scene_from_image(img: Path, duration: float, out: Path) -> bool:
 
 def _wrap_text(text: str, width: int = 16, max_lines: int = 4) -> list:
     """Wrap words to ~width-char lines, capped at max_lines."""
-    words = re.sub(r"[':]", "", text).split()
+    # drawtext text= values can re-enter the ffmpeg filter parser — strip
+    # every character that could start/alter a filter or close a string.
+    words = re.sub(r"[':\[\]{};,\\%()]", " ", text).split()
     lines, cur = [], ""
     for w in words:
         if len(cur) + len(w) + 1 > width and cur:
@@ -244,7 +265,8 @@ def _wrap_text(text: str, width: int = 16, max_lines: int = 4) -> list:
 
 
 def scene_from_svg(svg: Path, text: str, duration: float, out: Path) -> bool:
-    """Animated gradient + wrapped drawtext card (ffmpeg can't decode SVG)."""
+    """Animated gradient + wrapped drawtext card (ffmpeg can't decode SVG).
+    `svg` may not exist — its name only seeds the palette choice."""
     palettes = [("0x0f2027", "0x203a43", "0x2c5364"), ("0x1a2a6c", "0x2a5298", "0xb21f1f"),
                 ("0x11998e", "0x1c2541", "0x38ef7d"), ("0x232526", "0x414345", "0x536976")]
     c0, c1, c2 = palettes[sum(map(ord, svg.name)) % len(palettes)]
@@ -335,7 +357,7 @@ def compose_master(bg: Path, vo: Optional[Path], ass: Optional[Path], music: Opt
     afc, mix, n_in = "", "", 1
     if vo and vo.exists():
         inputs += ["-i", str(vo)]
-        afc += f"[1:a]volume=1.0[vo];"
+        afc += "[1:a]volume=1.0[vo];"
         mix = "[vo]"
         n_in = 1
     if music and music.exists():

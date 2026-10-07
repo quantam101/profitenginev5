@@ -72,6 +72,9 @@ jobs:
       # edge-tts neural voiceover (word timings for captions). Falls back
       # to HF TTS / silent track if the install or network fails.
       - name: Install edge-tts
+        # Non-fatal: a failed install must not block the whole render —
+        # the voiceover agent falls back to HF TTS, then a silent track.
+        continue-on-error: true
         run: pip install edge-tts
 
       - name: Run FYE job (approval-verified, hash-checked, leased)

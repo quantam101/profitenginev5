@@ -214,7 +214,10 @@ def main() -> int:
         # consumer see one self-contained bundle.
         pkg_dir = Path(cfg.root) / args.job_id
         pkg_dir.mkdir(parents=True, exist_ok=True)
-        master = shutil.copy2(result["master"], pkg_dir / Path(result["master"]).name)
+        # The upgraded assembly writes the master inside the package dir
+        # already — skip the copy instead of copy2-ing a file onto itself.
+        src, dst = Path(result["master"]).resolve(), (pkg_dir / Path(result["master"]).name).resolve()
+        master = src if src == dst else shutil.copy2(src, dst)
         # QA gate: artifact exists, is non-trivial, inside size limit,
         # SHA256 pinned into the job record.
         store.record_artifact(args.job_id, os.fspath(master))
