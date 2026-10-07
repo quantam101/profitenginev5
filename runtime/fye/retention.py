@@ -87,13 +87,18 @@ def _fetch_video_metrics(headers: Dict[str, str], days: int = 90,
     return [dict(zip(cols, r)) for r in data.get("rows", [])]
 
 
-def _fetch_engagement_metrics(headers: Dict[str, str], limit: int = 50
-                              ) -> List[Dict[str, Any]]:
+def _fetch_engagement_metrics(headers: Dict[str, str], days: int = 90,
+                              limit: int = 50) -> List[Dict[str, Any]]:
     """Fallback when the token lacks Analytics scope: Data API statistics
-    (works under youtube.force-ssl). Returns rows in the Analytics shape
-    plus likes/comments so build_priors can score by engagement."""
+    (works under youtube.force-ssl). Restricted to the same recency
+    window so all-time hits don't masquerade as recent performance.
+    Returns rows in the Analytics shape plus likes/comments so
+    build_priors can score by engagement."""
+    import datetime as _dt
+    start = (_dt.date.today() - _dt.timedelta(days=days)).isoformat()
     q = urllib.parse.urlencode({"part": "id", "forMine": "true", "type": "video",
                                 "order": "viewCount", "maxResults": str(limit),
+                                "publishedAfter": f"{start}T00:00:00Z",
                                 "fields": "items(id/videoId)"})
     ids = [it["id"]["videoId"] for it in
            _get_json(f"{_SEARCH_URL}?{q}", headers).get("items", [])]
@@ -228,7 +233,7 @@ def fetch_priors(client_id: str, client_secret: str, refresh_token: str,
         rows = _fetch_video_metrics(headers, days=days)
     except urllib.error.HTTPError:
         # Token lacks yt-analytics.readonly — score by engagement instead.
-        rows = _fetch_engagement_metrics(headers)
+        rows = _fetch_engagement_metrics(headers, days=days)
         metric = "engagement_per_1k_views"
     titles = _fetch_titles(headers, [r["video"] for r in rows])
     priors = build_priors(rows, titles)

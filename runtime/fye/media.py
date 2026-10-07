@@ -168,10 +168,8 @@ def _download(url: str, dest: Path, timeout: int = 90) -> bool:
     """Fetch one clip with SSRF + size guards: https only, stock-CDN hosts
     only, bounded read. Anything else is rejected, not fetched."""
     try:
-        parts = urllib.parse.urlparse(url)
-        host = (parts.hostname or "").lower()
-        if parts.scheme != "https" or not host.endswith(_BROLL_HOSTS):
-            logger.warning("[B-roll] rejected URL host %r", host)
+        if not _allowed_broll_url(url):
+            logger.warning("[B-roll] rejected URL %r", url[:120])
             return False
         req = urllib.request.Request(url,  # noqa: S310 — host allowlisted above
                                      headers={"User-Agent": "already-here-fye/1.0"})
@@ -271,7 +269,8 @@ def scene_from_broll(clip: Path, duration: float, out: Path) -> bool:
 
 def scene_from_image(img: Path, duration: float, out: Path) -> bool:
     """Ken Burns pan-zoom on a still."""
-    r = _run(["ffmpeg", "-y", "-loop", "1", "-t", f"{duration:.3f}", "-i", str(img),
+    r = _run(["ffmpeg", "-y", "-loop", "1", "-framerate", "30",
+              "-t", f"{duration:.3f}", "-i", str(img),
               "-vf", (f"scale={W * 2}:{H * 2}:force_original_aspect_ratio=increase,crop={W * 2}:{H * 2},"
                       f"zoompan=z='min(zoom+0.0008,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
                       f":d=1:s={W}x{H}:fps=30,setsar=1"),
