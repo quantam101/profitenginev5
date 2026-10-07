@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -27,6 +28,7 @@ from typing import Any, Dict, List, Optional
 _OAUTH_URL = "https://oauth2.googleapis.com/token"
 _ANALYTICS_URL = "https://youtubeanalytics.googleapis.com/v2/reports"
 _VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
+_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 _UA = "already-here-fye/1.0"
 
 # Title-shape patterns scored against retention. First matching pattern wins.
@@ -67,7 +69,9 @@ def _access_token(client_id: str, client_secret: str, refresh_token: str) -> str
 
 def _fetch_video_metrics(headers: Dict[str, str], days: int = 90,
                          limit: int = 50) -> List[Dict[str, Any]]:
-    """Per-video viewership via YouTube Analytics; best-recent first."""
+    """Per-video viewership via YouTube Analytics; best-recent first.
+    Requires the yt-analytics.readonly scope — raises HTTPError 403 when
+    the refresh token only has youtube.force-ssl (the current consent)."""
     import datetime as _dt
     end = _dt.date.today()
     start = end - _dt.timedelta(days=days)
@@ -80,9 +84,33 @@ def _fetch_video_metrics(headers: Dict[str, str], days: int = 90,
     })
     data = _get_json(f"{_ANALYTICS_URL}?{q}", headers)
     cols = [c["name"] for c in data.get("columnHeaders", [])]
-    rows = []
-    for r in data.get("rows", []):
-        rows.append(dict(zip(cols, r)))
+    return [dict(zip(cols, r)) for r in data.get("rows", [])]
+
+
+def _fetch_engagement_metrics(headers: Dict[str, str], limit: int = 50
+                              ) -> List[Dict[str, Any]]:
+    """Fallback when the token lacks Analytics scope: Data API statistics
+    (works under youtube.force-ssl). Returns rows in the Analytics shape
+    plus likes/comments so build_priors can score by engagement."""
+    q = urllib.parse.urlencode({"part": "id", "forMine": "true", "type": "video",
+                                "order": "viewCount", "maxResults": str(limit),
+                                "fields": "items(id/videoId)"})
+    ids = [it["id"]["videoId"] for it in
+           _get_json(f"{_SEARCH_URL}?{q}", headers).get("items", [])]
+    if not ids:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for i in range(0, len(ids), 50):
+        q = urllib.parse.urlencode({"part": "statistics",
+                                    "id": ",".join(ids[i:i + 50]),
+                                    "fields": "items(id,statistics)"})
+        for item in _get_json(f"{_VIDEOS_URL}?{q}", headers).get("items", []):
+            st = item.get("statistics", {})
+            rows.append({"video": item["id"],
+                         "views": float(st.get("viewCount", 0)),
+                         "likes": float(st.get("likeCount", 0)),
+                         "comments": float(st.get("commentCount", 0)),
+                         "averageViewPercentage": None})
     return rows
 
 
@@ -115,7 +143,14 @@ def build_priors(rows: List[Dict[str, Any]], titles: Dict[str, str]) -> Dict[str
         vid = str(r.get("video") or "")
         title = titles.get(vid, "")
         views = float(r.get("views") or 0)
-        pct = float(r.get("averageViewPercentage") or 0)
+        pct = r.get("averageViewPercentage")
+        if pct is None:
+            # No Analytics scope: score by engagement (likes+comments per
+            # 1k views) instead of retention. Same ranking role, honest name.
+            pct = (float(r.get("likes") or 0) + float(r.get("comments") or 0)
+                   ) / max(views, 1.0) * 1000.0
+        else:
+            pct = float(pct)
         if not title or views < 5 or pct <= 0:
             continue
         vids.append({"video": vid, "title": title, "views": views,
@@ -188,7 +223,13 @@ def fetch_priors(client_id: str, client_secret: str, refresh_token: str,
     if not token:
         return None
     headers = {"Authorization": f"Bearer {token}"}
-    rows = _fetch_video_metrics(headers, days=days)
+    metric = "averageViewPercentage"
+    try:
+        rows = _fetch_video_metrics(headers, days=days)
+    except urllib.error.HTTPError:
+        # Token lacks yt-analytics.readonly — score by engagement instead.
+        rows = _fetch_engagement_metrics(headers)
+        metric = "engagement_per_1k_views"
     titles = _fetch_titles(headers, [r["video"] for r in rows])
     priors = build_priors(rows, titles)
     if not priors.get("videos"):
@@ -196,6 +237,7 @@ def fetch_priors(client_id: str, client_secret: str, refresh_token: str,
     import datetime as _dt
     priors["fetched"] = _dt.date.today().isoformat()
     priors["window_days"] = days
+    priors["metric"] = metric
     return priors
 
 

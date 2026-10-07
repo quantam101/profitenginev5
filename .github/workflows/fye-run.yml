@@ -50,7 +50,7 @@ jobs:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      FYE_TTS_VOICE: ${{ vars.FYE_TTS_VOICE || 'en-US-GuyNeural' }}
+      FYE_TTS_VOICE: ${{ vars.FYE_TTS_VOICE || '' }}
       # Resource controls (defaults in runtime/fye/config.py).
       FYE_RENDER_TIMEOUT_S: ${{ vars.FYE_RENDER_TIMEOUT_S || '1200' }}
       FYE_MAX_ARTIFACT_MB: ${{ vars.FYE_MAX_ARTIFACT_MB || '500' }}
