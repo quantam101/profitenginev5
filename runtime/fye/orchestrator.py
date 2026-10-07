@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -70,23 +71,45 @@ class FyeOrchestrator:
         self.journal.append("orchestrator", "package.started",
                             {"package_id": pkg_id, "topic": topic, "niche": niche})
 
-        for agent in self.agents:
+        def _run(agent) -> Optional[Dict[str, Any]]:
             try:
                 result = agent.run(ctx)
             except Exception as exc:
                 self.journal.append(agent.name, "agent.failed", {"error": str(exc)})
                 logger.exception("[FYE] agent %s failed", agent.name)
-                return {"ok": False, "package_id": pkg_id, "failed_agent": agent.name,
-                        "error": str(exc)}
+                return {"_failed": agent.name, "error": str(exc)}
             ctx[agent.name] = result
             self.journal.append(agent.name, "agent.completed", _summarize(result))
             if on_agent:
                 on_agent(agent.name, result)
+            return result
+
+        i = 0
+        while i < len(self.agents):
+            agent = self.agents[i]
+            # Stills and voiceover are independent (both consume shots/script) —
+            # run them concurrently on separate threads, one agent each.
+            if agent.name == "stills" and i + 1 < len(self.agents) \
+                    and self.agents[i + 1].name == "voiceover":
+                pair = [agent, self.agents[i + 1]]
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    results = list(pool.map(_run, pair))
+                for a, result in zip(pair, results):
+                    if result and result.get("_failed"):
+                        return {"ok": False, "package_id": pkg_id,
+                                "failed_agent": a.name, "error": result["error"]}
+                i += 2
+                continue
+            result = _run(agent)
+            if result is None or result.get("_failed"):
+                return {"ok": False, "package_id": pkg_id, "failed_agent": agent.name,
+                        "error": (result or {}).get("error", "agent returned nothing")}
             if agent.name == "compliance" and not result.get("passed"):
                 self.journal.append("orchestrator", "package.blocked",
                                     {"package_id": pkg_id, "issues": result["issues"]})
                 return {"ok": False, "package_id": pkg_id,
                         "blocked_by": "compliance", "issues": result["issues"]}
+            i += 1
 
         self.journal.append("orchestrator", "package.completed",
                             {"package_id": pkg_id,

@@ -46,6 +46,11 @@ jobs:
       WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
       REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
       GMAOS_PAID_ADAPTERS_ENABLED: ${{ secrets.GMAOS_PAID_ADAPTERS_ENABLED }}
+      # Free-tier media sources: stock B-roll + HF TTS fallback.
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      FYE_TTS_VOICE: ${{ vars.FYE_TTS_VOICE || 'en-US-GuyNeural' }}
       # Resource controls (defaults in runtime/fye/config.py).
       FYE_RENDER_TIMEOUT_S: ${{ vars.FYE_RENDER_TIMEOUT_S || '1200' }}
       FYE_MAX_ARTIFACT_MB: ${{ vars.FYE_MAX_ARTIFACT_MB || '500' }}
@@ -63,6 +68,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
+      # edge-tts neural voiceover (word timings for captions). Falls back
+      # to HF TTS / silent track if the install or network fails.
+      - name: Install edge-tts
+        # Non-fatal: a failed install must not block the whole render —
+        # the voiceover agent falls back to HF TTS, then a silent track.
+        continue-on-error: true
+        run: pip install edge-tts
 
       - name: Run FYE job (approval-verified, hash-checked, leased)
         # Inputs arrive through env vars, never inline in the script —
