@@ -190,8 +190,8 @@ async def _post_linkedin(post: SocialPost) -> Optional[bool]:
         req = urllib.request.Request(url, data=body, method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
                      "X-Restli-Protocol-Version": "2.0.0"})
-        resp = _urlopen_json(req, timeout=15)
-        logger.info(f"[LinkedIn] Posted — status {resp.status}")
+        _urlopen_json(req, timeout=15)
+        logger.info("[LinkedIn] Posted")
         return True
     except Exception as exc:
         logger.error(f"[LinkedIn] Post failed: {exc}")
@@ -445,7 +445,7 @@ async def _post_youtube(post: SocialPost) -> Optional[bool]:
                 "X-Upload-Content-Type": "video/mp4",
                 "X-Upload-Content-Length": str(os.path.getsize(post.media_path)),
             })
-        with _urlopen_json(init_req, timeout=15) as r:
+        with urllib.request.urlopen(init_req, timeout=15) as r:
             upload_url = r.headers.get("Location", "")
 
         if not upload_url:

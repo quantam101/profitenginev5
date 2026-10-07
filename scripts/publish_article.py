@@ -998,6 +998,14 @@ def _utm(url: str, source: str) -> str:
             f"&utm_campaign=alreadyhere-content")
 
 
+def _redact(text: str) -> str:
+    """Remove credentials from error strings before they reach the health
+    ledger or workflow summary: token-bearing query strings (FB/IG/Telegram
+    put secrets in URLs) and long token-like words."""
+    text = re.sub(r"[?&][^\s]*", "", text)
+    return " ".join(w if len(w) < 40 else "<redacted>" for w in text.split())
+
+
 def _record_outcome(health: dict, channel: str, url: Optional[str],
                     configured: bool, error: str = "") -> None:
     if not configured:
@@ -1005,8 +1013,9 @@ def _record_outcome(health: dict, channel: str, url: Optional[str],
     elif url:
         health[channel] = {"status": "published", "url": url}
     else:
-        health[channel] = {"status": "failed", "error": error[:300]}
-        print(f"::error::{channel} publication failed: {error[:200]}")
+        safe = _redact(error)
+        health[channel] = {"status": "failed", "error": safe[:300]}
+        print(f"::error::{channel} publication failed: {safe[:200]}")
 
 
 def _write_health(health: dict, date_str: str, canonical_url: str) -> None:

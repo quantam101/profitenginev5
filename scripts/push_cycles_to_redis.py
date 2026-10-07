@@ -38,7 +38,10 @@ def redis_post(command: list):
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return True, json.loads(resp.read())
+            payload = json.loads(resp.read())
+        if isinstance(payload, dict) and payload.get("error"):
+            return False, f"redis: {payload['error']}"
+        return True, payload
     except urllib.error.HTTPError as e:
         body = e.read()[:200]
         print(f"[push_cycles_to_redis] Redis POST error {e.code}: {body}", file=sys.stderr)
@@ -93,8 +96,7 @@ def main() -> int:
     if pushed < len(records):
         print(f"::error::Only {pushed}/{len(records)} records persisted "
               f"({len(errors)} failures: {errors[:3]})")
-        if pushed == 0:
-            return 3
+        return 3  # any lost record is a persistence failure
 
     # Trim to max
     redis_post(["LTRIM", RECORDS_KEY, "0", str(MAX_RECORDS - 1)])

@@ -67,6 +67,15 @@ def _getenv(name: str) -> str:
 _TIMEOUT = 10
 
 
+def _redact(text: str) -> str:
+    """Strip anything that could carry a credential from an error string:
+    long token-like words and URL query strings (FB/IG/Telegram put tokens
+    in request URLs, and urllib error messages echo them back)."""
+    import re
+    text = re.sub(r"[?&][^\s]*", "", text)
+    return " ".join(w if len(w) < 40 else "<redacted>" for w in text.split())
+
+
 def _http(req: urllib.request.Request) -> tuple[bool, str]:
     """Return (ok, detail). Never includes secret values in detail."""
     req.add_header("User-Agent", "already-here-readiness/2.0")
@@ -81,10 +90,10 @@ def _http(req: urllib.request.Request) -> tuple[bool, str]:
             body = ""
         # API error bodies sometimes embed tokens in echo'd request fields —
         # strip anything that looks like a long token before logging.
-        body = " ".join(w if len(w) < 40 else "<redacted>" for w in body.split())
-        return False, f"HTTP {e.code}: {body}"
+        return False, f"HTTP {e.code}: {_redact(body)}"
     except Exception as e:
-        return False, f"{type(e).__name__}: {str(e)[:120]}"
+        # URLError messages echo the request URL — never log it.
+        return False, f"{type(e).__name__}: {_redact(str(e))[:120]}"
 
 
 def _get(url: str, headers: Optional[dict] = None) -> tuple[bool, str]:
