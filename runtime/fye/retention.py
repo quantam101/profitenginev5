@@ -44,7 +44,7 @@ that how why what when with from by as about vs into over under explained minute
 
 
 def _post(url: str, data: Dict[str, str], timeout: int = 20) -> Dict[str, Any]:
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310 — fixed Google URL
         url, data=urllib.parse.urlencode(data).encode(),
         headers={"User-Agent": _UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 — fixed Google URL
@@ -52,7 +52,8 @@ def _post(url: str, data: Dict[str, str], timeout: int = 20) -> Dict[str, Any]:
 
 
 def _get_json(url: str, headers: Dict[str, str], timeout: int = 30) -> Dict[str, Any]:
-    req = urllib.request.Request(url, headers={**headers, "User-Agent": _UA})
+    req = urllib.request.Request(url,  # noqa: S310 — fixed Google URL
+                                 headers={**headers, "User-Agent": _UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 — fixed Google URL
         return json.loads(r.read())
 
