@@ -38,7 +38,12 @@ FONT = next((f for f in (
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
 ) if os.path.exists(f)), "sans-serif")
 
-VOICES = ["en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural"]
+VOICES = [
+    "en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural",
+    "en-US-JennyNeural", "en-US-EricNeural", "en-US-AndrewNeural",
+    "en-GB-RyanNeural", "en-GB-SoniaNeural",
+    "en-AU-NatashaNeural", "en-AU-WilliamNeural",
+]
 
 
 def _run(cmd: List[str], timeout: int = 120) -> subprocess.CompletedProcess:

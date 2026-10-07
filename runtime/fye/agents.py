@@ -62,9 +62,25 @@ class ScriptAgent:
     name = "script"
 
     def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        from . import retention
         research = ctx["research"]
         topic, niche = research["topic"], research["niche"]
-        title = ctx.get("title") or f"{topic} — Explained in 5 Minutes"
+
+        # Retention priors: bias the title format toward the pattern that has
+        # actually held viewers on this channel. Absent priors → old default.
+        priors = retention.load_priors(retention.default_priors_path())
+        pattern = retention.preferred_pattern(priors) if priors else None
+        pattern_titles = {
+            "question": f"{topic} — Does It Actually Work?",
+            "how_to": f"How {topic} Actually Works",
+            "why": f"Why {topic} Beats the Default Approach",
+            "numbered": f"5 {topic} Rules That Actually Matter",
+            "versus": f"{topic} vs. the Common Approach",
+            "negative": f"Stop Getting {topic} Wrong",
+            "year_number": f"{topic} in {time.strftime('%Y')}",
+        }
+        title = (ctx.get("title") or pattern_titles.get(pattern or "")
+                 or f"{topic} — Explained in 5 Minutes")
         sentences = [
             f"{topic} is one of those ideas that sounds simple until you actually try to apply it.",
             f"In this video we break down how {topic} really works, step by step.",
@@ -86,6 +102,7 @@ class ScriptAgent:
                 "Revenue figures are planning estimates, not guarantees."
             ),
             "tags": [niche, "explainer", "already-here-llc"],
+            "retention_pattern": pattern,
         }
 
 
@@ -237,7 +254,7 @@ class VoiceoverAgent:
 
         # Tier 1: edge-tts neural voice — free, no key, word-level timings.
         out = audio_dir / "voiceover.mp3"
-        voice = self._pick_voice()
+        voice = self._pick_voice(ctx.get("package_id", ""))
         try:
             words, ok = asyncio.run(media.synth_voiceover(text, out, voice))
         except Exception as exc:
@@ -261,13 +278,18 @@ class VoiceoverAgent:
                 "provider": provider, "words": words,
                 "audio_seconds": round(audio_seconds, 2)}
 
-    def _pick_voice(self) -> str:
+    def _pick_voice(self, seed: str = "") -> str:
         from . import media
         try:
             voice = self._cfg_voice()
         except Exception:
             voice = ""
-        return voice or media._rng.choice(media.VOICES)
+        if voice:
+            return voice
+        # Deterministic rotation: same package → same voice; different jobs
+        # spread across the pool so videos don't all sound identical.
+        idx = sum(map(ord, seed)) % len(media.VOICES)
+        return media.VOICES[idx]
 
     def _cfg_voice(self) -> str:
         # cfg is optional on this agent — read env directly when absent.
