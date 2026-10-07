@@ -24,6 +24,7 @@ Optional:
     FORCE_PUBLISH          — true to publish even if a post already exists today
     GMAOS_GROQ_MODEL       — default: llama-3.3-70b-versatile
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -47,7 +48,9 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GH_BASE = "https://api.github.com"
 DEVTO_BASE = "https://dev.to/api"
 
-GROQ_MODEL = os.getenv("GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile")  # overridden by GROQ_MODELS list below
+GROQ_MODEL = os.getenv(
+    "GMAOS_GROQ_MODEL", "llama-3.3-70b-versatile"
+)  # overridden by GROQ_MODELS list below
 GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GH_TOKEN = os.getenv("GITHUB_CONTENT_TOKEN", "").strip()
 GH_OWNER = os.getenv("GITHUB_CONTENT_OWNER", "quantam101").strip()
@@ -61,18 +64,33 @@ MEDIUM_KEY = os.getenv("MEDIUM_API_KEY", "").strip()
 MEDIUM_AUTHOR_ID = os.getenv("MEDIUM_AUTHOR_ID", "").strip()
 AFFILIATE_LINKS_JSON = os.getenv("AFFILIATE_LINKS", "{}").strip()
 AMAZON_TAG = os.getenv("AMAZON_PARTNER_TAG", "alreadyhere-20").strip()
-VERIFY_ONLY = os.getenv("CONTENT_VERIFY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
-FORCE_PUBLISH = os.getenv("FORCE_PUBLISH", "").strip().lower() in {"1", "true", "yes", "on"}
+VERIFY_ONLY = os.getenv("CONTENT_VERIFY_ONLY", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+FORCE_PUBLISH = os.getenv("FORCE_PUBLISH", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 # Public site base for canonical URLs — the github.io copy canonicalizes here.
-SITE_BASE = os.getenv("CONTENT_SITE_BASE", "https://www.alreadyherellc.com/content").rstrip("/")
+SITE_BASE = os.getenv(
+    "CONTENT_SITE_BASE", "https://www.alreadyherellc.com/content"
+).rstrip("/")
 
-_CMDOS_BASE = (os.getenv("CMDOS_BASE_URL", "").strip() or "https://app.alreadyherellc.com").rstrip("/")
+_CMDOS_BASE = (
+    os.getenv("CMDOS_BASE_URL", "").strip() or "https://app.alreadyherellc.com"
+).rstrip("/")
 
 
 def _fetch_cmdos_topic() -> Optional[str]:
     """Pull the next queued topic from Already Here Growth Command OS."""
     try:
         import urllib.request as _req
+
         r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)  # noqa: S310
         data = json.loads(r.read())
         topics = data.get("topics", [])
@@ -103,6 +121,7 @@ def _default_topic() -> str:
         return mod.pick_topic()
     except Exception:
         return "Best Free AI Tools to Build Passive Income Streams in 2026"
+
 
 SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
 passive income, and digital automation. Write high-quality, helpful articles that
@@ -148,24 +167,33 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_M
 # llama-3.1-8b-instant is tried first: higher daily token allowance on free tier.
 # llama-3.3-70b is second: better quality but tighter daily token quota.
 _GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "openai/gpt-oss-20b")
-GROQ_MODELS: List[str] = list(dict.fromkeys([
-    _GROQ_DEFAULT,
-    "openai/gpt-oss-20b",
-    "openai/gpt-oss-120b",
-    "groq/compound-mini",
-    "groq/compound",
-]))
+GROQ_MODELS: List[str] = list(
+    dict.fromkeys(
+        [
+            _GROQ_DEFAULT,
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
+            "groq/compound-mini",
+            "groq/compound",
+        ]
+    )
+)
 
-GEMINI_MODELS: List[str] = list(dict.fromkeys([
-    GEMINI_MODEL,
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-]))
+GEMINI_MODELS: List[str] = list(
+    dict.fromkeys(
+        [
+            GEMINI_MODEL,
+            "gemini-3.7-flash",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite",
+        ]
+    )
+)
 
 
 import time as _time  # noqa: E402
+
 
 def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
     """Call fn(); on 429 wait base_delay * 2^attempt seconds and retry."""
@@ -175,10 +203,17 @@ def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
         except Exception as exc:
             msg = str(exc)
             lower = msg.lower()
-            is_rate_limit = "429" in msg or "rate limit" in lower or "rate_limit" in lower or "quota exceeded" in lower
+            is_rate_limit = (
+                "429" in msg
+                or "rate limit" in lower
+                or "rate_limit" in lower
+                or "quota exceeded" in lower
+            )
             if is_rate_limit and attempt < max_retries:
-                wait = base_delay * (2 ** attempt)
-                print(f"[AI] Rate limited (attempt {attempt+1}/{max_retries}), waiting {wait}s …")
+                wait = base_delay * (2**attempt)
+                print(
+                    f"[AI] Rate limited (attempt {attempt + 1}/{max_retries}), waiting {wait}s …"
+                )
                 _time.sleep(wait)
             else:
                 raise
@@ -187,10 +222,14 @@ def _retry_post(fn, max_retries: int = 3, base_delay: int = 20) -> str:
 def _call_groq(prompt: str, model: str | None = None) -> str:
     """Call Groq API. Raises on failure."""
     m = model or GROQ_MODELS[0]
+
     def _do() -> str:
         resp = httpx.post(
             GROQ_URL,
-            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
+            },
             json={
                 "model": m,
                 "messages": [
@@ -208,6 +247,7 @@ def _call_groq(prompt: str, model: str | None = None) -> str:
         if not text:
             raise RuntimeError(f"Groq/{m} returned empty content")
         return text
+
     return _retry_post(_do, max_retries=1, base_delay=5)
 
 
@@ -215,13 +255,17 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
     """Call Gemini GenerateContent API using current header auth and model failover."""
     m = model or GEMINI_MODELS[0]
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
+
     def _do() -> str:
         resp = httpx.post(
             url,
             headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY},
             json={
                 "contents": [
-                    {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}]},
+                    {
+                        "role": "user",
+                        "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}],
+                    },
                 ],
                 "generationConfig": {
                     "maxOutputTokens": 3072,
@@ -231,18 +275,75 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
             timeout=120,
         )
         resp.raise_for_status()
-        parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        parts = (
+            resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        )
         text = "".join(part.get("text", "") for part in parts).strip()
         if not text:
             raise RuntimeError(f"Gemini/{m} returned empty content")
         return text
+
     return _retry_post(_do, max_retries=1, base_delay=5)
+
+
+_TABLE_CELL_LINE = re.compile(r"^\s*\|.*\|\s*$")
+_TABLE_SEP = re.compile(r"^\s*\|?[\s:—–\-]+\|[\s:—–\-|]+\|?\s*$")
+
+
+def _normalize_tables(body: str) -> str:
+    """Un-collapse markdown tables flattened onto a single line.
+
+    Some model outputs (and earlier word-join repairs) emit a whole table as
+    one line: ``| A | B | |---|---| | 1 | 2 |``. Markdown then renders it as
+    inline text. Split on the ``|`` cell boundaries back into one row per line.
+    """
+    fixed_lines: list[str] = []
+    for line in body.split("\n"):
+        if line.count("|") < 4 or "\n" in line:
+            fixed_lines.append(line)
+            continue
+        cells = [c.strip() for c in line.split("|")]
+        if cells and cells[0] == "":
+            cells = cells[1:]
+        if cells and cells[-1] == "":
+            cells = cells[:-1]
+        # Interior empties are '| |' row-boundary artifacts of the flattened
+        # form, not real cells.
+        cells = [c for c in cells if c != ""]
+        if len(cells) < 4:
+            fixed_lines.append(line)
+            continue
+        sep_idx = next(
+            (i for i, c in enumerate(cells) if re.fullmatch(r":?[—–\-]{2,}:?", c)),
+            -1,
+        )
+        if sep_idx < 0 or sep_idx == len(cells) - 1:
+            fixed_lines.append(line)
+            continue
+        n_cols = sep_idx  # header cells = columns; separator marks the end
+        header = cells[:n_cols]
+        separators = cells[sep_idx : sep_idx + n_cols]
+        rest = cells[sep_idx + n_cols :]
+        if (
+            len(separators) != n_cols
+            or not all(re.fullmatch(r":?[—–\-]{2,}:?", c) for c in separators)
+            or len(rest) % n_cols != 0
+        ):
+            fixed_lines.append(line)
+            continue
+        fixed_lines.append("| " + " | ".join(header) + " |")
+        fixed_lines.append("| " + " | ".join(separators) + " |")
+        for r in range(0, len(rest), n_cols):
+            fixed_lines.append("| " + " | ".join(rest[r : r + n_cols]) + " |")
+    return "\n".join(fixed_lines)
 
 
 def _repair_article_structure(article: Dict[str, Any]) -> Dict[str, Any]:
     """Repair mechanical Markdown structure without inventing facts or lowering gates."""
     repaired = dict(article)
     body = str(repaired.get("body") or "").strip()
+    body = _normalize_tables(body)
+    repaired["body"] = body
     words = body.split()
     h2_count = len(re.findall(r"^##\s+\S", body, re.M))
 
@@ -255,12 +356,29 @@ def _repair_article_structure(article: Dict[str, Any]) -> Dict[str, Any]:
             "Measurement and optimization",
             "Risks, safeguards, and next steps",
         )
-        chunk_size = (len(words) + len(headings) - 1) // len(headings)
+        # Chunk on paragraph boundaries so tables/lists/line structure survive;
+        # a word-level join flattens tables into one mangled line. When there
+        # are fewer paragraphs than headings, split prose-only paragraphs on
+        # word count — structured blocks (tables, lists, quotes, code) are
+        # never split.
+        _STRUCT_LINE = re.compile(r"^\s*(?:\||[-*+] |\d+\. |>|```|#)", re.M)
+        paragraphs = [p for p in body.split("\n\n") if p.strip()]
+        units: list[str] = []
+        target_units = len(headings) * 2
+        for para in paragraphs:
+            if _STRUCT_LINE.search(para):
+                units.append(para)
+                continue
+            words_in_para = para.split()
+            per = max(1, len(words) // target_units)
+            for i in range(0, len(words_in_para), per):
+                units.append(" ".join(words_in_para[i : i + per]))
+        bucket = max(1, (len(units) + len(headings) - 1) // len(headings))
         sections = []
         for index, heading in enumerate(headings):
-            chunk = words[index * chunk_size : (index + 1) * chunk_size]
+            chunk = units[index * bucket : (index + 1) * bucket]
             if chunk:
-                sections.append(f"## {heading}\n\n{' '.join(chunk)}")
+                sections.append(f"## {heading}\n\n{'\n\n'.join(chunk)}")
         repaired["body"] = "\n\n".join(sections)
         print(
             f"[QUALITY][LOCAL-REPAIR] Added {len(sections)} deterministic H2 sections "
@@ -306,8 +424,12 @@ def generate_article(topic: str) -> Dict[str, Any]:
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
     article = _parse_article_json(raw)
+    article["body"] = _normalize_tables(str(article.get("body") or ""))
 
-    from scripts.seo_content_quality import format_quality_errors, validate_article_quality
+    from scripts.seo_content_quality import (
+        format_quality_errors,
+        validate_article_quality,
+    )
 
     quality = validate_article_quality(article)
     for warning in quality.warnings:
@@ -344,24 +466,28 @@ QUALITY DEFECTS:
 ORIGINAL ARTICLE:
 {json.dumps(article, ensure_ascii=False)}
 """
+        # Try every configured model per provider, same failover order as generation:
+        # a transient failure on the primary model shouldn't kill the repair path.
         repair_attempts: list[tuple[str, Any]] = []
         if GROQ_KEY:
-            repair_attempts.append(
-                (
-                    f"Groq/{GROQ_MODELS[0]}",
-                    lambda: _call_groq(repair_prompt, model=GROQ_MODELS[0]),
+            for m in GROQ_MODELS:
+                repair_attempts.append(
+                    (
+                        f"Groq/{m}",
+                        (lambda model=m: _call_groq(repair_prompt, model=model)),
+                    )
                 )
-            )
         if GEMINI_KEY:
-            repair_attempts.append(
-                (
-                    f"Gemini/{GEMINI_MODELS[0]}",
-                    lambda: _call_gemini(repair_prompt, model=GEMINI_MODELS[0]),
+            for m in GEMINI_MODELS:
+                repair_attempts.append(
+                    (
+                        f"Gemini/{m}",
+                        (lambda model=m: _call_gemini(repair_prompt, model=model)),
+                    )
                 )
-            )
 
         last_defects = defects
-        for provider_name, repair_call in repair_attempts[:2]:
+        for provider_name, repair_call in repair_attempts:
             try:
                 repaired = _parse_article_json(repair_call())
                 repaired_quality = validate_article_quality(repaired)
@@ -370,10 +496,14 @@ ORIGINAL ARTICLE:
                 if repaired_quality.ok:
                     article = repaired
                     quality = repaired_quality
-                    print(f"[QUALITY][REPAIR] Passed after bounded repair via {provider_name}")
+                    print(
+                        f"[QUALITY][REPAIR] Passed after bounded repair via {provider_name}"
+                    )
                     break
                 last_defects = format_quality_errors(repaired_quality)
-                print(f"[QUALITY][REPAIR] {provider_name} repair rejected: {last_defects}")
+                print(
+                    f"[QUALITY][REPAIR] {provider_name} repair rejected: {last_defects}"
+                )
             except Exception as exc:
                 last_defects = str(exc)
                 print(f"[QUALITY][REPAIR] {provider_name} repair failed: {exc}")
@@ -389,6 +519,7 @@ ORIGINAL ARTICLE:
         f"{quality.external_link_count} references)"
     )
     return article
+
 
 def _parse_article_json(raw: str) -> Dict[str, Any]:
     """Parse LLM JSON output with multiple fallback strategies."""
@@ -418,9 +549,9 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
     # 6. Last resort: synthesize a minimal article from the raw text
     print("[WARN] JSON parse failed — synthesizing minimal article from raw text")
     title_m = re.search(r'"title"\s*:\s*"([^"]+)"', raw)
-    slug_m  = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
-    title   = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
-    slug    = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
+    slug_m = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
+    title = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
+    slug = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
     return {
         "title": title,
         "slug": slug,
@@ -469,7 +600,9 @@ def _verify_github_content() -> bool:
         )
         if r.is_success:
             default_branch = r.json().get("default_branch", "")
-            print(f"[VERIFY][OK] GitHub Pages: {GH_OWNER}/{GH_REPO} reachable (default branch: {default_branch})")
+            print(
+                f"[VERIFY][OK] GitHub Pages: {GH_OWNER}/{GH_REPO} reachable (default branch: {default_branch})"
+            )
             return True
         print(f"[VERIFY][FAIL] GitHub Pages {r.status_code}: {r.text[:240]}")
     except Exception as exc:
@@ -527,15 +660,23 @@ def _verify_hashnode() -> bool:
         data = r.json()
         if data.get("errors"):
             errors = json.dumps(data["errors"])[:240]
-            if "me" in errors.lower() or "authorization" in errors.lower() or "unauthorized" in errors.lower():
+            if (
+                "me" in errors.lower()
+                or "authorization" in errors.lower()
+                or "unauthorized" in errors.lower()
+            ):
                 print(f"[VERIFY][FAIL] Hashnode auth error: {errors}")
                 return False
             print(f"[VERIFY][WARN] Hashnode publication lookup warning: {errors}")
         me = data.get("data", {}).get("me")
         if me:
-            print(f"[VERIFY][OK] Hashnode: authenticated as {me.get('username') or me.get('id')}")
+            print(
+                f"[VERIFY][OK] Hashnode: authenticated as {me.get('username') or me.get('id')}"
+            )
             return True
-        print("[VERIFY][OK] Hashnode: API key accepted; publication will be validated on publish")
+        print(
+            "[VERIFY][OK] Hashnode: API key accepted; publication will be validated on publish"
+        )
         return True
     except Exception as exc:
         print(f"[VERIFY][FAIL] Hashnode request failed: {exc}")
@@ -553,7 +694,10 @@ def _verify_medium() -> bool:
     try:
         r = httpx.get(
             "https://api.medium.com/v1/me",
-            headers={"Authorization": f"Bearer {MEDIUM_KEY}", "Accept": "application/json"},
+            headers={
+                "Authorization": f"Bearer {MEDIUM_KEY}",
+                "Accept": "application/json",
+            },
             timeout=20,
         )
         if not r.is_success:
@@ -567,7 +711,9 @@ def _verify_medium() -> bool:
                 f"(expected {actual_author_id}, configured {MEDIUM_AUTHOR_ID})"
             )
             return False
-        print(f"[VERIFY][OK] Medium: authenticated as {data.get('username') or actual_author_id}")
+        print(
+            f"[VERIFY][OK] Medium: authenticated as {data.get('username') or actual_author_id}"
+        )
         return True
     except Exception as exc:
         print(f"[VERIFY][FAIL] Medium request failed: {exc}")
@@ -602,7 +748,9 @@ def _verify_ai_provider() -> bool:
         except Exception as exc:
             print(f"[VERIFY][FAIL] Gemini request failed: {exc}")
             return False
-    print("[VERIFY][FAIL] AI provider: neither GROQ_API_KEY nor GEMINI_API_KEY is configured")
+    print(
+        "[VERIFY][FAIL] AI provider: neither GROQ_API_KEY nor GEMINI_API_KEY is configured"
+    )
     return False
 
 
@@ -712,7 +860,9 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     # Dev.to requires: lowercase, alphanumeric ONLY (no hyphens), max 20 chars
     clean_tags: List[str] = []
     for t in raw_tags:
-        sanitized = re.sub(r'[^a-z0-9]', '', t.lower().replace('-', '').replace(' ', ''))[:20]
+        sanitized = re.sub(
+            r"[^a-z0-9]", "", t.lower().replace("-", "").replace(" ", "")
+        )[:20]
         if sanitized and sanitized not in clean_tags:
             clean_tags.append(sanitized)
     # Ensure at least some generic discoverable tags
@@ -749,7 +899,9 @@ def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
 # ── Hashnode publish ───────────────────────────────────────────────────────────
 def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     if not HASHNODE_KEY or not HASHNODE_PUB_ID:
-        print("[SKIP] HASHNODE_API_KEY or HASHNODE_PUBLICATION_ID not set -- skipping Hashnode")
+        print(
+            "[SKIP] HASHNODE_API_KEY or HASHNODE_PUBLICATION_ID not set -- skipping Hashnode"
+        )
         return None
     title = article.get("title", "Untitled")
     meta = article.get("meta_description", "")
@@ -770,7 +922,11 @@ def publish_hashnode(article: Dict[str, Any], canonical_url: str) -> Optional[st
     """
     # Hashnode uses Authorization: Bearer {HASHNODE_KEY} as of their v2 API migration
     # follow_redirects=True so 301 redirects are followed automatically
-    auth_header = HASHNODE_KEY if HASHNODE_KEY.lower().startswith("bearer ") else f"Bearer {HASHNODE_KEY}"
+    auth_header = (
+        HASHNODE_KEY
+        if HASHNODE_KEY.lower().startswith("bearer ")
+        else f"Bearer {HASHNODE_KEY}"
+    )
     r = httpx.post(
         "https://gql.hashnode.com",
         headers={"Authorization": auth_header, "Content-Type": "application/json"},
@@ -814,7 +970,10 @@ def publish_medium(article: Dict[str, Any], canonical_url: str) -> Optional[str]
         payload["canonicalUrl"] = canonical_url
     r = httpx.post(
         f"https://api.medium.com/v1/users/{MEDIUM_AUTHOR_ID}/posts",
-        headers={"Authorization": f"Bearer {MEDIUM_KEY}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {MEDIUM_KEY}",
+            "Content-Type": "application/json",
+        },
         json=payload,
         timeout=30,
     )
@@ -834,8 +993,10 @@ def main() -> None:
     date_str = now.strftime("%Y-%m-%d")
 
     if not FORCE_PUBLISH and _todays_post_exists(date_str):
-        print(f"[SKIP] A post dated {date_str} already exists in {GH_DIR} — "
-              "not publishing again today (set FORCE_PUBLISH=true to override).")
+        print(
+            f"[SKIP] A post dated {date_str} already exists in {GH_DIR} — "
+            "not publishing again today (set FORCE_PUBLISH=true to override)."
+        )
         return
 
     topic = _default_topic()
@@ -885,6 +1046,7 @@ def main() -> None:
     if canonical_url:
         try:
             from runtime.eaos.social_engine import ProductionSocialEngine
+
             tags = article.get("tags", [])
             title_text = article["title"]
             thread_tweets = [
@@ -893,12 +1055,14 @@ def main() -> None:
                 "#ProfitEngine #AIContent #PassiveIncome #AlreadyHereLLC",
             ]
             engine = ProductionSocialEngine()
-            asyncio.run(engine.publish_all_platforms(
-                text=title_text,
-                url=canonical_url,
-                tags=tags[:5],
-                thread_tweets=thread_tweets,
-            ))
+            asyncio.run(
+                engine.publish_all_platforms(
+                    text=title_text,
+                    url=canonical_url,
+                    tags=tags[:5],
+                    thread_tweets=thread_tweets,
+                )
+            )
             print("[OK] EAOS social blast dispatched")
         except Exception as exc:
             print(f"[WARN] EAOS social blast skipped: {exc}")
@@ -920,18 +1084,23 @@ def main() -> None:
     if canonical_url:
         try:
             import urllib.request as _req
-            payload = json.dumps({
-                "title": article["title"],
-                "topic": topic,
-                "canonical_url": canonical_url,
-                "devto_url": devto_url or "",
-                "medium_url": medium_url or "",
-                "hashnode_url": hashnode_url or "",
-                "platforms": (["github_pages"]
-                              + (["devto"] if devto_url else [])
-                              + (["medium"] if medium_url else [])
-                              + (["hashnode"] if hashnode_url else [])),
-            }).encode()
+
+            payload = json.dumps(
+                {
+                    "title": article["title"],
+                    "topic": topic,
+                    "canonical_url": canonical_url,
+                    "devto_url": devto_url or "",
+                    "medium_url": medium_url or "",
+                    "hashnode_url": hashnode_url or "",
+                    "platforms": (
+                        ["github_pages"]
+                        + (["devto"] if devto_url else [])
+                        + (["medium"] if medium_url else [])
+                        + (["hashnode"] if hashnode_url else [])
+                    ),
+                }
+            ).encode()
             _req.urlopen(  # noqa: S310
                 _req.Request(  # noqa: S310
                     f"{_CMDOS_BASE}/api/content-sync/published",
