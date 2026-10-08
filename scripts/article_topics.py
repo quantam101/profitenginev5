@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List
 
-# ── 202 topics covering: passive income, AI tools, freelancing, blogging,
+# ── 216 topics covering: passive income, AI tools, freelancing, blogging,
 #    affiliate marketing, hosting, SaaS, automation, AND IT field service /
 #    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
@@ -258,6 +258,22 @@ TOPICS: List[str] = [
     "Robo-Advisors vs DIY Investing: Costs and Trade-Offs Explained",
     "How to Set Financial Goals You'll Actually Hit in 2026",
     "Best Free Personal Finance Courses Worth Your Time",
+
+    # ── Learn it, teach it, sell it (skills → teaching → products) ───────────
+    "How to Learn Any Skill Free Online and Teach It for Income",
+    "Turning What You Just Learned Into a Course People Buy",
+    "The Learn-Build-Teach Loop: Grow an Audience by Sharing Progress",
+    "How to Write Tutorials That Rank and Sell Your Expertise",
+    "Teaching Tech Skills Online: Best Free Platforms for Instructors",
+    "Documenting Your Learning Journey as Content That Earns",
+    "How to Build a Paid Workshop Around Skills You Already Have",
+    "From Notes to eBook: Packaging What You Learn Into a Product",
+    "Teaching as Marketing: Why Educational Content Sells Best",
+    "How to Create a Study Guide That Sells on Gumroad",
+    "Learn in Public: How Sharing Your Process Builds Followers",
+    "Turning Job Skills Into Training Products for Passive Income",
+    "How to Build a Free Email Course That Converts to Sales",
+    "The Beginner's Advantage: Teaching While You're Still Learning",
 ]
 
 
