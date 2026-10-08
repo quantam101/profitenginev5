@@ -142,6 +142,7 @@ jobs:
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
           CONTENT_VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
           FORCE_PUBLISH: ${{ github.event.inputs.force_publish }}
           PYTHONUTF8: '1'
@@ -243,6 +244,7 @@ jobs:
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
           CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+          PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
           CONTENT_VERIFY_ONLY: 'false'
           FORCE_PUBLISH: 'true'
           PYTHONUTF8: '1'

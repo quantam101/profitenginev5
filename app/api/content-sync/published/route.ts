@@ -12,16 +12,34 @@ interface TopicDoc {
   consumed_at: string | null;
 }
 
+function authorize(req: Request) {
+  const token = process.env.CONTENT_SYNC_TOKEN || process.env.PROFITENGINE_WEBHOOK_TOKEN || '';
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, error: 'content-sync auth not configured' },
+      { status: 503 },
+    );
+  }
+  if (req.headers.get('authorization') !== `Bearer ${token}`) {
+    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  }
+  return null;
+}
+
 function storeError(err: unknown) {
   const msg = String(err || '');
+  // Driver internals stay server-side; callers get only the error class.
   const unconfigured = /MONGODB_URI|MONGO_URL is not set/.test(msg);
+  if (!unconfigured) console.error('[content-sync] store error:', msg);
   return NextResponse.json(
-    { ok: false, error: `content-sync store ${unconfigured ? 'not configured' : 'error'}: ${msg.slice(0, 160)}` },
+    { ok: false, error: `content-sync store ${unconfigured ? 'not configured' : 'error'}` },
     { status: unconfigured ? 503 : 502 },
   );
 }
 
 export async function POST(req: Request) {
+  const denied = authorize(req);
+  if (denied) return denied;
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -65,6 +83,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  const denied = authorize(req);
+  if (denied) return denied;
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(new URL(req.url).searchParams.get('limit') || 20) || 20));
   try {
     const col = await getCollection(LOG_COLLECTION);

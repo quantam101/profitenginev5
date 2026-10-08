@@ -222,8 +222,16 @@ def _p_youtube() -> tuple[bool, str]:
                                         headers={"Content-Type": "application/x-www-form-urlencoded"}))
 
 
+def _cmdos_headers() -> dict:
+    token = _getenv("CONTENT_SYNC_TOKEN") or _getenv("PROFITENGINE_WEBHOOK_TOKEN")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 def _p_cmdos() -> tuple[bool, str]:
-    return _get(f"{_getenv('CMDOS_BASE_URL').rstrip('/')}/api/content-sync/topics?limit=1")
+    if not _cmdos_headers():
+        return False, "CONTENT_SYNC_TOKEN/PROFITENGINE_WEBHOOK_TOKEN not set — cannot auth to endpoint"
+    return _get(f"{_getenv('CMDOS_BASE_URL').rstrip('/')}/api/content-sync/topics?limit=1",
+                headers=_cmdos_headers())
 
 
 PROBES: dict[str, Callable[[], tuple[bool, str]]] = {
@@ -290,7 +298,7 @@ def main() -> int:
         tag = {"READY": "READY", "FAILED": "FAILED", "WAITING FOR AUTH": "WAITING"}[row["state"]]
         extra = row["detail"] or ", ".join(row["missing"])
         print(f"[{tag}] {row['name']}: {extra}")
-        if row["state"] == "FAILED":
+        if row["state"] == "FAILED" and row["tier"] != "optional":
             print(f"::error::{row['name']} is configured but cannot publish: {row['detail']}")
 
     summary_path = os.getenv("GITHUB_STEP_SUMMARY", "").strip()

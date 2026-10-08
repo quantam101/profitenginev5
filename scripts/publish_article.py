@@ -86,12 +86,20 @@ _CMDOS_BASE = (
 ).rstrip("/")
 
 
+def _cmdos_auth_headers() -> dict:
+    token = (os.getenv("CONTENT_SYNC_TOKEN", "").strip()
+             or os.getenv("PROFITENGINE_WEBHOOK_TOKEN", "").strip())
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 def _fetch_cmdos_topic() -> Optional[str]:
     """Pull the next queued topic from Already Here Growth Command OS."""
     try:
         import urllib.request as _req
 
-        r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)  # noqa: S310
+        req = _req.Request(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1",
+                           headers=_cmdos_auth_headers())
+        r = _req.urlopen(req, timeout=8)  # noqa: S310
         data = json.loads(r.read())
         topics = data.get("topics", [])
         if topics:
@@ -1178,7 +1186,7 @@ def main() -> None:
                     f"{_CMDOS_BASE}/api/content-sync/published",
                     data=payload,
                     method="POST",
-                    headers={"Content-Type": "application/json"},
+                    headers={"Content-Type": "application/json", **_cmdos_auth_headers()},
                 ),
                 timeout=8,
             )

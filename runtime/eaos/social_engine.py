@@ -346,7 +346,14 @@ async def _post_instagram(post: SocialPost) -> Optional[bool]:
         # later 400 is known to be a media/permission issue, not auth.
         probe = urllib.request.Request(
             f"{base}/{ig_user_id}?fields=id,username,account_type&access_token={page_token}")
-        account = _urlopen_json(probe, timeout=15)
+        try:
+            account = _urlopen_json(probe, timeout=15)
+        except Exception as probe_exc:
+            # _urlopen_json raises on HTTP errors — a stale/misconfigured
+            # IG_USER_ID lands here, so fall through to Page-based recovery.
+            logger.info(f"[Instagram] account probe raised ({probe_exc}) — "
+                        "attempting recovery via FB_PAGE_ID")
+            account = {"error": True}
         if account.get("error") and os.environ.get("FB_PAGE_ID"):
             # IG_USER_ID misconfigured (Page ID set instead): resolve the
             # real instagram_business_account attached to the Page.
