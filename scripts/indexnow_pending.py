@@ -141,7 +141,9 @@ def announce(url: str, attempts: int = 8, delay: int = 20) -> None:
     """Wait for the post to go live, then ping IndexNow. If it never comes
     up inside the wait window, queue the URL so a later run retries it."""
     if wait_for_live(url, attempts=attempts, delay=delay):
-        ping(url)
+        if not ping(url):
+            print("[WARN] IndexNow ping rejected; queueing for retry")
+            enqueue(url)
     else:
         print("[WARN] post not live yet; queueing IndexNow submission")
         enqueue(url)

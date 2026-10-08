@@ -1023,8 +1023,9 @@ def _ping_indexnow(url: str) -> None:
     outlives the wait window, the URL is queued in the content repo and
     retried by later runs. Never blocks."""
     try:
-        from scripts.indexnow_pending import announce
+        from scripts.indexnow_pending import announce, drain
 
+        drain()
         announce(url)
     except Exception as exc:
         print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
