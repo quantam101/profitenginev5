@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List
 
-# ── 216 topics covering: passive income, AI tools, freelancing, blogging,
+# ── 226 topics covering: passive income, AI tools, freelancing, blogging,
 #    affiliate marketing, hosting, SaaS, automation, AND IT field service /
 #    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
@@ -274,6 +274,18 @@ TOPICS: List[str] = [
     "Turning Job Skills Into Training Products for Passive Income",
     "How to Build a Free Email Course That Converts to Sales",
     "The Beginner's Advantage: Teaching While You're Still Learning",
+
+    # ── Kids' books, activity & educational products (parent + creator audiences)
+    "How to Create and Sell Coloring Books on Amazon KDP for Free",
+    "Selling Kids' Activity Books as PDF Downloads: Complete Guide",
+    "How to Make Educational Workbooks Parents Actually Buy",
+    "Turning Simple Illustrations Into a Children's Book Product",
+    "Printable Learning Packs for Kids: A Beginner's Product Guide",
+    "How to Create Coloring Pages With Free AI Tools and Sell Them",
+    "Math and Reading Workbooks: Low-Cost Products Parents Want",
+    "Self-Publishing a Children's eBook With No Upfront Cost",
+    "Homeschool Printables: A Growing Market for Digital Sellers",
+    "How to Make Tracing and Handwriting Practice Books to Sell",
 ]
 
 
