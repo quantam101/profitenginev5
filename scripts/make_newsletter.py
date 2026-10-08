@@ -36,6 +36,7 @@ from generate_shorts import ai_complete  # noqa: E402
 from youtube_publication import verified_youtube_uploads  # noqa: E402
 
 CONTENT_REPO = "quantam101/content"
+FEATURED_INDEX = "newsletters/featured-products.json"
 PAGES_BASE = "https://quantam101.github.io/content"
 _UTM = "utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest"
 EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/?{_UTM}"
@@ -146,34 +147,85 @@ def _item_url(item: dict[str, Any], fallback: str) -> str:
     return url if url.startswith(("https://", "http://")) else fallback
 
 
+def _featured_slugs() -> set[str]:
+    """Slugs already featured in a prior issue, persisted in the content repo."""
+    try:
+        result = subprocess.run(
+            ["gh", "api", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}",
+             "--jq", ".content"],
+            capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            return set()
+        data = json.loads(base64.b64decode(result.stdout).decode())
+        return set(data if isinstance(data, list) else [])
+    except Exception:
+        return set()
+
+
+def _record_featured(slugs: list[str]) -> None:
+    """Append this issue's featured slugs to the persistent index."""
+    if not slugs:
+        return
+    probe = subprocess.run(
+        ["gh", "api", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}"],
+        capture_output=True, text=True, timeout=60)
+    prior: list[str] = []
+    sha = None
+    if probe.returncode == 0:
+        doc = json.loads(probe.stdout)
+        sha = doc.get("sha")
+        try:
+            prior = json.loads(base64.b64decode(doc["content"]).decode())
+        except Exception:
+            prior = []
+    merged = sorted(set(prior) | set(slugs))
+    args = ["gh", "api", "-X", "PUT", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}",
+            "-f", "message=newsletter: update featured product index",
+            "-f", f"content={base64.b64encode(json.dumps(merged).encode()).decode()}"]
+    if sha:
+        args += ["-f", f"sha={sha}"]
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        print(f"featured index update failed: {result.stderr[:200]}")
+
+
 def _product_items(limit: int = 3) -> list[dict[str, Any]]:
-    """Newly generated technical products from the latest passive-income run.
+    """Newly generated, actually-listed technical products from the latest run.
 
     The workflow downloads the run's artifact tree into the workspace, so each
     product lands under technical-products/<slug>/product.json (+checkout.json).
+    Only products carrying a real listing URL are featured — the pipeline runs
+    with publish:false, so unlisted products are never linked to the store.
+    Slugs already featured in a prior issue are skipped via the persistent
+    newsletters/featured-products.json index in the content repo.
     """
     items: list[dict[str, Any]] = []
     root = Path("technical-products")
     if not root.is_dir():
         return items
+    seen = _featured_slugs()
     for product_json in sorted(root.glob("*/product.json"), reverse=True):
+        slug = product_json.parent.name
+        if slug in seen:
+            continue
         product = _load_json(str(product_json))
         if not isinstance(product, dict):
             continue
         strategy = product.get("strategy") or {}
         checkout = _load_json(str(product_json.parent / "checkout.json")) or {}
+        listing = _first(checkout.get("url"), checkout.get("listing_url"))
         title = _first(strategy.get("title"), checkout.get("title"))
-        if not title:
-            continue
+        if not title or not listing:
+            continue  # unlisted product — nothing purchasable to send readers to
         price = checkout.get("price_usd") or strategy.get("suggested_price_usd")
         items.append({
             "title": title,
+            "_slug": slug,
             "summary": _first(
                 strategy.get("storefront_copy"), strategy.get("seo_description"),
                 strategy.get("promise"), default="New technical guide from the product pipeline.",
             ) + (f" — ${price}" if price else ""),
-            "url": _first(checkout.get("url"), checkout.get("listing_url"),
-                          default=GUMROAD_STORE_URL),
+            "url": listing,
         })
         if len(items) >= limit:
             break
@@ -381,6 +433,8 @@ def main() -> None:
     sent = try_resend(subject, body)
     if "--no-page" not in sys.argv:
         publish_page(page)   # web archive, regardless of email outcome
+    featured = [i["_slug"] for _t, items in _collect_sections() if _t == "New digital products" for i in items if i.get("_slug")]
+    _record_featured(featured)
     if not sent:
         print("::warning::issue was NOT emailed — page archive only")
 

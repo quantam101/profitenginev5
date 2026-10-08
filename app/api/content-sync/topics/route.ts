@@ -7,14 +7,18 @@ const COLLECTION = 'contentsync_topics';
 const MAX_LIMIT = 50;
 
 function authorize(req: Request) {
-  const token = process.env.CONTENT_SYNC_TOKEN || process.env.PROFITENGINE_WEBHOOK_TOKEN || '';
-  if (!token) {
+  // Both env names are accepted on each side: callers historically send
+  // PROFITENGINE_WEBHOOK_TOKEN, so a server configured with only
+  // CONTENT_SYNC_TOKEN (or vice versa) must still authenticate them.
+  const tokens = [process.env.CONTENT_SYNC_TOKEN, process.env.PROFITENGINE_WEBHOOK_TOKEN].filter(Boolean) as string[];
+  if (!tokens.length) {
     return NextResponse.json(
       { ok: false, error: 'content-sync auth not configured' },
       { status: 503 },
     );
   }
-  if (req.headers.get('authorization') !== `Bearer ${token}`) {
+  const presented = req.headers.get('authorization') || '';
+  if (!tokens.some((t) => presented === `Bearer ${t}`)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
   return null;
