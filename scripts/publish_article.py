@@ -156,7 +156,7 @@ Quality requirements:
 - Link to at least 2 authoritative primary/official references in current/year-based roundups, using normal markdown links.
 - When discussing Google Search behavior, structured data, rankings, indexing, or spam guidance, prefer Google Search Central/Search Console sources.
 - Do not claim that FAQ schema creates People Also Ask placement or a Google FAQ rich-result boost.
-- Describe image alt text for accessibility and context; never recommend keyword stuffing or "keyword-rich alt text."
+- Do not emit standalone "Alt Text" paragraphs or image descriptions — articles ship without inline images; never recommend keyword stuffing or "keyword-rich alt text."
 - Distinguish free features from paid/premium features.
 - Do not guarantee rankings, traffic, revenue, or SERP gains.
 - Add a "## Sources" or "## Official references" section for current/year-based roundups.
@@ -350,6 +350,9 @@ def _repair_article_structure(article: Dict[str, Any]) -> Dict[str, Any]:
     repaired = dict(article)
     body = str(repaired.get("body") or "").strip()
     body = _normalize_tables(body)
+    # Models keep emitting "### Alt Text" meta-paragraphs describing images
+    # that don't exist — strip those sections so they don't render as content.
+    body = re.sub(r"\n?#{2,4}\s+alt\s+text\s*\n(?:[^\n]|\n(?!#))*", "\n", body, flags=re.I)
     repaired["body"] = body
     words = body.split()
     h2_count = len(re.findall(r"^##\s+\S", body, re.M))
