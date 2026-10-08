@@ -1019,6 +1019,19 @@ def _redact(text: str) -> str:
     return " ".join(w if len(w) < 40 else "<redacted>" for w in text.split())
 
 
+def _ping_indexnow(url: str) -> None:
+    """Wait for the post to go live, then ping IndexNow. If the deploy
+    outlives the wait window, the URL is queued in the content repo and
+    retried by later runs. Never blocks."""
+    try:
+        from scripts.indexnow_pending import announce, drain
+
+        drain()
+        announce(url)
+    except Exception as exc:
+        print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
+
+
 def _record_outcome(health: dict, channel: str, url: Optional[str],
                     configured: bool, error: str = "") -> None:
     if not configured:
@@ -1088,6 +1101,8 @@ def main() -> None:
         canonical_err = str(exc)
         print(f"[FAIL] GitHub publish failed: {exc}")
     _record_outcome(health, "github_pages", canonical_url, True, canonical_err)
+    if canonical_url:
+        _ping_indexnow(canonical_url)
 
     # 2. Dev.to
     devto_url = None

@@ -115,6 +115,26 @@ def publish_canonical(path: str, content: str, title: str) -> str:
     return url
 
 
+def ping_indexnow(url: str) -> None:
+    """Wait for the post to go live on GitHub Pages, then ping IndexNow.
+    If Pages outlives the wait window, the URL is queued in the content
+    repo (_data/indexnow_pending.json) and retried by later runs.
+    Failures never block syndication."""
+    from scripts.indexnow_pending import announce
+
+    announce(url)
+
+
+def drain_indexnow_queue() -> None:
+    """Retry IndexNow submissions queued by earlier runs."""
+    try:
+        from scripts.indexnow_pending import drain
+
+        drain()
+    except Exception as exc:
+        print(f"[WARN] IndexNow queue drain failed (non-blocking): {exc}")
+
+
 def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     if not DEVTO_KEY:
         print("[SKIP] Dev.to credentials missing")
@@ -253,6 +273,8 @@ def notify_cmdos(article: Dict[str, Any], canonical_url: str, urls: Dict[str, Op
 
 
 def main() -> None:
+    drain_indexnow_queue()
+
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     article = load_article(date_str)
 
@@ -273,6 +295,7 @@ def main() -> None:
         return
 
     canonical_url = publish_canonical(path, jekyll_post(article, date_str), article["title"])
+    ping_indexnow(canonical_url)
 
     urls: Dict[str, Optional[str]] = {"devto": None, "hashnode": None, "medium": None}
     for name, fn in (("devto", publish_devto), ("hashnode", publish_hashnode), ("medium", publish_medium)):
