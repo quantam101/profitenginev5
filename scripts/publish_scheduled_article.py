@@ -140,8 +140,9 @@ def ping_indexnow(url: str) -> None:
     if not key:
         return
     if not _wait_for_live(url):
-        print("[WARN] IndexNow skipped: post not live yet after waiting")
-        return
+        # Pages deploys can outlast the wait window; a possibly-early crawl
+        # is better than never announcing the URL at all.
+        print("[WARN] post not confirmed live yet; pinging IndexNow anyway")
     host = urllib.parse.urlparse(url).netloc
     params = urllib.parse.urlencode({
         "url": url,

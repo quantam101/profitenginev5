@@ -1039,8 +1039,8 @@ def _ping_indexnow(url: str) -> None:
         if attempt < 7:
             _time.sleep(20)
     if not live:
-        print("[WARN] IndexNow skipped: post not live yet after waiting")
-        return
+        # A possibly-early crawl beats never announcing the URL.
+        print("[WARN] post not confirmed live yet; pinging IndexNow anyway")
     host = urllib.parse.urlparse(url).netloc
     params = urllib.parse.urlencode({
         "url": url,
