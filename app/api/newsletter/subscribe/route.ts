@@ -7,6 +7,35 @@ import { newsletterRuntimeConfigured, subscribeViaRuntime } from '@/lib/newslett
 
 export const runtime = 'nodejs';
 
+// The public signup form is embedded on the Jekyll blog
+// (www.alreadyherellc.com / quantam101.github.io), so cross-origin POSTs
+// from those origins only need CORS clearance. Everything else gets none.
+const SIGNUP_ORIGINS = new Set([
+  'https://www.alreadyherellc.com',
+  'https://alreadyherellc.com',
+  'https://quantam101.github.io',
+]);
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin') || '';
+  if (!SIGNUP_ORIGINS.has(origin)) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
+}
+
+function respond(request: Request, body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, { ...init, headers: { ...corsHeaders(request), ...(init?.headers || {}) } });
+}
+
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
+}
+
 const schema = z.object({
   email: z.string().email(),
   consent: z.literal(true),
@@ -19,19 +48,19 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   if (process.env.NEWSLETTER_BUSINESS_ENABLED === 'false') {
-    return NextResponse.json({ ok: false, error: 'Newsletter business is disabled' }, { status: 404 });
+    return respond(request, { ok: false, error: 'Newsletter business is disabled' }, { status: 404 });
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 });
+    return respond(request, { ok: false, error: 'Invalid JSON' }, { status: 400 });
   }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.issues.map((i) => i.message).join(', ') }, { status: 400 });
+    return respond(request, { ok: false, error: parsed.error.issues.map((i) => i.message).join(', ') }, { status: 400 });
   }
 
   // Production already has a working ProfitEngine runtime backed by the
@@ -58,7 +87,7 @@ export async function POST(request: Request) {
         console.warn('[newsletter] optional Mongo subscriber mirror unavailable:', error);
       }
 
-      return NextResponse.json({
+      return respond(request, {
         ok: true,
         captured: true,
         status: 'active',
@@ -84,11 +113,11 @@ export async function POST(request: Request) {
     });
 
     if (subscriber?.status === 'active') {
-      return NextResponse.json({ ok: true, captured: true, status: 'active', confirmationSent: false });
+      return respond(request, { ok: true, captured: true, status: 'active', confirmationSent: false });
     }
 
     if (!newsletterDeliveryConfigured()) {
-      return NextResponse.json({
+      return respond(request, {
         ok: false,
         captured: true,
         status: 'pending',
@@ -109,7 +138,7 @@ export async function POST(request: Request) {
       metadata: { provider: 'resend', providerId: result.id, error: result.error },
     });
 
-    return NextResponse.json({
+    return respond(request, {
       ok: result.ok,
       captured: true,
       status: 'pending',
@@ -119,6 +148,6 @@ export async function POST(request: Request) {
     }, { status: result.ok ? 201 : 502 });
   } catch (error) {
     console.error('[newsletter] subscribe error:', error);
-    return NextResponse.json({ ok: false, error: 'Subscriber capture failed' }, { status: 500 });
+    return respond(request, { ok: false, error: 'Subscriber capture failed' }, { status: 500 });
   }
 }

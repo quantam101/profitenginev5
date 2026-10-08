@@ -13,14 +13,20 @@ interface TopicDoc {
 }
 
 function authorize(req: Request) {
-  const token = process.env.CONTENT_SYNC_TOKEN || process.env.PROFITENGINE_WEBHOOK_TOKEN || '';
-  if (!token) {
+  // The dedicated CONTENT_SYNC_TOKEN wins when configured; the legacy
+  // PROFITENGINE_WEBHOOK_TOKEN is accepted only as a fallback so a webhook
+  // token holder cannot reach content-sync once a dedicated token exists.
+  const tokens = process.env.CONTENT_SYNC_TOKEN
+    ? [process.env.CONTENT_SYNC_TOKEN]
+    : [process.env.PROFITENGINE_WEBHOOK_TOKEN].filter(Boolean) as string[];
+  if (!tokens.length) {
     return NextResponse.json(
       { ok: false, error: 'content-sync auth not configured' },
       { status: 503 },
     );
   }
-  if (req.headers.get('authorization') !== `Bearer ${token}`) {
+  const presented = req.headers.get('authorization') || '';
+  if (!tokens.some((t) => presented === `Bearer ${t}`)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
   return null;

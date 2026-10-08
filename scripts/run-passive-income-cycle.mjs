@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { routePassiveIncomeAI } from '../lib/revenue-os/passive-income-ai.mjs';
 import {
@@ -37,6 +38,30 @@ const stamp = now.toISOString().replace(/[:.]/g, '-');
 const cycleDir = resolve(outputDir, result.cycleId || `cycle-${stamp}`);
 await mkdir(cycleDir, { recursive: true });
 const artifacts = await materializeCycleArtifacts(result, cycleDir);
+
+// Optional live listing: when external writes are enabled and a Gumroad
+// token exists, list each newly materialized technical product and write
+// its listing_url back into checkout.json (newsletter then features it).
+let listedProducts = 0;
+const externalWrites = String(process.env.PASSIVE_INCOME_EXTERNAL_WRITES || 'false') === 'true';
+if (externalWrites && process.env.GUMROAD_ACCESS_TOKEN) {
+  const productRoot = resolve(cycleDir, 'technical-products');
+  try {
+    for (const slug of await readdir(productRoot)) {
+      try {
+        execFileSync('python3', ['scripts/list_product_on_gumroad.py', resolve(productRoot, slug)],
+          { stdio: 'inherit' });
+        listedProducts += 1;
+      } catch (err) {
+        console.warn(`gumroad listing failed for ${slug}:`, String(err).slice(0, 200));
+      }
+    }
+  } catch {
+    // no technical-products dir this cycle — nothing to list
+  }
+} else if (externalWrites) {
+  console.warn('PASSIVE_INCOME_EXTERNAL_WRITES=true but GUMROAD_ACCESS_TOKEN unset — skipping listings');
+}
 const processAgents = buildProcessAgentStatus(result, artifacts);
 const outputPath = resolve(cycleDir, `cycle-${stamp}.json`);
 await writeFile(outputPath, `${JSON.stringify({ ...result, rss, artifacts, processAgents }, null, 2)}\n`, 'utf8');
@@ -51,6 +76,7 @@ console.log(JSON.stringify({
   processAgentAttention: processAgents.filter((agent) => agent.state === 'attention').map((agent) => agent.id),
   metrics: result.metrics,
   reviewQueueItems: result.reviewQueue?.length || 0,
+  listedProducts,
   artifacts: artifacts.artifacts.map((artifact) => ({
     agentId: artifact.agentId,
     ok: artifact.ok,

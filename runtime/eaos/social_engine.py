@@ -198,6 +198,42 @@ async def _post_linkedin(post: SocialPost) -> Optional[bool]:
         return False
 
 
+# ── Pinterest ─────────────────────────────────────────────────────────────
+
+async def _post_pinterest(post: SocialPost) -> Optional[bool]:
+    token = os.environ.get("PINTEREST_ACCESS_TOKEN", "")
+    board = os.environ.get("PINTEREST_BOARD_ID", "")
+    if not token or not board:
+        logger.info("[Pinterest] No credentials — skip")
+        return None
+    extra = post.extra or {}
+    link  = extra.get("url", "")
+    image = extra.get("image_url", "")
+    body = {
+        "board_id": board,
+        "title": post.text_content[:100],
+        "description": (extra.get("description") or post.text_content)[:500],
+    }
+    if link:
+        body["link"] = link
+    if image:
+        body["media_source"] = {"source_type": "image_url", "url": image}
+    else:
+        # Pins require media — without an image URL this post is undeliverable.
+        logger.info("[Pinterest] no image_url — skip")
+        return None
+    try:
+        req = urllib.request.Request("https://api.pinterest.com/v5/pins",
+            data=json.dumps(body).encode(), method="POST",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+        data = _urlopen_json(req, timeout=15)
+        logger.info(f"[Pinterest] Pin created id={data.get('id','')}")
+        return True
+    except Exception as exc:
+        logger.error(f"[Pinterest] Post failed: {exc}")
+        return False
+
+
 # ── Reddit ─────────────────────────────────────────────────────────────────
 
 async def _post_reddit(post: SocialPost) -> Optional[bool]:
@@ -509,6 +545,7 @@ class ProductionSocialEngine:
             "REDDIT":    _post_reddit,
             "TELEGRAM":  _post_telegram,
             "TIKTOK":    _post_tiktok,
+            "PINTEREST": _post_pinterest,
             "FACEBOOK":  _post_facebook,
             "INSTAGRAM": _post_instagram,
             "YOUTUBE":   _post_youtube,
@@ -545,6 +582,9 @@ class ProductionSocialEngine:
             SocialPost(None, "REDDIT",   reddit_title, extra={"url": url, "subreddit": "passive_income"}),
             SocialPost(None, "INSTAGRAM", f"{text[:200]}\n\n{hashtags}",
                        extra={"url": url, "image_url": "https://quantam101.github.io/content/assets/og.png"}),
+            SocialPost(None, "PINTEREST", text[:100],
+                       extra={"url": url, "description": text[:500],
+                              "image_url": "https://quantam101.github.io/content/assets/og.png"}),
         ]
         if thread_tweets:
             platform_posts.append(SocialPost(None, "X", thread_tweets[0],
