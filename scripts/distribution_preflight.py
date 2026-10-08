@@ -182,8 +182,30 @@ def _p_facebook() -> tuple[bool, str]:
 
 def _p_instagram() -> tuple[bool, str]:
     tok = _getenv("FB_PAGE_ACCESS_TOKEN")
-    return _get(f"https://graph.facebook.com/v21.0/{_getenv('IG_USER_ID')}"
-                f"?fields=id,username,account_type&access_token={tok}")
+    base = "https://graph.facebook.com/v21.0"
+    ok, detail = _get(f"{base}/{_getenv('IG_USER_ID')}"
+                      f"?fields=id,username,account_type&access_token={tok}")
+    if ok:
+        return ok, detail
+    # Common misconfig: IG_USER_ID is the Facebook Page ID, not the IG
+    # Business/Creator account id. Resolve the real id via the Page.
+    page = _getenv("FB_PAGE_ID")
+    if page:
+        req = urllib.request.Request(
+            f"{base}/{page}?fields=instagram_business_account{{id,username,account_type}}"
+            f"&access_token={tok}",
+            headers={"User-Agent": "already-here-readiness/2.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=_TIMEOUT) as r:
+                acc = json.loads(r.read()).get("instagram_business_account") or {}
+        except Exception:
+            acc = {}
+        if acc.get("id"):
+            return True, (f"resolved via page {page}: @{acc.get('username','?')} "
+                          f"({acc.get('account_type','?')}) — IG_USER_ID is stale, "
+                          f"correct value is {acc['id']}")
+        return False, f"{detail} (no instagram_business_account on page {page})"
+    return ok, detail
 
 
 def _p_youtube() -> tuple[bool, str]:
