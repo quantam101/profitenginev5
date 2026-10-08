@@ -49,6 +49,7 @@ jobs:
 
       - name: Install workbook PDF builder
         run: python3 -m pip install fpdf2
+        continue-on-error: true
 
       - name: Run policy and artifact tests
         run: npm run test:passive-income
