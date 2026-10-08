@@ -115,6 +115,25 @@ def publish_canonical(path: str, content: str, title: str) -> str:
     return url
 
 
+def ping_indexnow(url: str) -> None:
+    """Submit the freshly published post to IndexNow (Bing/Yandex instant
+    indexing). The key file is served at the domain root by the main site.
+    Failures never block syndication."""
+    key = os.getenv("INDEXNOW_KEY", "").strip()
+    if not key:
+        return
+    params = urllib.parse.urlencode({
+        "url": url,
+        "key": key,
+        "keyLocation": f"https://www.alreadyherellc.com/{key}.txt",
+    })
+    try:
+        with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:
+            print(f"[OK] IndexNow ping accepted: {resp.status}")
+    except Exception as exc:
+        print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
+
+
 def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
     if not DEVTO_KEY:
         print("[SKIP] Dev.to credentials missing")
@@ -273,6 +292,7 @@ def main() -> None:
         return
 
     canonical_url = publish_canonical(path, jekyll_post(article, date_str), article["title"])
+    ping_indexnow(canonical_url)
 
     urls: Dict[str, Optional[str]] = {"devto": None, "hashnode": None, "medium": None}
     for name, fn in (("devto", publish_devto), ("hashnode", publish_hashnode), ("medium", publish_medium)):

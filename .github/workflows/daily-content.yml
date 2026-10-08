@@ -133,6 +133,7 @@ jobs:
           GITHUB_CONTENT_BRANCH: main
           GITHUB_CONTENT_DIR: _posts
           CONTENT_SITE_BASE: https://www.alreadyherellc.com/content
+          INDEXNOW_KEY: df3d3df8306964832a848348037c470d
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
@@ -235,6 +236,7 @@ jobs:
           GITHUB_CONTENT_BRANCH: main
           GITHUB_CONTENT_DIR: _posts
           CONTENT_SITE_BASE: https://www.alreadyherellc.com/content
+          INDEXNOW_KEY: df3d3df8306964832a848348037c470d
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}

@@ -1018,6 +1018,26 @@ def _redact(text: str) -> str:
     return " ".join(w if len(w) < 40 else "<redacted>" for w in text.split())
 
 
+def _ping_indexnow(url: str) -> None:
+    """Submit the new post to IndexNow (Bing/Yandex instant indexing).
+    The key file is served at the domain root by the main site. Never blocks."""
+    import urllib.parse
+    import urllib.request
+    key = os.getenv("INDEXNOW_KEY", "").strip()
+    if not key:
+        return
+    params = urllib.parse.urlencode({
+        "url": url,
+        "key": key,
+        "keyLocation": f"https://www.alreadyherellc.com/{key}.txt",
+    })
+    try:
+        with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:
+            print(f"[OK] IndexNow ping accepted: {resp.status}")
+    except Exception as exc:
+        print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
+
+
 def _record_outcome(health: dict, channel: str, url: Optional[str],
                     configured: bool, error: str = "") -> None:
     if not configured:
@@ -1087,6 +1107,8 @@ def main() -> None:
         canonical_err = str(exc)
         print(f"[FAIL] GitHub publish failed: {exc}")
     _record_outcome(health, "github_pages", canonical_url, True, canonical_err)
+    if canonical_url:
+        _ping_indexnow(canonical_url)
 
     # 2. Dev.to
     devto_url = None
