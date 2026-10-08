@@ -1026,10 +1026,26 @@ def _ping_indexnow(url: str) -> None:
     key = os.getenv("INDEXNOW_KEY", "").strip()
     if not key:
         return
+    live = False
+    for attempt in range(8):
+        try:
+            req = urllib.request.Request(url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    live = True
+                    break
+        except Exception:
+            pass
+        if attempt < 7:
+            _time.sleep(20)
+    if not live:
+        print("[WARN] IndexNow skipped: post not live yet after waiting")
+        return
+    host = urllib.parse.urlparse(url).netloc
     params = urllib.parse.urlencode({
         "url": url,
         "key": key,
-        "keyLocation": f"https://www.alreadyherellc.com/{key}.txt",
+        "keyLocation": f"https://{host}/{key}.txt",
     })
     try:
         with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:

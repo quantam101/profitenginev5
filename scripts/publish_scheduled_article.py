@@ -17,6 +17,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -115,17 +116,37 @@ def publish_canonical(path: str, content: str, title: str) -> str:
     return url
 
 
+def _wait_for_live(url: str, attempts: int = 8, delay: int = 20) -> bool:
+    """Wait for GitHub Pages to deploy the new post before announcing it.
+    IndexNow crawls immediately, so pinging a 404 wastes the notification."""
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:
+            pass
+        if attempt < attempts - 1:
+            time.sleep(delay)
+    return False
+
+
 def ping_indexnow(url: str) -> None:
     """Submit the freshly published post to IndexNow (Bing/Yandex instant
-    indexing). The key file is served at the domain root by the main site.
+    indexing). The key file must be served at the same host as the URL.
     Failures never block syndication."""
     key = os.getenv("INDEXNOW_KEY", "").strip()
     if not key:
         return
+    if not _wait_for_live(url):
+        print("[WARN] IndexNow skipped: post not live yet after waiting")
+        return
+    host = urllib.parse.urlparse(url).netloc
     params = urllib.parse.urlencode({
         "url": url,
         "key": key,
-        "keyLocation": f"https://www.alreadyherellc.com/{key}.txt",
+        "keyLocation": f"https://{host}/{key}.txt",
     })
     try:
         with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:
