@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List
 
-# ── 180 topics covering: passive income, AI tools, freelancing, blogging,
+# ── 202 topics covering: passive income, AI tools, freelancing, blogging,
 #    affiliate marketing, hosting, SaaS, automation, AND IT field service /
 #    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
@@ -238,6 +238,26 @@ TOPICS: List[str] = [
     "How to Choose Phone and Internet Service for a Small Office",
     "Digital Loyalty and Email Lists for Local Businesses",
     "Backup and Recovery Plans Small Businesses Can Set Up Free",
+
+    # ── Finance, savings & investing (all audiences: budgeting to markets) ───
+    "Best Free Budgeting Apps That Actually Help You Save in 2026",
+    "How to Build an Emergency Fund on Any Income: Step-by-Step",
+    "High-Yield Savings Accounts Explained Simply for Beginners",
+    "Index Fund Investing for Beginners: A Plain-English Guide",
+    "Free Investing Tools and Paper Trading Apps to Learn Risk-Free",
+    "How to Start Investing With $100: Realistic Beginner Steps",
+    "Compound Interest Explained: Why Starting Early Beats Starting Big",
+    "Best Apps for Tracking Spending and Cutting Monthly Bills",
+    "401k vs IRA vs Brokerage Account: A Simple Comparison",
+    "How to Automate Your Savings So You Never Miss It",
+    "Dividend Investing Basics: What Beginners Should Actually Know",
+    "Free Credit Score Tools and How to Raise Your Score",
+    "Round-Up and Micro-Investing Apps: Are They Worth It?",
+    "How to Read a Stock Chart Without a Finance Background",
+    "Paying Off Debt vs Investing: How to Decide Which Comes First",
+    "Robo-Advisors vs DIY Investing: Costs and Trade-Offs Explained",
+    "How to Set Financial Goals You'll Actually Hit in 2026",
+    "Best Free Personal Finance Courses Worth Your Time",
 ]
 
 
