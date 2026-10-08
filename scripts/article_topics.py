@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List
 
-# ── 120 topics covering: passive income, AI tools, freelancing, blogging,
+# ── 180 topics covering: passive income, AI tools, freelancing, blogging,
 #    affiliate marketing, hosting, SaaS, automation, AND IT field service /
 #    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
@@ -158,6 +158,86 @@ TOPICS: List[str] = [
     "Digital Signage Installation Guide for Retail and Commercial Spaces",
     "How to Document Your IT Infrastructure So Any Technician Can Support It",
     "Field Service Automation: How Modern MSPs Schedule and Dispatch Technicians",
+
+    # ── Students & teens (in-field: skills, tools, early income) ─────────────
+    "Best Free Coding Tools for Students to Build a Portfolio in 2026",
+    "How Students Can Earn Money Online Without a Degree or Experience",
+    "Study-Smart Tech: Free AI Tools That Help Students Learn Faster",
+    "Building Your First Website as a Student: Free Hosting Guide",
+    "Scholarship-Proof Skills: Tech Abilities Colleges Actually Reward",
+    "How to Start Freelancing Before You Graduate College",
+    "Best Free Courses for Learning IT and Networking Basics",
+    "Campus to Cash: Turning a Student Project Into Income",
+
+    # ── Retirees & seniors (in-field: supplemental income, simple tech) ──────
+    "Supplemental Income After Retirement: Tech-Friendly Options That Work",
+    "How to Sell Your Career Knowledge as an Ebook After Retiring",
+    "Simple Online Income for Seniors: No Technical Skills Required",
+    "Best Easy-to-Use Website Builders for Non-Technical Users",
+    "How Retirees Can Use Consulting Platforms to Earn on Their Terms",
+    "Avoiding Online Scams: A Practical Guide for Older Adults",
+    "How to Turn a Lifetime of Expertise Into a Digital Product",
+    "Voice-to-Text and AI Tools That Make Writing Easier for Seniors",
+
+    # ── Parents & family (in-field: flexible income, home tech) ──────────────
+    "Flexible Income Ideas for Stay-at-Home Parents in 2026",
+    "How to Run a Side Business in 5 Hours a Week While Raising Kids",
+    "Best Parental Control and Home Network Tools for Families",
+    "Selling Printables on Etsy: A Beginner's Guide for Busy Parents",
+    "How to Set Up Secure Home Wi-Fi That Protects Your Kids",
+    "Nap-Time Hustles: Micro-Businesses That Fit Around Family Life",
+    "Home Office Tech Setup for Remote-Working Parents",
+    "Teaching Kids About Money With Online Micro-Businesses",
+
+    # ── Trades & field technicians (in-field: services, tools, contracting) ──
+    "How IT Field Technicians Can Build a Side Income in 2026",
+    "Best Apps for Managing a Trade or Service Business From Your Truck",
+    "How to Start a Handyman or Trade Side Business That Actually Books",
+    "Pricing Guide for Independent Field Techs: What to Charge in 2026",
+    "Best Scheduling and Invoicing Apps for Solo Trade Contractors",
+    "How Network Cabling Skills Transfer to High-Paying Contract Work",
+    "From Employee to Owner: Starting an IT Field Service Business",
+    "Tools Every Field Technician Needs: Honest Gear Guide 2026",
+
+    # ── Career switchers & job seekers (in-field: skills, credentials) ───────
+    "Switching Careers Into Tech Without a Computer Science Degree",
+    "Best Free Certifications That Get People Hired in IT",
+    "How to Build a Tech Resume With Zero Industry Experience",
+    "Entry-Level IT Jobs That Don't Require a Degree in 2026",
+    "How to Learn Networking Skills for Free and Get Certified",
+    "Freelancing Between Jobs: Keeping Income Flowing During a Search",
+    "What CompTIA A+ Actually Gets You: Honest Career Guide",
+    "How to Prove Tech Skills to Employers Without Formal Experience",
+
+    # ── Non-technical beginners (in-field: accessible entry points) ──────────
+    "Online Income for Total Beginners: Where to Actually Start",
+    "The Plain-English Guide to Starting an Online Business",
+    "Best Beginner-Friendly Platforms for Selling Digital Products",
+    "No-Code Tools Explained Simply: What They Can Do for You",
+    "How to Set Up Your First Blog in Under an Hour",
+    "Tech Terms Explained: Hosting, Domains, and DNS for Beginners",
+    "Starting a Newsletter When You're Not a Writer or Tech Person",
+    "Simple Automation Wins: 5 Tasks Anyone Can Put on Autopilot",
+
+    # ── Creators & hobbyists (in-field: monetizing craft/content) ────────────
+    "How Hobbyists Turn Free Content Into Monthly Income",
+    "Monetizing a Niche YouTube Channel Without Showing Your Face",
+    "Best Tools for Podcasters on a Zero Budget",
+    "How Artists and Makers Use AI Tools to Sell More Online",
+    "Building an Audience From Zero: Honest Timeline and Tactics",
+    "Membership Income for Creators: What Actually Works in 2026",
+    "How to Repurpose One Piece of Content Into Ten Products",
+    "Selling Guides and Templates Based on What You Already Know",
+
+    # ── Local & small business owners (in-field: IT needs + growth) ──────────
+    "Affordable Tech Stack for a Small Business With No IT Staff",
+    "How Local Shops Get Found Online: Free SEO Tactics That Work",
+    "Best Free Tools for Managing a Small Business in 2026",
+    "When Does a Small Business Actually Need Managed IT?",
+    "Cybersecurity Basics Every Small Business Owner Needs",
+    "How to Choose Phone and Internet Service for a Small Office",
+    "Digital Loyalty and Email Lists for Local Businesses",
+    "Backup and Recovery Plans Small Businesses Can Set Up Free",
 ]
 
 
