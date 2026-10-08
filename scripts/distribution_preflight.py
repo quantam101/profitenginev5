@@ -39,7 +39,10 @@ class Channel:
 
 CHANNELS: tuple[Channel, ...] = (
     Channel("canonical-content", ("GITHUB_CONTENT_TOKEN",), "required", "Already Here canonical article repository"),
-    Channel("devto", ("DEVTO_API_KEY",), "syndication"),
+    # dev.to marks this account's API keys 401 at the platform level (all keys,
+    # verified 2026-10) — kept for reporting only; failures here must not
+    # degrade the run while every other channel is healthy.
+    Channel("devto", ("DEVTO_API_KEY",), "optional"),
     Channel("hashnode", ("HASHNODE_API_KEY", "HASHNODE_PUBLICATION_ID"), "syndication"),
     Channel("medium", ("MEDIUM_API_KEY", "MEDIUM_AUTHOR_ID"), "syndication"),
     Channel("x-twitter", ("TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"), "social"),
@@ -219,8 +222,16 @@ def _p_youtube() -> tuple[bool, str]:
                                         headers={"Content-Type": "application/x-www-form-urlencoded"}))
 
 
+def _cmdos_headers() -> dict:
+    token = _getenv("CONTENT_SYNC_TOKEN") or _getenv("PROFITENGINE_WEBHOOK_TOKEN")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 def _p_cmdos() -> tuple[bool, str]:
-    return _get(f"{_getenv('CMDOS_BASE_URL').rstrip('/')}/api/content-sync/topics?limit=1")
+    if not _cmdos_headers():
+        return False, "CONTENT_SYNC_TOKEN/PROFITENGINE_WEBHOOK_TOKEN not set — cannot auth to endpoint"
+    return _get(f"{_getenv('CMDOS_BASE_URL').rstrip('/')}/api/content-sync/topics?limit=1",
+                headers=_cmdos_headers())
 
 
 PROBES: dict[str, Callable[[], tuple[bool, str]]] = {
@@ -287,7 +298,7 @@ def main() -> int:
         tag = {"READY": "READY", "FAILED": "FAILED", "WAITING FOR AUTH": "WAITING"}[row["state"]]
         extra = row["detail"] or ", ".join(row["missing"])
         print(f"[{tag}] {row['name']}: {extra}")
-        if row["state"] == "FAILED":
+        if row["state"] == "FAILED" and row["tier"] != "optional":
             print(f"::error::{row['name']} is configured but cannot publish: {row['detail']}")
 
     summary_path = os.getenv("GITHUB_STEP_SUMMARY", "").strip()
@@ -321,9 +332,17 @@ def main() -> int:
     # A configured-but-failing channel is a broken revenue path, not a
     # green check. Any FAILED channel makes the run DEGRADED (nonzero) —
     # "success" must mean every channel that is configured can publish.
-    if failed:
-        names = ", ".join(row["name"] for row in failed)
-        print(f"::error::DEGRADED — {len(failed)} configured channel(s) cannot "
+    # Optional-tier channels (e.g. dev.to while its API is closed to this
+    # account) are reported but don't block: they are downgraded to a warning
+    # instead of making the whole run DEGRADED.
+    blocking = [row for row in failed if row["tier"] != "optional"]
+    optional_failed = [row for row in failed if row["tier"] == "optional"]
+    for row in optional_failed:
+        print(f"::warning::{row['name']} is configured but cannot publish "
+              f"(optional channel, not blocking): {row['detail']}")
+    if blocking:
+        names = ", ".join(row["name"] for row in blocking)
+        print(f"::error::DEGRADED — {len(blocking)} configured channel(s) cannot "
               f"publish: {names}")
         return 2
     return 0

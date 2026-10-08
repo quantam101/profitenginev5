@@ -53,6 +53,7 @@ jobs:
       YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
       YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
       CMDOS_BASE_URL: ${{ secrets.CMDOS_BASE_URL }}
+      PROFITENGINE_WEBHOOK_TOKEN: ${{ secrets.PROFITENGINE_WEBHOOK_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

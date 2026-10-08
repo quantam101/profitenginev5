@@ -237,11 +237,14 @@ def notify_cmdos(article: Dict[str, Any], canonical_url: str, urls: Dict[str, Op
             "hashnode_url": urls.get("hashnode") or "",
             "platforms": ["github_pages"] + [k for k, v in urls.items() if v],
         }).encode()
+        token = (os.getenv("CONTENT_SYNC_TOKEN", "").strip()
+                 or os.getenv("PROFITENGINE_WEBHOOK_TOKEN", "").strip())
         req = urllib.request.Request(
             f"{CMDOS_BASE}/api/content-sync/published",
             data=payload,
             method="POST",
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json",
+                     **({"Authorization": f"Bearer {token}"} if token else {})},
         )
         urllib.request.urlopen(req, timeout=8)
         print("[OK] Growth Command OS publication callback recorded")

@@ -86,12 +86,20 @@ _CMDOS_BASE = (
 ).rstrip("/")
 
 
+def _cmdos_auth_headers() -> dict:
+    token = (os.getenv("CONTENT_SYNC_TOKEN", "").strip()
+             or os.getenv("PROFITENGINE_WEBHOOK_TOKEN", "").strip())
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 def _fetch_cmdos_topic() -> Optional[str]:
     """Pull the next queued topic from Already Here Growth Command OS."""
     try:
         import urllib.request as _req
 
-        r = _req.urlopen(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1", timeout=8)  # noqa: S310
+        req = _req.Request(f"{_CMDOS_BASE}/api/content-sync/topics?limit=1",
+                           headers=_cmdos_auth_headers())
+        r = _req.urlopen(req, timeout=8)  # noqa: S310
         data = json.loads(r.read())
         topics = data.get("topics", [])
         if topics:
@@ -148,7 +156,7 @@ Quality requirements:
 - Link to at least 2 authoritative primary/official references in current/year-based roundups, using normal markdown links.
 - When discussing Google Search behavior, structured data, rankings, indexing, or spam guidance, prefer Google Search Central/Search Console sources.
 - Do not claim that FAQ schema creates People Also Ask placement or a Google FAQ rich-result boost.
-- Describe image alt text for accessibility and context; never recommend keyword stuffing or "keyword-rich alt text."
+- Do not emit standalone "Alt Text" paragraphs or image descriptions — articles ship without inline images; never recommend keyword stuffing or "keyword-rich alt text."
 - Distinguish free features from paid/premium features.
 - Do not guarantee rankings, traffic, revenue, or SERP gains.
 - Add a "## Sources" or "## Official references" section for current/year-based roundups.
@@ -342,6 +350,9 @@ def _repair_article_structure(article: Dict[str, Any]) -> Dict[str, Any]:
     repaired = dict(article)
     body = str(repaired.get("body") or "").strip()
     body = _normalize_tables(body)
+    # Models keep emitting "### Alt Text" meta-paragraphs describing images
+    # that don't exist — strip those sections so they don't render as content.
+    body = re.sub(r"\n?#{2,4}\s+alt\s+text\s*\n(?:[^\n]|\n(?!#))*", "\n", body, flags=re.I)
     repaired["body"] = body
     words = body.split()
     h2_count = len(re.findall(r"^##\s+\S", body, re.M))
@@ -1178,7 +1189,7 @@ def main() -> None:
                     f"{_CMDOS_BASE}/api/content-sync/published",
                     data=payload,
                     method="POST",
-                    headers={"Content-Type": "application/json"},
+                    headers={"Content-Type": "application/json", **_cmdos_auth_headers()},
                 ),
                 timeout=8,
             )
