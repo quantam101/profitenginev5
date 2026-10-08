@@ -44,6 +44,7 @@ WEBSITE_URL = "https://www.alreadyherellc.com"
 AI_SERVICE_URL = f"{WEBSITE_URL}/ai-agent?{_UTM}"
 RFQ_URL = f"{WEBSITE_URL}/rfq?{_UTM}"
 DISPATCH_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
+GUMROAD_STORE_URL = f"https://alreadyhere.gumroad.com?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest&utm_content=store"
 # no /autoworks page exists yet — route AutoWorks CTAs to the dispatch page
 AUTOWORKS_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
 
@@ -83,6 +84,7 @@ CTA_BY_SECTION = {
     "Grants": ("View the opportunity desk", f"{WEBSITE_URL}/daily-command"),
     "Contracts and bids": ("Submit an RFQ", RFQ_URL),
     "Affiliate opportunities": ("View current resources", EBOOK_URL),
+    "New digital products": ("View the store", GUMROAD_STORE_URL),
 }
 
 
@@ -144,6 +146,40 @@ def _item_url(item: dict[str, Any], fallback: str) -> str:
     return url if url.startswith(("https://", "http://")) else fallback
 
 
+def _product_items(limit: int = 3) -> list[dict[str, Any]]:
+    """Newly generated technical products from the latest passive-income run.
+
+    The workflow downloads the run's artifact tree into the workspace, so each
+    product lands under technical-products/<slug>/product.json (+checkout.json).
+    """
+    items: list[dict[str, Any]] = []
+    root = Path("technical-products")
+    if not root.is_dir():
+        return items
+    for product_json in sorted(root.glob("*/product.json"), reverse=True):
+        product = _load_json(str(product_json))
+        if not isinstance(product, dict):
+            continue
+        strategy = product.get("strategy") or {}
+        checkout = _load_json(str(product_json.parent / "checkout.json")) or {}
+        title = _first(strategy.get("title"), checkout.get("title"))
+        if not title:
+            continue
+        price = checkout.get("price_usd") or strategy.get("suggested_price_usd")
+        items.append({
+            "title": title,
+            "summary": _first(
+                strategy.get("storefront_copy"), strategy.get("seo_description"),
+                strategy.get("promise"), default="New technical guide from the product pipeline.",
+            ) + (f" — ${price}" if price else ""),
+            "url": _first(checkout.get("url"), checkout.get("listing_url"),
+                          default=GUMROAD_STORE_URL),
+        })
+        if len(items) >= limit:
+            break
+    return items
+
+
 def _collect_sections(limit_per_section: int = 3) -> list[tuple[str, list[dict[str, Any]]]]:
     sections: list[tuple[str, list[dict[str, Any]]]] = []
     seen: set[str] = set()
@@ -158,6 +194,9 @@ def _collect_sections(limit_per_section: int = 3) -> list[tuple[str, list[dict[s
                     items.append(item)
         if items:
             sections.append((section, items[:limit_per_section]))
+    products = _product_items()
+    if products:
+        sections.append(("New digital products", products))
     return sections
 
 

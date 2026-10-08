@@ -38,6 +38,22 @@ jobs:
             echo "no successful production run found — composing from trends only"
           fi
 
+      - name: Pull artifacts from latest passive-income run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh run list --workflow=passive-income-engine.yml \
+            --status=success --limit 1 --json databaseId -q '.[0].databaseId' || echo "")
+          if [ -n "$RUN_ID" ]; then
+            echo "using passive-income run $RUN_ID"
+            timeout 180 gh run download "$RUN_ID" -D pe-artifacts || true
+            # surface the product manifests the composer scans
+            find pe-artifacts -type d -name technical-products -exec cp -r {} . \; 2>/dev/null || true
+            find pe-artifacts -name 'product.json' -o -name 'checkout.json' | head
+          else
+            echo "no successful passive-income run — no product section this issue"
+          fi
+
       - name: Compose + deliver newsletter
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
