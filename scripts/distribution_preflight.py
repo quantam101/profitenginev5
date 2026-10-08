@@ -49,6 +49,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("linkedin", ("LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"), "social"),
     Channel("reddit", ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME", "REDDIT_PASSWORD"), "social"),
     Channel("tiktok", ("TIKTOK_ACCESS_TOKEN",), "social"),
+    Channel("pinterest", ("PINTEREST_ACCESS_TOKEN", "PINTEREST_BOARD_ID"), "social"),
     Channel("telegram", ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"), "social"),
     Channel("facebook", ("FB_PAGE_ID", "FB_PAGE_ACCESS_TOKEN"), "social"),
     Channel("instagram", ("IG_USER_ID", "FB_PAGE_ACCESS_TOKEN"), "social"),
@@ -174,6 +175,11 @@ def _p_tiktok() -> tuple[bool, str]:
                 {"Authorization": f"Bearer {_getenv('TIKTOK_ACCESS_TOKEN')}"})
 
 
+def _p_pinterest() -> tuple[bool, str]:
+    return _get("https://api.pinterest.com/v5/user_account",
+                {"Authorization": f"Bearer {_getenv('PINTEREST_ACCESS_TOKEN')}"})
+
+
 def _p_telegram() -> tuple[bool, str]:
     return _get(f"https://api.telegram.org/bot{_getenv('TELEGRAM_BOT_TOKEN')}/getMe")
 
@@ -243,6 +249,7 @@ PROBES: dict[str, Callable[[], tuple[bool, str]]] = {
     "linkedin": _p_linkedin,
     "reddit": _p_reddit,
     "tiktok": _p_tiktok,
+    "pinterest": _p_pinterest,
     "telegram": _p_telegram,
     "facebook": _p_facebook,
     "instagram": _p_instagram,
