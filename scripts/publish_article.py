@@ -149,6 +149,7 @@ Return ONLY a valid JSON object (no markdown fences, no explanation) with these 
 Quality requirements:
 - Target 1,400-1,800 useful words; never pad with filler. The publication gate requires at least 1,000 words, so leave sufficient margin.
 - Open with a direct answer/value proposition, not generic scene-setting.
+- Write for a broad general audience of all ages and experience levels: plain conversational English, short sentences, and define any technical term the first time you use it. If the topic targets a specific group (students, seniors, parents, tradespeople, beginners), speak directly to that group's situation.
 - Use at least 5 substantive H2 sections with concrete workflows, examples, trade-offs, and failure modes.
 - For list/roundup/comparison posts, include a concise comparison table when it improves decision-making.
 - For current, year-based, product, pricing, feature, quota, policy, or platform claims: do not invent exact numbers or capabilities.
