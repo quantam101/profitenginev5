@@ -47,6 +47,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
+      - name: Install workbook PDF builder
+        run: python3 -m pip install fpdf2
+
       - name: Run policy and artifact tests
         run: npm run test:passive-income
 
