@@ -17,7 +17,6 @@ import os
 import pathlib
 import re
 import sys
-import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -116,44 +115,24 @@ def publish_canonical(path: str, content: str, title: str) -> str:
     return url
 
 
-def _wait_for_live(url: str, attempts: int = 8, delay: int = 20) -> bool:
-    """Wait for GitHub Pages to deploy the new post before announcing it.
-    IndexNow crawls immediately, so pinging a 404 wastes the notification."""
-    for attempt in range(attempts):
-        try:
-            req = urllib.request.Request(url, method="HEAD")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    return True
-        except Exception:
-            pass
-        if attempt < attempts - 1:
-            time.sleep(delay)
-    return False
-
-
 def ping_indexnow(url: str) -> None:
-    """Submit the freshly published post to IndexNow (Bing/Yandex instant
-    indexing). The key file must be served at the same host as the URL.
+    """Wait for the post to go live on GitHub Pages, then ping IndexNow.
+    If Pages outlives the wait window, the URL is queued in the content
+    repo (_data/indexnow_pending.json) and retried by later runs.
     Failures never block syndication."""
-    key = os.getenv("INDEXNOW_KEY", "").strip()
-    if not key:
-        return
-    if not _wait_for_live(url):
-        # Pages deploys can outlast the wait window; a possibly-early crawl
-        # is better than never announcing the URL at all.
-        print("[WARN] post not confirmed live yet; pinging IndexNow anyway")
-    host = urllib.parse.urlparse(url).netloc
-    params = urllib.parse.urlencode({
-        "url": url,
-        "key": key,
-        "keyLocation": f"https://{host}/{key}.txt",
-    })
+    from scripts.indexnow_pending import announce
+
+    announce(url)
+
+
+def drain_indexnow_queue() -> None:
+    """Retry IndexNow submissions queued by earlier runs."""
     try:
-        with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:
-            print(f"[OK] IndexNow ping accepted: {resp.status}")
+        from scripts.indexnow_pending import drain
+
+        drain()
     except Exception as exc:
-        print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
+        print(f"[WARN] IndexNow queue drain failed (non-blocking): {exc}")
 
 
 def publish_devto(article: Dict[str, Any], canonical_url: str) -> Optional[str]:
@@ -294,6 +273,8 @@ def notify_cmdos(article: Dict[str, Any], canonical_url: str, urls: Dict[str, Op
 
 
 def main() -> None:
+    drain_indexnow_queue()
+
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     article = load_article(date_str)
 

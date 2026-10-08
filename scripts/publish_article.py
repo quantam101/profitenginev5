@@ -1019,37 +1019,13 @@ def _redact(text: str) -> str:
 
 
 def _ping_indexnow(url: str) -> None:
-    """Submit the new post to IndexNow (Bing/Yandex instant indexing).
-    The key file is served at the domain root by the main site. Never blocks."""
-    import urllib.parse
-    import urllib.request
-    key = os.getenv("INDEXNOW_KEY", "").strip()
-    if not key:
-        return
-    live = False
-    for attempt in range(8):
-        try:
-            req = urllib.request.Request(url, method="HEAD")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    live = True
-                    break
-        except Exception:
-            pass
-        if attempt < 7:
-            _time.sleep(20)
-    if not live:
-        # A possibly-early crawl beats never announcing the URL.
-        print("[WARN] post not confirmed live yet; pinging IndexNow anyway")
-    host = urllib.parse.urlparse(url).netloc
-    params = urllib.parse.urlencode({
-        "url": url,
-        "key": key,
-        "keyLocation": f"https://{host}/{key}.txt",
-    })
+    """Wait for the post to go live, then ping IndexNow. If the deploy
+    outlives the wait window, the URL is queued in the content repo and
+    retried by later runs. Never blocks."""
     try:
-        with urllib.request.urlopen(f"https://api.indexnow.org/indexnow?{params}", timeout=15) as resp:
-            print(f"[OK] IndexNow ping accepted: {resp.status}")
+        from scripts.indexnow_pending import announce
+
+        announce(url)
     except Exception as exc:
         print(f"[WARN] IndexNow ping failed (non-blocking): {exc}")
 
