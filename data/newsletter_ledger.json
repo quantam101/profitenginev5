@@ -970,6 +970,36 @@
         "side"
       ],
       "date": "2026-10-07"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/digitalocean-vs-linode-vs-vultr-best-vps-developers-2026",
+      "title": "DigitalOcean vs Linode vs Vultr: Best VPS for Developers in 2026",
+      "url": "https://www.alreadyherellc.com/content/posts/digitalocean-vs-linode-vs-vultr-best-vps-developers-2026/",
+      "fingerprint": [
+        "2026",
+        "best",
+        "developers",
+        "digitalocean",
+        "linode",
+        "vps",
+        "vultr"
+      ],
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/package-your-skills-digital-products-gumroad",
+      "title": "How to Package Your Skills as Digital Products on Gumroad",
+      "url": "https://www.alreadyherellc.com/content/posts/package-your-skills-digital-products-gumroad/",
+      "fingerprint": [
+        "digital",
+        "gumroad",
+        "package",
+        "products",
+        "skills"
+      ],
+      "date": "2026-10-09"
     }
   ]
 }
