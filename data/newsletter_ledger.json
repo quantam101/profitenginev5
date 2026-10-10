@@ -1000,6 +1000,22 @@
         "skills"
       ],
       "date": "2026-10-09"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/deploy-python-app-oracle-cloud-free-tier",
+      "title": "How to Deploy a Python App on Oracle Cloud Free Tier",
+      "url": "https://www.alreadyherellc.com/content/posts/deploy-python-app-oracle-cloud-free-tier/",
+      "fingerprint": [
+        "app",
+        "cloud",
+        "deploy",
+        "free",
+        "oracle",
+        "python",
+        "tier"
+      ],
+      "date": "2026-10-10"
     }
   ]
 }
