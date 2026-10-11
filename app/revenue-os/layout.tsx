@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 export const metadata = {
   title: 'Revenue OS',
   description: 'Revenue operating system for Already Here LLC',
+  // Internal ops console — never indexable (same pattern as command-center).
+  robots: { index: false, follow: false },
 };
 
 export default function RevenueOsLayout({ children }: { children: ReactNode }) {
