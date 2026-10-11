@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import SignOutButton from '@/app/components/SignOutButton';
 
+// Internal ops console — never indexable. robots.ts also disallows the
+// path; this noindex catches direct links Google may already know.
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function CommandCenterLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
