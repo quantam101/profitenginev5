@@ -2,19 +2,12 @@ import type { MetadataRoute } from 'next';
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.alreadyherellc.com';
 
+// Public marketing/content routes only. Internal ops pages under
+// /command-center/* must stay out of the index — see app/robots.ts.
 const routes = [
   '/',
   '/newsletter',
-  '/newsletter/30-day-checklist',
-  '/command-center/agents',
-  '/command-center/approvals',
-  '/command-center/changelog',
-  '/command-center/connectors',
-  '/command-center/costs',
-  '/command-center/logs',
-  '/command-center/modules',
-  '/command-center/security',
-  '/command-center/workflows'
+  '/newsletter/30-day-checklist'
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
