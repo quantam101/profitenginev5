@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'AI VP Cash Desk — ProfitEngine v5',
   description:
     'AI VP module for finding, scoring, approving, and tracking trailer, courier, field tech, and local service work for Already Here LLC.',
+  robots: { index: false, follow: false },
 };
 
 export default function AiVpPage() {

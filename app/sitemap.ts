@@ -7,7 +7,9 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.alreadyherellc.
 const routes = [
   '/',
   '/newsletter',
-  '/newsletter/30-day-checklist'
+  '/newsletter/30-day-checklist',
+  '/marketing',
+  '/widget-kit'
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
