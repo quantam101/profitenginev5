@@ -1,0 +1,10 @@
+{
+  "suite": "content_gen",
+  "total": 7,
+  "passed": 7,
+  "pass_rate": 1.0,
+  "metrics": {
+    "mean_words": 1658.0,
+    "cases_expected_fail": 4
+  }
+}
