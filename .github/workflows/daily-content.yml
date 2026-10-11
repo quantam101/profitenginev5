@@ -124,7 +124,7 @@ jobs:
         id: publish
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GMAOS_GROQ_MODEL: openai/gpt-oss-20b
+          GMAOS_GROQ_MODEL: openai/gpt-oss-120b
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GMAOS_GEMINI_MODEL: gemini-3.8-flash
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
@@ -227,7 +227,7 @@ jobs:
         if: ${{ github.event.inputs.verify_only != 'true' && steps.verify_post.outputs.verified != 'true' }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GMAOS_GROQ_MODEL: openai/gpt-oss-20b
+          GMAOS_GROQ_MODEL: openai/gpt-oss-120b
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GMAOS_GEMINI_MODEL: gemini-3.8-flash
           GITHUB_CONTENT_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
