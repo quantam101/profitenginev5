@@ -15,8 +15,10 @@ Case format (JSONL, one object per line):
       "checks": ["seo_quality", "min_words:1000", "no_placeholders"]
     }
 
-A case "passes" when its checks' actual result equals ``expect_pass`` —
-bad-output fixtures must be caught to count as a pass. That makes the
+A case "passes" when EVERY check's actual result equals ``expect_pass``
+(individually, not just in aggregate) — a bad-output fixture must trip
+every check it names, so one gate silently breaking can't hide behind
+another check's failure. That makes the
 suite a regression test for the gates themselves AND a measured quality
 loop over real outputs (``--collect`` scores real markdown posts).
 
@@ -163,8 +165,11 @@ def run_check(output: Any, spec: str) -> CheckResult:
 def score_case(case: dict[str, Any]) -> CaseResult:
     checks_spec = case.get("checks") or ["seo_quality"]
     results = [run_check(case.get("output"), c) for c in checks_spec]
-    checks_ok = all(c.ok for c in results)
     expect = bool(case.get("expect_pass", True))
+    # Per-check expectation: for expect_pass=false, EVERY named check must
+    # fail. Aggregate-only comparison would let a broken gate hide behind
+    # a sibling check that still rejects the fixture.
+    checks_ok = all(c.ok for c in results)
     a = _article(case.get("output"))
     body = str(a.get("body") or "")
     metrics = {"words": float(len(re.findall(r"\b[\w’'-]+\b", body)))}
@@ -173,7 +178,7 @@ def score_case(case: dict[str, Any]) -> CaseResult:
         agent=str(case.get("agent") or "unknown"),
         provenance=str(case.get("provenance") or "fixture"),
         expect_pass=expect,
-        passed=checks_ok == expect,
+        passed=all(c.ok == expect for c in results),
         checks_ok=checks_ok,
         checks=results,
         metrics=metrics,
@@ -204,7 +209,7 @@ def collect_markdown(pattern: str) -> Iterable[dict[str, Any]]:
             "expect_pass": True,
             "provenance": "live",
             "output": {"title": title, "body": text},
-            "checks": ["no_placeholders", "regex_absent:\\[(?:insert|todo|tbd)[^\\]]*\\]"],
+            "checks": ["seo_quality", "no_placeholders", "regex_absent:\\[(?:insert|todo|tbd)[^\\]]*\\]"],
         }
 
 
