@@ -173,12 +173,16 @@ def score_case(case: dict[str, Any]) -> CaseResult:
     a = _article(case.get("output"))
     body = str(a.get("body") or "")
     metrics = {"words": float(len(re.findall(r"\b[\w’'-]+\b", body)))}
+    # An unknown check name must never satisfy expect_pass=false — a
+    # misspelled gate would otherwise "fail" as expected and the suite
+    # would pass without exercising the intended check.
+    unknown = any(c.detail.startswith("unknown check") for c in results)
     return CaseResult(
         id=str(case.get("id") or "unnamed"),
         agent=str(case.get("agent") or "unknown"),
         provenance=str(case.get("provenance") or "fixture"),
         expect_pass=expect,
-        passed=all(c.ok == expect for c in results),
+        passed=(not unknown) and all(c.ok == expect for c in results),
         checks_ok=checks_ok,
         checks=results,
         metrics=metrics,
@@ -199,6 +203,10 @@ def collect_markdown(pattern: str) -> Iterable[dict[str, Any]]:
     for p in sorted(glob.glob(pattern, recursive=True)):
         path = Path(p)
         text = path.read_text(encoding="utf-8", errors="replace")
+        # Strip YAML front matter — published Jekyll posts carry metadata
+        # (layout, tags, dates) that would otherwise be scored as article
+        # body, inflating word counts and tripping placeholder rules.
+        text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, flags=re.S)
         title = ""
         m = re.search(r"^#\s+(.+)$", text, re.M) or re.search(r'^title:\s*"?([^"\n]+)"?', text, re.M)
         if m:
