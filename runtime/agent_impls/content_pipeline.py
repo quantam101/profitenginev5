@@ -46,10 +46,14 @@ class Agent:
             # Extract first topic from trend scanner output via the shared
             # schema-enforced extractor (guardrail: no ad-hoc brace slicing).
             parsed = extract_json(scan.output, required_keys=[])
-            if parsed.ok and isinstance(parsed.data, list) and parsed.data:
-                first = parsed.data[0]
-                if isinstance(first, dict) and first.get("title"):
-                    topic = first["title"]
+            first = None
+            if parsed.ok:
+                if isinstance(parsed.data, list) and parsed.data:
+                    first = parsed.data[0]
+                elif isinstance(parsed.data, dict):
+                    first = parsed.data
+            if isinstance(first, dict) and first.get("title"):
+                topic = first["title"]
 
         # ── Step 2: Generate content ───────────────────────────────────────
         gen_agent = ContentGen()
