@@ -16,13 +16,13 @@ Typical cycle time:
 """
 from __future__ import annotations
 
-import json
 from typing import List
 
 from runtime.agent_impls.blog_publisher import Agent as BlogPublisher
 from runtime.agent_impls.content_gen import Agent as ContentGen
 from runtime.agent_impls.trend_scanner import Agent as TrendScanner
 from runtime.agents import AgentExecution
+from runtime.structured_output import extract_json
 
 
 class Agent:
@@ -43,16 +43,13 @@ class Agent:
             scan = scanner.run("Find the best topic for an affiliate blog post today", "", connectors)
             trend_result = scan.output
 
-            # Extract first topic from trend scanner output
-            try:
-                start = scan.output.find("[")
-                end = scan.output.rfind("]") + 1
-                if start >= 0 and end > start:
-                    topics = json.loads(scan.output[start:end])
-                    if topics:
-                        topic = topics[0].get("title", objective)
-            except (json.JSONDecodeError, ValueError, KeyError):
-                pass
+            # Extract first topic from trend scanner output via the shared
+            # schema-enforced extractor (guardrail: no ad-hoc brace slicing).
+            parsed = extract_json(scan.output, required_keys=[])
+            if parsed.ok and isinstance(parsed.data, list) and parsed.data:
+                first = parsed.data[0]
+                if isinstance(first, dict) and first.get("title"):
+                    topic = first["title"]
 
         # ── Step 2: Generate content ───────────────────────────────────────
         gen_agent = ContentGen()
