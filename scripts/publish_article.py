@@ -173,16 +173,19 @@ GEMINI_MODEL = os.getenv("GMAOS_GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 # Groq models in priority order — fall through if one hits a rate limit.
-# llama-3.1-8b-instant is tried first: higher daily token allowance on free tier.
-# llama-3.3-70b is second: better quality but tighter daily token quota.
-_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "openai/gpt-oss-20b")
+# Strongest first: the deterministic quality gate (>=1000 words, >=5 H2s,
+# outbound links) is consistently failed by small models, so burning the
+# first attempts on them just wastes quota. llama-3.3-70b-versatile was
+# removed — Groq now 404s it (deprecated upstream).
+_GROQ_DEFAULT = os.getenv("GMAOS_GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_MODELS: List[str] = list(
     dict.fromkeys(
         [
             _GROQ_DEFAULT,
-            "openai/gpt-oss-20b",
             "openai/gpt-oss-120b",
-            "llama-3.3-70b-versatile",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "qwen/qwen3-32b",
+            "openai/gpt-oss-20b",
         ]
     )
 )
