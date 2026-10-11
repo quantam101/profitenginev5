@@ -203,14 +203,17 @@ def collect_markdown(pattern: str) -> Iterable[dict[str, Any]]:
     for p in sorted(glob.glob(pattern, recursive=True)):
         path = Path(p)
         text = path.read_text(encoding="utf-8", errors="replace")
-        # Strip YAML front matter — published Jekyll posts carry metadata
-        # (layout, tags, dates) that would otherwise be scored as article
-        # body, inflating word counts and tripping placeholder rules.
-        text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, flags=re.S)
+        # Capture the title BEFORE stripping front matter — posts whose
+        # title only exists in YAML (no body H1) would otherwise score
+        # as title-less.
         title = ""
         m = re.search(r"^#\s+(.+)$", text, re.M) or re.search(r'^title:\s*"?([^"\n]+)"?', text, re.M)
         if m:
             title = m.group(1).strip()
+        # Strip YAML front matter — published Jekyll posts carry metadata
+        # (layout, tags, dates) that would otherwise be scored as article
+        # body, inflating word counts and tripping placeholder rules.
+        text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, flags=re.S)
         yield {
             "id": f"live:{path}",
             "agent": "published-content",
