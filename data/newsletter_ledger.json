@@ -1016,6 +1016,40 @@
         "tier"
       ],
       "date": "2026-10-10"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/github-pages-vs-netlify-vs-vercel-best-free-static-hosting",
+      "title": "GitHub Pages vs Netlify vs Vercel: Which Free Static Host Wins in 2024?",
+      "url": "https://www.alreadyherellc.com/content/posts/github-pages-vs-netlify-vs-vercel-best-free-static-hosting/",
+      "fingerprint": [
+        "2024",
+        "free",
+        "github",
+        "host",
+        "netlify",
+        "pages",
+        "static",
+        "vercel",
+        "which",
+        "wins"
+      ],
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/self-hosting-vs-managed-hosting-when-each-makes-sense",
+      "title": "Self-Hosting vs Managed Hosting: When Each Makes Sense",
+      "url": "https://www.alreadyherellc.com/content/posts/self-hosting-vs-managed-hosting-when-each-makes-sense/",
+      "fingerprint": [
+        "each",
+        "hosting",
+        "makes",
+        "managed",
+        "self",
+        "sense"
+      ],
+      "date": "2026-10-12"
     }
   ]
 }
