@@ -50,6 +50,8 @@ jobs:
         run: npm run test:agent-evals
       - name: Content eval regression gate
         run: npm run eval:content
+      - name: Growth experiment tests
+        run: npm run test:growth-experiments
       - name: Frontend lint
         run: npx --no-install eslint app/ lib/ --max-warnings=0
       - name: Typecheck

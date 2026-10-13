@@ -13,7 +13,7 @@
     "autopublish:gate": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-09",
     "autopublish:gate:launch": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-23 --strict",
     "newsletter:seed": "node scripts/newsletter_seed.mjs",
-    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:revenue-os && npm run test:passive-income && npm run test:newsletter",
+    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:revenue-os && npm run test:passive-income && npm run test:newsletter && npm run test:growth-experiments",
     "test:unit": "python -m pytest code_merger/tests/ -q",
     "test:integration": "node tests/health-contract.test.mjs",
     "test:ai-gateway": "node tests/ai-gateway.test.mjs",
@@ -47,7 +47,8 @@
     "ci:full": "npm run ci:all && npm run ci:security && npm run test:full",
     "healthcheck": "node scripts/agent-healthcheck.mjs",
     "eval:content": "python -m runtime.agent_evals --suite evals/content_gen.jsonl --baseline data/evals/content_gen.baseline.json --report data/evals/latest.json",
-    "test:agent-evals": "python -m pytest tests/test_agent_evals.py -q"
+    "test:agent-evals": "python -m pytest tests/test_agent_evals.py -q",
+    "test:growth-experiments": "python -m pytest tests/test_growth_experiments.py -q"
   },
   "dependencies": {
     "mongodb": "^7.2.0",
