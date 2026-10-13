@@ -46,6 +46,10 @@ jobs:
 
       - name: SEO content quality regression tests
         run: python -m pytest tests/test_seo_content_quality.py -q
+      - name: Agent eval unit tests
+        run: npm run test:agent-evals
+      - name: Content eval regression gate
+        run: npm run eval:content
       - name: Frontend lint
         run: npx --no-install eslint app/ lib/ --max-warnings=0
       - name: Typecheck
