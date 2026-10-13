@@ -31,12 +31,15 @@ CLI:
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
+import math
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 DEFAULT_LEDGER = Path("data/experiments/ledger.jsonl")
 DEFAULT_MIN_SAMPLES = 3
@@ -46,6 +49,16 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+@contextmanager
+def _locked(ledger: Path) -> Iterator[None]:
+    """Serialize check-then-append sequences against other processes."""
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = ledger.with_suffix(ledger.suffix + ".lock")
+    with lock_path.open("w") as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        yield
+
+
 @dataclass
 class Variant:
     name: str
@@ -53,7 +66,9 @@ class Variant:
 
     @property
     def mean(self) -> float | None:
-        return round(sum(self.values) / len(self.values), 6) if self.values else None
+        # Full precision for comparisons — rounding here could tie two
+        # variants that genuinely differ and pick the wrong winner.
+        return sum(self.values) / len(self.values) if self.values else None
 
 
 @dataclass
@@ -135,12 +150,16 @@ def create_experiment(
     if len(set(variants)) != len(variants):
         raise SystemExit("variant names must be unique")
     exp_id = exp_id or f"exp-{uuid.uuid4().hex[:8]}"
-    if exp_id in load_experiments(ledger):
-        raise SystemExit(f"experiment already exists: {exp_id}")
-    _append(ledger, {
-        "type": "created", "id": exp_id, "hypothesis": hypothesis,
-        "metric": metric, "variants": variants, "at": _now(),
-    })
+    # Check-then-append must be atomic: two callers racing on the same ID
+    # would otherwise both pass the existence check and the second create
+    # would silently reset the experiment's history on replay.
+    with _locked(ledger):
+        if exp_id in load_experiments(ledger):
+            raise SystemExit(f"experiment already exists: {exp_id}")
+        _append(ledger, {
+            "type": "created", "id": exp_id, "hypothesis": hypothesis,
+            "metric": metric, "variants": variants, "at": _now(),
+        })
     return get_experiment(ledger, exp_id)
 
 
@@ -160,9 +179,13 @@ def record_observation(
         raise SystemExit(f"cannot record on experiment in status {exp.status}")
     if variant not in exp.variants:
         raise SystemExit(f"unknown variant '{variant}' (have: {sorted(exp.variants)})")
+    value = float(value)
+    if not math.isfinite(value):
+        # NaN/Infinity poison the mean and aren't valid JSON anyway.
+        raise SystemExit(f"measurement must be finite, got {value!r}")
     event: dict[str, Any] = {
         "type": "observation", "id": exp_id, "variant": variant,
-        "value": float(value), "at": _now(),
+        "value": value, "at": _now(),
     }
     if note:
         event["note"] = note
@@ -193,8 +216,11 @@ def conclude_experiment(
     winner = max(exp.variants.values(), key=lambda v: v.mean or 0.0)
     means = {v.name: v.mean for v in exp.variants.values()}
     reason = (
-        f"{winner.name} mean {winner.mean} vs "
-        + ", ".join(f"{k}={v}" for k, v in sorted(means.items()) if k != winner.name)
+        f"{winner.name} mean {round(winner.mean or 0.0, 6)} vs "
+        + ", ".join(
+            f"{k}={round(v, 6) if v is not None else None}"
+            for k, v in sorted(means.items()) if k != winner.name
+        )
     )
     _append(ledger, {
         "type": "concluded", "id": exp_id, "winner": winner.name,

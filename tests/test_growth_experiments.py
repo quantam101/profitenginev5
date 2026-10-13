@@ -80,6 +80,27 @@ def test_unknown_experiment_and_empty_ledger(tmp_path):
         get_experiment(tmp_path / "l.jsonl", "ghost")
 
 
+def test_nonfinite_measurement_rejected(tmp_path):
+    ledger = tmp_path / "l.jsonl"
+    create_experiment(ledger, "h", "m", ["a", "b"], exp_id="e")
+    start_experiment(ledger, "e")
+    for bad in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(SystemExit, match="finite"):
+            record_observation(ledger, "e", "a", bad)
+    assert get_experiment(ledger, "e").variants["a"].values == []
+
+
+def test_sub_rounding_margin_picks_real_winner(tmp_path):
+    ledger = tmp_path / "l.jsonl"
+    create_experiment(ledger, "h", "m", ["a", "b"], exp_id="e")
+    start_experiment(ledger, "e")
+    for _ in range(3):
+        record_observation(ledger, "e", "a", 0.1234567)
+        record_observation(ledger, "e", "b", 0.1234561)
+    done = conclude_experiment(ledger, "e")
+    assert done.winner == "a"  # differs below the old 6-decimal rounding
+
+
 def test_summary_shape(tmp_path):
     ledger = tmp_path / "l.jsonl"
     create_experiment(ledger, "h", "m", ["a", "b"], exp_id="e")
