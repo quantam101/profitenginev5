@@ -1,52 +1,51 @@
 name: Gumroad Publish Sweep
 # Attempts to flip every unpublished product live via PUT /v2/products/:id.
 # Gumroad's create API accepts published=true but still lands products in
-# draft; this sweep reports, per product, whether API publishing works or
-# the product needs a manual click (usually: missing content file).
+# draft; runtime.gumroad_client.create_product now calls publish_product
+# after every create, and this sweep is the failover: it reports, per
+# product, whether API publishing worked or the product needs a manual
+# click (usually: missing content file — the v2 API cannot upload files).
 on:
   workflow_dispatch:
+  schedule:
+    # Daily failover sweep so newly created products don't sit in draft.
+    - cron: '15 8 * * *'
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+
       - name: Publish all draft products
         env:
           GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
         run: |
           python3 - <<'PY'
-          import json, os, urllib.parse, urllib.request
+          import os, sys
 
-          token = os.environ["GUMROAD_ACCESS_TOKEN"].strip()
-          BASE = "https://api.gumroad.com/v2"
+          if not os.environ.get("GUMROAD_ACCESS_TOKEN", "").strip():
+              print("GUMROAD_ACCESS_TOKEN not set — skipping (fail-closed)")
+              sys.exit(0)
 
-          def call(method, path, data=None):
-              params = {"access_token": token, **(data or {})}
-              body = urllib.parse.urlencode(params).encode()
-              req = urllib.request.Request(f"{BASE}{path}", data=body,
-                                           method=method,
-                                           headers={"User-Agent": "already-here/1.0"})
-              try:
-                  with urllib.request.urlopen(req, timeout=30) as r:
-                      return json.loads(r.read())
-              except urllib.error.HTTPError as e:
-                  return {"success": False, "http": e.code,
-                          "message": e.read().decode(errors="replace")[:300]}
+          sys.path.insert(0, ".")
+          from runtime.gumroad_client import publish_all_drafts
 
-          listing = call("GET", "/products")
-          products = listing.get("products", [])
-          print(f"{len(products)} products in account")
-          for p in products:
-              name, pid = p.get("name", "?"), p.get("id")
-              if p.get("published"):
-                  print(f"  LIVE     {name}")
-                  continue
-              r = call("PUT", f"/products/{pid}", {"published": "true"})
-              if r.get("success") and r.get("product", {}).get("published"):
-                  print(f"  PUBLISHED-NOW  {name} -> {p.get('short_url')}")
-              else:
-                  print(f"  STILL-DRAFT    {name}: {str(r.get('message') or r)[:200]}")
+          results = publish_all_drafts()
+          for r in results:
+              tag = {"live": "LIVE", "published": "PUBLISHED-NOW"}.get(r["status"], "STILL-DRAFT")
+              line = f"  {tag:14}  {r['name']}"
+              if r.get("short_url"):
+                  line += f" -> {r['short_url']}"
+              if r.get("manual_step"):
+                  line += f"  [{r['manual_step']}]"
+              print(line)
+          drafts = [r for r in results if r["status"] == "still_draft"]
+          print(f"{len(results)} products, {len(drafts)} still draft")
+          # Exit 0 either way: still-draft is an expected state needing a
+          # manual dashboard step, not a job failure.
           PY

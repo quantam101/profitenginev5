@@ -50,8 +50,16 @@ def main() -> int:
 
     checkout["listing_url"] = result.get("short_url") or ""
     checkout["gumroad_product_id"] = result.get("id") or ""
+    checkout["published"] = bool(result.get("published"))
+    if result.get("manual_step"):
+        checkout["manual_step"] = result["manual_step"]
+    else:
+        checkout.pop("manual_step", None)
     checkout_path.write_text(json.dumps(checkout, indent=2) + "\n")
-    print(f"{product_dir.name}: listed → {checkout['listing_url'] or 'id ' + str(result.get('id'))}")
+    if checkout["published"]:
+        print(f"{product_dir.name}: listed LIVE → {checkout['listing_url'] or 'id ' + str(result.get('id'))}")
+    else:
+        print(f"{product_dir.name}: created but still DRAFT — {checkout.get('manual_step', 'publish manually')}")
     return 0
 
 

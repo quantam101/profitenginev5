@@ -204,25 +204,95 @@ def list_products() -> List[Dict[str, Any]]:
     return resp.get("products", []) if resp.get("success") else []
 
 
-def _product_exists(name: str) -> Optional[str]:
-    """Return product_id if a product with this name already exists."""
+def _find_product(name: str) -> Optional[Dict[str, Any]]:
+    """Return the product dict if a product with this name already exists."""
     for p in list_products():
         if p.get("name", "").strip().lower() == name.strip().lower():
-            return p.get("id")
+            return p
     return None
+
+
+# Gumroad's v2 API accepts published=true on create but still lands products
+# in draft — an explicit PUT is required afterwards. Even the PUT can be
+# refused when the product has no deliverable file, and the API cannot upload
+# files, so we report that honestly instead of claiming success.
+_MANUAL_STEP = (
+    "manual publish required in Gumroad dashboard — most likely the product "
+    "has no content file attached (the v2 API cannot upload files)"
+)
+
+
+def publish_product(product_id: str) -> Dict[str, Any]:
+    """
+    Flip one product live via PUT /v2/products/:id published=true.
+    Returns {"ok", "published"}; when the API refuses (or the product stays
+    draft), ok=False and manual_step explains the remaining manual action.
+    """
+    if not product_id:
+        return {"ok": False, "published": False, "error": "no product id"}
+    resp = _request("PUT", f"products/{product_id}", {"published": "true"})
+    published = bool(resp.get("success") and resp.get("product", {}).get("published"))
+    if published:
+        return {"ok": True, "published": True}
+    return {
+        "ok":          False,
+        "published":   False,
+        "error":       resp.get("message", "still draft after publish PUT"),
+        "manual_step": _MANUAL_STEP,
+    }
+
+
+def publish_all_drafts() -> List[Dict[str, Any]]:
+    """
+    Attempt to publish every unpublished product in the account.
+    Returns a per-product status list — drafts that can't be published via
+    the API are reported as still_draft with a manual_step, never as success.
+    """
+    results = []
+    for p in list_products():
+        name, pid = p.get("name", "?"), p.get("id", "")
+        if p.get("published"):
+            results.append({"name": name, "id": pid, "status": "live",
+                            "short_url": p.get("short_url", "")})
+            continue
+        pub = publish_product(pid)
+        results.append({
+            "name":       name,
+            "id":         pid,
+            "status":     "published" if pub.get("published") else "still_draft",
+            "short_url":  p.get("short_url", ""),
+            **({"error": pub.get("error"), "manual_step": pub.get("manual_step")}
+               if not pub.get("published") else {}),
+        })
+    return results
 
 
 def create_product(catalog_entry: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Idempotently create a Gumroad product.
-    Skips creation if a product with the same name already exists.
-    Returns the product dict (including id and short_url).
+    Idempotently create a Gumroad product and attempt to publish it.
+    Skips creation if a product with the same name already exists (but still
+    tries to publish it if it is sitting in draft).
+    Returns the product dict (including id and short_url) plus an honest
+    published flag and, when the API can't publish, a manual_step note.
     """
     name = catalog_entry["name"]
-    existing_id = _product_exists(name)
-    if existing_id:
-        logger.info(f"[Gumroad] Product already exists: {name} ({existing_id})")
-        return {"ok": True, "id": existing_id, "skipped": True, "name": name}
+    existing = _find_product(name)
+    if existing:
+        pid = existing.get("id", "")
+        logger.info(f"[Gumroad] Product already exists: {name} ({pid})")
+        result: Dict[str, Any] = {
+            "ok": True, "id": pid, "skipped": True, "name": name,
+            "short_url": existing.get("short_url", ""),
+        }
+        if existing.get("published"):
+            result["published"] = True
+        else:
+            pub = publish_product(pid)
+            result["published"] = bool(pub.get("published"))
+            if not result["published"]:
+                result["manual_step"] = pub.get("manual_step")
+                logger.warning(f"[Gumroad] {name} still draft: {pub.get('error')}")
+        return result
 
     data = {
         "name":            name,
@@ -240,7 +310,17 @@ def create_product(catalog_entry: Dict[str, Any]) -> Dict[str, Any]:
         pid     = product.get("id", "")
         url     = product.get("short_url", "")
         logger.info(f"[Gumroad] Created: {name} → id={pid} url={url}")
-        return {"ok": True, "id": pid, "short_url": url, "name": name, "price_cents": catalog_entry["price"]}
+        result = {"ok": True, "id": pid, "short_url": url, "name": name,
+                  "price_cents": catalog_entry["price"]}
+        if product.get("published"):
+            result["published"] = True
+        else:
+            pub = publish_product(pid)
+            result["published"] = bool(pub.get("published"))
+            if not result["published"]:
+                result["manual_step"] = pub.get("manual_step")
+                logger.warning(f"[Gumroad] {name} created but still draft: {pub.get('error')}")
+        return result
     else:
         logger.error(f"[Gumroad] Create failed for {name}: {resp.get('message')}")
         return {"ok": False, "name": name, "error": resp.get("message", "unknown")}
@@ -258,7 +338,12 @@ def bootstrap_catalog() -> List[Dict[str, Any]]:
         results.append(result)
     created = sum(1 for r in results if r.get("ok") and not r.get("skipped"))
     skipped = sum(1 for r in results if r.get("skipped"))
-    logger.info(f"[Gumroad] Catalog bootstrap: {created} created, {skipped} already existed")
+    live    = sum(1 for r in results if r.get("published"))
+    drafts  = sum(1 for r in results if r.get("ok") and not r.get("published"))
+    logger.info(
+        f"[Gumroad] Catalog bootstrap: {created} created, {skipped} already existed, "
+        f"{live} live, {drafts} still draft"
+    )
     return results
 
 
@@ -296,10 +381,14 @@ def revenue_summary() -> Dict[str, Any]:
     month_sales = get_sales(after=today)
     if not month_sales.get("ok"):
         return {"ok": False, "error": month_sales.get("error", "unknown"), "products": len(products)}
+    live   = sum(1 for p in products if p.get("published"))
     return {
         "ok":              True,
         "products":        len(products),
+        "live":            live,
+        "drafts":          len(products) - live,
         "month_sales":     month_sales.get("sale_count", 0),
         "month_revenue_usd": month_sales.get("total_revenue_usd", 0),
-        "catalog":         [{"name": p.get("name"), "id": p.get("id")} for p in products],
+        "catalog":         [{"name": p.get("name"), "id": p.get("id"),
+                             "published": bool(p.get("published"))} for p in products],
     }

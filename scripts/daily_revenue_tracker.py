@@ -59,6 +59,7 @@ class RevenueTracker:
                 "total_revenue": 0,
                 "total_sales": 0,
                 "products": {},
+                "sales_events": [],
                 "last_24h": {
                     "revenue": 0,
                     "sales": 0,
@@ -92,8 +93,18 @@ class RevenueTracker:
                     except ValueError:
                         continue
                     if created >= cutoff:
+                        price_usd = int(sale.get("price", 0)) / 100
                         gumroad_data["last_24h"]["sales"] += 1
-                        gumroad_data["last_24h"]["revenue"] += int(sale.get("price", 0)) / 100
+                        gumroad_data["last_24h"]["revenue"] += price_usd
+                        # Real per-sale ledger entries — actual API amounts, not estimates.
+                        gumroad_data["sales_events"].append({
+                            "source":       "gumroad",
+                            "sale_id":      sale.get("id"),
+                            "product_id":   sale.get("product_id"),
+                            "product_name": sale.get("product_name"),
+                            "price_usd":    price_usd,
+                            "created_at":   sale.get("created_at"),
+                        })
             else:
                 self.errors.append(f"Gumroad sales API error: {sales_response.status_code}")
 
