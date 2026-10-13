@@ -76,7 +76,7 @@ Python script that:
 
 ---
 
-### 6. **.github/workflows/daily_revenue_tracking.yml** (GitHub Actions)
+### 6. **.github/workflows/daily-ops.yml** (GitHub Actions)
 Automated workflow that:
 - Runs hourly Gumroad check (top of every hour)
 - Runs daily consolidation at 9 AM UTC
@@ -209,7 +209,7 @@ profitengine-v5/
 ├── REVENUE_METRICS_REFERENCE.md              # Metric reference
 │
 ├── .github/workflows/
-│   └── daily_revenue_tracking.yml            # Automation
+│   └── daily-ops.yml            # Automation
 │
 ├── scripts/
 │   └── daily_revenue_tracker.py              # Python script
@@ -460,7 +460,7 @@ See DAILY_TRACKING_SETUP_GUIDE.md for complete troubleshooting.
 - **DAILY_REVENUE_TRACKING_TEMPLATE.md** — Daily tracking form
 - **DAILY_REVENUE_QUICK_CHECK.md** — Quick 5-min version
 - **scripts/daily_revenue_tracker.py** — Automation script
-- **.github/workflows/daily_revenue_tracking.yml** — GitHub Actions config
+- **.github/workflows/daily-ops.yml** — GitHub Actions config
 
 ---
 

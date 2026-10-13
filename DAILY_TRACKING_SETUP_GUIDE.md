@@ -46,7 +46,7 @@ DAILY_TRACKING_EMAIL         [Your email for summaries]
 ```
 
 ### Step 4: Enable Automation
-The workflow `.github/workflows/daily_revenue_tracking.yml` automatically:
+The workflow `.github/workflows/daily-ops.yml` automatically:
 - ✅ Runs hourly Gumroad checks
 - ✅ Generates daily consolidated report at 9 AM UTC
 - ✅ Emails summary to you
@@ -366,7 +366,7 @@ Create a simple status page showing:
 ## Complete Automation Setup
 
 ### GitHub Actions Workflow
-File: `.github/workflows/daily_revenue_tracking.yml`
+File: `.github/workflows/daily-ops.yml`
 
 **Triggers:**
 - `0 * * * *` — Hourly Gumroad check
@@ -473,7 +473,7 @@ profitengine-v5/
 ├── DAILY_REVENUE_TRACKING_TEMPLATE.md    # Main template
 ├── DAILY_TRACKING_SETUP_GUIDE.md          # This guide
 ├── .github/workflows/
-│   └── daily_revenue_tracking.yml         # Automation
+│   └── daily-ops.yml         # Automation
 ├── scripts/
 │   └── daily_revenue_tracker.py           # Python aggregator
 ├── tracking/                              # Daily tracking files

@@ -344,6 +344,52 @@ async def synth_vo(text: str, mp3: Path, voice: str) -> list[tuple[float, float,
     return words
 
 
+def synth_vo_gtts(text: str, mp3: Path) -> bool:
+    """Free Google-Translate TTS fallback — no key, no word timings."""
+    try:
+        from gtts import gTTS
+        gTTS(text=text, lang="en", tld="com").save(str(mp3))
+        return mp3.exists() and mp3.stat().st_size > 1000
+    except Exception as e:
+        print(f"   gTTS fallback failed: {e}")
+        return False
+
+
+def synth_vo_espeak(text: str, mp3: Path) -> bool:
+    """Fully-offline espeak-ng fallback — last resort, robotic but always works."""
+    wav = mp3.with_suffix(".espeak.wav")
+    try:
+        subprocess.run(["espeak-ng", "-v", "en-us", "-s", "175", "-w", str(wav), text],
+                       check=True, capture_output=True, timeout=120)
+        if not wav.exists() or wav.stat().st_size < 1000:
+            return False
+        subprocess.run(["ffmpeg", "-y", "-v", "quiet", "-i", str(wav),
+                        "-codec:a", "libmp3lame", "-q:a", "4", str(mp3)],
+                       check=True, capture_output=True, timeout=120)
+        return mp3.exists() and mp3.stat().st_size > 500
+    except Exception as e:
+        print(f"   espeak fallback failed: {e}")
+        return False
+    finally:
+        wav.unlink(missing_ok=True)
+
+
+async def synth_vo_chain(text: str, mp3: Path, voice: str) -> tuple[list[tuple[float, float, str]], str]:
+    """TTS failover chain: edge-tts (neural + word timings) → gTTS (free, no
+    timings) → espeak-ng (offline, no timings). Returns (words, engine)."""
+    try:
+        words = await synth_vo(text, mp3, voice)
+        if mp3.exists() and mp3.stat().st_size > 1000:
+            return words, "edge-tts"
+    except Exception as e:
+        print(f"   edge-tts failed: {e}")
+    if synth_vo_gtts(text, mp3):
+        return [], "gtts"
+    if synth_vo_espeak(text, mp3):
+        return [], "espeak-ng"
+    return [], "none"
+
+
 def media_seconds(path: Path) -> float:
     try:
         out = run(["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
@@ -692,17 +738,15 @@ async def make_one(prog: dict) -> dict | None:
 
     vo = work / "vo.mp3"
     voice = _rng.choice(VOICES)
-    try:
-        words = await synth_vo(script, vo, voice)
-    except Exception as e:
-        print(f"   ❌ TTS failed: {e}")
-        return None
+    words, engine = await synth_vo_chain(script, vo, voice)
     dur = media_seconds(vo)
-    if dur < 3:
-        print("   ❌ voiceover too short/empty")
+    if engine == "none" or dur < 3:
+        print("   ❌ voiceover failed on all TTS engines")
         return None
+    if not words:
+        words = _even_words(script, dur)
     dur = min(dur + 0.6, 58)
-    print(f"   voice={voice} duration={dur:.1f}s words={len(words)}")
+    print(f"   voice={voice} engine={engine} duration={dur:.1f}s words={len(words)}")
 
     # micros without an explicit visual flip a coin: kinetic typography vs
     # B-roll — the tracker's view data decides which style wins

@@ -45,7 +45,7 @@
 **Template Section:** Section 1 — Gumroad Dashboard
 **Setup:** DAILY_TRACKING_SETUP_GUIDE.md → Gumroad Setup
 **Metrics:** REVENUE_METRICS_REFERENCE.md → Section 1
-**Automation:** `.github/workflows/daily_revenue_tracking.yml` → hourly-check job
+**Automation:** `.github/workflows/daily-ops.yml` → hourly-check job
 
 Tracks: Sales, revenue, products, page views, conversion rate
 
@@ -185,7 +185,7 @@ Tracks: Daily P&L, win rate, profit factor, positions, metrics
 #### ...set up automation (30 min)
 1. Read: DAILY_TRACKING_SETUP_GUIDE.md → Quick Start
 2. Add GitHub Secrets (8 keys)
-3. Enable workflow: `.github/workflows/daily_revenue_tracking.yml`
+3. Enable workflow: `.github/workflows/daily-ops.yml`
 4. Test first run manually
 
 #### ...understand a metric (5 min)
@@ -227,7 +227,7 @@ profitengine-v5-final/
 │   └── DAILY_REVENUE_TRACKING_TEMPLATE.md   ← Main template
 │
 ├── .github/workflows/
-│   └── daily_revenue_tracking.yml           ← GitHub Actions
+│   └── daily-ops.yml           ← GitHub Actions
 │
 ├── scripts/
 │   └── daily_revenue_tracker.py             ← Automation script
@@ -391,7 +391,7 @@ Total: 8 keys to add to GitHub Secrets
 - [ ] Fill in baseline data (10 min)
 - [ ] Follow: DAILY_TRACKING_SETUP_GUIDE.md → Quick Start section (5 min)
 - [ ] Add 8 GitHub Secrets (10 min)
-- [ ] Enable workflow: `.github/workflows/daily_revenue_tracking.yml`
+- [ ] Enable workflow: `.github/workflows/daily-ops.yml`
 - [ ] Test manually: Run `scripts/daily_revenue_tracker.py` (5 min)
 - [ ] Wait for first automated run (9 AM UTC)
 - [ ] Review email summary
