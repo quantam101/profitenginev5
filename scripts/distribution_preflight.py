@@ -48,6 +48,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("x-twitter", ("TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"), "social"),
     Channel("linkedin", ("LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"), "social"),
     Channel("reddit", ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME", "REDDIT_PASSWORD"), "social"),
+    Channel("mastodon", ("MASTODON_ACCESS_TOKEN",), "social"),
     Channel("tiktok", ("TIKTOK_ACCESS_TOKEN",), "social"),
     Channel("pinterest", ("PINTEREST_ACCESS_TOKEN", "PINTEREST_BOARD_ID"), "social"),
     Channel("telegram", ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"), "social"),
