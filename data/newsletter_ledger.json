@@ -1050,6 +1050,22 @@
         "sense"
       ],
       "date": "2026-10-12"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/set-up-free-postgres-database-supabase",
+      "title": "How to Set Up a Free Postgres Database on Supabase \u2013 Step\u2011by\u2011Step Guide",
+      "url": "https://www.alreadyherellc.com/content/posts/set-up-free-postgres-database-supabase/",
+      "fingerprint": [
+        "database",
+        "free",
+        "guide",
+        "postgres",
+        "set",
+        "step",
+        "supabase"
+      ],
+      "date": "2026-10-13"
     }
   ]
 }
