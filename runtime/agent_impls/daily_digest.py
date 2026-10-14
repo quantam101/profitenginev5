@@ -1,7 +1,7 @@
 """
 ProfitEngine v5 — Daily Audit-Log Digest
 =========================================
-Runs every morning at 07:00 UTC via the GitHub Actions 'digest.yml' workflow.
+Runs every morning at 07:00 UTC via the GitHub Actions 'daily-ops.yml' workflow.
 Sends a Telegram message (and optional Gmail fallback) summarising:
   • Yesterday's net revenue  (real Stripe figures when STRIPE_API_KEY is set)
   • Pending HITL approvals that need action

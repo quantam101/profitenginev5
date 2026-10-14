@@ -26,7 +26,7 @@ This repo now ships a `render.yaml` blueprint that redeploys the Python runtime
    (add the custom domain in Render → Settings → Custom Domains first).
    `app.alreadyherellc.com` should point at the Vercel frontend instead of OCI.
 3. **GitHub Actions**: workflows that call `http://129.146.236.177/...`
-   (`digest.yml`, `docker-guard.yml`, `ops-monitor.yml`, `eaos-pod-render.yml`) use the new
+   (`daily-ops.yml`, `docker-guard.yml`, `eaos-pod-render.yml`) use the new
    base URL via the `RUNTIME_BASE`/hardcoded values — update after the Render URL exists.
 
 ## Notes / limits

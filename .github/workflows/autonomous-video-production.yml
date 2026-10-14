@@ -41,9 +41,12 @@ jobs:
       - name: Install FFmpeg and dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core espeak-ng
           python -m pip install --upgrade pip -qq
-          pip install -q edge-tts google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp yt-dlp
+          # edge-tts unpinned: Microsoft rotates the TTS token frequently; the
+          # newest release carries the fix. gTTS + espeak-ng are the failover
+          # chain in synth_vo_chain when edge-tts 403s.
+          pip install -q -U edge-tts gtts google-auth-oauthlib google-auth-httplib2 google-api-python-client aiohttp yt-dlp
 
       - name: Mine trending topics (metadata-only, fails soft)
         env:
