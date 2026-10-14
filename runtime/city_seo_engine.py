@@ -507,6 +507,17 @@ def generate_batch(
 
     cities = [(c, s, t) for c, s, t in _CITIES if t in active_tiers]
 
+    # Optional Google Trends demand ranking (CITY_SEO_TRENDS_RANK=1). Reorders
+    # cities by measured search interest for the first active niche; on any
+    # Trends failure it silently keeps static tier order (failover rule).
+    if os.environ.get("CITY_SEO_TRENDS_RANK", "").strip() in {"1", "true", "yes"}:
+        try:
+            from runtime.trend_regions import prioritize_cities
+
+            cities = prioritize_cities(cities, active_niches[0].replace("-", " "))
+        except Exception as exc:
+            logger.warning(f"[CitySEO] Trends ranking unavailable ({exc}) — static order")
+
     pages_generated = 0
     pages_committed = 0
     errors: List[str] = []
