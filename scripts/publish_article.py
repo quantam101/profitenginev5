@@ -118,6 +118,16 @@ def _default_topic() -> str:
     cmdos_topic = _fetch_cmdos_topic()
     if cmdos_topic:
         return cmdos_topic
+    # Learning loop: a concluded experiment with a `topic:*` winner beats
+    # blind rotation — the hint is measured, not guessed.
+    try:
+        from runtime.learning_signals import topic_hint
+        hint = topic_hint()
+        if hint:
+            print(f"[LearningSignals] Using measured winning topic: {hint}")
+            return hint
+    except Exception:  # noqa: S110 — signals are advisory; missing data is fine
+        pass
     try:
         # Import sibling module without package install
         spec = importlib.util.spec_from_file_location(
