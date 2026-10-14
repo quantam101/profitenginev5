@@ -293,7 +293,14 @@ async def _post_mastodon(post: SocialPost) -> Optional[bool]:
     if link and link not in status:
         status = f"{status}\n\n{link}"
     if len(status) > 490:
-        status = status[:487] + "..."
+        # Truncate the body, never the link: keep the URL (and the "\n\n")
+        # intact at the tail so the published post always carries a working
+        # link back to the article.
+        if link and status.endswith(link):
+            tail = f"\n\n{link}"
+            status = status[: 490 - len(tail) - 3].rstrip() + "..." + tail
+        else:
+            status = status[:487] + "..."
     try:
         req = urllib.request.Request(
             f"https://{instance}/api/v1/statuses",

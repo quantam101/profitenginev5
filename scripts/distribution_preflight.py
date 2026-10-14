@@ -171,6 +171,12 @@ def _p_reddit() -> tuple[bool, str]:
         headers={"Authorization": f"Basic {creds}"}))
 
 
+def _p_mastodon() -> tuple[bool, str]:
+    instance = _getenv("MASTODON_INSTANCE") or "mastodon.social"
+    return _get(f"https://{instance.strip('/')}/api/v1/accounts/verify_credentials",
+                {"Authorization": f"Bearer {_getenv('MASTODON_ACCESS_TOKEN')}"})
+
+
 def _p_tiktok() -> tuple[bool, str]:
     return _get("https://open.tiktokapis.com/v2/user/info/?fields=open_id",
                 {"Authorization": f"Bearer {_getenv('TIKTOK_ACCESS_TOKEN')}"})
@@ -249,6 +255,7 @@ PROBES: dict[str, Callable[[], tuple[bool, str]]] = {
     "x-twitter": _p_twitter,
     "linkedin": _p_linkedin,
     "reddit": _p_reddit,
+    "mastodon": _p_mastodon,
     "tiktok": _p_tiktok,
     "pinterest": _p_pinterest,
     "telegram": _p_telegram,
