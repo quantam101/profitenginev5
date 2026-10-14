@@ -129,6 +129,18 @@ class Agent:
         if not raw_topics:
             raw_topics = _FALLBACK_TOPICS
 
+        # Optional zero-cost signal: re-rank by Google Trends regional demand.
+        # No-ops (returns input order) when pytrends is absent or rate-limited.
+        regional_ranked = False
+        try:
+            from runtime.regional_trends import rank_by_regional_interest
+
+            ranked = rank_by_regional_interest(raw_topics)
+            regional_ranked = ranked != raw_topics
+            raw_topics = ranked
+        except Exception:
+            pass
+
         # Pre-format into a compact string (Python formatting, not LLM)
         topics_text = _build_topics_text(raw_topics)
 
@@ -167,5 +179,6 @@ class Agent:
                 "topics_found":     len(raw_topics),
                 "topics_selected":  len(selected),
                 "json_parse_ok":    parsed.ok,
+                "regional_ranked":  regional_ranked,
             },
         )

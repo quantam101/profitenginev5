@@ -8,3 +8,5 @@ jsonschema==4.23.0
 pytest==9.0.3
 anthropic>=0.40.0
 python-multipart
+
+fpdf2==2.8.9
