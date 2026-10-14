@@ -107,3 +107,15 @@ def test_summary_shape(tmp_path):
     s = experiment_summary(get_experiment(ledger, "e"))
     assert s["status"] == "draft" and s["winner"] is None
     assert s["variants"]["a"] == {"samples": 0, "mean": None}
+
+
+def test_notes_are_sanitized_before_ledger(tmp_path):
+    import json
+    ledger = tmp_path / "l.jsonl"
+    create_experiment(ledger, "h", "m", ["a", "b"], exp_id="e")
+    start_experiment(ledger, "e")
+    record_observation(ledger, "e", "a", 1.0,
+                       note="hit api token=ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ok")
+    event = json.loads(ledger.read_text().strip().splitlines()[-1])
+    assert "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" not in event["note"]
+    assert "<redacted>" in event["note"]

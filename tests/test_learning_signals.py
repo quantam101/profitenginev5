@@ -1,6 +1,7 @@
 """Tests for runtime.learning_signals — the measured-results feedback loop."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 from runtime.learning_signals import (
@@ -33,7 +34,7 @@ def test_empty_state_yields_empty_signals(tmp_path):
     assert signals["winning_variants"] == []
     assert signals["topic_hints"] == []
     assert signals["top_revenue_sources"] == []
-    assert topic_hint(tmp_path) is None
+    assert topic_hint(tmp_path, on_date=date(2026, 1, 5)) is None
 
 
 def test_concluded_experiment_surfaces_winner(tmp_path):
@@ -44,7 +45,11 @@ def test_concluded_experiment_surfaces_winner(tmp_path):
     assert w["winner"] == "topic:question-style"
     assert w["winner_mean"] is not None
     assert signals["topic_hints"] == ["question-style"]
-    assert topic_hint(tmp_path) == "question-style"
+    # 1-hint pool has len+1 = 2 slots: even idx → hint, odd idx → rotation.
+    hint_day = next(d for d in range(1, 8) if date(2026, 1, d).toordinal() % 2 == 0)
+    rest_day = next(d for d in range(1, 8) if date(2026, 1, d).toordinal() % 2 == 1)
+    assert topic_hint(tmp_path, on_date=date(2026, 1, hint_day)) == "question-style"
+    assert topic_hint(tmp_path, on_date=date(2026, 1, rest_day)) is None
 
 
 def test_unconcluded_experiments_do_not_leak(tmp_path):
@@ -63,11 +68,12 @@ def test_revenue_report_ranks_sources(tmp_path):
         "metrics": {
             "gumroad": {"total_revenue": 42.0, "last_24h": {"revenue": 3.5}},
             "stripe": {"total_revenue": 100.0},
-            "youtube": {"revenue_24h": 0},
+            "youtube": {"revenue_24h": 7.0},
+            "email": {"revenue_from_email": 12.0},
         }
     }))
     sources = collect_signals(tmp_path)["top_revenue_sources"]
-    assert [s["source"] for s in sources] == ["stripe", "gumroad"]
+    assert [s["source"] for s in sources] == ["stripe", "gumroad", "email", "youtube"]
     assert sources[0]["total_usd"] == 100.0
 
 
@@ -78,6 +84,29 @@ def test_write_signals_persists_json(tmp_path):
     data = json.loads(out.read_text())
     assert data["signals_version"] == 1
     assert data["topic_hints"] == ["question-style"]
+
+
+def test_committed_signals_are_preferred_over_local(tmp_path):
+    """A fresh runner with only the committed file uses it — no ledger needed."""
+    committed = tmp_path / "data" / "strategy" / "signals.json"
+    committed.parent.mkdir(parents=True)
+    committed.write_text(json.dumps({
+        "signals_version": 1, "winning_variants": [],
+        "topic_hints": ["committed-topic"], "channel_hints": [],
+        "top_revenue_sources": []}))
+    assert collect_signals(tmp_path)["topic_hints"] == ["committed-topic"]
+
+
+def test_write_signals_recomputes_past_committed(tmp_path):
+    """refresh must not freeze: it recomputes from data, not the old file."""
+    committed = tmp_path / "data" / "strategy" / "signals.json"
+    committed.parent.mkdir(parents=True)
+    committed.write_text(json.dumps({"signals_version": 1, "topic_hints": ["stale"],
+                                    "winning_variants": [], "channel_hints": [],
+                                    "top_revenue_sources": []}))
+    _concluded_ledger(tmp_path)
+    out = write_signals(tmp_path)
+    assert json.loads(out.read_text())["topic_hints"] == ["question-style"]
 
 
 def test_corrupt_revenue_report_is_ignored(tmp_path):

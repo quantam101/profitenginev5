@@ -60,8 +60,16 @@ def _winning_variants(base: Path) -> list[dict[str, Any]]:
     return winners
 
 
+_REVENUE_FIELDS = ("total_revenue", "revenue_24h", "revenue_from_email", "revenue")
+
+
 def _top_revenue_sources(base: Path) -> list[dict[str, Any]]:
-    """Latest daily revenue report → sources ranked by real dollars."""
+    """Latest daily revenue report → sources ranked by real dollars.
+
+    Stream metrics use different field names (stripe: total_revenue,
+    youtube: revenue_24h, email: revenue_from_email, gumroad: both) —
+    the first nonzero field wins so no tracked stream is dropped.
+    """
     reports = sorted(glob.glob(str(base / "daily_revenue_*.json")))
     reports += sorted(glob.glob(str(base / "data" / "daily_revenue_*.json")))
     if not reports:
@@ -75,7 +83,7 @@ def _top_revenue_sources(base: Path) -> list[dict[str, Any]]:
     for name, m in metrics.items():
         if not isinstance(m, dict):
             continue
-        total = m.get("total_revenue", 0) or 0
+        total = next((m[f] for f in _REVENUE_FIELDS if m.get(f)), 0)
         last_24h = (m.get("last_24h") or {}).get("revenue", 0) or 0
         if total or last_24h:
             sources.append({"source": name, "total_usd": total, "last_24h_usd": last_24h})
@@ -83,8 +91,19 @@ def _top_revenue_sources(base: Path) -> list[dict[str, Any]]:
     return sources
 
 
-def collect_signals(base: Path | str = ".") -> dict[str, Any]:
-    base = Path(base)
+def _read_committed(base: Path) -> dict[str, Any] | None:
+    """Signals committed by the daily-ops refresh — what a fresh checkout sees."""
+    path = base / DEFAULT_SIGNALS_PATH
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    return data if data.get("signals_version") == 1 else None
+
+
+def _compute_signals(base: Path) -> dict[str, Any]:
     winners = _winning_variants(base)
     return {
         "generated_at": _now(),
@@ -98,16 +117,37 @@ def collect_signals(base: Path | str = ".") -> dict[str, Any]:
     }
 
 
-def topic_hint(base: Path | str = ".") -> str | None:
-    """The most recently measured winning topic, or None."""
+def collect_signals(base: Path | str = ".") -> dict[str, Any]:
+    """Prefer the committed signals.json (fresh runners have no ledger);
+    fall back to computing from local data when it exists."""
+    base = Path(base)
+    committed = _read_committed(base)
+    return committed if committed is not None else _compute_signals(base)
+
+
+def topic_hint(base: Path | str = ".", on_date=None) -> str | None:
+    """A measured winning topic for the day, or None.
+
+    Hints rotate deterministically by date so a concluded winner does
+    not publish the identical topic every day; when the pool is
+    exhausted for the day the caller falls back to its own rotation.
+    """
     hints = collect_signals(base)["topic_hints"]
-    return hints[-1] if hints else None
+    if not hints:
+        return None
+    ordinal = (on_date or datetime.now(timezone.utc).date()).toordinal()
+    # len(hints)+1 slots: the last slot means "no hint today" so a
+    # single winner alternates with the regular rotation instead of
+    # monopolizing every post.
+    idx = ordinal % (len(hints) + 1)
+    return hints[idx] if idx < len(hints) else None
 
 
 def write_signals(base: Path | str = ".", path: Path = DEFAULT_SIGNALS_PATH) -> Path:
     out = Path(base) / path
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(collect_signals(base), indent=2) + "\n", encoding="utf-8")
+    # Always recompute — reading the committed file here would freeze it.
+    out.write_text(json.dumps(_compute_signals(Path(base)), indent=2) + "\n", encoding="utf-8")
     return out
 
 

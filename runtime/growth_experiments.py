@@ -34,6 +34,7 @@ import argparse
 import fcntl
 import json
 import math
+import re
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -188,9 +189,16 @@ def record_observation(
         "value": value, "at": _now(),
     }
     if note:
-        event["note"] = note
+        event["note"] = _sanitize_note(note)
     _append(ledger, event)
     return get_experiment(ledger, exp_id)
+
+
+def _sanitize_note(note: str) -> str:
+    """Strip credential-shaped strings before they enter the (committed)
+    ledger — same redaction style as distribution_preflight._redact."""
+    note = re.sub(r"(?i)(bearer|token|key|secret|password)[=:]\s*\S+", r"\1=<redacted>", note)
+    return re.sub(r"\b[A-Za-z0-9_\-]{32,}\b", "<redacted>", note)
 
 
 def conclude_experiment(
