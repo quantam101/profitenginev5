@@ -48,6 +48,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("x-twitter", ("TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"), "social"),
     Channel("linkedin", ("LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"), "social"),
     Channel("reddit", ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME", "REDDIT_PASSWORD"), "social"),
+    Channel("mastodon", ("MASTODON_ACCESS_TOKEN",), "social"),
     Channel("tiktok", ("TIKTOK_ACCESS_TOKEN",), "social"),
     Channel("pinterest", ("PINTEREST_ACCESS_TOKEN", "PINTEREST_BOARD_ID"), "social"),
     Channel("telegram", ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"), "social"),
@@ -170,6 +171,12 @@ def _p_reddit() -> tuple[bool, str]:
         headers={"Authorization": f"Basic {creds}"}))
 
 
+def _p_mastodon() -> tuple[bool, str]:
+    instance = _getenv("MASTODON_INSTANCE") or "mastodon.social"
+    return _get(f"https://{instance.strip('/')}/api/v1/accounts/verify_credentials",
+                {"Authorization": f"Bearer {_getenv('MASTODON_ACCESS_TOKEN')}"})
+
+
 def _p_tiktok() -> tuple[bool, str]:
     return _get("https://open.tiktokapis.com/v2/user/info/?fields=open_id",
                 {"Authorization": f"Bearer {_getenv('TIKTOK_ACCESS_TOKEN')}"})
@@ -248,6 +255,7 @@ PROBES: dict[str, Callable[[], tuple[bool, str]]] = {
     "x-twitter": _p_twitter,
     "linkedin": _p_linkedin,
     "reddit": _p_reddit,
+    "mastodon": _p_mastodon,
     "tiktok": _p_tiktok,
     "pinterest": _p_pinterest,
     "telegram": _p_telegram,

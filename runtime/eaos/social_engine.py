@@ -280,6 +280,43 @@ async def _post_reddit(post: SocialPost) -> Optional[bool]:
         return False
 
 
+# ── Mastodon (harvested from profitengine-v4/publishers/mastodon.js) ───────
+
+async def _post_mastodon(post: SocialPost) -> Optional[bool]:
+    token    = os.environ.get("MASTODON_ACCESS_TOKEN", "")
+    instance = os.environ.get("MASTODON_INSTANCE", "mastodon.social").strip("/")
+    if not token:
+        logger.info("[Mastodon] No credentials — skip")
+        return None
+    status = post.text_content
+    link = (post.extra or {}).get("url", "")
+    if link and link not in status:
+        status = f"{status}\n\n{link}"
+    if len(status) > 490:
+        # Truncate the body, never the link: keep the URL (and the "\n\n")
+        # intact at the tail so the published post always carries a working
+        # link back to the article.
+        if link and status.endswith(link):
+            tail = f"\n\n{link}"
+            status = status[: 490 - len(tail) - 3].rstrip() + "..." + tail
+        else:
+            status = status[:487] + "..."
+    try:
+        req = urllib.request.Request(
+            f"https://{instance}/api/v1/statuses",
+            data=json.dumps({"status": status, "visibility": "public"}).encode(),
+            method="POST",
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/json"},
+        )
+        data = _urlopen_json(req, timeout=12)
+        logger.info(f"[Mastodon] Tooted: {data.get('url', '')}")
+        return True
+    except Exception as exc:
+        logger.error(f"[Mastodon] Failed: {exc}")
+        return False
+
+
 # ── Telegram ───────────────────────────────────────────────────────────────
 
 async def _post_telegram(post: SocialPost) -> Optional[bool]:
@@ -542,6 +579,7 @@ class ProductionSocialEngine:
             "X":         _post_twitter,
             "TWITTER":   _post_twitter,
             "LINKEDIN":  _post_linkedin,
+            "MASTODON":  _post_mastodon,
             "REDDIT":    _post_reddit,
             "TELEGRAM":  _post_telegram,
             "TIKTOK":    _post_tiktok,
@@ -578,6 +616,7 @@ class ProductionSocialEngine:
         platform_posts = [
             SocialPost(None, "TELEGRAM", telegram_msg),
             SocialPost(None, "LINKEDIN", linkedin_msg),
+            SocialPost(None, "MASTODON", f"{text[:400]}\n\n{url}\n\n{hashtags}"),
             SocialPost(None, "FACEBOOK", fb_msg, extra={"url": url}),
             SocialPost(None, "REDDIT",   reddit_title, extra={"url": url, "subreddit": "passive_income"}),
             SocialPost(None, "INSTAGRAM", f"{text[:200]}\n\n{hashtags}",
