@@ -313,6 +313,10 @@ jobs:
           TRADING_API_KEY: ${{ secrets.TRADING_API_KEY }}
         run: python3 scripts/daily_revenue_tracker.py
 
+      - name: Refresh learning signals (experiments + revenue → strategy)
+        if: steps.tracker.outcome == 'success'
+        run: python3 -m runtime.learning_signals refresh
+
       - name: Sync Gumroad buyers to newsletter (post-purchase nurture)
         if: always() && steps.tracker.outcome == 'success'
         env:
@@ -433,7 +437,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: daily revenue report for ${{ github.run_id }}"
-          file_pattern: "DAILY_REVENUE_REPORT.md daily_revenue_*.json"
+          file_pattern: "DAILY_REVENUE_REPORT.md daily_revenue_*.json data/strategy/signals.json"
           skip_fetch: false
           skip_checkout: false
 

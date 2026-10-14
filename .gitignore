@@ -9,6 +9,8 @@ __pycache__/
 /data/*
 !/data/fye/
 !/data/revenue-os/
+!/data/experiments/
+!/data/strategy/
 !/data/newsletter_ledger.json
 !/data/evals/
 /data/evals/*
