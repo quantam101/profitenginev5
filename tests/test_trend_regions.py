@@ -111,6 +111,24 @@ def test_prioritize_cities_reorders_by_demand(monkeypatch):
     assert out[2] == ("Chicago", "IL", "A")  # unmatched keeps position
 
 
+def test_prioritize_cities_unmatched_keep_static_order(monkeypatch):
+    cities = [
+        ("Boston", "MA", "B"),
+        ("Tucson", "AZ", "C"),
+        ("Denver", "CO", "B"),
+        ("Phoenix", "AZ", "A"),
+    ]
+    monkeypatch.setattr(
+        trend_regions,
+        "region_interest",
+        lambda *a, **kw: [("Phoenix", "AZ", 80)],
+    )
+    out = trend_regions.prioritize_cities(cities, "it support")
+    assert out[0] == ("Phoenix", "AZ", "A")
+    # Unmatched cities must keep their original relative order (not reversed).
+    assert out[1:] == [("Boston", "MA", "B"), ("Tucson", "AZ", "C"), ("Denver", "CO", "B")]
+
+
 def test_prioritize_cities_failover_keeps_static_order(monkeypatch):
     monkeypatch.setattr(trend_regions, "region_interest", lambda *a, **kw: None)
     assert trend_regions.prioritize_cities(CITIES, "x") == CITIES

@@ -98,8 +98,10 @@ class ReportPDF:
         n = len(items)
         gap = 4
         w = (178 - gap * (n - 1)) / n
-        x0, y = 16, d.get_y()
         max_h = 18
+        if d.get_y() + max_h > d.page_break_trigger:
+            d.add_page()
+        x0, y = 16, d.get_y()
         for i, (label, value) in enumerate(items):
             x = x0 + i * (w + gap)
             d.set_fill_color(*_ROW_ALT)
@@ -147,9 +149,18 @@ class ReportPDF:
                 fill = False
             d.set_text_color(*_TEXT)
             for i, cell in enumerate(row):
-                d.cell(widths[i], 6.5, _t(cell), border=0, fill=fill)
+                d.cell(widths[i], 6.5, self._fit(_t(cell), widths[i] - 2), border=0, fill=fill)
             d.ln()
         d.ln(4)
+
+    def _fit(self, text: str, width: float) -> str:
+        """Clip text to a column width so long values can't overprint."""
+        d = self._doc
+        if d.get_string_width(text) <= width:
+            return text
+        while text and d.get_string_width(text + "...") > width:
+            text = text[:-1]
+        return (text + "...") if text else ""
 
     def add_kv_table(self, pairs: Iterable[Tuple[str, str]],
                      key_label: str = "Field", value_label: str = "Value") -> None:

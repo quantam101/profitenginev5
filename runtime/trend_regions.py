@@ -103,14 +103,15 @@ def prioritize_cities(
 
     # Map Trends region names back onto our city list by (city, state).
     interest = {(name.lower(), st.upper()): score for name, st, score in ranking}
-    scored: List[Tuple[int, int, Tuple[str, str, str]]] = []
+    scored: List[Tuple[int, int, int, Tuple[str, str, str]]] = []
     for idx, (city, state, tier) in enumerate(cities):
         key = (city.lower(), state.upper())
         score = interest.get(key, -1)
-        # Negative index keeps unmatched cities in original order at the end.
-        scored.append((score if score >= 0 else -1, -idx if score < 0 else idx, (city, state, tier)))
-    scored.sort(key=lambda t: (-t[0], t[1]))
-    return [c for _, __, c in scored]
+        matched = score >= 0
+        # Matched cities first by interest desc; unmatched keep static order.
+        scored.append((0 if matched else 1, -score if matched else 0, idx, (city, state, tier)))
+    scored.sort(key=lambda t: (t[0], t[1], t[2]))
+    return [c for _, __, ___, c in scored]
 
 
 def main() -> None:
