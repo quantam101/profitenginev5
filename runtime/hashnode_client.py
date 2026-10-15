@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from .resilience import call_with_retries
+
 _HASHNODE_GQL = "https://gql.hashnode.com/"
 
 
@@ -61,7 +63,7 @@ def publish_article(
     }
     """
 
-    try:
+    def _post():
         resp = httpx.post(
             _HASHNODE_GQL,
             headers={
@@ -72,7 +74,10 @@ def publish_article(
             timeout=30,
         )
         resp.raise_for_status()
-        data = resp.json()
+        return resp
+
+    try:
+        data = call_with_retries(_post, label="hashnode publishPost").json()
         errors = data.get("errors")
         if errors:
             raise RuntimeError(f"Hashnode API error: {errors}")
