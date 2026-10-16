@@ -1083,6 +1083,21 @@
         "side"
       ],
       "date": "2026-10-14"
+    },
+    {
+      "kind": "article",
+      "key": "https://www.alreadyherellc.com/content/posts/cloudflare-workers-build-deploy-apis-no-cost",
+      "title": "Cloudflare Workers: Build and Deploy APIs at No Cost",
+      "url": "https://www.alreadyherellc.com/content/posts/cloudflare-workers-build-deploy-apis-no-cost/",
+      "fingerprint": [
+        "apis",
+        "build",
+        "cloudflare",
+        "cost",
+        "deploy",
+        "workers"
+      ],
+      "date": "2026-10-16"
     }
   ]
 }
