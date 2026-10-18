@@ -119,9 +119,14 @@ jobs:
       - name: Check all endpoints
         id: checks
         run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36 daily-ops"
           check() {
             local name=$1 url=$2
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo "000")
+            # Render free tier can cold-start for 30-60s; retry transient
+            # network/5xx failures before reporting a degradation.
+            code=$(curl -sS -o /dev/null -w "%{http_code}" -L -A "$UA" \
+              --max-time 90 --retry 2 --retry-all-errors --retry-delay 5 "$url" || true)
+            code=${code:-000}
             if [[ "$code" =~ ^2 ]]; then
               echo "OK|${name}|${code}|${url}"
             else
