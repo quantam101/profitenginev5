@@ -22,6 +22,8 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from .resilience import urlopen_with_retries
+
 logger = logging.getLogger("resend_newsletter")
 
 _BASE = "https://api.resend.com"
@@ -45,7 +47,7 @@ def _request(method: str, path: str, body: Optional[Dict[str, Any]] = None) -> D
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urlopen_with_retries(req, timeout=30, label=f"resend {method} {path}") as r:
             raw = r.read()
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as exc:
