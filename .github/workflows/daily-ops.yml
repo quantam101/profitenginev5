@@ -134,12 +134,13 @@ jobs:
             fi
           }
           {
-            check "ProfitEngine Web"    "https://www.alreadyherellc.com/profitengine"
-            check "ProfitEngine API"    "https://www.alreadyherellc.com/api/health"
-            check "TokenForge Frontend" "https://forge.alreadyherellc.com"
-            check "Tradegate2"          "https://tradegate2-one.vercel.app"
-            check "Content Repo"        "https://quantam101.github.io/content/"
-            check "Runtime Health Probe" "${{ secrets.RUNTIME_API_URL }}/health"
+            check "ProfitEngine Web"    "https://www.alreadyherellc.com/profitengine" &
+            check "ProfitEngine API"    "https://www.alreadyherellc.com/api/health" &
+            check "TokenForge Frontend" "https://forge.alreadyherellc.com" &
+            check "Tradegate2"          "https://tradegate2-one.vercel.app" &
+            check "Content Repo"        "https://quantam101.github.io/content/" &
+            check "Runtime Health Probe" "${{ secrets.RUNTIME_API_URL }}/health" &
+            wait
           } | tee /tmp/health_results.txt
 
       - name: Build daily report
