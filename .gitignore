@@ -12,6 +12,7 @@ __pycache__/
 !/data/experiments/
 !/data/strategy/
 !/data/newsletter_ledger.json
+!/data/field_income.csv
 !/data/evals/
 /data/evals/*
 !/data/evals/content_gen.baseline.json
