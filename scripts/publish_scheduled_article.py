@@ -78,6 +78,22 @@ def canonical_exists(path: str) -> bool:
     return r.status_code == 200
 
 
+def existing_post_names() -> List[str]:
+    r = httpx.get(
+        f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}/contents/{GH_DIR}",
+        headers=headers(),
+        params={"ref": GH_BRANCH},
+        timeout=20,
+    )
+    if r.status_code == 404:
+        return []
+    if r.status_code != 200:
+        raise RuntimeError(
+            f"Cannot verify existing posts for duplicate check: HTTP {r.status_code}"
+        )
+    return [item.get("name", "") for item in r.json()]
+
+
 def jekyll_post(article: Dict[str, Any], date_str: str) -> str:
     title = str(article["title"]).replace('"', '\\"')
     meta = str(article["meta_description"]).replace('"', '\\"')
@@ -300,6 +316,17 @@ def main() -> None:
     if canonical_exists(path):
         print(f"[SKIP] Scheduled canonical already exists: {path}")
         return
+
+    from scripts.seo_content_quality import find_duplicate_post
+
+    own_name = os.path.basename(path)
+    others = [name for name in existing_post_names() if name != own_name]
+    duplicate = find_duplicate_post(article["slug"], others)
+    if duplicate and os.getenv("FORCE_PUBLISH", "").lower() != "true":
+        raise RuntimeError(
+            f"Scheduled article duplicates existing post {duplicate}; "
+            "update that post instead (set FORCE_PUBLISH=true to override)."
+        )
 
     canonical_url = publish_canonical(path, jekyll_post(article, date_str), article["title"])
     ping_indexnow(canonical_url)

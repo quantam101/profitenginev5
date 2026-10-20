@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-10-20T01:46:40.265540",
+  "timestamp": "2026-10-20T12:25:17.563692",
   "date": "2026-10-20",
   "metrics": {
     "field": {
       "source_file": "data/field_income.csv",
-      "business_date": "2026-10-19",
+      "business_date": "2026-10-20",
       "total_revenue": 0.0,
       "last_24h": {
         "revenue": 0.0

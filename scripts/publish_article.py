@@ -859,6 +859,30 @@ def publish_github(filename: str, content: str, commit_msg: str) -> str:
     return f"{SITE_BASE}/posts/{slug}/"
 
 
+def _existing_post_names() -> list[str]:
+    """Filenames currently in GH_DIR.
+
+    Fails closed: only a 404 (directory not created yet) counts as empty. Any
+    other failure raises, because an unverified listing would let the
+    duplicate-topic guard pass silently.
+    """
+    if not GH_TOKEN:
+        return []
+    r = httpx.get(
+        f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}/contents/{GH_DIR}",
+        headers=_gh_headers(),
+        params={"ref": GH_BRANCH},
+        timeout=30,
+    )
+    if r.status_code == 404:
+        return []
+    if r.status_code != 200:
+        raise RuntimeError(
+            f"Cannot verify existing posts for duplicate check: HTTP {r.status_code}"
+        )
+    return [item.get("name", "") for item in r.json()]
+
+
 def _todays_post_exists(date_str: str) -> bool:
     """Same-day guard: true if a post dated date_str already exists in GH_DIR."""
     if not GH_TOKEN:
@@ -1094,6 +1118,16 @@ def main() -> None:
     # Sanitize slug
     slug = re.sub(r"[^a-z0-9-]", "", slug)[:60].strip("-")
     filename = f"{date_str}-{slug}.md"
+
+    from scripts.seo_content_quality import find_duplicate_post
+
+    duplicate = find_duplicate_post(slug, _existing_post_names())
+    if duplicate and not FORCE_PUBLISH:
+        raise RuntimeError(
+            f"Duplicate topic: '{slug}' overlaps existing post {duplicate}. "
+            "Update the existing post or choose a different topic "
+            "(set FORCE_PUBLISH=true to override)."
+        )
 
     # Inject affiliate links (noop until AFFILIATE_LINKS env var is set)
     article["body"] = _inject_affiliates(article.get("body", ""))
