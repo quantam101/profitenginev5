@@ -607,8 +607,14 @@ class ProductionSocialEngine:
 
     async def publish_all_platforms(self, text: str, url: str, tags: List[str],
                                      thread_tweets: Optional[List[str]] = None,
-                                     video_path: Optional[str] = None) -> None:
-        """Blast one piece of content to ALL configured platforms at once."""
+                                     video_path: Optional[str] = None,
+                                     priority_channels: Optional[List[str]] = None) -> None:
+        """Blast one piece of content to ALL configured platforms at once.
+
+        ``priority_channels`` (measured winners from learning signals, e.g.
+        ``["linkedin", "mastodon"]``) dispatch first; every platform still
+        posts — priority is ordering, never exclusion.
+        """
         hashtags = " ".join(f"#{t.replace(' ', '')}" for t in (tags or [])[:5])
         telegram_msg = f"📝 <b>{text[:200]}</b>\n\n🔗 {url}\n\n{hashtags}"
         linkedin_msg = f"{text[:600]}\n\n{url}\n\n{hashtags}"
@@ -638,6 +644,13 @@ class ProductionSocialEngine:
                                               extra={"description": yt_desc,
                                                      "tags": [t.replace("-","") for t in (tags or [])[:8]] +
                                                               ["ProfitEngine","PassiveIncome","AI","AlreadyHereLLC"]}))
+
+        if priority_channels:
+            priority = {c.upper() for c in priority_channels}
+            platform_posts.sort(
+                key=lambda p: 0 if p.platform.upper() in priority else 1)
+            hinted = [p.platform for p in platform_posts if p.platform.upper() in priority]
+            logger.info(f"[SocialEngine] measured channel winners dispatch first: {hinted}")
 
         await asyncio.gather(*[self.publish(p) for p in platform_posts])
 

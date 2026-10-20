@@ -1164,6 +1164,12 @@ def main() -> None:
                 f"Read more on GitHub Pages, Dev.to, and Hashnode → {tracked_url}",
                 "#ProfitEngine #AIContent #PassiveIncome #AlreadyHereLLC",
             ]
+            channel_hints: List[str] = []
+            try:
+                from runtime.learning_signals import collect_signals
+                channel_hints = collect_signals()["channel_hints"]
+            except Exception:
+                pass  # hints are optional — publishing is identical without them
             engine = ProductionSocialEngine()
             asyncio.run(
                 engine.publish_all_platforms(
@@ -1171,6 +1177,7 @@ def main() -> None:
                     url=tracked_url,
                     tags=tags[:5],
                     thread_tweets=thread_tweets,
+                    priority_channels=channel_hints or None,
                 )
             )
             print("[OK] EAOS social blast dispatched")
