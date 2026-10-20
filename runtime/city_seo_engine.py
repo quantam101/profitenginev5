@@ -507,6 +507,25 @@ def generate_batch(
 
     cities = [(c, s, t) for c, s, t in _CITIES if t in active_tiers]
 
+    # Prioritize cities by measured regional demand for the lead niche —
+    # zero-cost optional signal, degrades to population-tier order when
+    # pytrends is unavailable or rate-limited.
+    lead_niche = active_niches[0] if active_niches else None
+    if lead_niche:
+        keyword = (
+            _NICHES.get(lead_niche, {}).get("keyword", lead_niche)
+            .replace("{city}", "").replace("{state}", "").strip()
+        )
+        try:
+            from runtime.regional_trends import rank_cities_by_interest
+            tier_of = {(c, s): t for c, s, t in cities}
+            cities = [
+                (c, s, tier_of[(c, s)])
+                for c, s in rank_cities_by_interest(keyword, list(tier_of))
+            ]
+        except Exception as exc:  # helper already fails soft; never block a batch
+            logger.warning(f"[CitySEO] regional ranking skipped: {exc}")
+
     pages_generated = 0
     pages_committed = 0
     errors: List[str] = []
