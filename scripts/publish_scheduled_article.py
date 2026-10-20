@@ -246,11 +246,18 @@ async def social_blast(article: Dict[str, Any], canonical_url: str) -> None:
         from runtime.eaos.social_engine import ProductionSocialEngine
 
         title = article["title"]
+        channel_hints: List[str] = []
+        try:
+            from runtime.learning_signals import collect_signals
+            channel_hints = collect_signals()["channel_hints"]
+        except Exception:
+            pass  # hints are optional — blast is identical without them
         engine = ProductionSocialEngine()
         await engine.publish_all_platforms(
             text=f"{title} — {canonical_url}",
             url=canonical_url,
             tags=article["tags"][:5],
+            priority_channels=channel_hints or None,
             thread_tweets=[
                 f"New from ProfitEngine AI: {title} {canonical_url}",
                 f"Practical implementation guide: {canonical_url}",
