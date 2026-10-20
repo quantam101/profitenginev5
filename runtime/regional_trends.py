@@ -120,8 +120,16 @@ def rank_cities_by_interest(
     if not regions:
         return list(cities)
     interest = {name.lower(): value for name, value in regions}
+    # City-level data carries no state, so a name shared across states
+    # (e.g. Springfield IL vs MO) can't be attributed — score it 0 rather
+    # than let one state's twin inherit the other's measured interest.
+    counts: Dict[str, int] = {}
+    for c, _s in cities:
+        counts[c.lower()] = counts.get(c.lower(), 0) + 1
     return sorted(
         cities,
-        key=lambda cs: interest.get(cs[0].lower(), 0.0),
+        key=lambda cs: interest.get(cs[0].lower(), 0.0)
+        if counts[cs[0].lower()] == 1
+        else 0.0,
         reverse=True,
     )
