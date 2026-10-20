@@ -307,7 +307,11 @@ async def _post_mastodon(post: SocialPost) -> Optional[bool]:
             data=json.dumps({"status": status, "visibility": "public"}).encode(),
             method="POST",
             headers={"Authorization": f"Bearer {token}",
-                     "Content-Type": "application/json"},
+                     "Content-Type": "application/json",
+                     # Mastodon dedups on this key — a retried submission
+                     # can never become a duplicate toot.
+                     "Idempotency-Key": hashlib.sha256(
+                         f"{instance}:{status}".encode()).hexdigest()},
         )
         data = _urlopen_json(req, timeout=12)
         logger.info(f"[Mastodon] Tooted: {data.get('url', '')}")
