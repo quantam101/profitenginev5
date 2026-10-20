@@ -5,11 +5,13 @@ Pulls metrics from all revenue sources hourly and generates daily reports.
 Designed to run as a scheduled job (cron or GitHub Actions).
 """
 
+import csv
 import json
 import os
 import requests
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from zoneinfo import ZoneInfo
+from typing import Dict, Any, Optional
 import sys
 
 # Configuration from environment variables
@@ -23,8 +25,18 @@ YT_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "").strip()
 EMAIL_PLATFORM_API = os.getenv("EMAIL_PLATFORM_API_KEY")
 BEEHIIV_API_KEY = os.getenv("BEEHIIV_API_KEY", "").strip()
 BEEHIIV_PUBLICATION_ID = os.getenv("BEEHIIV_PUBLICATION_ID", "").strip()
-AFFILIATE_API_KEY = os.getenv("AFFILIATE_API_KEY")
-TRADING_ACCOUNT_TOKEN = os.getenv("TRADING_API_KEY")
+# Field-service income (Field Nation, WorkMarket, direct clients) is the
+# business's main revenue. It has no payout API, so it is logged to a CSV
+# ledger with scripts/log_field_income.py and read here.
+FIELD_INCOME_FILE = os.getenv("FIELD_INCOME_FILE", "data/field_income.csv")
+FIELD_INCOME_COLUMNS = ["date", "platform", "client", "work_order", "description", "amount_usd", "status"]
+FIELD_INCOME_EXCLUDED_STATUSES = {"cancelled", "canceled", "void"}
+# Field jobs are dated by the Arizona work day (the logger uses the same
+# zone), and the scheduled run (06:55 UTC = 23:55 Arizona) closes that day.
+BUSINESS_TZ = ZoneInfo(os.getenv("FIELD_INCOME_TZ", "America/Phoenix"))
+# YouTube has no monetization yet; channel stats are opt-in so a missing or
+# expired OAuth token does not read as a revenue failure.
+TRACK_YOUTUBE = os.getenv("REVENUE_TRACK_YOUTUBE", "").strip().lower() in {"1", "true", "yes"}
 
 class RevenueTracker:
     def __init__(self):
@@ -33,13 +45,17 @@ class RevenueTracker:
             "date": datetime.utcnow().strftime("%Y-%m-%d"),
             "metrics": {}
         }
-        self.errors = []
+        self.errors = []      # a configured source failed
+        self.skipped = []     # a source is not configured; not a failure
+        self.warnings = []    # a non-revenue metric failed
+        # Arizona calendar day that field income is reported against.
+        self.business_date = datetime.now(BUSINESS_TZ).strftime("%Y-%m-%d")
 
     def fetch_gumroad_sales(self) -> Dict[str, Any]:
         """Fetch hourly sales data from Gumroad."""
         try:
             if not GUMROAD_TOKEN:
-                self.errors.append("GUMROAD_ACCESS_TOKEN not set")
+                self.skipped.append("GUMROAD_ACCESS_TOKEN not set")
                 return {}
 
             headers = {"Authorization": f"Bearer {GUMROAD_TOKEN}"}
@@ -118,7 +134,7 @@ class RevenueTracker:
         """Fetch payment data from Stripe."""
         try:
             if not STRIPE_KEY:
-                self.errors.append("STRIPE_SECRET_KEY not set")
+                self.skipped.append("STRIPE_SECRET_KEY not set")
                 return {}
 
             headers = {"Authorization": f"Bearer {STRIPE_KEY}"}
@@ -172,7 +188,7 @@ class RevenueTracker:
         against the previous committed daily report."""
         try:
             if not (YT_CLIENT_ID and YT_CLIENT_SECRET and YT_REFRESH_TOKEN):
-                self.errors.append("YouTube OAuth env not set")
+                self.skipped.append("YouTube OAuth env not set")
                 return {}
             tok = requests.post(
                 "https://oauth2.googleapis.com/token",
@@ -180,7 +196,7 @@ class RevenueTracker:
                       "refresh_token": YT_REFRESH_TOKEN, "grant_type": "refresh_token"},
                 timeout=10)
             if tok.status_code != 200:
-                self.errors.append(f"YouTube token refresh failed: {tok.status_code}")
+                self.warnings.append(f"YouTube token refresh failed: {tok.status_code}")
                 return {}
             headers = {"Authorization": f"Bearer {tok.json()['access_token']}"}
             params = {"part": "statistics"}
@@ -191,7 +207,7 @@ class RevenueTracker:
             response = requests.get("https://www.googleapis.com/youtube/v3/channels",
                                     params=params, headers=headers, timeout=10)
             if response.status_code != 200 or not response.json().get("items"):
-                self.errors.append(f"YouTube API error: {response.status_code}")
+                self.warnings.append(f"YouTube API error: {response.status_code}")
                 return {}
             stats = response.json()["items"][0]["statistics"]
             youtube_data = {
@@ -213,12 +229,12 @@ class RevenueTracker:
                     if prev.get("total_views"):
                         youtube_data["views_24h"] = max(
                             youtube_data["total_views"] - prev["total_views"], 0)
-            except Exception:
-                pass
+            except Exception as e:
+                self.warnings.append(f"YouTube views delta unavailable: {e}")
             return youtube_data
 
         except Exception as e:
-            self.errors.append(f"YouTube fetch error: {str(e)}")
+            self.warnings.append(f"YouTube fetch error: {str(e)}")
             return {}
 
     def fetch_email_metrics(self) -> Dict[str, Any]:
@@ -227,7 +243,7 @@ class RevenueTracker:
         try:
             key = BEEHIIV_API_KEY or (EMAIL_PLATFORM_API or "").strip()
             if not (key and BEEHIIV_PUBLICATION_ID):
-                self.errors.append("Beehiiv creds not set")
+                self.skipped.append("Beehiiv creds not set")
                 return {}
             response = requests.get(
                 f"https://api.beehiiv.com/v2/publications/{BEEHIIV_PUBLICATION_ID}",
@@ -253,89 +269,103 @@ class RevenueTracker:
             self.errors.append(f"Email metrics fetch error: {str(e)}")
             return {}
 
-    def fetch_affiliate_data(self) -> Dict[str, Any]:
-        """Fetch affiliate program data."""
-        try:
-            if not AFFILIATE_API_KEY:
-                self.errors.append("AFFILIATE_API_KEY not set")
-                return {}
+    def fetch_field_income(self) -> Dict[str, Any]:
+        """Field-service income from the CSV ledger (see FIELD_INCOME_FILE).
 
-            affiliate_data = {
-                "total_revenue_24h": 0,
-                "total_clicks_24h": 0,
-                "total_conversions_24h": 0,
-                "programs": {},
-                "top_performers": [],
-                "pending_payouts": 0
-            }
-
-            return affiliate_data
-
-        except Exception as e:
-            self.errors.append(f"Affiliate data fetch error: {str(e)}")
+        Each row is one completed job: date (YYYY-MM-DD, the work date),
+        platform, client, work_order, description, amount_usd, status.
+        Rows whose status is cancelled/void are ignored.
+        """
+        if not os.path.exists(FIELD_INCOME_FILE):
+            self.skipped.append(f"Field income ledger not found: {FIELD_INCOME_FILE}")
             return {}
-
-    def fetch_trading_data(self) -> Dict[str, Any]:
-        """Fetch trading portfolio and P&L data."""
         try:
-            if not TRADING_ACCOUNT_TOKEN:
-                self.errors.append("TRADING_API_KEY not set")
-                return {}
-
-            trading_data = {
-                "portfolio_value": 0,
-                "daily_pnl": 0,
-                "daily_pnl_percent": 0,
-                "positions": 0,
-                "cash_available": 0,
-                "margin_used_percent": 0,
-                "win_rate_24h": 0,
-                "trades_24h": 0
+            today = self.business_date
+            month = today[:7]
+            year = today[:4]
+            last_24h = month_to_date = year_to_date = unpaid = 0.0
+            jobs_mtd = 0
+            by_platform: Dict[str, float] = {}
+            by_client: Dict[str, float] = {}
+            rows = 0
+            with open(FIELD_INCOME_FILE, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                missing = [c for c in FIELD_INCOME_COLUMNS if c not in (reader.fieldnames or [])]
+                if missing:
+                    self.errors.append(f"Field income ledger missing columns: {', '.join(missing)}")
+                    return {}
+                for line_no, row in enumerate(reader, start=2):
+                    status = (row.get("status") or "").strip().lower()
+                    if status in FIELD_INCOME_EXCLUDED_STATUSES:
+                        continue
+                    date = (row.get("date") or "").strip()
+                    try:
+                        datetime.strptime(date, "%Y-%m-%d")
+                        amount = float((row.get("amount_usd") or "").replace("$", "").replace(",", ""))
+                    except ValueError:
+                        self.errors.append(f"Field income ledger line {line_no}: bad date or amount")
+                        continue
+                    rows += 1
+                    if date == today:
+                        last_24h += amount
+                    if date.startswith(year):
+                        year_to_date += amount
+                    if date.startswith(month):
+                        month_to_date += amount
+                        jobs_mtd += 1
+                        platform = (row.get("platform") or "unknown").strip() or "unknown"
+                        client = (row.get("client") or "unknown").strip() or "unknown"
+                        by_platform[platform] = round(by_platform.get(platform, 0) + amount, 2)
+                        by_client[client] = round(by_client.get(client, 0) + amount, 2)
+                    if status != "paid":
+                        unpaid += amount
+            return {
+                "source_file": FIELD_INCOME_FILE,
+                "business_date": today,
+                "total_revenue": round(last_24h, 2),
+                "last_24h": {"revenue": round(last_24h, 2)},
+                "month_to_date": round(month_to_date, 2),
+                "year_to_date": round(year_to_date, 2),
+                "jobs_month_to_date": jobs_mtd,
+                "unpaid_total": round(unpaid, 2),
+                "by_platform_mtd": by_platform,
+                "by_client_mtd": by_client,
+                "ledger_rows": rows,
             }
-
-            return trading_data
-
         except Exception as e:
-            self.errors.append(f"Trading data fetch error: {str(e)}")
+            self.errors.append(f"Field income ledger read error: {str(e)}")
             return {}
 
     def calculate_consolidated_metrics(self) -> Dict[str, Any]:
         """Calculate consolidated daily revenue and metrics."""
         metrics = self.data.get("metrics", {})
-
-        total_revenue = (
-            metrics.get("gumroad", {}).get("last_24h", {}).get("revenue", 0) +
-            metrics.get("stripe", {}).get("total_revenue", 0) +
-            metrics.get("youtube", {}).get("revenue_24h", 0) +
-            metrics.get("email", {}).get("revenue_from_email", 0) +
-            metrics.get("affiliates", {}).get("total_revenue_24h", 0)
-        )
-
-        consolidated = {
-            "total_revenue_24h": total_revenue,
-            "active_revenue_streams": len([m for m in [
-                metrics.get("gumroad"),
-                metrics.get("stripe"),
-                metrics.get("youtube"),
-                metrics.get("email"),
-                metrics.get("affiliates")
-            ] if m]),
-            "revenue_breakdown": {
-                "gumroad": metrics.get("gumroad", {}).get("last_24h", {}).get("revenue", 0),
-                "stripe": metrics.get("stripe", {}).get("total_revenue", 0),
-                "youtube": metrics.get("youtube", {}).get("revenue_24h", 0),
-                "email": metrics.get("email", {}).get("revenue_from_email", 0),
-                "affiliates": metrics.get("affiliates", {}).get("total_revenue_24h", 0),
-                "trading": metrics.get("trading", {}).get("daily_pnl", 0)
-            },
-            "trading_pnl": metrics.get("trading", {}).get("daily_pnl", 0)
+        breakdown = {
+            "field": metrics.get("field", {}).get("last_24h", {}).get("revenue", 0),
+            "gumroad": metrics.get("gumroad", {}).get("last_24h", {}).get("revenue", 0),
+            "stripe": metrics.get("stripe", {}).get("total_revenue", 0),
+            "email": metrics.get("email", {}).get("revenue_from_email", 0),
         }
+        if "youtube" in metrics:
+            breakdown["youtube"] = metrics.get("youtube", {}).get("revenue_24h", 0)
 
-        return consolidated
+        tracked = [name for name in breakdown if metrics.get(name)]
+        field = metrics.get("field", {})
+        return {
+            "total_revenue_24h": round(sum(breakdown.values()), 2),
+            "active_revenue_streams": len(tracked),
+            "tracked_streams": len(breakdown),
+            "revenue_breakdown": breakdown,
+            "field_month_to_date": field.get("month_to_date", 0),
+            "field_year_to_date": field.get("year_to_date", 0),
+            "field_unpaid_total": field.get("unpaid_total", 0),
+        }
 
     def aggregate_all_metrics(self) -> Dict[str, Any]:
         """Fetch all metrics from all sources."""
         print("Starting revenue tracking aggregation...")
+
+        self.data["metrics"]["field"] = self.fetch_field_income()
+        print("✓ Field income ledger read")
 
         self.data["metrics"]["gumroad"] = self.fetch_gumroad_sales()
         print("✓ Gumroad metrics fetched")
@@ -343,17 +373,12 @@ class RevenueTracker:
         self.data["metrics"]["stripe"] = self.fetch_stripe_payments()
         print("✓ Stripe metrics fetched")
 
-        self.data["metrics"]["youtube"] = self.fetch_youtube_metrics()
-        print("✓ YouTube metrics fetched")
+        if TRACK_YOUTUBE:
+            self.data["metrics"]["youtube"] = self.fetch_youtube_metrics()
+            print("✓ YouTube metrics fetched")
 
         self.data["metrics"]["email"] = self.fetch_email_metrics()
         print("✓ Email metrics fetched")
-
-        self.data["metrics"]["affiliates"] = self.fetch_affiliate_data()
-        print("✓ Affiliate metrics fetched")
-
-        self.data["metrics"]["trading"] = self.fetch_trading_data()
-        print("✓ Trading metrics fetched")
 
         # Calculate consolidated metrics
         self.data["consolidated"] = self.calculate_consolidated_metrics()
@@ -362,6 +387,10 @@ class RevenueTracker:
         if self.errors:
             self.data["errors"] = self.errors
             print(f"⚠ {len(self.errors)} errors encountered")
+        if self.warnings:
+            self.data["warnings"] = self.warnings
+        if self.skipped:
+            self.data["not_configured"] = self.skipped
 
         return self.data
 
@@ -384,7 +413,8 @@ class RevenueTracker:
         print(f"DAILY REVENUE SUMMARY - {self.data['date']}")
         print("="*60)
         print(f"Total Revenue (24h): ${consolidated.get('total_revenue_24h', 0):.2f}")
-        print(f"Active Streams: {consolidated.get('active_revenue_streams', 0)}/6")
+        print(f"Active Streams: {consolidated.get('active_revenue_streams', 0)}/{consolidated.get('tracked_streams', 0)}")
+        print(f"Field income MTD: ${consolidated.get('field_month_to_date', 0):.2f}  YTD: ${consolidated.get('field_year_to_date', 0):.2f}  unpaid: ${consolidated.get('field_unpaid_total', 0):.2f}")
         print("\nRevenue Breakdown:")
 
         for stream, amount in consolidated.get("revenue_breakdown", {}).items():
@@ -404,7 +434,7 @@ def main():
         tracker.print_summary()
 
         # Save report
-        report_file = tracker.save_report()
+        tracker.save_report()
 
         # Return success
         sys.exit(0)

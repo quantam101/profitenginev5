@@ -367,7 +367,7 @@ jobs:
               f"**Generated:** {datetime.now(timezone.utc).isoformat()}\n\n"
               f"## Summary\n"
               f"- **Total Revenue (24h):** ${data.get('consolidated', {}).get('total_revenue_24h', 0):.2f}\n"
-              f"- **Active Streams:** {data.get('consolidated', {}).get('active_revenue_streams', 0)}/6\n\n"
+              f"- **Active Streams:** {data.get('consolidated', {}).get('active_revenue_streams', 0)}/{data.get('consolidated', {}).get('tracked_streams', 0)}\n\n"
               f"## Revenue Breakdown\n"
               f"| Stream | Revenue |\n"
               f"|--------|---------|\n"
@@ -478,7 +478,7 @@ jobs:
                   "title": f"Daily Revenue Report - {data.get('date')}",
                   "fields": [
                       {"title": "Total Revenue (24h)", "value": f"${total_revenue:.2f}", "short": True},
-                      {"title": "Active Streams", "value": f"{consolidated.get('active_revenue_streams', 0)}/6", "short": True},
+                      {"title": "Active Streams", "value": f"{consolidated.get('active_revenue_streams', 0)}/{consolidated.get('tracked_streams', 0)}", "short": True},
                   ]
               }]
           }
