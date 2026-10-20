@@ -2,6 +2,8 @@
 
 import csv
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,7 +30,7 @@ def _tracker(monkeypatch, path, today="2026-10-21"):
     monkeypatch.setenv("FIELD_INCOME_FILE", str(path))
     mod = _load("daily_revenue_tracker_under_test", "scripts/daily_revenue_tracker.py")
     t = mod.RevenueTracker()
-    t.data["date"] = today
+    t.business_date = today
     return t
 
 
@@ -111,6 +113,81 @@ def test_logger_rejects_bad_input(tmp_path):
     assert log.main(["--file", str(path), "--platform", "FN", "--client", "X", "--amount", "5",
                      "--date", "10/21/2026"]) == 2
     assert not path.exists() or len(list(csv.reader(open(path)))) <= 1
+
+
+def test_field_income_uses_arizona_business_day(tmp_path, monkeypatch):
+    """At the 06:55 UTC run (23:55 Arizona), the day's Arizona jobs still count."""
+    from datetime import datetime, timezone
+    path = _ledger(tmp_path, [["2026-10-20", "Field Nation", "Retail Tech", "1", "", "130", "completed"]])
+    monkeypatch.setenv("FIELD_INCOME_FILE", str(path))
+    mod = _load("daily_revenue_tracker_tz", "scripts/daily_revenue_tracker.py")
+    run_at = datetime(2026, 10, 21, 6, 55, tzinfo=timezone.utc)
+    assert run_at.astimezone(mod.BUSINESS_TZ).strftime("%Y-%m-%d") == "2026-10-20"
+    t = mod.RevenueTracker()
+    t.business_date = run_at.astimezone(mod.BUSINESS_TZ).strftime("%Y-%m-%d")
+    field = t.fetch_field_income()
+    assert field["last_24h"]["revenue"] == 130.0
+    assert field["business_date"] == "2026-10-20"
+
+
+def test_mark_paid_keeps_extra_columns(tmp_path):
+    log = _load("log_field_income_extra", "scripts/log_field_income.py")
+    path = tmp_path / "field_income.csv"
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["date", "platform", "client", "work_order", "description", "amount_usd", "status", "invoice_url"])
+        w.writerow(["2026-10-20", "Direct", "Acme", "INV-1", "retainer", "2000", "completed", "https://inv/1"])
+        w.writerow(["2026-10-20", "Field Nation", "ITI", "2", "swap", "150", "completed", "https://inv/2"])
+    assert log.main(["--file", str(path), "--mark-paid", "INV-1"]) == 0
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    assert len(rows) == 2
+    assert rows[0]["status"] == "paid" and rows[0]["invoice_url"] == "https://inv/1"
+    assert rows[1]["status"] == "completed" and rows[1]["invoice_url"] == "https://inv/2"
+    # appending to a ledger with extra columns keeps the header intact
+    assert log.main(["--file", str(path), "--platform", "FN", "--client", "X", "--amount", "50",
+                     "--date", "2026-10-21"]) == 0
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    assert len(rows) == 3 and rows[2]["invoice_url"] == ""
+    assert not [p for p in os.listdir(tmp_path) if p.startswith(".field_income.")]
+
+
+def test_logger_reminds_to_sync_without_push(tmp_path, capsys):
+    log = _load("log_field_income_remind", "scripts/log_field_income.py")
+    path = tmp_path / "f.csv"
+    assert log.main(["--file", str(path), "--platform", "FN", "--client", "X", "--amount", "5",
+                     "--date", "2026-10-21"]) == 0
+    assert "--push" in capsys.readouterr().out
+
+
+def test_logger_push_commits_and_pushes_only_the_ledger(tmp_path):
+    log = _load("log_field_income_push", "scripts/log_field_income.py")
+    remote = tmp_path / "remote.git"
+    work = tmp_path / "work"
+
+    def git(*a, cwd=work):
+        return subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True)
+
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    subprocess.run(["git", "clone", "-q", str(remote), str(work)], check=True, capture_output=True)
+    git("config", "user.email", "test@alreadyherellc.com")
+    git("config", "user.name", "test")
+    (work / "data").mkdir()
+    ledger = work / "data" / "field_income.csv"
+    ledger.write_text("date,platform,client,work_order,description,amount_usd,status\n", encoding="utf-8")
+    (work / "other.txt").write_text("base\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    git("push", "-q", "origin", "HEAD")
+    (work / "other.txt").write_text("unrelated local edit\n", encoding="utf-8")
+    git("add", "other.txt")
+    assert log.main(["--file", str(ledger), "--platform", "Field Nation", "--client", "Retail Tech",
+                     "--wo", "20162091", "--amount", "130", "--date", "2026-10-21", "--push"]) == 0
+    pushed = subprocess.run(["git", "--git-dir", str(remote), "show", "HEAD:data/field_income.csv"],
+                            check=True, capture_output=True, text=True).stdout
+    assert "20162091" in pushed
+    files = subprocess.run(["git", "--git-dir", str(remote), "show", "--name-only", "--format=", "HEAD"],
+                           check=True, capture_output=True, text=True).stdout.split()
+    assert files == ["data/field_income.csv"]
 
 
 if __name__ == "__main__":

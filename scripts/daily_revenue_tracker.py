@@ -10,6 +10,7 @@ import json
 import os
 import requests
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Dict, Any, Optional
 import sys
 
@@ -30,6 +31,9 @@ BEEHIIV_PUBLICATION_ID = os.getenv("BEEHIIV_PUBLICATION_ID", "").strip()
 FIELD_INCOME_FILE = os.getenv("FIELD_INCOME_FILE", "data/field_income.csv")
 FIELD_INCOME_COLUMNS = ["date", "platform", "client", "work_order", "description", "amount_usd", "status"]
 FIELD_INCOME_EXCLUDED_STATUSES = {"cancelled", "canceled", "void"}
+# Field jobs are dated by the Arizona work day (the logger uses the same
+# zone), and the scheduled run (06:55 UTC = 23:55 Arizona) closes that day.
+BUSINESS_TZ = ZoneInfo(os.getenv("FIELD_INCOME_TZ", "America/Phoenix"))
 # YouTube has no monetization yet; channel stats are opt-in so a missing or
 # expired OAuth token does not read as a revenue failure.
 TRACK_YOUTUBE = os.getenv("REVENUE_TRACK_YOUTUBE", "").strip().lower() in {"1", "true", "yes"}
@@ -44,6 +48,8 @@ class RevenueTracker:
         self.errors = []      # a configured source failed
         self.skipped = []     # a source is not configured; not a failure
         self.warnings = []    # a non-revenue metric failed
+        # Arizona calendar day that field income is reported against.
+        self.business_date = datetime.now(BUSINESS_TZ).strftime("%Y-%m-%d")
 
     def fetch_gumroad_sales(self) -> Dict[str, Any]:
         """Fetch hourly sales data from Gumroad."""
@@ -274,7 +280,7 @@ class RevenueTracker:
             self.skipped.append(f"Field income ledger not found: {FIELD_INCOME_FILE}")
             return {}
         try:
-            today = self.data["date"]
+            today = self.business_date
             month = today[:7]
             year = today[:4]
             last_24h = month_to_date = year_to_date = unpaid = 0.0
@@ -315,6 +321,7 @@ class RevenueTracker:
                         unpaid += amount
             return {
                 "source_file": FIELD_INCOME_FILE,
+                "business_date": today,
                 "total_revenue": round(last_24h, 2),
                 "last_24h": {"revenue": round(last_24h, 2)},
                 "month_to_date": round(month_to_date, 2),
