@@ -173,3 +173,36 @@ def test_repair_preserves_table_structure_when_adding_headings():
     repaired = pa._repair_article_structure(article_in)
     assert table in repaired["body"]
     assert "| --- | --- |" in repaired["body"]
+
+
+class _Resp:
+    def __init__(self, status_code, payload=None):
+        self.status_code = status_code
+        self._payload = payload or []
+
+    def json(self):
+        return self._payload
+
+
+@pytest.mark.parametrize("status", [401, 403, 429, 500, 502])
+def test_post_listing_fails_closed_on_unverified_response(status):
+    with patch.object(pa, "GH_TOKEN", "configured"), patch.object(
+        pa.httpx, "get", return_value=_Resp(status)
+    ):
+        with pytest.raises(RuntimeError, match="duplicate check"):
+            pa._existing_post_names()
+
+
+def test_post_listing_treats_missing_directory_as_empty():
+    with patch.object(pa, "GH_TOKEN", "configured"), patch.object(
+        pa.httpx, "get", return_value=_Resp(404)
+    ):
+        assert pa._existing_post_names() == []
+
+
+def test_post_listing_returns_filenames():
+    payload = [{"name": "2026-10-16-cloudflare-workers-build-deploy-apis-no-cost.md"}]
+    with patch.object(pa, "GH_TOKEN", "configured"), patch.object(
+        pa.httpx, "get", return_value=_Resp(200, payload)
+    ):
+        assert pa._existing_post_names() == [payload[0]["name"]]

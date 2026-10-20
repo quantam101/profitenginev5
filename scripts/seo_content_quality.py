@@ -57,6 +57,78 @@ _STALE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
+# Technical claims verified wrong against vendor docs on 2026-10-19
+# (developers.cloudflare.com/workers/platform/limits, /pricing; Durable Objects
+# release notes; Vercel storage docs). Each entry exists because a published
+# ProfitEngine article shipped the error. Update the date and the entry when a
+# vendor changes the underlying fact.
+_STALE_TECH_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"npm\s+(?:install|i)\s+(?:-g\s+)?@cloudflare/wrangler\b", re.I),
+        "`@cloudflare/wrangler` is the retired Wrangler v1 package; use `npm create cloudflare@latest` or `npx wrangler`.",
+    ),
+    (
+        re.compile(r"\bwrangler\s+(?:publish|generate)\b", re.I),
+        "`wrangler publish` / `wrangler generate` are retired; use `wrangler deploy` and `npm create cloudflare@latest`.",
+    ),
+    (
+        re.compile(
+            r"(?:cloudflare|workers?).{0,200}free.{0,80}\b(?:50|100)\s?ms\b.{0,40}cpu",
+            re.I | re.S,
+        ),
+        "Workers Free CPU limit is 10 ms per request (Paid: 30 s default, up to 5 min).",
+    ),
+    (
+        re.compile(
+            r"(?:workers?|cloudflare).{0,200}paid.{0,80}\b(?:30|50)\s?ms\b",
+            re.I | re.S,
+        ),
+        "Workers Paid CPU limit is 30 seconds by default (up to 5 minutes), not milliseconds.",
+    ),
+    (
+        re.compile(
+            r"(?:workers?|cloudflare).{0,200}(?:keep(?:ing)?\s+(?:instances?\s+)?warm|paid plans?.{0,60}cold[- ]start)",
+            re.I | re.S,
+        ),
+        "Workers run on V8 isolates; there is no paid keep-warm tier for cold starts.",
+    ),
+    (
+        re.compile(r"\bVercel\s+KV\b", re.I),
+        "Vercel KV is discontinued; Redis on Vercel is provisioned through Marketplace integrations (e.g. Upstash).",
+    ),
+    (
+        re.compile(r"403\s+Forbidden.{0,60}(?:reading|read|access).{0,20}secret", re.I | re.S),
+        "A missing Workers secret is `undefined` at runtime; it does not return 403.",
+    ),
+)
+
+# Patterns for retired commands/products: a sentence that itself says the
+# thing is retired is a correct warning, not a stale claim. Numeric limit
+# patterns are never exempt.
+_DEPRECATION_EXEMPT = frozenset({0, 1, 5})
+_DEPRECATION_CONTEXT = re.compile(
+    r"\b(?:retired|deprecated|discontinued|obsolete|legacy|no longer|replaced|"
+    r"instead of|don't use|do not use|never (?:run|use)|older tutorials?|shut down)\b",
+    re.I,
+)
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n{2,}")
+
+
+def _affirmative_match(pattern: re.Pattern[str], text: str, exemptable: bool) -> bool:
+    if not exemptable:
+        return bool(pattern.search(text))
+    return any(
+        pattern.search(sentence) and not _DEPRECATION_CONTEXT.search(sentence)
+        for sentence in _SENTENCE_SPLIT.split(text)
+    )
+
+
+_CODE_FENCE = re.compile(r"^```", re.M)
+_SOURCES_SECTION = re.compile(
+    r"^##\s+(?:Sources|Official references|References)\b(?P<section>.*?)(?=^##\s|\Z)",
+    re.I | re.M | re.S,
+)
+
 _CURRENT_ROUNDUP = re.compile(
     r"\b(?:20\d{2}|best|top|review|comparison| vs\.? )\b", re.I
 )
@@ -121,6 +193,20 @@ def validate_article_quality(
         if pattern.search(combined):
             errors.append(message)
 
+    for index, (pattern, message) in enumerate(_STALE_TECH_PATTERNS):
+        if _affirmative_match(pattern, combined, index in _DEPRECATION_EXEMPT):
+            errors.append(message)
+
+    # Tutorials that ship code teach readers to run it, so the claims behind the
+    # commands and limits must be traceable to linked documentation.
+    if len(_CODE_FENCE.findall(body)) >= 2:
+        match = _SOURCES_SECTION.search(body)
+        section_links = _external_links(match.group("section")) if match else []
+        if len(section_links) < 2:
+            errors.append(
+                "technical tutorial with code requires a Sources section with at least two linked references"
+            )
+
     if require_sources_for_current_roundups and _CURRENT_ROUNDUP.search(title):
         if len(links) < 2:
             errors.append(
@@ -161,3 +247,36 @@ def format_quality_errors(result: QualityResult) -> str:
         f"metrics=words:{result.word_count},h2:{result.h2_count},links:{result.external_link_count}"
     )
     return " | ".join(parts)
+
+
+_SLUG_STOPWORDS = frozenset(
+    "a an and at for from how in of on the to with your you guide 2025 2026 2027 free best".split()
+)
+
+
+def _slug_tokens(name: str) -> frozenset[str]:
+    stem = re.sub(r"\.md$", "", name.lower())
+    stem = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", stem)
+    stem = re.sub(r"\bset[- ]up\b", "setup", stem)
+    return frozenset(t for t in re.split(r"[^a-z0-9]+", stem) if t and t not in _SLUG_STOPWORDS)
+
+
+def find_duplicate_post(slug: str, existing_names: list[str], threshold: float = 0.6) -> str | None:
+    """Return the existing post filename that covers the same topic, if any.
+
+    Compares slug token sets (stopwords and years removed) by Jaccard
+    similarity. The content repo held three near-identical Cloudflare Workers
+    posts before this guard existed.
+    """
+    wanted = _slug_tokens(slug)
+    if not wanted:
+        return None
+    best_name, best_score = None, 0.0
+    for name in existing_names:
+        tokens = _slug_tokens(name)
+        if not tokens:
+            continue
+        score = len(wanted & tokens) / len(wanted | tokens)
+        if score > best_score:
+            best_name, best_score = name, score
+    return best_name if best_score >= threshold else None
