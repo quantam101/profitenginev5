@@ -860,22 +860,27 @@ def publish_github(filename: str, content: str, commit_msg: str) -> str:
 
 
 def _existing_post_names() -> list[str]:
-    """Filenames currently in GH_DIR; empty list if the listing is unavailable."""
+    """Filenames currently in GH_DIR.
+
+    Fails closed: only a 404 (directory not created yet) counts as empty. Any
+    other failure raises, because an unverified listing would let the
+    duplicate-topic guard pass silently.
+    """
     if not GH_TOKEN:
         return []
-    try:
-        r = httpx.get(
-            f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}/contents/{GH_DIR}",
-            headers=_gh_headers(),
-            params={"ref": GH_BRANCH},
-            timeout=30,
-        )
-        if r.status_code != 200:
-            return []
-        return [item.get("name", "") for item in r.json()]
-    except Exception as exc:
-        print(f"[WARN] post listing unavailable: {exc}")
+    r = httpx.get(
+        f"{GH_BASE}/repos/{GH_OWNER}/{GH_REPO}/contents/{GH_DIR}",
+        headers=_gh_headers(),
+        params={"ref": GH_BRANCH},
+        timeout=30,
+    )
+    if r.status_code == 404:
         return []
+    if r.status_code != 200:
+        raise RuntimeError(
+            f"Cannot verify existing posts for duplicate check: HTTP {r.status_code}"
+        )
+    return [item.get("name", "") for item in r.json()]
 
 
 def _todays_post_exists(date_str: str) -> bool:

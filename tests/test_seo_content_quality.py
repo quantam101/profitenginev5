@@ -194,3 +194,25 @@ def test_duplicate_guard_allows_distinct_topics():
     assert find_duplicate_post("cloudflare-r2-offsite-backups", existing) is None
     assert find_duplicate_post("pos-terminal-install-checklist", existing) is None
     assert find_duplicate_post("", existing) is None
+
+
+def test_deprecation_warning_sentences_are_not_stale_claims():
+    for snippet in (
+        "Never run wrangler publish; it was replaced by wrangler deploy.",
+        "Older tutorials use wrangler generate, which is retired.",
+        "Vercel KV was discontinued; use a Marketplace integration instead.",
+    ):
+        result = validate_article_quality(tutorial(tutorial_body(f"\n\n{snippet}\n")))
+        assert result.ok, (snippet, result.errors)
+
+
+def test_retired_command_in_code_block_still_fails_next_to_a_warning():
+    text = "\n\nThe old command is retired.\n\n```bash\nnpx wrangler publish\n```\n"
+    errors = validate_article_quality(tutorial(tutorial_body(text))).errors
+    assert any("wrangler" in e.lower() for e in errors), errors
+
+
+def test_numeric_limit_claims_are_never_exempt():
+    text = "\n\nUnlike the retired plan, Cloudflare Workers free tier allows 50 ms of CPU per request.\n"
+    errors = validate_article_quality(tutorial(tutorial_body(text))).errors
+    assert any("10 ms" in e for e in errors), errors

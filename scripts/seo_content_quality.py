@@ -102,6 +102,27 @@ _STALE_TECH_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
+# Patterns for retired commands/products: a sentence that itself says the
+# thing is retired is a correct warning, not a stale claim. Numeric limit
+# patterns are never exempt.
+_DEPRECATION_EXEMPT = frozenset({0, 1, 5})
+_DEPRECATION_CONTEXT = re.compile(
+    r"\b(?:retired|deprecated|discontinued|obsolete|legacy|no longer|replaced|"
+    r"instead of|don't use|do not use|never (?:run|use)|older tutorials?|shut down)\b",
+    re.I,
+)
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n{2,}")
+
+
+def _affirmative_match(pattern: re.Pattern[str], text: str, exemptable: bool) -> bool:
+    if not exemptable:
+        return bool(pattern.search(text))
+    return any(
+        pattern.search(sentence) and not _DEPRECATION_CONTEXT.search(sentence)
+        for sentence in _SENTENCE_SPLIT.split(text)
+    )
+
+
 _CODE_FENCE = re.compile(r"^```", re.M)
 _SOURCES_SECTION = re.compile(
     r"^##\s+(?:Sources|Official references|References)\b(?P<section>.*?)(?=^##\s|\Z)",
@@ -172,8 +193,8 @@ def validate_article_quality(
         if pattern.search(combined):
             errors.append(message)
 
-    for pattern, message in _STALE_TECH_PATTERNS:
-        if pattern.search(combined):
+    for index, (pattern, message) in enumerate(_STALE_TECH_PATTERNS):
+        if _affirmative_match(pattern, combined, index in _DEPRECATION_EXEMPT):
             errors.append(message)
 
     # Tutorials that ship code teach readers to run it, so the claims behind the

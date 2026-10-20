@@ -85,9 +85,12 @@ def existing_post_names() -> List[str]:
         params={"ref": GH_BRANCH},
         timeout=20,
     )
-    if r.status_code != 200:
-        print(f"[WARN] post listing unavailable: HTTP {r.status_code}")
+    if r.status_code == 404:
         return []
+    if r.status_code != 200:
+        raise RuntimeError(
+            f"Cannot verify existing posts for duplicate check: HTTP {r.status_code}"
+        )
     return [item.get("name", "") for item in r.json()]
 
 
