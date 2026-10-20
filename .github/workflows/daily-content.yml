@@ -9,18 +9,12 @@ name: Daily Content Publisher
 # the normal publication and distribution controls.
 
 on:
-  schedule:
-    # 07:05 UTC daily / 00:05 Phoenix (Arizona does not observe DST).
-    - cron: '5 7 * * *'
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/daily-content.yml'
-      - 'scripts/publish_article.py'
-      - 'scripts/publish_scheduled_article.py'
-      - 'scripts/article_topics.py'
-      - 'data/scheduled_articles/**'
+  # Paused 2026-10-19: the topic rotation publishes passive-income,
+  # affiliate and freelancing articles that dilute search rankings for the
+  # IT/field-service pages on www.alreadyherellc.com/content/. The schedule
+  # and push triggers are removed (a push trigger would fire on this very
+  # edit); run manually with an IT/field-service topic until the rotation
+  # in scripts/article_topics.py is retargeted.
   workflow_dispatch:
     inputs:
       topic:
