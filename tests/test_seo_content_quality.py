@@ -1,4 +1,4 @@
-from scripts.seo_content_quality import validate_article_quality
+from scripts.seo_content_quality import find_duplicate_post, validate_article_quality
 
 
 def article(body: str, title: str = "Best Free SEO Tools in 2026"):
@@ -103,7 +103,6 @@ def test_accepts_normal_multiline_table():
 
 # ── Technical accuracy gate (added 2026-10-19) ────────────────────────────────
 
-from scripts.seo_content_quality import find_duplicate_post
 
 
 def tutorial_body(extra: str = "", sources: bool = True) -> str:
