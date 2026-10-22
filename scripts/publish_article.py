@@ -835,7 +835,7 @@ def _get_sha(path: str) -> Optional[str]:
     return None
 
 
-def make_jekyll_post(article: Dict[str, Any], date_str: str) -> str:
+def make_jekyll_post(article: Dict[str, Any], date_str: str, topic: str = "") -> str:
     title = article.get("title", "Untitled").replace('"', '\\"')
     meta = article.get("meta_description", "").replace('"', '\\"')
     tags: List[str] = article.get("tags", [])
@@ -843,7 +843,8 @@ def make_jekyll_post(article: Dict[str, Any], date_str: str) -> str:
     tags_yaml = "\n".join(f"  - {t}" for t in tags)
     # The content site defaults every page to noindex/off-sitemap; only
     # IT/field-service articles opt in (quantam101/content _config.yml).
-    on_topic = _load_topics_module().is_on_topic(f"{title} {' '.join(map(str, tags))}")
+    # The selected topic counts too: the generated title may reword it.
+    on_topic = _load_topics_module().is_on_topic(f"{topic} {title} {' '.join(map(str, tags))}")
     indexing = "noindex: false\nsitemap: true\n" if on_topic else ""
     return (
         f"---\n"
@@ -1159,7 +1160,7 @@ def main() -> None:
 
     # Inject affiliate links (noop until AFFILIATE_LINKS env var is set)
     article["body"] = _inject_affiliates(article.get("body", ""))
-    jekyll_md = make_jekyll_post(article, date_str)
+    jekyll_md = make_jekyll_post(article, date_str, topic)
 
     health: dict = {}
 

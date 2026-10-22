@@ -90,13 +90,17 @@ TOPICS: List[str] = [
 ]
 
 _ON_TOPIC = re.compile(
-    r"\b(?:it|msp|network(?:s|ing)?|cabl(?:e|es|ing)|fiber|low[- ]voltage|voip|pbx|phone systems?|"
+    r"\b(?:msp|network(?:s|ing)?|cabl(?:e|es|ing)|fiber|low[- ]voltage|voip|pbx|phone systems?|"
     r"wi-?fi|wireless|switch(?:es)?|firewall|router|poe|rack|idf|mdf|pos|kiosks?|"
     r"technicians?|field service|smart hands|on-site|dispatch|help ?desk|ticket(?:ing)?|"
     r"security cameras?|cameras?|nvr|access control|intercom|digital signage|av installation|"
-    r"printers?|data center|server|infrastructure)\b",
+    r"printers?|data center|server|infrastructure|"
+    r"(?:managed )?it[- ](?:support|services?|field|budget(?:ing)?|infrastructure|assets?|"
+    r"contracts?|equipment|refresh|rollouts?|teams?|technicians?|department|pricing))\b",
     re.I,
 )
+# "IT" on its own counts only in capitals; lowercase "it" is the pronoun.
+_IT_ACRONYM = re.compile(r"\bIT\b")
 _STOP = frozenset(
     "a an and at for from how in of on the to with your you guide 2025 2026 2027 free best "
     "what is are vs which why when do does".split()
@@ -105,7 +109,8 @@ _STOP = frozenset(
 
 def is_on_topic(text: str) -> bool:
     """True when text is about IT, low-voltage or field-service work."""
-    return bool(_ON_TOPIC.search(text or ""))
+    text = text or ""
+    return bool(_ON_TOPIC.search(text) or _IT_ACRONYM.search(text))
 
 
 def _tokens(text: str) -> frozenset[str]:
@@ -116,18 +121,26 @@ def _tokens(text: str) -> frozenset[str]:
     return frozenset(t for t in re.split(r"[^a-z0-9]+", stem) if t and t not in _STOP)
 
 
-def topic_covered(topic: str, existing_post_names: Iterable[str], threshold: float = 0.6) -> Optional[str]:
+def topic_covered(
+    topic: str,
+    existing_post_names: Iterable[str],
+    threshold: float = 0.6,
+    min_shared: int = 3,
+) -> Optional[str]:
     """Return the existing post that already covers topic, if any.
 
     Generated slugs are shortened forms of the topic title, so this uses the
-    overlap coefficient (shared tokens / smaller set) rather than Jaccard.
+    overlap coefficient (shared tokens / smaller set) rather than Jaccard, and
+    also requires at least min_shared tokens in common so two broad words
+    ("network", "cabling") in a short slug cannot hide a distinct topic.
     """
     wanted = _tokens(topic)
     for name in existing_post_names:
         tokens = _tokens(name)
         if len(tokens) < 3 or not wanted:
             continue
-        if len(wanted & tokens) / min(len(wanted), len(tokens)) >= threshold:
+        shared = len(wanted & tokens)
+        if shared >= min_shared and shared / min(len(wanted), len(tokens)) >= threshold:
             return name
     return None
 

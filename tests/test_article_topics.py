@@ -92,3 +92,49 @@ def test_on_topic_post_opts_into_indexing():
 def test_off_topic_post_keeps_site_default_noindex():
     md = _post("Selling Notion Templates for Passive Income", ["notion", "passive-income"])
     assert "noindex" not in md.split("---")[1]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Is It Worth It to Start Affiliate Marketing?",
+        "How to Make It Big with Passive Income",
+        "making-it-work tags it",
+    ],
+)
+def test_pronoun_it_does_not_count_as_it_topic(text):
+    assert not is_on_topic(text)
+
+
+@pytest.mark.parametrize("text", ["IT Budgeting for Small Business", "it-support", "managed it services"])
+def test_it_acronym_and_it_compounds_count(text):
+    assert is_on_topic(text)
+
+
+def test_off_topic_queue_item_with_pronoun_is_skipped(monkeypatch):
+    monkeypatch.delenv("ARTICLE_TOPIC", raising=False)
+    with patch.object(pa, "_fetch_cmdos_topic", return_value="Is It Worth It to Start Affiliate Marketing?"), patch(
+        "runtime.learning_signals.topic_hint", return_value=None
+    ):
+        assert pa._default_topic([]) in TOPICS
+    md = _post("Is It Worth It to Start Affiliate Marketing?", ["affiliate", "it"])
+    assert "noindex" not in md.split("---")[1]
+
+
+def test_short_related_slug_does_not_hide_distinct_topic():
+    topic = "How to Plan Network Cabling for a Warehouse or Distribution Center"
+    assert topic_covered(topic, ["2026-07-10-network-cabling-installation.md"]) is None
+
+
+def test_reworded_generated_title_is_indexed_from_selected_topic():
+    md = pa.make_jekyll_post(
+        {
+            "title": "How Much Should Small Businesses Spend on Technology?",
+            "meta_description": "d",
+            "tags": ["business", "budget", "technology"],
+            "body": "## A\n\nbody",
+        },
+        "2026-10-22",
+        "IT Budgeting for Small Business: How Much to Spend on Technology",
+    )
+    assert "noindex: false" in md.split("---")[1]
