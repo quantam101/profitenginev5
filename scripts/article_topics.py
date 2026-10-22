@@ -1,176 +1,155 @@
 """
-Article topic rotation for ProfitEngine daily content pipeline.
+Article topic rotation for the ProfitEngine daily content pipeline.
 
-Topics rotate by day-of-year so each day gets a unique, relevant topic.
-Add new topics to grow the cycle; duplicates are fine after 90+ days.
+Retargeted 2026-10-22: www.alreadyherellc.com/content/ is indexed only for IT
+and field-service topics (see quantam101/content _config.yml). The old
+rotation mixed in passive-income, affiliate and freelancing topics that
+diluted rankings for the pages that bring in Already Here LLC clients, so
+every topic here is IT, low-voltage, or field-service work.
 
-Usage (from publish_article.py or GitHub Actions):
+Rotation starts at today's day-of-year and skips any topic an existing post
+already covers, so the duplicate-topic guard in seo_content_quality never has
+to block a scheduled run. When every topic is covered, pick_topic raises:
+add topics here rather than letting the pipeline repeat itself.
+
+Usage:
     from scripts.article_topics import pick_topic
-    topic = pick_topic()   # picks based on today's date
+    topic = pick_topic(existing_post_names)
 """
 from __future__ import annotations
 
+import re
 from datetime import date
-from typing import List
+from typing import Iterable, List, Optional
 
-# ── 120 topics covering: passive income, AI tools, freelancing, blogging,
-#    affiliate marketing, hosting, SaaS, automation, AND IT field service /
-#    MSP / commercial cabling / VoIP (aligned with Already Here LLC) ──────────
 TOPICS: List[str] = [
-    # AI tools for income
-    "Best Free AI Tools to Build Passive Income Streams in 2026",
-    "How to Use ChatGPT to Start a Freelance Writing Business",
-    "Top AI Writing Tools That Actually Save Time for Content Creators",
-    "How to Make $500/Month with AI-Powered Niche Blogs",
-    "AI Tools for Social Media Automation: Grow Accounts on Autopilot",
-    "Best AI Image Generators for Print-on-Demand Businesses",
-    "How to Use AI to Create and Sell Online Courses in 2026",
-    "AI-Powered Keyword Research: Find Low-Competition Niches Fast",
-    "Using AI to Write Amazon Listings That Actually Convert",
-    "How to Build a Newsletter Business with AI in Under 30 Days",
-
-    # Passive income ideas
-    "10 Realistic Passive Income Ideas That Work Without a Large Audience",
-    "How to Start a Digital Products Business with No Upfront Investment",
-    "Selling Notion Templates: A Complete Guide to Passive Income in 2026",
-    "How to Build and Monetize a Micro-SaaS in 90 Days",
-    "Passive Income with Stock Photos: Best Platforms and Tips for 2026",
-    "How to Earn Royalties from Self-Published Books Using AI Assistance",
-    "Building a Faceless YouTube Channel with AI Voiceover Tools",
-    "Making Money with Print-on-Demand: A Beginner's Complete Guide",
-    "How to Create and Sell SVG Files on Etsy Using Free AI Tools",
-    "Passive Income with Domain Flipping: How to Find Valuable Domains",
-
-    # Blogging and SEO
-    "How to Start a Profitable Niche Blog in 2026 with AI Content",
-    "The Complete Guide to On-Page SEO for AI-Generated Content",
-    "How to Build Topical Authority with a Content Cluster Strategy",
-    "Best Free SEO Tools for Bloggers That Actually Work in 2026",
-    "How to Monetize a Blog with Affiliate Marketing: Step-by-Step",
-    "Using Internal Linking to Double Your Blog's Organic Traffic",
-    "How Long Should Blog Posts Be for SEO in 2026?",
-    "The Fastest Way to Get a New Blog Indexed by Google",
-    "Best WordPress Alternatives for AI-Generated Content Sites",
-    "How to Write SEO Meta Descriptions That Increase Click-Through Rate",
-
-    # Affiliate marketing
-    "Affiliate Marketing for Beginners: Complete Guide for 2026",
-    "Best High-Ticket Affiliate Programs for Tech Bloggers",
-    "How to Promote DigitalOcean and Earn $25 Per Referral",
-    "Amazon Associates vs ShareASale: Which Is Better for Your Niche?",
-    "How to Create an Affiliate Review Article That Ranks on Google",
-    "Best Recurring Commission Affiliate Programs in the Tech Niche",
-    "How to Disclose Affiliate Links Properly (FTC Compliance Guide)",
-    "Building an Affiliate Marketing Site with AI: Zero to $500/Month",
-    "How to Pick the Right Affiliate Products for Your Audience",
-    "Email Marketing for Affiliate Income: Build a List from Scratch",
-
-    # Cloud hosting and tech
-    "Best Free Cloud Hosting Platforms for Side Projects in 2026",
-    "OCI Always Free: How to Host 5 Side Projects at Zero Cost",
-    "DigitalOcean vs Linode vs Vultr: Best VPS for Developers in 2026",
-    "How to Deploy a Python App on Oracle Cloud Free Tier",
-    "Self-Hosting vs Managed Hosting: When Each Makes Sense",
-    "GitHub Pages vs Netlify vs Vercel: Best Free Static Hosting",
-    "How to Set Up a Free Postgres Database on Supabase",
-    "Best Free APIs for Building Income-Generating Side Projects",
-    "How to Build a REST API with FastAPI and Deploy It for Free",
-    "Cloudflare Workers: Build and Deploy APIs at No Cost",
-
-    # Freelancing and remote work
-    "How to Land Your First Freelance Client on Upwork in 2026",
-    "Freelance Rates Guide: What to Charge for AI-Assisted Work",
-    "Building a Personal Brand as a Freelance Developer in 2026",
-    "How to Use AI to Write Freelance Proposals That Win Projects",
-    "Best Platforms for Selling AI Prompts and Automation Scripts",
-    "How to Package Your Skills as Digital Products on Gumroad",
-    "Freelance SEO Writing: How to Earn $0.10+ Per Word with AI Help",
-    "How to Build Recurring Revenue as a Freelancer",
-    "Cold Email Templates That Get Responses for Freelancers",
-    "Time Management for Freelancers Using AI Productivity Tools",
-
-    # Automation and no-code
-    "Best No-Code Tools to Automate Your Side Business in 2026",
-    "How to Build a Zapier Automation That Earns You Money",
-    "Make.com vs Zapier vs n8n: Best Automation Platform in 2026",
-    "Building an Automated Lead Generation System with Free Tools",
-    "How to Create a Chatbot That Handles Customer Support Automatically",
-    "Automating Social Media Posts with Free AI Tools: Full Guide",
-    "How to Build a Price Tracking Bot That Makes You Money",
-    "Web Scraping for Profit: Ethical Ways to Monetize Data",
-    "Building a Job Board SaaS with No-Code Tools in 2026",
-    "How to Automate Invoice Generation and Payments for Freelancers",
-
-    # Finance and mindset
-    "How to Reach $1000/Month in Passive Income: A Realistic Timeline",
-    "Diversifying Online Income: 5 Streams That Work Together",
-    "The $0 Budget Business: Starting a Side Hustle with No Money",
-    "How to Track and Optimize Your Passive Income Streams",
-    "Tax Tips for Bloggers and Affiliate Marketers in 2026",
-    "Building Wealth with Micro-Income Streams: The Compounding Effect",
-    "How to Validate a Side Hustle Idea Before Spending Time on It",
-    "The 80/20 Rule for Online Business: Focus on What Actually Pays",
-    "Building a Second Income While Working a Full-Time Job",
-    "How to Quit Your Job with Passive Income: Honest Realistic Plan",
-
-    # Dev tools and SaaS
-    "Best AI Coding Assistants for Side Projects and Freelancing",
-    "How to Turn a Useful Script into a SaaS Product",
-    "Building a Subscription Product with Stripe and Free Hosting",
-    "How to Validate a SaaS Idea with Landing Page Tests",
-    "Lifetime Deal Sites: Buy Cheap, Resell Access, or Build Features",
-    "How to Build a Chrome Extension That People Pay For",
-    "API Monetization: Turn Your Project Into a Revenue Stream",
-    "Building a Price Comparison Tool and Earning Affiliate Commissions",
-    "How to Launch a Product on Product Hunt and Get 500 Users",
-    "The Indie Hacker Roadmap: From $0 to $1000 MRR in 2026",
-
-    # ── IT Field Service & MSP (aligned with Already Here LLC) ────────────────
-    # These topics bring in commercial IT clients and drive affiliate revenue
-    # from networking gear, VoIP systems, and MSP software.
+    # Buying and contracting IT services
     "How to Find a Reliable IT Field Service Company in Phoenix AZ",
     "Managed IT Services vs Break-Fix: Which Is Right for Your Business?",
     "Commercial Network Cabling Cost Guide: What to Budget in 2026",
-    "Best VoIP Phone Systems for Small Business in 2026 (Honest Review)",
-    "How to Set Up a Structured Cabling System for a New Office",
-    "PBX vs Hosted VoIP: What Most IT Vendors Won't Tell You",
     "IT Support SLA Guide: What Response Times Should Your Contract Guarantee?",
-    "How to Choose a Commercial Electrician for Low-Voltage Wiring",
-    "Cat6 vs Cat6A vs Fiber: Which Cabling Is Right for Your Business?",
-    "Network Infrastructure Checklist for Opening a New Office or Branch",
-    "How AI Is Changing IT Field Service Dispatch and Scheduling",
-    "Best IT Ticketing Systems for Small MSPs in 2026 (Ranked by Value)",
     "How to Write an IT Service Contract That Protects Your Business",
-    "Security Camera Cabling Guide: IP vs Analog for Commercial Buildings",
-    "How to Troubleshoot a Slow Business Network Without Calling IT",
-    "Access Control Systems for Commercial Buildings: A Buyer's Guide",
-    "What Is a Network Assessment and Why Every Business Needs One",
-    "The True Cost of IT Downtime for Small Businesses in 2026",
-    "How to Migrate Your Business Phone System to VoIP Without Downtime",
-    "Top Reasons to Hire a Local IT Field Service Company vs a National MSP",
     "IT Budgeting for Small Business: How Much to Spend on Technology",
+    "IT Support Pricing Guide: What Is a Fair Rate for On-Site Service?",
+    "What to Include in a Scope of Work for an IT Field Service Visit",
+    "How to Vet a Subcontracted IT Technician Before Sending Them On-Site",
+    "Smart Hands Services Explained: When a Remote IT Team Needs Someone On-Site",
+    "How to Compare Quotes From Low-Voltage Cabling Contractors",
+    "Questions to Ask Before Signing a Multi-Site IT Rollout Contract",
+
+    # Networking and cabling
+    "PBX vs Hosted VoIP: What Most IT Vendors Won't Tell You",
+    "How to Troubleshoot a Slow Business Network Without Calling IT",
     "Patch Panel vs Direct-Run Cabling: Pros and Cons for Small Offices",
     "How to Prepare Your Office for a Network Infrastructure Upgrade",
     "Best Unmanaged vs Managed Switches for Small Business Networks",
-    "IT Support Pricing Guide: What Is a Fair Rate for On-Site Service?",
     "How to Set Up a Guest Wi-Fi Network That Keeps Your Business Safe",
-    "Commercial AV Installation: What to Ask Your IT Contractor",
-    "Digital Signage Installation Guide for Retail and Commercial Spaces",
-    "How to Document Your IT Infrastructure So Any Technician Can Support It",
-    "Field Service Automation: How Modern MSPs Schedule and Dispatch Technicians",
+    "How to Migrate Your Business Phone System to VoIP Without Downtime",
+    "Wireless Site Survey: How to Plan Wi-Fi Coverage for a Commercial Space",
+    "How to Label and Test Network Cabling So Future Repairs Go Faster",
+    "Network Rack and IDF Closet Cleanup: A Practical Checklist",
+    "PoE Explained: Powering Cameras, Access Points and Phones Over Ethernet",
+    "How to Plan Network Cabling for a Warehouse or Distribution Center",
+    "Fiber Optic Basics for Business Owners: Single-Mode vs Multimode",
+    "Business Internet Failover: Keeping a Site's Network Online When the ISP Goes Down",
+    "How to Read a Network Cabling Certification Report",
+    "Firewall Basics for Small Offices: What It Does and What It Doesn't",
+
+    # Retail, restaurant and multi-site rollouts
+    "POS System Installation Checklist for Retail and Restaurant Openings",
+    "How to Plan a Multi-Site IT Rollout Across Arizona Locations",
+    "Self-Service Kiosk Installation: Network, Power and Mounting Requirements",
+    "Restaurant Network Setup: Separating POS, Guest Wi-Fi and Kitchen Systems",
+    "What Happens During a Retail Store IT Refresh",
+    "How to Prepare a Store for a POS Hardware Swap Without Closing",
+    "Receipt Printer and Payment Terminal Troubleshooting for Store Managers",
+    "Grocery and Convenience Store IT: Scanners, Scales and Network Basics",
+
+    # Physical security and building systems
+    "How to Choose Security Camera Placement for a Small Business",
+    "IP Camera Storage Planning: NVR Sizing and Retention Basics",
+    "Door Access Control Upgrades: Keycards, Mobile Credentials and Wiring",
+    "Low-Voltage Permits in Arizona: What Business Owners Should Know",
+    "Video Intercom Systems for Commercial Buildings: Installation Guide",
+
+    # Office moves and lifecycle
+    "Office Move IT Checklist: Disconnecting, Moving and Reconnecting Equipment",
+    "How to Decommission Old IT Equipment and Wipe Data Safely",
+    "IT Asset Inventory for Small Business: What to Track and Why",
+    "Conference Room Technology Setup: Displays, Cameras and Cabling",
+    "How to Plan Printer and Copier Networking in a Shared Office",
+
+    # Field service operations
+    "What a Good IT Field Service Ticket Includes (and What Delays a Visit)",
+    "How Field Technicians Prepare for a Site Visit They've Never Seen",
+    "Site Survey Photos: What to Capture Before Any IT Installation",
+    "After-Hours IT Work: Planning Installs That Don't Disrupt Business",
+    "How MSPs Use Local Field Technicians to Cover Out-of-Area Clients",
+    "Preventive Maintenance Visits for Business IT: What Gets Checked",
+    "Heat and IT Equipment: Protecting Network Closets in Arizona Summers",
 ]
 
+_ON_TOPIC = re.compile(
+    r"\b(?:it|msp|network(?:s|ing)?|cabl(?:e|es|ing)|fiber|low[- ]voltage|voip|pbx|phone systems?|"
+    r"wi-?fi|wireless|switch(?:es)?|firewall|router|poe|rack|idf|mdf|pos|kiosks?|"
+    r"technicians?|field service|smart hands|on-site|dispatch|help ?desk|ticket(?:ing)?|"
+    r"security cameras?|cameras?|nvr|access control|intercom|digital signage|av installation|"
+    r"printers?|data center|server|infrastructure)\b",
+    re.I,
+)
+_STOP = frozenset(
+    "a an and at for from how in of on the to with your you guide 2025 2026 2027 free best "
+    "what is are vs which why when do does".split()
+)
 
-def pick_topic(day_offset: int = 0) -> str:
+
+def is_on_topic(text: str) -> bool:
+    """True when text is about IT, low-voltage or field-service work."""
+    return bool(_ON_TOPIC.search(text or ""))
+
+
+def _tokens(text: str) -> frozenset[str]:
+    stem = re.sub(r"\.md$", "", text.lower())
+    stem = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", stem)
+    stem = re.sub(r"\bset[- ]up\b", "setup", stem)
+    stem = re.sub(r"\bwi[- ]fi\b", "wifi", stem)
+    return frozenset(t for t in re.split(r"[^a-z0-9]+", stem) if t and t not in _STOP)
+
+
+def topic_covered(topic: str, existing_post_names: Iterable[str], threshold: float = 0.6) -> Optional[str]:
+    """Return the existing post that already covers topic, if any.
+
+    Generated slugs are shortened forms of the topic title, so this uses the
+    overlap coefficient (shared tokens / smaller set) rather than Jaccard.
     """
-    Pick today's topic based on the day of year.
-    day_offset lets you preview tomorrow's (+1) or yesterday's (-1) topic.
-    """
-    day_of_year = date.today().timetuple().tm_yday + day_offset
-    return TOPICS[day_of_year % len(TOPICS)]
+    wanted = _tokens(topic)
+    for name in existing_post_names:
+        tokens = _tokens(name)
+        if len(tokens) < 3 or not wanted:
+            continue
+        if len(wanted & tokens) / min(len(wanted), len(tokens)) >= threshold:
+            return name
+    return None
+
+
+def pick_topic(existing_post_names: Iterable[str] = (), day_offset: int = 0) -> str:
+    """Pick the next uncovered topic, starting from today's day of year."""
+    names = list(existing_post_names)
+    start = date.today().timetuple().tm_yday + day_offset
+    for i in range(len(TOPICS)):
+        topic = TOPICS[(start + i) % len(TOPICS)]
+        if not topic_covered(topic, names):
+            return topic
+    raise RuntimeError(
+        "Every topic in scripts/article_topics.py is already published; add new "
+        "IT/field-service topics before the next run."
+    )
 
 
 if __name__ == "__main__":
+    import os
     import sys
-    offset = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-    print(pick_topic(offset))
+
+    posts_dir = sys.argv[1] if len(sys.argv) > 1 else ""
+    existing = os.listdir(posts_dir) if posts_dir else []
+    print(pick_topic(existing))
