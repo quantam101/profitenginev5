@@ -110,40 +110,62 @@ def _fetch_cmdos_topic() -> Optional[str]:
     return None
 
 
-def _default_topic() -> str:
-    """Pull from Growth Command OS queue first, then ARTICLE_TOPIC env, then rotation."""
+def _load_topics_module():
+    spec = importlib.util.spec_from_file_location(
+        "article_topics",
+        pathlib.Path(__file__).parent / "article_topics.py",
+    )
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
+def _default_topic(existing_post_names: Optional[List[str]] = None) -> str:
+    """ARTICLE_TOPIC override, then Growth Command OS queue, then learning hint,
+    then the IT/field-service rotation.
+
+    Queue and hint topics are used only when they are IT/field-service topics
+    and not already published; the content site is indexed only for those.
+    A manual ARTICLE_TOPIC is always honored.
+    """
     override = os.getenv("ARTICLE_TOPIC", "").strip()
     if override:
         return override
+    topics = _load_topics_module()
+    names = existing_post_names or []
+
+    def usable(candidate: Optional[str], source: str) -> bool:
+        if not candidate:
+            return False
+        if not topics.is_on_topic(candidate):
+            print(f"[Topic] Skipping off-topic {source} topic: {candidate}")
+            return False
+        covered = topics.topic_covered(candidate, names)
+        if covered:
+            print(f"[Topic] Skipping {source} topic already covered by {covered}: {candidate}")
+            return False
+        return True
+
     cmdos_topic = _fetch_cmdos_topic()
-    if cmdos_topic:
-        return cmdos_topic
+    if usable(cmdos_topic, "Growth Command OS"):
+        return cmdos_topic  # type: ignore[return-value]
     # Learning loop: a concluded experiment with a `topic:*` winner beats
     # blind rotation — the hint is measured, not guessed.
     try:
         from runtime.learning_signals import topic_hint
         hint = topic_hint()
-        if hint:
-            print(f"[LearningSignals] Using measured winning topic: {hint}")
-            return hint
     except Exception:  # noqa: S110 — signals are advisory; missing data is fine
-        pass
-    try:
-        # Import sibling module without package install
-        spec = importlib.util.spec_from_file_location(
-            "article_topics",
-            pathlib.Path(__file__).parent / "article_topics.py",
-        )
-        mod = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
-        spec.loader.exec_module(mod)  # type: ignore[union-attr]
-        return mod.pick_topic()
-    except Exception:
-        return "Best Free AI Tools to Build Passive Income Streams in 2026"
+        hint = None
+    if usable(hint, "learning-signal"):
+        print(f"[LearningSignals] Using measured winning topic: {hint}")
+        return hint  # type: ignore[return-value]
+    return topics.pick_topic(names)
 
 
-SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
-passive income, and digital automation. Write high-quality, helpful articles that
-rank on Google. Always respond with valid JSON only — no markdown code fences."""
+SYSTEM_PROMPT = """You are an expert technical writer for Already Here LLC, an IT field
+service and low-voltage contractor based in Glendale, Arizona. You write practical,
+accurate articles for business owners, office managers and MSPs about networking,
+cabling, VoIP, POS, security systems and on-site IT work. Always respond with valid JSON only — no markdown code fences."""
 
 ARTICLE_PROMPT = """Write an evidence-aware, publication-ready SEO article about: {topic}
 
@@ -813,12 +835,17 @@ def _get_sha(path: str) -> Optional[str]:
     return None
 
 
-def make_jekyll_post(article: Dict[str, Any], date_str: str) -> str:
+def make_jekyll_post(article: Dict[str, Any], date_str: str, topic: str = "") -> str:
     title = article.get("title", "Untitled").replace('"', '\\"')
     meta = article.get("meta_description", "").replace('"', '\\"')
     tags: List[str] = article.get("tags", [])
     body: str = article.get("body", "")
     tags_yaml = "\n".join(f"  - {t}" for t in tags)
+    # The content site defaults every page to noindex/off-sitemap; only
+    # IT/field-service articles opt in (quantam101/content _config.yml).
+    # The selected topic counts too: the generated title may reword it.
+    on_topic = _load_topics_module().is_on_topic(f"{topic} {title} {' '.join(map(str, tags))}")
+    indexing = "noindex: false\nsitemap: true\n" if on_topic else ""
     return (
         f"---\n"
         f'title: "{title}"\n'
@@ -826,6 +853,7 @@ def make_jekyll_post(article: Dict[str, Any], date_str: str) -> str:
         f"date: {date_str}\n"
         f"tags:\n{tags_yaml}\n"
         f"layout: post\n"
+        f"{indexing}"
         f"---\n\n"
         f"{body}\n"
     )
@@ -1112,7 +1140,8 @@ def main() -> None:
         )
         return
 
-    topic = _default_topic()
+    existing_posts = _existing_post_names()
+    topic = _default_topic(existing_posts)
     article = generate_article(topic)
     slug = article.get("slug", article["title"][:50].lower().replace(" ", "-"))
     # Sanitize slug
@@ -1121,7 +1150,7 @@ def main() -> None:
 
     from scripts.seo_content_quality import find_duplicate_post
 
-    duplicate = find_duplicate_post(slug, _existing_post_names())
+    duplicate = find_duplicate_post(slug, existing_posts)
     if duplicate and not FORCE_PUBLISH:
         raise RuntimeError(
             f"Duplicate topic: '{slug}' overlaps existing post {duplicate}. "
@@ -1131,7 +1160,7 @@ def main() -> None:
 
     # Inject affiliate links (noop until AFFILIATE_LINKS env var is set)
     article["body"] = _inject_affiliates(article.get("body", ""))
-    jekyll_md = make_jekyll_post(article, date_str)
+    jekyll_md = make_jekyll_post(article, date_str, topic)
 
     health: dict = {}
 
@@ -1196,7 +1225,7 @@ def main() -> None:
             thread_tweets = [
                 f"New post: {title_text} {tracked_url}",
                 f"Read more on GitHub Pages, Dev.to, and Hashnode → {tracked_url}",
-                "#ProfitEngine #AIContent #PassiveIncome #AlreadyHereLLC",
+                "#ITSupport #FieldService #Phoenix #AlreadyHereLLC",
             ]
             engine = ProductionSocialEngine()
             asyncio.run(

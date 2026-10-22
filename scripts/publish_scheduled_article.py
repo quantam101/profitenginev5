@@ -98,6 +98,10 @@ def jekyll_post(article: Dict[str, Any], date_str: str) -> str:
     title = str(article["title"]).replace('"', '\\"')
     meta = str(article["meta_description"]).replace('"', '\\"')
     tags = "\n".join(f"  - {str(t)}" for t in article["tags"])
+    from scripts.article_topics import is_on_topic
+
+    on_topic = is_on_topic(f"{article['title']} {' '.join(map(str, article['tags']))}")
+    indexing = "noindex: false\nsitemap: true\n" if on_topic else ""
     return (
         "---\n"
         f'title: "{title}"\n'
@@ -105,6 +109,7 @@ def jekyll_post(article: Dict[str, Any], date_str: str) -> str:
         f"date: {date_str}\n"
         f"tags:\n{tags}\n"
         "layout: post\n"
+        f"{indexing}"
         "---\n\n"
         f"{article['body'].rstrip()}\n"
     )

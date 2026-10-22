@@ -22,7 +22,7 @@
     "test:opportunity": "python -m pytest tests/test_opportunity_intelligence.py -q",
     "test:content-factory": "python -m pytest tests/test_content_factory.py -q",
     "test:autopublish-gate": "python -m pytest tests/test_autopublish_gate.py -q",
-    "test:content-quality": "python -m pytest tests/test_seo_content_quality.py -q",
+    "test:content-quality": "python -m pytest tests/test_seo_content_quality.py tests/test_article_topics.py -q",
     "test:revenue-os": "node tests/revenue-os.test.mjs && node tests/revenue-os-crm.test.mjs && node tests/revenue-os-ai-integrations.test.mjs",
     "test:passive-income": "node --test tests/passive-income-engine.test.mjs tests/passive-income-artifact-factory.test.mjs tests/execution-control.test.mjs tests/controlled-ai-route.test.mjs tests/intelligent-process-mesh.test.mjs tests/safe-delivery.test.mjs",
     "test:newsletter": "node tests/newsletter-business.test.mjs",
