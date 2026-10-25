@@ -308,10 +308,12 @@ async def _post_mastodon(post: SocialPost) -> Optional[bool]:
             method="POST",
             headers={"Authorization": f"Bearer {token}",
                      "Content-Type": "application/json",
-                     # Mastodon dedups on this key — a retried submission
-                     # can never become a duplicate toot.
+                     # Content hash + hour bucket: retries of the same
+                     # post dedupe, but an intentional repost in a later
+                     # hour still publishes (Mastodon's window is ~1h).
                      "Idempotency-Key": hashlib.sha256(
-                         f"{instance}:{status}".encode()).hexdigest()},
+                         f"{instance}:{status}:{time.time()//3600:.0f}".encode()
+                     ).hexdigest()},
         )
         data = _urlopen_json(req, timeout=12)
         logger.info(f"[Mastodon] Tooted: {data.get('url', '')}")
@@ -607,8 +609,14 @@ class ProductionSocialEngine:
 
     async def publish_all_platforms(self, text: str, url: str, tags: List[str],
                                      thread_tweets: Optional[List[str]] = None,
-                                     video_path: Optional[str] = None) -> None:
-        """Blast one piece of content to ALL configured platforms at once."""
+                                     video_path: Optional[str] = None,
+                                     priority_channels: Optional[List[str]] = None) -> None:
+        """Blast one piece of content to ALL configured platforms at once.
+
+        ``priority_channels`` (measured winners from learning signals, e.g.
+        ``["linkedin", "mastodon"]``) dispatch first; every platform still
+        posts — priority is ordering, never exclusion.
+        """
         hashtags = " ".join(f"#{t.replace(' ', '')}" for t in (tags or [])[:5])
         telegram_msg = f"📝 <b>{text[:200]}</b>\n\n🔗 {url}\n\n{hashtags}"
         linkedin_msg = f"{text[:600]}\n\n{url}\n\n{hashtags}"
@@ -638,6 +646,13 @@ class ProductionSocialEngine:
                                               extra={"description": yt_desc,
                                                      "tags": [t.replace("-","") for t in (tags or [])[:8]] +
                                                               ["ProfitEngine","PassiveIncome","AI","AlreadyHereLLC"]}))
+
+        if priority_channels:
+            priority = {c.upper() for c in priority_channels}
+            platform_posts.sort(
+                key=lambda p: 0 if p.platform.upper() in priority else 1)
+            hinted = [p.platform for p in platform_posts if p.platform.upper() in priority]
+            logger.info(f"[SocialEngine] measured channel winners dispatch first: {hinted}")
 
         await asyncio.gather(*[self.publish(p) for p in platform_posts])
 
