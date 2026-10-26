@@ -14,7 +14,7 @@ const zapierSchema = z.object({
     'proposal.approved',
     'opportunity.won',
   ] as const),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(request: Request) {

@@ -15,7 +15,7 @@ const issueSchema = z.object({
   ctaLabel: z.string().max(100).optional(),
   ctaUrl: z.string().url().optional(),
   status: z.enum(['draft', 'ready', 'published']).default('draft'),
-  monetization: z.record(z.unknown()).optional(),
+  monetization: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET(request: Request) {
