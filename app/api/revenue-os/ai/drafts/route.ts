@@ -15,7 +15,7 @@ const draftSchema = z.object({
   ] as const),
   opportunityId: z.string().min(1),
   save: z.boolean().optional().default(false),
-  overrides: z.record(z.unknown()).optional(),
+  overrides: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(request: Request) {
