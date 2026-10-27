@@ -4,7 +4,7 @@ on:
   schedule:
     # Newsletter: 08:30 UTC daily (after content pipeline at 07:05)
     - cron: '30 8 * * *'
-    # City SEO pages: 10:00 UTC daily (25 pages/day = 750/month)
+    # 10:00 UTC: daily income report (city SEO generation no longer scheduled)
     - cron: '0 10 * * *'
     # Gumroad catalog bootstrap: 09:00 UTC daily (idempotent)
     - cron: '0 9 * * *'
@@ -111,10 +111,10 @@ jobs:
   city-seo:
     name: Generate City SEO Pages
     runs-on: ubuntu-latest
-    if: >
-      (github.event_name == 'schedule' && github.event.schedule == '0 10 * * *') ||
-      github.event.inputs.stream == 'city-seo' ||
-      github.event.inputs.stream == 'all'
+    # Schedule removed 2026-10-26: generated pages (plumbers/roofers in metros
+    # we don't serve) drew no traffic and were cut from the content site.
+    # Manual run only, and only when asked for by name.
+    if: github.event.inputs.stream == 'city-seo'
     env:
       RUNTIME_API_URL: ${{ secrets.RUNTIME_API_URL }}
     steps:
