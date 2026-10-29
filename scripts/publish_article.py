@@ -118,8 +118,16 @@ def _default_topic() -> str:
     # Unattended canonical publication must never inherit unrelated affiliate
     # or passive-income topics from Growth Command OS or learning signals.
     if os.getenv("CONTENT_NICHE", "").lower() == "msp":
-        from scripts.article_topics import pick_topic
-        return pick_topic()
+        # Load by file path: works both as python scripts/publish_article.py
+        # and when the publisher is imported by a test runner.
+        spec = importlib.util.spec_from_file_location(
+            "article_topics_msp", pathlib.Path(__file__).parent / "article_topics.py"
+        )
+        if spec is None or spec.loader is None:
+            raise RuntimeError("MSP article topic catalog unavailable")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.pick_topic()
     cmdos_topic = _fetch_cmdos_topic()
     if cmdos_topic:
         return cmdos_topic
