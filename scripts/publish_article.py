@@ -154,9 +154,18 @@ def _default_topic() -> str:
         return "Best Free AI Tools to Build Passive Income Streams in 2026"
 
 
-SYSTEM_PROMPT = """You are a senior managed-IT-services and field-network engineer
+SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
+passive income, and digital automation. Write high-quality, helpful articles that
+rank on Google. Always respond with valid JSON only — no markdown code fences."""
+
+MSP_SYSTEM_PROMPT = """You are a senior managed-IT-services and field-network engineer
 writing practical, evidence-aware guidance for commercial customers. Write high-quality articles that
 rank on Google. Always respond with valid JSON only — no markdown code fences."""
+
+
+def _system_prompt() -> str:
+    """Use MSP editorial voice only for the canonical MSP publication workflow."""
+    return MSP_SYSTEM_PROMPT if os.getenv("CONTENT_NICHE", "").lower() == "msp" else SYSTEM_PROMPT
 
 ARTICLE_PROMPT = """Write an evidence-aware, publication-ready SEO article about: {topic}
 
@@ -267,7 +276,7 @@ def _call_groq(prompt: str, model: str | None = None) -> str:
             json={
                 "model": m,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": prompt},
                 ],
                 "max_tokens": 3000,
@@ -298,7 +307,7 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
                 "contents": [
                     {
                         "role": "user",
-                        "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}],
+                        "parts": [{"text": f"{_system_prompt()}\n\n{prompt}"}],
                     },
                 ],
                 "generationConfig": {
