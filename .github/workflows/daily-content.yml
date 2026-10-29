@@ -9,12 +9,10 @@ name: Daily Content Publisher
 # the normal publication and distribution controls.
 
 on:
-  # Paused 2026-10-19: the topic rotation publishes passive-income,
-  # affiliate and freelancing articles that dilute search rankings for the
-  # IT/field-service pages on www.alreadyherellc.com/content/. The schedule
-  # and push triggers are removed (a push trigger would fire on this very
-  # edit); run manually with an IT/field-service topic until the rotation
-  # in scripts/article_topics.py is retargeted.
+  # Restored: unattended rotation is now limited to MSP/IT field-service topics.
+  # Do not add a push trigger: pushes should never publish a customer-facing post.
+  schedule:
+    - cron: '5 7 * * *'  # 00:05 America/Phoenix, year-round
   workflow_dispatch:
     inputs:
       topic:
@@ -133,6 +131,7 @@ jobs:
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
           MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
           MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          CONTENT_NICHE: msp
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
@@ -238,6 +237,7 @@ jobs:
           HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUB_ID }}
           MEDIUM_API_KEY: ${{ secrets.MEDIUM_API_KEY }}
           MEDIUM_AUTHOR_ID: ${{ secrets.MEDIUM_AUTHOR_ID }}
+          CONTENT_NICHE: msp
           ARTICLE_TOPIC: ${{ github.event.inputs.topic }}
           AFFILIATE_LINKS: ${{ secrets.AFFILIATE_LINKS }}
           AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}

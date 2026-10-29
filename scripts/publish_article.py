@@ -115,6 +115,19 @@ def _default_topic() -> str:
     override = os.getenv("ARTICLE_TOPIC", "").strip()
     if override:
         return override
+    # Unattended canonical publication must never inherit unrelated affiliate
+    # or passive-income topics from Growth Command OS or learning signals.
+    if os.getenv("CONTENT_NICHE", "").lower() == "msp":
+        # Load by file path: works both as python scripts/publish_article.py
+        # and when the publisher is imported by a test runner.
+        spec = importlib.util.spec_from_file_location(
+            "article_topics_msp", pathlib.Path(__file__).parent / "article_topics.py"
+        )
+        if spec is None or spec.loader is None:
+            raise RuntimeError("MSP article topic catalog unavailable")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.pick_topic(niche="msp")
     cmdos_topic = _fetch_cmdos_topic()
     if cmdos_topic:
         return cmdos_topic
@@ -144,6 +157,15 @@ def _default_topic() -> str:
 SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
 passive income, and digital automation. Write high-quality, helpful articles that
 rank on Google. Always respond with valid JSON only — no markdown code fences."""
+
+MSP_SYSTEM_PROMPT = """You are a senior managed-IT-services and field-network engineer
+writing practical, evidence-aware guidance for commercial customers. Write high-quality articles that
+rank on Google. Always respond with valid JSON only — no markdown code fences."""
+
+
+def _system_prompt() -> str:
+    """Use MSP editorial voice only for the canonical MSP publication workflow."""
+    return MSP_SYSTEM_PROMPT if os.getenv("CONTENT_NICHE", "").lower() == "msp" else SYSTEM_PROMPT
 
 ARTICLE_PROMPT = """Write an evidence-aware, publication-ready SEO article about: {topic}
 
@@ -254,7 +276,7 @@ def _call_groq(prompt: str, model: str | None = None) -> str:
             json={
                 "model": m,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": prompt},
                 ],
                 "max_tokens": 3000,
@@ -285,7 +307,7 @@ def _call_gemini(prompt: str, model: str | None = None) -> str:
                 "contents": [
                     {
                         "role": "user",
-                        "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{prompt}"}],
+                        "parts": [{"text": f"{_system_prompt()}\n\n{prompt}"}],
                     },
                 ],
                 "generationConfig": {
