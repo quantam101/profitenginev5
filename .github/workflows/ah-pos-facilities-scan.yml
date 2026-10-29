@@ -1,0 +1,69 @@
+name: AH-POS Government Quick-Win Scan (IT + Facilities)
+
+on:
+  schedule:
+    # 13:05 UTC = 06:05 Phoenix (MST, no DST)
+    - cron: '5 13 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'Days of postings to scan'
+        default: '3'
+      award_days:
+        description: 'Days of award history for repeat-buyer intel (0 = off)'
+        default: '90'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ah-pos-facilities-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SAM_GOV_API_KEY: ${{ secrets.SAM_GOV_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      AH_POS_STATES: ${{ vars.AH_POS_STATES || 'AZ' }}
+      AH_POS_CERTS: ${{ vars.AH_POS_CERTS || '' }}
+      SAM_MAX_CALLS: ${{ vars.SAM_MAX_CALLS || '6' }}
+      AH_SITE_INTAKE_URL: ${{ vars.AH_SITE_INTAKE_URL || 'https://www.alreadyherellc.com/api/revenue-command-spine/intake' }}
+      AH_POS_OUT_DIR: facilities_out
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: pip install requests==2.31.0 pytest==7.4.3
+
+      - name: Unit tests
+        run: python -m pytest -q -c /dev/null ah-pos/tests/test_facilities_quickwin.py
+
+      - name: Check secret
+        run: |
+          if [ -z "$SAM_GOV_API_KEY" ]; then
+            echo "::error::BLOCKED — add repo secret SAM_GOV_API_KEY (SAM.gov > Account Details > Public API Key)"
+            exit 1
+          fi
+
+      - name: Scan SAM.gov
+        run: |
+          python ah-pos/backend/facilities_quickwin.py \
+            --days-back "${{ github.event.inputs.days_back || '3' }}" \
+            --award-days "${{ github.event.inputs.award_days || '90' }}" \
+            --notify --push-intake | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facilities-scan-${{ github.run_id }}
+          path: facilities_out/
+          if-no-files-found: ignore
+          retention-days: 30
