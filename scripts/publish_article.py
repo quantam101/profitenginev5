@@ -115,6 +115,11 @@ def _default_topic() -> str:
     override = os.getenv("ARTICLE_TOPIC", "").strip()
     if override:
         return override
+    # Unattended canonical publication must never inherit unrelated affiliate
+    # or passive-income topics from Growth Command OS or learning signals.
+    if os.getenv("CONTENT_NICHE", "").lower() == "msp":
+        from scripts.article_topics import pick_topic
+        return pick_topic()
     cmdos_topic = _fetch_cmdos_topic()
     if cmdos_topic:
         return cmdos_topic
@@ -141,8 +146,8 @@ def _default_topic() -> str:
         return "Best Free AI Tools to Build Passive Income Streams in 2026"
 
 
-SYSTEM_PROMPT = """You are an expert SEO content writer specializing in AI tools,
-passive income, and digital automation. Write high-quality, helpful articles that
+SYSTEM_PROMPT = """You are a senior managed-IT-services and field-network engineer
+writing practical, evidence-aware guidance for commercial customers. Write high-quality articles that
 rank on Google. Always respond with valid JSON only — no markdown code fences."""
 
 ARTICLE_PROMPT = """Write an evidence-aware, publication-ready SEO article about: {topic}
