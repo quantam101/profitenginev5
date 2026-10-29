@@ -273,8 +273,8 @@ async def health() -> dict[str, Any]:
         try:
             await asyncio.wait_for(db.command("ping"), timeout=3.0)
             mongo_state = "ready"
-        except Exception:  # noqa: BLE001 -- degraded state, never leak credentials
-            pass
+        except Exception:  # noqa: BLE001 -- failed ping degrades the dependency
+            mongo_state = "unavailable"
     return {"ok": True, "status": "ok", "service": "profitengine-v5",
             "mongo": mongo_state,
             "time": datetime.now(timezone.utc).isoformat()}
