@@ -11,8 +11,9 @@ def test_rotation_never_selects_unrelated_income_topics():
     assert len(article_topics.MSP_TOPICS) == len(set(article_topics.MSP_TOPICS))
     assert all("Passive Income" not in t and "Affiliate Marketing" not in t
                for t in article_topics.MSP_TOPICS)
-    assert all(article_topics.pick_topic(offset) in article_topics.MSP_TOPICS
+    assert all(article_topics.pick_topic(offset, niche="msp") in article_topics.MSP_TOPICS
                for offset in range(370))
+    assert article_topics.pick_topic() in article_topics.TOPICS
 
 
 def test_unattended_publication_ignores_growth_topic_queue(monkeypatch):
