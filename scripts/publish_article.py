@@ -127,7 +127,7 @@ def _default_topic() -> str:
             raise RuntimeError("MSP article topic catalog unavailable")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        return mod.pick_topic()
+        return mod.pick_topic(niche="msp")
     cmdos_topic = _fetch_cmdos_topic()
     if cmdos_topic:
         return cmdos_topic
