@@ -1,4 +1,4 @@
-# Facilities Quick-Win Playbook (AH-POS)
+# Government Quick-Win Playbook — IT + Facilities (AH-POS)
 
 Source idea: a short-form video pitching "position your company as a facilities support contractor — 4 contracts at $25,000 = $100,000," winning on response time and pricing. This doc turns that into rules that hold up under current regulations, wired to `backend/facilities_quickwin.py`.
 
@@ -10,17 +10,45 @@ Source idea: a short-form video pitching "position your company as a facilities 
 - **A $25K job sits in the sweet spot:** small enough that big primes ignore it, large enough to be worth a truck roll.
 - **Funnel math:** 4 wins needs about 20 bids at a 20% win rate. The scanner prints this every run (`--goal`, `--avg-award`, `--win-rate`).
 
-## NAICS to register in SAM.gov
+## Two lanes, one scanner
 
-| Tier | NAICS | Work |
+The scanner bids what alreadyherellc.com actually sells. The source of truth is `ah-pos/config/capabilities.json`: every NAICS has a lane and a delivery mode.
+
+- **`self`** — Already Here performs the work with its own technicians.
+- **`team`** — needs a teaming partner or subcontractor lined up before bidding.
+
+**IT lane (self-perform; matches the site's capability statement):**
+
+| NAICS | Work |
+|---|---|
+| 541512, 541519 | Systems design, IT services, help desk, field IT |
+| 541513 | Computer facilities management |
+| 541611 | IT management consulting |
+| 811210 | Computer, office machine and electronics repair (2022 successor to 811212) |
+| 238210 | Structured cabling, low voltage, electrical |
+
+**Facilities lane:**
+
+| NAICS | Work | Delivery |
 |---|---|---|
-| Primary | 561210 | Facilities support (bundled maintenance/janitorial/O&M) |
-| Core | 561720, 561730, 561790 | Janitorial, landscaping, building services |
-| Core | 238210, 238220 | Electrical, HVAC/plumbing |
-| Core | 811310, 811210 | Equipment repair (incl. commercial kitchen and appliance), electronics |
-| Adjacent | 541512, 541519, 238290, 238990, 236220, 561990 | IT field services, specialty trades |
+| 811412 | Appliance repair | self |
+| 561210 | Facilities support (bundled) | team |
+| 561720, 561730, 561790 | Janitorial, landscaping, building services | team |
+| 238220 | HVAC/plumbing | team |
+| 811310 | Commercial equipment repair | team |
 
-The 561210 size standard is about $47M in average receipts, so Already Here is comfortably small. Confirm against the current SBA size table before certifying.
+Self-perform items score +30 and team items +20. Move a trade to `self` once Already Here can do it in-house.
+
+**Size and code checks:**
+- The 561210 size standard is about $47M in average receipts; confirm against the current SBA size table before certifying.
+- SAM.gov uses NAICS 2022, so register **811210, not 811212**.
+
+## Website integration (alreadyherellc.com)
+
+- Each run posts score-70+ items (max 8, under the endpoint's 10/min limit) to `/api/revenue-command-spine/intake` with `source: sam_gov`.
+- They land in the site's **Procurement** lane with `submission_status: blocked_pending_owner_approval`. Nothing is bid without you.
+- Intake IDs are keyed on the notice's posted date, so daily re-scans don't create duplicates.
+- When you contact a buyer, point them to `/government-contracting` and `/capability-statement`.
 
 ## Daily operating loop
 

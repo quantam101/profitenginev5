@@ -133,3 +133,46 @@ def test_run_writes_outputs(tmp_path):
     assert len(r["opportunities"]) == 1
     assert (tmp_path / "facilities_scan.json").exists()
     assert "4 wins" in r["digest"]
+
+
+def test_it_lane_self_perform_scores_above_teaming_trade():
+    it = fq.score(fq.normalize(sam_row(naicsCode="541519", title="Network cabling and Wi-Fi refresh")),
+                  {"AZ"}, set(), TODAY)
+    fac = fq.score(fq.normalize(sam_row(naicsCode="561720", title="Network cabling and Wi-Fi refresh")),
+                   {"AZ"}, set(), TODAY)
+    assert it.opp["lane"] == "it" and it.opp["delivery"] == "self"
+    assert fac.opp["lane"] == "facilities" and fac.opp["delivery"] == "team"
+    assert it.score > fac.score
+
+
+def test_capabilities_use_2022_naics_and_mirror_site():
+    codes = set(fq.NAICS_MAP)
+    assert "811212" not in codes  # retired in NAICS 2022 -> 811210
+    assert {"541512", "541519", "238210", "811210", "541611"} <= codes
+
+
+def test_intake_payload_routes_to_procurement_and_is_stable():
+    s = fq.score(fq.normalize(sam_row()), {"AZ"}, set(), TODAY)
+    p = fq.intake_payload(s)
+    assert p["source"] == "sam_gov" and p["sourceId"] == "a1b2c3d4e5f6"
+    assert p["title"].startswith("Government RFQ:")
+    assert p["submittedAt"] == "2026-10-27T00:00:00.000Z"
+    assert "owner approval" in p["body"]
+
+
+class _PostHttp:
+    def __init__(self, codes):
+        self.codes, self.sent = list(codes), []
+
+    def post(self, url, json, timeout, headers):
+        assert url == fq.SITE_INTAKE_URL
+        self.sent.append(json)
+        return _Resp({}, self.codes.pop(0))
+
+
+def test_push_to_site_respects_threshold_and_reports_failures():
+    hi = fq.score(fq.normalize(sam_row()), {"AZ"}, set(), TODAY)
+    lo = fq.ScoredOpportunity(hi.opp, 40, True, [])
+    http = _PostHttp([200, 429])
+    r = fq.push_to_site([hi, hi, lo], http=http)
+    assert r["sent"] == 1 and len(r["failed"]) == 1 and len(http.sent) == 2

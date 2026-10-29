@@ -1,6 +1,6 @@
 """
-AH-POS Facilities Quick-Win Scanner
-===================================
+AH-POS Government Quick-Win Scanner (IT + Facilities)
+=====================================================
 
 Implements the "facilities support contractor" play:
   - Target small, fast, simplified-acquisition awards (roughly $15K-$350K under
@@ -49,33 +49,21 @@ SAM_SEARCH_URL = "https://api.sam.gov/opportunities/v2/search"
 MICRO_PURCHASE_THRESHOLD = 15_000
 SIMPLIFIED_ACQUISITION_THRESHOLD = 350_000
 
-# Core facilities-support family and close adjacents Already Here can perform.
-CORE_NAICS = {
-    "561210": "Facilities Support Services",
-    "561720": "Janitorial Services",
-    "561730": "Landscaping Services",
-    "561790": "Other Services to Buildings and Dwellings",
-    "238210": "Electrical Contractors",
-    "238220": "Plumbing, Heating, and Air-Conditioning Contractors",
-    "811310": "Commercial/Industrial Machinery and Equipment Repair",
-    "811210": "Electronic and Precision Equipment Repair",
-}
-ADJACENT_NAICS = {
-    "236220": "Commercial and Institutional Building Construction",
-    "238290": "Other Building Equipment Contractors",
-    "238990": "All Other Specialty Trade Contractors",
-    "541512": "Computer Systems Design Services",
-    "541519": "Other Computer Related Services",
-    "561990": "All Other Support Services",
-}
+CAPABILITIES_PATH = Path(__file__).resolve().parents[1] / "config" / "capabilities.json"
 
-CAPABILITY_KEYWORDS = (
-    "facility", "facilities", "maintenance", "repair", "preventive", "hvac",
-    "air condition", "chiller", "boiler", "janitorial", "custodial", "cleaning",
-    "grounds", "landscap", "appliance", "electrical", "lighting", "generator",
-    "plumbing", "cabling", "low voltage", "pest", "refuse", "trash", "o&m",
-    "operations and maintenance", "ice machine", "kitchen equipment",
-)
+
+def load_capabilities(path: Path = CAPABILITIES_PATH) -> dict:
+    """NAICS -> {lane, delivery, desc} plus per-lane keywords. Mirrors alreadyherellc.com."""
+    cfg = json.loads(Path(path).read_text())
+    naics = {n["code"]: {"lane": n["lane"], "delivery": n["delivery"], "desc": n["desc"]}
+             for n in cfg["naics"]}
+    keywords = {lane: tuple(v["keywords"]) for lane, v in cfg["lanes"].items()}
+    labels = {lane: v["label"] for lane, v in cfg["lanes"].items()}
+    return {"naics": naics, "keywords": keywords, "labels": labels}
+
+
+CAPABILITIES = load_capabilities()
+NAICS_MAP = CAPABILITIES["naics"]
 
 # SAM ptype codes
 PTYPE_LABELS = {
@@ -269,14 +257,17 @@ def score(opp: dict, states: set[str], certs: set[str], today: Optional[date] = 
     pts = 0
 
     naics = opp["naics"]
-    if naics in CORE_NAICS:
-        pts += 30
-        reasons.append(f"core NAICS {naics}")
-    elif naics in ADJACENT_NAICS:
-        pts += 15
-        reasons.append(f"adjacent NAICS {naics}")
-    else:
+    cap = NAICS_MAP.get(naics)
+    if not cap:
         return ScoredOpportunity(opp, 0, False, ["NAICS out of scope"])
+    opp["lane"] = cap["lane"]
+    opp["delivery"] = cap["delivery"]
+    if cap["delivery"] == "self":
+        pts += 30
+        reasons.append(f"{cap['lane'].upper()} NAICS {naics} (self-perform)")
+    else:
+        pts += 20
+        reasons.append(f"{cap['lane'].upper()} NAICS {naics} (needs teaming partner)")
 
     ok, why = eligibility(opp["set_aside_code"], certs)
     if not ok:
@@ -309,7 +300,7 @@ def score(opp: dict, states: set[str], certs: set[str], today: Optional[date] = 
             reasons.append(f"{days_left}d to respond")
 
     title = opp["title"].lower()
-    hits = [k for k in CAPABILITY_KEYWORDS if k in title]
+    hits = [k.strip() for k in CAPABILITIES["keywords"].get(cap["lane"], ()) if k in title]
     if hits:
         pts += min(10, 4 * len(hits))
         reasons.append("fits: " + ", ".join(hits[:3]))
@@ -327,7 +318,7 @@ def repeat_buyers(awards: list[dict], states: set[str],
         amt = a.get("award_amount")
         if amt is None or not (low <= amt <= high):
             continue
-        if a["naics"] not in CORE_NAICS and a["naics"] not in ADJACENT_NAICS:
+        if a["naics"] not in NAICS_MAP:
             continue
         if states and a["pop_state"] and a["pop_state"] not in states:
             continue
@@ -374,31 +365,98 @@ def _json_default(o):
     raise TypeError(type(o))
 
 
+def _digest_item(i: int, s: ScoredOpportunity) -> list[str]:
+    o = s.opp
+    dl = o["deadline"].isoformat() if o["deadline"] else "n/a"
+    return [f"{i}. [{s.score}] {o['title'][:90]}",
+            f"   {o['office'] or o['agency']} | {o['pop_city']} {o['pop_state']} | "
+            f"NAICS {o['naics']} | due {dl}",
+            f"   {'; '.join(s.reasons)}",
+            f"   {o['url']}"]
+
+
 def render_digest(ranked: list[ScoredOpportunity], buyers: list[dict], plan: dict,
-                  states: set[str], top: int = 10) -> str:
-    lines = [f"AH-POS Facilities Quick-Win Scan — {date.today().isoformat()}",
+                  states: set[str], top: int = 6) -> str:
+    lines = [f"AH-POS Government Quick-Win Scan — {date.today().isoformat()}",
              f"Dispatch area: {', '.join(sorted(states))} | biddable: {len(ranked)}",
              f"Goal ${plan['revenue_goal']:,.0f} = {plan['wins_needed']} wins x "
              f"${plan['avg_award']:,.0f} -> ~{plan['bids_needed']} bids at "
-             f"{plan['win_rate']:.0%} win rate", ""]
-    if ranked:
-        lines.append("Top opportunities:")
-        for i, s in enumerate(ranked[:top], 1):
-            o = s.opp
-            dl = o["deadline"].isoformat() if o["deadline"] else "n/a"
-            lines.append(f"{i}. [{s.score}] {o['title'][:90]}")
-            lines.append(f"   {o['office'] or o['agency']} | {o['pop_city']} {o['pop_state']} | "
-                         f"NAICS {o['naics']} | due {dl}")
-            lines.append(f"   {'; '.join(s.reasons)}")
-            lines.append(f"   {o['url']}")
-    else:
-        lines.append("No biddable opportunities in this window.")
+             f"{plan['win_rate']:.0%} win rate"]
+    if not ranked:
+        lines += ["", "No biddable opportunities in this window."]
+    for lane, label in CAPABILITIES["labels"].items():
+        items = [s for s in ranked if s.opp.get("lane") == lane]
+        if not items:
+            continue
+        lines += ["", f"{label} ({len(items)}):"]
+        for i, s in enumerate(items[:top], 1):
+            lines += _digest_item(i, s)
     if buyers:
         lines += ["", "Repeat small-award buyers (target for capability statements):"]
         for b in buyers[:5]:
             lines.append(f"- {b['office']} ({b['agency']}): {b['awards']} awards, "
                          f"avg ${b['avg_award']:,.0f}, NAICS {', '.join(b['naics'])}")
     return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# alreadyherellc.com revenue-command intake (Procurement lane, owner-approval gated)
+# --------------------------------------------------------------------------- #
+SITE_INTAKE_URL = "https://www.alreadyherellc.com/api/revenue-command-spine/intake"
+SITE_INTAKE_MAX = 8  # endpoint allows 10 requests/minute per client
+
+
+def intake_payload(s: ScoredOpportunity) -> dict:
+    o = s.opp
+    dl = o["deadline"].isoformat() if o["deadline"] else "not stated"
+    body = "\n".join([
+        f"SAM.gov {o['notice_type'] or 'notice'} | solicitation {o['solicitation_number'] or 'n/a'}",
+        f"Lane: {o.get('lane', '')} | delivery: {o.get('delivery', '')} | score {s.score}",
+        f"NAICS {o['naics']} | set-aside: {o['set_aside'] or 'none'} | response due {dl}",
+        f"Place of performance: {o['pop_city']} {o['pop_state']}",
+        f"Contracting contact: {o['contact_name'] or 'see notice'}",
+        f"Why: {'; '.join(s.reasons)}",
+        o["url"],
+        "Bid/no-bid decision and any submission require owner approval.",
+    ])
+    return {
+        "source": "sam_gov",
+        "sourceId": o["notice_id"],
+        "channel": "web",
+        "fullName": o["contact_name"] or "Contracting Officer",
+        "company": o["office"] or o["agency"] or "Federal agency",
+        "domain": (o["contact_email"].split("@", 1)[1] if "@" in o["contact_email"] else ""),
+        "email": o["contact_email"],
+        "phone": o["contact_phone"],
+        "title": f"Government RFQ: {o['title']}"[:240],
+        "body": body[:4000],
+        "location": ", ".join(x for x in (o["pop_city"], o["pop_state"]) if x),
+        "serviceType": f"Federal {o.get('lane', '')} solicitation".strip(),
+        "ticketNumber": o["solicitation_number"],
+        "requestedWindow": f"respond by {dl}",
+        "estimatedValueCents": 0,
+        # Stable timestamp keeps the site's canonical intake id identical across daily runs.
+        "submittedAt": (o["posted"].isoformat() + "T00:00:00.000Z") if o["posted"] else None,
+    }
+
+
+def push_to_site(ranked: list[ScoredOpportunity], url: str = SITE_INTAKE_URL,
+                 limit: int = SITE_INTAKE_MAX, min_score: int = 70,
+                 http: Optional[requests.Session] = None) -> dict:
+    http = http or requests.Session()
+    sent, failed = 0, []
+    for s in [r for r in ranked if r.score >= min_score][:limit]:
+        payload = {k: v for k, v in intake_payload(s).items() if v not in (None, "")}
+        try:
+            r = http.post(url, json=payload, timeout=20,
+                          headers={"User-Agent": "Mozilla/5.0 (AH-POS scanner)"})
+            if r.status_code == 200:
+                sent += 1
+            else:
+                failed.append({"notice_id": s.opp["notice_id"], "status": r.status_code})
+        except requests.RequestException as exc:
+            failed.append({"notice_id": s.opp["notice_id"], "error": str(exc)[:200]})
+    return {"sent": sent, "failed": failed}
 
 
 def send_telegram(text: str) -> bool:
@@ -475,6 +533,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--max-calls", type=int, default=int(os.getenv("SAM_MAX_CALLS", "6")))
     p.add_argument("--out", default=os.getenv("AH_POS_OUT_DIR", "facilities_out"))
     p.add_argument("--notify", action="store_true", help="send digest to Telegram")
+    p.add_argument("--push-intake", action="store_true",
+                   help="post score>=70 items to alreadyherellc.com Procurement intake")
     args = p.parse_args(argv)
 
     key = os.getenv("SAM_GOV_API_KEY", "").strip()
@@ -496,6 +556,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"BLOCKED — {exc}", file=sys.stderr)
         return 2
     print(result["digest"])
+    if args.push_intake:
+        ranked = [ScoredOpportunity(o, o["score"], True, o["reasons"], o["days_left"])
+                  for o in result["opportunities"]]
+        pushed = push_to_site(ranked, os.getenv("AH_SITE_INTAKE_URL", SITE_INTAKE_URL))
+        print(f"Site intake: {pushed['sent']} sent, {len(pushed['failed'])} failed")
+        if pushed["failed"]:
+            logger.warning("Site intake failures: %s", pushed["failed"])
     if args.notify and send_telegram(result["digest"]):
         logger.info("Digest sent to Telegram")
     return 0

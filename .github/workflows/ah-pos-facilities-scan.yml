@@ -1,4 +1,4 @@
-name: AH-POS Facilities Quick-Win Scan
+name: AH-POS Government Quick-Win Scan (IT + Facilities)
 
 on:
   schedule:
@@ -31,6 +31,7 @@ jobs:
       AH_POS_STATES: ${{ vars.AH_POS_STATES || 'AZ' }}
       AH_POS_CERTS: ${{ vars.AH_POS_CERTS || '' }}
       SAM_MAX_CALLS: ${{ vars.SAM_MAX_CALLS || '6' }}
+      AH_SITE_INTAKE_URL: ${{ vars.AH_SITE_INTAKE_URL || 'https://www.alreadyherellc.com/api/revenue-command-spine/intake' }}
       AH_POS_OUT_DIR: facilities_out
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +58,7 @@ jobs:
           python ah-pos/backend/facilities_quickwin.py \
             --days-back "${{ github.event.inputs.days_back || '3' }}" \
             --award-days "${{ github.event.inputs.award_days || '90' }}" \
-            --notify | tee -a "$GITHUB_STEP_SUMMARY"
+            --notify --push-intake | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always()

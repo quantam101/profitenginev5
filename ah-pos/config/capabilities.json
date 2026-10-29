@@ -1,0 +1,28 @@
+{
+  "_doc": "Single source of truth for what AH-POS bids. Lane 'it' mirrors alreadyherellc.com /capability-statement NAICS (2022 codes). delivery: 'self' = Already Here performs with its own technicians; 'team' = needs a teaming partner or subcontractor before bidding. Update this file when a trade moves from team to self.",
+  "lanes": {
+    "it": {
+      "label": "IT & technical field services",
+      "keywords": ["network", "cabling", "low voltage", "fiber", "wifi", "wi-fi", "wireless", "server", "storage", "data center", "help desk", "desktop", "endpoint", "computer", "laptop", "printer", "pos", "kiosk", "telecom", "voip", "av ", "audio visual", "it support", "it services", "smart hands", "rfid", "barcode", "asset", "microsoft 365", "firewall", "cyber", "camera", "access control", "deployment", "refresh", "decommission", "imaging"]
+    },
+    "facilities": {
+      "label": "Facilities support",
+      "keywords": ["facility", "facilities", "maintenance", "repair", "preventive", "hvac", "air condition", "chiller", "boiler", "janitorial", "custodial", "cleaning", "grounds", "landscap", "appliance", "electrical", "lighting", "generator", "plumbing", "pest", "refuse", "trash", "o&m", "operations and maintenance", "ice machine", "kitchen equipment", "refrigerat"]
+    }
+  },
+  "naics": [
+    {"code": "541512", "lane": "it", "delivery": "self", "desc": "Computer Systems Design Services"},
+    {"code": "541519", "lane": "it", "delivery": "self", "desc": "Other Computer Related Services"},
+    {"code": "541611", "lane": "it", "delivery": "self", "desc": "Administrative and General Management Consulting Services"},
+    {"code": "811210", "lane": "it", "delivery": "self", "desc": "Electronic and Precision Equipment Repair and Maintenance (2022 successor to 811212)"},
+    {"code": "238210", "lane": "it", "delivery": "self", "desc": "Electrical Contractors and Other Wiring Installation Contractors"},
+    {"code": "541513", "lane": "it", "delivery": "self", "desc": "Computer Facilities Management Services"},
+    {"code": "811412", "lane": "facilities", "delivery": "self", "desc": "Appliance Repair and Maintenance"},
+    {"code": "561210", "lane": "facilities", "delivery": "team", "desc": "Facilities Support Services"},
+    {"code": "561720", "lane": "facilities", "delivery": "team", "desc": "Janitorial Services"},
+    {"code": "561730", "lane": "facilities", "delivery": "team", "desc": "Landscaping Services"},
+    {"code": "561790", "lane": "facilities", "delivery": "team", "desc": "Other Services to Buildings and Dwellings"},
+    {"code": "238220", "lane": "facilities", "delivery": "team", "desc": "Plumbing, Heating, and Air-Conditioning Contractors"},
+    {"code": "811310", "lane": "facilities", "delivery": "team", "desc": "Commercial and Industrial Machinery and Equipment Repair"}
+  ]
+}
