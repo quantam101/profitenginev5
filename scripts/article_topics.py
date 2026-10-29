@@ -165,13 +165,14 @@ MSP_START = "How to Find a Reliable IT Field Service Company in Phoenix AZ"
 MSP_TOPICS: List[str] = TOPICS[TOPICS.index(MSP_START):]
 
 
-def pick_topic(day_offset: int = 0) -> str:
+def pick_topic(day_offset: int = 0, niche: str = "") -> str:
     """
     Pick today's topic based on the day of year.
     day_offset lets you preview tomorrow's (+1) or yesterday's (-1) topic.
     """
     day_of_year = date.today().timetuple().tm_yday + day_offset
-    return MSP_TOPICS[day_of_year % len(MSP_TOPICS)]
+    topics = MSP_TOPICS if niche.lower() == "msp" else TOPICS
+    return topics[day_of_year % len(topics)]
 
 
 if __name__ == "__main__":
