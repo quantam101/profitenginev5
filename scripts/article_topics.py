@@ -161,13 +161,17 @@ TOPICS: List[str] = [
 ]
 
 
+MSP_START = "How to Find a Reliable IT Field Service Company in Phoenix AZ"
+MSP_TOPICS: List[str] = TOPICS[TOPICS.index(MSP_START):]
+
+
 def pick_topic(day_offset: int = 0) -> str:
     """
     Pick today's topic based on the day of year.
     day_offset lets you preview tomorrow's (+1) or yesterday's (-1) topic.
     """
     day_of_year = date.today().timetuple().tm_yday + day_offset
-    return TOPICS[day_of_year % len(TOPICS)]
+    return MSP_TOPICS[day_of_year % len(MSP_TOPICS)]
 
 
 if __name__ == "__main__":
