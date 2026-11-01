@@ -65,13 +65,14 @@ def _tag_sets(tags: list[str]) -> tuple[list[str], list[dict]]:
     for tag in tags:
         slug = re.sub(r"[^a-z0-9]+", "-", tag.lower()).strip("-")
         compact = slug.replace("-", "")[:20]  # dev.to tags: alnum only, max 20 chars
+        if slug and slug not in {h["slug"] for h in hashnode}:
+            hashnode.append({"slug": slug, "name": tag})
         if not compact or compact in devto:
             continue
         devto.append(compact)
-        hashnode.append({"slug": slug, "name": tag})
         if len(devto) == 4:
             break
-    if not devto:
+    if not devto and not hashnode:
         return DEFAULT_TAGS
     return devto, hashnode
 

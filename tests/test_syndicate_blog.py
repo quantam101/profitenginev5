@@ -74,3 +74,12 @@ def test_devto_tag_is_capped_at_20_chars():
     )
     assert all(len(t) <= 20 and t.isalnum() for t in devto)
     assert devto[0] == "fieldserviceautomation"[:20]
+
+
+def test_hashnode_tags_survive_devto_prefix_collision():
+    devto, hashnode = syndicate_blog._tag_sets(
+        ["abcdefghij klmnopqrst1", "abcdefghij klmnopqrst2", "msp"]
+    )
+    assert devto == ["abcdefghijklmnopqrst", "msp"]
+    assert [h["slug"] for h in hashnode] == [
+        "abcdefghij-klmnopqrst1", "abcdefghij-klmnopqrst2", "msp"]
