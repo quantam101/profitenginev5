@@ -48,7 +48,7 @@ def test_parse_jekyll_post_builds_content_canonical(tmp_path):
 
 def test_tags_map_to_platform_limits(tmp_path):
     post = syndicate_blog.parse_post(_write(tmp_path, "2026-08-27-x.md", POST))
-    assert post["tags"]["devto"] == ["fieldserviceautomation", "msp", "dispatchscheduling", "techmanagement"]
+    assert post["tags"]["devto"] == ["fieldserviceautomati", "msp", "dispatchscheduling", "techmanagement"]
     assert post["tags"]["hashnode"][0] == {"slug": "field-service-automation", "name": "Field Service Automation"}
     assert len(post["tags"]["hashnode"]) == 4
 
@@ -66,3 +66,11 @@ def test_noindex_posts_are_not_syndicated(tmp_path):
 
 def test_files_without_front_matter_are_skipped(tmp_path):
     assert syndicate_blog.parse_post(_write(tmp_path, "2026-08-27-x.md", "# no front matter")) is None
+
+
+def test_devto_tag_is_capped_at_20_chars():
+    devto, _hashnode = syndicate_blog._tag_sets(
+        ["Field Service Automation", "MSP", "Dispatch Scheduling", "Tech Management", "Digital Automation"]
+    )
+    assert all(len(t) <= 20 and t.isalnum() for t in devto)
+    assert devto[0] == "fieldserviceautomation"[:20]

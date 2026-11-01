@@ -64,7 +64,7 @@ def _tag_sets(tags: list[str]) -> tuple[list[str], list[dict]]:
     hashnode: list[dict] = []
     for tag in tags:
         slug = re.sub(r"[^a-z0-9]+", "-", tag.lower()).strip("-")
-        compact = slug.replace("-", "")
+        compact = slug.replace("-", "")[:20]  # dev.to tags: alnum only, max 20 chars
         if not compact or compact in devto:
             continue
         devto.append(compact)
