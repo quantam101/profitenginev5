@@ -83,3 +83,82 @@ def test_hashnode_tags_survive_devto_prefix_collision():
     assert devto == ["abcdefghijklmnopqrst", "msp"]
     assert [h["slug"] for h in hashnode] == [
         "abcdefghij-klmnopqrst1", "abcdefghij-klmnopqrst2", "msp"]
+
+
+def _post(tmp_path, name="2026-08-27-x.md"):
+    return syndicate_blog.parse_post(_write(tmp_path, name, POST))
+
+
+def test_devto_postmap_unchanged_skips(tmp_path, monkeypatch, capsys):
+    post = _post(tmp_path)
+    monkeypatch.setenv("DEVTO_API_KEY", "k")
+    calls = []
+
+    def fake_api(url, headers, body=None, method=None):
+        calls.append(url)
+        return [] if method is None else {}
+
+    monkeypatch.setattr(syndicate_blog, "_api", fake_api)
+    postmap = {post["slug"]: {"devto": {"id": 42, "url": "u", "hash": syndicate_blog._content_hash(post)}}}
+    assert syndicate_blog.devto_publish([post], False, postmap) is False
+    assert calls == ["https://dev.to/api/articles/me/all?per_page=200"], "no write call for unchanged post"
+    assert "unchanged" in capsys.readouterr().out
+
+
+def test_devto_postmap_changed_updates_via_put(tmp_path, monkeypatch):
+    post = _post(tmp_path)
+    monkeypatch.setenv("DEVTO_API_KEY", "k")
+    monkeypatch.setattr(syndicate_blog.time, "sleep", lambda *_: None)
+    calls = []
+
+    def fake_api(url, headers, body=None, method=None):
+        calls.append((method, url))
+        return [] if method is None else {"id": 42, "url": "https://dev.to/x"}
+
+    monkeypatch.setattr(syndicate_blog, "_api", fake_api)
+    postmap = {post["slug"]: {"devto": {"id": 42, "url": "u", "hash": "stale"}}}
+    assert syndicate_blog.devto_publish([post], False, postmap) is True
+    assert ("PUT", "https://dev.to/api/articles/42") in calls, "changed content updates the same article"
+    assert postmap[post["slug"]]["devto"]["hash"] == syndicate_blog._content_hash(post)
+
+
+def test_devto_new_slug_publishes_and_records(tmp_path, monkeypatch):
+    post = _post(tmp_path)
+    monkeypatch.setenv("DEVTO_API_KEY", "k")
+    monkeypatch.setattr(syndicate_blog.time, "sleep", lambda *_: None)
+
+    def fake_api(url, headers, body=None, method=None):
+        return [] if body is None else {"id": 7, "url": "https://dev.to/new"}
+
+    monkeypatch.setattr(syndicate_blog, "_api", fake_api)
+    postmap = {}
+    assert syndicate_blog.devto_publish([post], False, postmap) is True
+    assert postmap[post["slug"]]["devto"] == {
+        "id": 7, "url": "https://dev.to/new", "hash": syndicate_blog._content_hash(post)}
+
+
+def test_hashnode_postmap_survives_listing_gaps(tmp_path, monkeypatch, capsys):
+    post = _post(tmp_path)
+    monkeypatch.setenv("HASHNODE_API_KEY", "k")
+    monkeypatch.setenv("HASHNODE_PUB_ID", "p")
+    published = []
+
+    def fake_api(url, headers, body=None, method=None):
+        if body and "publishPost" in body.get("query", ""):
+            published.append(body)
+            return {"data": {"publishPost": {"post": {"url": "https://hn/x"}}}}
+        return {"data": {"publication": {"posts": {"edges": []}}}}
+
+    monkeypatch.setattr(syndicate_blog, "_api", fake_api)
+    postmap = {post["slug"]: {"hashnode": {"url": "https://hn/existing"}}}
+    assert syndicate_blog.hashnode_publish([post], False, postmap) is False
+    assert published == [], "postmap hit must not re-publish even when the listing is empty"
+    assert "already published" in capsys.readouterr().out
+
+
+def test_postmap_roundtrip(tmp_path, monkeypatch):
+    target = tmp_path / "state" / "postmap.json"
+    monkeypatch.setattr(syndicate_blog, "POSTMAP_PATH", target)
+    assert syndicate_blog._load_postmap() == {}
+    syndicate_blog._save_postmap({"a": {"devto": {"id": 1}}})
+    assert syndicate_blog._load_postmap() == {"a": {"devto": {"id": 1}}}

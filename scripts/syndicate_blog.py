@@ -20,6 +20,7 @@ Usage:  python scripts/syndicate_blog.py [--dry-run]
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -31,6 +32,7 @@ from pathlib import Path
 SITE = "https://www.alreadyherellc.com"
 CONTENT_BASE = f"{SITE}/content"
 POST_FILENAME = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)$")
+POSTMAP_PATH = Path(os.getenv("SYNDICATE_POSTMAP", "data/syndication_postmap.json"))
 
 DEFAULT_TAGS = (["business", "technology"],
                 [{"slug": "business", "name": "Business"},
@@ -56,6 +58,31 @@ def _api(url: str, headers: dict, body: dict | None = None,
         return json.loads(raw)
     except ValueError:
         raise RuntimeError(f"non-JSON response ({raw[:120]!r})") from None
+
+
+def _content_hash(post: dict) -> str:
+    return hashlib.sha256(
+        (post["title"] + "\n" + post["body"]).encode("utf-8")
+    ).hexdigest()[:16]
+
+
+def _load_postmap() -> dict:
+    """slug -> {platform -> {id/url/hash}} persisted publish state.
+
+    Platform listings can fail or lag; the postmap is the durable local
+    record that turns a re-run into an update-or-skip instead of a duplicate.
+    """
+    try:
+        data = json.loads(POSTMAP_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_postmap(postmap: dict) -> None:
+    POSTMAP_PATH.parent.mkdir(parents=True, exist_ok=True)
+    POSTMAP_PATH.write_text(json.dumps(postmap, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
 
 
 def _tag_sets(tags: list[str]) -> tuple[list[str], list[dict]]:
@@ -132,34 +159,59 @@ def parse_post(path: Path) -> dict | None:
             "tags": {"devto": devto_tags, "hashnode": hashnode_tags}}
 
 
-def devto_publish(posts: list[dict], dry: bool) -> None:
+def devto_publish(posts: list[dict], dry: bool, postmap: dict) -> bool:
     key = os.getenv("DEVTO_API_KEY", "").strip()
     if not key:
         print("dev.to: no DEVTO_API_KEY — skipped")
-        return
+        return False
     try:
         mine = _api("https://dev.to/api/articles/me/all?per_page=200",
                     {"api-key": key})
         have = {a.get("canonical_url") for a in mine} | {a.get("title") for a in mine}
     except Exception as e:
         print(f"dev.to: listing failed ({str(e)[:120]}) — skipped")
-        return
+        return False
+    changed = False
     for p in posts:
-        if p["canonical"] in have or p["title"] in have:
-            print(f"dev.to: already there — {p['slug']}")
-            continue
-        if dry:
-            print(f"dev.to: would publish {p['slug']}")
-            continue
+        prior = (postmap.get(p["slug"]) or {}).get("devto") or {}
+        content_hash = _content_hash(p)
         tags = p["tags"]["devto"]
         payload = {"article": {"title": p["title"], "published": True,
                                "body_markdown": p["body"],
                                "canonical_url": p["canonical"],
                                "description": p["excerpt"][:150],
                                "tags": tags}}
+        if prior.get("id") and prior.get("hash") == content_hash:
+            print(f"dev.to: unchanged — {p['slug']}")
+            continue
+        if prior.get("id") and prior.get("hash") != content_hash:
+            if dry:
+                print(f"dev.to: would update {p['slug']} (article {prior['id']})")
+                continue
+            try:
+                art = _api(f"https://dev.to/api/articles/{prior['id']}",
+                           {"api-key": key}, payload, method="PUT")
+                postmap.setdefault(p["slug"], {})["devto"] = {
+                    "id": prior["id"], "url": art.get("url") or prior.get("url"),
+                    "hash": content_hash}
+                changed = True
+                print(f"dev.to: updated {p['slug']} -> {art.get('url')}")
+            except Exception as e:
+                print(f"dev.to: update failed for {p['slug']} ({str(e)[:150]})")
+            time.sleep(35)
+            continue
+        if p["canonical"] in have or p["title"] in have:
+            print(f"dev.to: already there — {p['slug']}")
+            continue
+        if dry:
+            print(f"dev.to: would publish {p['slug']}")
+            continue
         for attempt in (1, 2):
             try:
                 art = _api("https://dev.to/api/articles", {"api-key": key}, payload)
+                postmap.setdefault(p["slug"], {})["devto"] = {
+                    "id": art.get("id"), "url": art.get("url"), "hash": content_hash}
+                changed = True
                 print(f"dev.to: published {p['slug']} -> {art.get('url')}")
                 break
             except Exception as e:
@@ -170,14 +222,15 @@ def devto_publish(posts: list[dict], dry: bool) -> None:
                 print(f"dev.to: publish failed for {p['slug']} ({str(e)[:150]})")
                 break
         time.sleep(35)  # dev.to write limit is ~1 article per 30s
+    return changed
 
 
-def hashnode_publish(posts: list[dict], dry: bool) -> None:
+def hashnode_publish(posts: list[dict], dry: bool, postmap: dict) -> bool:
     key = os.getenv("HASHNODE_API_KEY", "").strip()
     pub = os.getenv("HASHNODE_PUB_ID", "").strip()
     if not (key and pub):
         print("hashnode: missing HASHNODE_API_KEY/HASHNODE_PUB_ID — skipped")
-        return
+        return False
     gql = "https://gql.hashnode.com"
     try:
         q = ("query($id: ObjectId!){ publication(id:$id){ "
@@ -195,10 +248,15 @@ def hashnode_publish(posts: list[dict], dry: bool) -> None:
                   "under the max_cost_usd:0 policy")
         else:
             print(f"hashnode: listing failed ({str(e)[:120]}) — skipped")
-        return
+        return False
     mut = ("mutation($input: PublishPostInput!){ publishPost(input:$input){ "
            "post{ url } } }")
+    changed = False
     for p in posts:
+        if (postmap.get(p["slug"]) or {}).get("hashnode"):
+            print(f"hashnode: already published — {p['slug']} "
+                  f"({postmap[p['slug']]['hashnode'].get('url')})")
+            continue
         if p["title"] in have:
             print(f"hashnode: already there — {p['slug']}")
             continue
@@ -217,10 +275,13 @@ def hashnode_publish(posts: list[dict], dry: bool) -> None:
                       f"({json.dumps(d['errors'])[:200]})")
             else:
                 url = d["data"]["publishPost"]["post"]["url"]
+                postmap.setdefault(p["slug"], {})["hashnode"] = {"url": url}
+                changed = True
                 print(f"hashnode: published {p['slug']} -> {url}")
         except Exception as e:
             print(f"hashnode: publish failed for {p['slug']} ({str(e)[:150]})")
         time.sleep(2)
+    return changed
 
 
 def main() -> None:
@@ -236,8 +297,11 @@ def main() -> None:
     limit = int(os.getenv("SYNDICATE_LIMIT", "6"))
     posts = sorted(posts, key=lambda p: p["date"], reverse=True)[:limit]
     print(f"{len(posts)} candidate post(s): {[p['slug'] for p in posts]}")
-    devto_publish(posts, dry)
-    hashnode_publish(posts, dry)
+    postmap = _load_postmap()
+    changed = devto_publish(posts, dry, postmap)
+    changed = hashnode_publish(posts, dry, postmap) or changed
+    if changed and not dry:
+        _save_postmap(postmap)
 
 
 if __name__ == "__main__":

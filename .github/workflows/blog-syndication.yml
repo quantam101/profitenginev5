@@ -11,7 +11,7 @@ on:
     - cron: '0 15 * * 2'   # Tuesday 15:00 UTC — after fresh posts land
 
 permissions:
-  contents: read
+  contents: write  # commit the syndication postmap back so re-runs update instead of duplicating
 
 jobs:
   syndicate:
@@ -44,4 +44,17 @@ jobs:
             python scripts/syndicate_blog.py --dry-run
           else
             python scripts/syndicate_blog.py
+          fi
+
+      - name: Commit postmap state
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          if git status --porcelain data/syndication_postmap.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/syndication_postmap.json
+            git commit -m "chore(syndication): update postmap state [skip ci]"
+            git push
+          else
+            echo "postmap unchanged"
           fi
