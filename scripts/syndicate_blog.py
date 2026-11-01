@@ -61,9 +61,13 @@ def _api(url: str, headers: dict, body: dict | None = None,
 
 
 def _content_hash(post: dict) -> str:
-    return hashlib.sha256(
-        (post["title"] + "\n" + post["body"]).encode("utf-8")
-    ).hexdigest()[:16]
+    # Covers everything sent to dev.to — tags/description edits must hash
+    # differently so they update instead of skipping as "unchanged".
+    payload = "\n".join([
+        post["title"], post["body"], post.get("excerpt", ""),
+        ",".join(post.get("tags", {}).get("devto", [])),
+    ])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def _load_postmap() -> dict:
