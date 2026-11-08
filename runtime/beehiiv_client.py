@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from .resilience import urlopen_with_retries
+
 logger = logging.getLogger("BeehiivClient")
 
 _BASE = "https://api.beehiiv.com/v2"
@@ -186,7 +188,7 @@ def _http_post(path: str, body: Dict[str, Any]) -> Dict[str, Any]:
     data = json.dumps(body).encode()
     req  = urllib.request.Request(url, data=data, headers=_headers(), method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with urlopen_with_retries(req, timeout=20, label=f"beehiiv POST {path}") as r:
             return json.loads(r.read())
     except urllib.error.HTTPError as exc:
         return {"error": f"HTTP {exc.code}: {exc.read().decode(errors='replace')[:300]}"}
@@ -203,7 +205,7 @@ def _http_get(path: str) -> Dict[str, Any]:
     url  = f"{_BASE}/{path}"
     req  = urllib.request.Request(url, headers=_headers(), method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urlopen_with_retries(req, timeout=15, label=f"beehiiv GET {path}") as r:
             return json.loads(r.read())
     except Exception as exc:
         return {"error": str(exc)}

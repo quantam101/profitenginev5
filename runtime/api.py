@@ -28,6 +28,9 @@ class ExecuteRequest(BaseModel):
     namespace: str = Field(default="api", min_length=1, max_length=128)
     agent_id: str = Field(default="local-research", min_length=1, max_length=128)
     actor: str = Field(default="runtime-api", min_length=1, max_length=128)
+    # Set when resubmitting work previously routed to HUMAN_REVIEW_QUEUE:
+    # the recorded approve/veto decision decides whether it may run.
+    approval_id: str = Field(default="", max_length=128)
 
 
 class ConsensusRequest(BaseModel):
@@ -610,6 +613,7 @@ def execute(payload: ExecuteRequest) -> Dict[str, Any]:
             namespace=payload.namespace,
             actor=payload.actor,
             agent_id=payload.agent_id,
+            approval_id=payload.approval_id or None,
         )
     except RegistryError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc

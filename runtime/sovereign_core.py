@@ -64,6 +64,7 @@ class SovereignAutomationCore:
         namespace: str = "default",
         actor: str = "sovereign-core",
         agent_id: str = "sovereign-orchestrator",
+        approval_id: Optional[str] = None,
     ) -> ExecutionResult:
         started_at = time.time()
         correlation_id = hashlib.sha256(f"{objective}|{namespace}".encode("utf-8")).hexdigest()[:16]
@@ -142,30 +143,68 @@ class SovereignAutomationCore:
             correlation_id,
         )
 
+        approval_granted = False
         if route.decision.tier == "HUMAN_REVIEW_QUEUE":
-            try:
-                self.approval_gate.require(
-                    action="complex_or_external_execution",
-                    reason=route.reason,
-                    payload={
-                        "objective": objective,
-                        "complexity": complexity.__dict__,
-                        "route": route.decision.__dict__,
-                    },
-                )
-            except ApprovalRequired as exc:
-                self.audit.blocked(actor, "approval_required", {"message": str(exc)}, correlation_id)
-                result = ExecutionResult(
-                    status="approval_required",
-                    route_tier="HUMAN_REVIEW_QUEUE",
-                    output=str(exc),
-                    cached=False,
-                    details={"complexity": complexity.__dict__, "reason": route.reason},
-                )
-                self._log_cycle(correlation_id, agent_id, result, objective, started_at)
-                return result
+            if approval_id:
+                # Resubmission of previously-gated work: consult the recorded
+                # decision instead of queueing a duplicate request.
+                record = self.approval_gate.get(approval_id)
+                status = (record or {}).get("status")
+                if status == "approved":
+                    approval_granted = True
+                    self.audit.info(
+                        actor,
+                        "approval_granted",
+                        {"approval_id": approval_id, "decided_by": record.get("decided_by")},
+                        correlation_id,
+                    )
+                elif status == "vetoed":
+                    self.audit.blocked(actor, "approval_vetoed", {"approval_id": approval_id}, correlation_id)
+                    result = ExecutionResult(
+                        status="vetoed",
+                        route_tier="HUMAN_REVIEW_QUEUE",
+                        output=f"Execution vetoed by human approval {approval_id}",
+                        cached=False,
+                        details={"approval_id": approval_id, "complexity": complexity.__dict__},
+                    )
+                    self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+                    return result
+                else:
+                    # Unknown id or still pending — re-report the same request
+                    # rather than spamming the queue with duplicates.
+                    result = ExecutionResult(
+                        status="approval_required",
+                        route_tier="HUMAN_REVIEW_QUEUE",
+                        output=f"Approval {approval_id} still pending (status={status or 'unknown'})",
+                        cached=False,
+                        details={"approval_id": approval_id, "complexity": complexity.__dict__, "reason": route.reason},
+                    )
+                    self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+                    return result
+            else:
+                try:
+                    self.approval_gate.require(
+                        action="complex_or_external_execution",
+                        reason=route.reason,
+                        payload={
+                            "objective": objective,
+                            "complexity": complexity.__dict__,
+                            "route": route.decision.__dict__,
+                        },
+                    )
+                except ApprovalRequired as exc:
+                    self.audit.blocked(actor, "approval_required", {"message": str(exc)}, correlation_id)
+                    result = ExecutionResult(
+                        status="approval_required",
+                        route_tier="HUMAN_REVIEW_QUEUE",
+                        output=str(exc),
+                        cached=False,
+                        details={"complexity": complexity.__dict__, "reason": route.reason},
+                    )
+                    self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+                    return result
 
-        if route.decision.tier in ("DETERMINISTIC_LOCAL", "LOCAL_MODEL", "CLAUDE_API"):
+        if route.decision.tier in ("DETERMINISTIC_LOCAL", "LOCAL_MODEL", "CLAUDE_API") or approval_granted:
             # All executable tiers go through the agent's run() method.
             # The agent internally cascades: Ollama → Claude → deterministic stub.
             output, agent_metrics = self._deterministic_execute(agent_id, clean_system, clean_context, objective, [connector_id])

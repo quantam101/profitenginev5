@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from .resilience import call_with_retries
+
 _DEVTO_BASE = "https://dev.to/api"
 
 
@@ -47,7 +49,7 @@ def publish_article(
     if canonical_url:
         article_payload["canonical_url"] = canonical_url
 
-    try:
+    def _post():
         resp = httpx.post(
             f"{_DEVTO_BASE}/articles",
             headers={"api-key": api_key, "Content-Type": "application/json"},
@@ -55,7 +57,10 @@ def publish_article(
             timeout=30,
         )
         resp.raise_for_status()
-        return resp.json()
+        return resp
+
+    try:
+        return call_with_retries(_post, label="devto POST /articles").json()
     except httpx.HTTPStatusError as exc:
         raise RuntimeError(f"Dev.to API error {exc.response.status_code}: {exc.response.text}") from exc
 
