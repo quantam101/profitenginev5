@@ -21,8 +21,8 @@ from models import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# SAM.gov API endpoints (public, no auth required)
-SAM_API_BASE = "https://api.sam.gov/prod/opportunities/v1/search"
+# SAM.gov Get Opportunities API v2 (requires SAM_GOV_API_KEY)
+from facilities_quickwin import SamClient, SAM_SEARCH_URL as SAM_API_BASE  # noqa: E402
 USASPENDING_API_BASE = "https://api.usaspending.gov/api/v2"
 
 
@@ -40,27 +40,17 @@ class SolicitationScraper:
         """
         logger.info(f"Scraping SAM.gov for NAICS: {naics_codes}")
 
-        opportunities = []
-        for naics in naics_codes:
-            try:
-                params = {
-                    'naicsCodes': naics,
-                    'postedFrom': (datetime.now() - timedelta(days=7)).isoformat(),
-                    'limit': max_results,
-                    'sort': '-postedDate',
-                }
-
-                response = requests.get(SAM_API_BASE, params=params, timeout=30)
-                response.raise_for_status()
-
-                data = response.json()
-                opportunities.extend(data.get('opportunitiesData', []))
-                logger.info(f"Found {len(data.get('opportunitiesData', []))} opportunities for NAICS {naics}")
-
-            except requests.RequestException as e:
-                logger.error(f"SAM.gov API error for {naics}: {e}")
-                continue
-
+        client = SamClient(os.getenv('SAM_GOV_API_KEY', '').strip(),
+                           max_calls=int(os.getenv('SAM_MAX_CALLS', '6')))
+        today = date.today()
+        wanted = set(naics_codes)
+        try:
+            rows = client.search(today - timedelta(days=7), today, ptypes=['k', 'o', 'r', 'p'])
+        except Exception as e:
+            logger.error(f"SAM.gov API error: {e}")
+            return []
+        opportunities = [r for r in rows if (r.get('naicsCode') or '') in wanted]
+        logger.info(f"{len(opportunities)} of {len(rows)} opportunities match NAICS {sorted(wanted)}")
         return opportunities
 
     def parse_opportunity(self, opp: Dict) -> Dict:
@@ -72,14 +62,14 @@ class SolicitationScraper:
             posted_date = None
             if opp.get('postedDate'):
                 try:
-                    posted_date = datetime.fromisoformat(opp['postedDate']).date()
+                    posted_date = datetime.fromisoformat(opp['postedDate'][:10]).date()
                 except:
                     pass
 
             response_deadline = None
             if opp.get('responseDeadLine'):
                 try:
-                    response_deadline = datetime.fromisoformat(opp['responseDeadLine']).date()
+                    response_deadline = datetime.fromisoformat(opp['responseDeadLine'][:10]).date()
                 except:
                     pass
 
@@ -93,35 +83,35 @@ class SolicitationScraper:
 
             # Extract NAICS codes
             naics_codes = []
-            if opp.get('naicsCodes'):
-                if isinstance(opp['naicsCodes'], list):
-                    naics_codes = opp['naicsCodes']
-                elif isinstance(opp['naicsCodes'], str):
-                    naics_codes = [opp['naicsCodes']]
+            if opp.get('naicsCode'):
+                if isinstance(opp['naicsCode'], list):
+                    naics_codes = opp['naicsCode']
+                elif isinstance(opp['naicsCode'], str):
+                    naics_codes = [opp['naicsCode']]
 
             # Extract PSC codes
             psc_codes = []
-            if opp.get('pscCodes'):
-                if isinstance(opp['pscCodes'], list):
-                    psc_codes = opp['pscCodes']
-                elif isinstance(opp['pscCodes'], str):
-                    psc_codes = [opp['pscCodes']]
+            if opp.get('classificationCode'):
+                if isinstance(opp['classificationCode'], list):
+                    psc_codes = opp['classificationCode']
+                elif isinstance(opp['classificationCode'], str):
+                    psc_codes = [opp['classificationCode']]
 
             parsed = {
-                'solicitation_id': opp.get('opportunityID', ''),
+                'solicitation_id': opp.get('noticeId', ''),
                 'solicitation_number': opp.get('solicitationNumber', ''),
                 'title': opp.get('title', '')[:500],
                 'description': opp.get('description', ''),
-                'agency_name': opp.get('organizationName', ''),
+                'agency_name': (opp.get('fullParentPathName') or '').split('.')[0],
                 'naics_codes': naics_codes,
                 'psc_codes': psc_codes,
                 'posted_date': posted_date,
                 'response_deadline': response_deadline,
                 'estimated_value': estimated_value,
                 'contract_type': opp.get('awardContractTypeName', ''),
-                'place_of_performance': opp.get('placeOfPerformance', ''),
-                'small_business_setaside': opp.get('setAsideName', '').lower().find('small business') >= 0,
-                'sam_gov_url': f"https://sam.gov/opportunity/{opp.get('opportunityID', '')}",
+                'place_of_performance': json.dumps(opp.get('placeOfPerformance') or {}),
+                'small_business_setaside': (opp.get('typeOfSetAsideDescription') or '').lower().find('small business') >= 0,
+                'sam_gov_url': opp.get('uiLink') or f"https://sam.gov/opp/{opp.get('noticeId', '')}/view",
             }
 
             return parsed
@@ -324,7 +314,7 @@ def main():
         raise RuntimeError("DATABASE_URL is not configured")
 
     # Example NAICS codes to monitor
-    naics_codes = ['541611', '541512', '541330']  # IT services, IT consulting, etc.
+    naics_codes = [c.strip() for c in os.getenv('NAICS_CODES', '561210,561720,238220,238210,541512,541519').split(',') if c.strip()]
 
     scraper = SolicitationScraper(database_url)
     scraper.run_daily_sync(naics_codes)
