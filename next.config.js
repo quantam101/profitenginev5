@@ -3,6 +3,7 @@ const nextConfig = {
   // health/status routes can read them from process.cwd().
   outputFileTracingIncludes: {
     '/api/checkout': ['node_modules/stripe'],
+    '/api/revenue-os/daily-command-scan': ['data/revenue-os/revenue-plays.seed.json'],
     '/api/distillation/status': ['config/distillation.yaml'],
     '/api/agents/parallel': ['agents/registry.yaml'],
     '/api/health': [
