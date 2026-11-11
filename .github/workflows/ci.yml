@@ -84,6 +84,10 @@ jobs:
         run: npm run test:monetizeos
         env:
           CI: "true"
+      - name: Daily cron simulation smoke
+        run: python scripts/monetizeos_daily.py --simulate --repo-root . --report reports/monetizeos-daily.json --timeout 240
+        env:
+          CI: "true"
       - name: Revenue OS tests
         run: npm run test:revenue-os
         env:
