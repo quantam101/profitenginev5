@@ -1,0 +1,58 @@
+name: MonetizeOS Fast Contract Gate
+
+on:
+  pull_request:
+    paths:
+      - 'runtime/monetizeos/**'
+      - 'runtime/opportunity_intelligence.py'
+      - 'runtime/opportunity_relevance.py'
+      - 'runtime/agent_impls/proposal_optimizer.py'
+      - 'scripts/monetizeos_daily.py'
+      - 'tests/test_monetizeos*.py'
+      - 'tests/test_opportunity*.py'
+      - '.github/workflows/monetizeos*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monetizeos-fast-pr
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    name: Python-only relevance and two-process failover
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only pytest
+        run: python -m pip install 'pytest>=8,<10'
+      - name: Contract tests
+        run: |
+          python -m pytest -q \
+            tests/test_opportunity_relevance.py \
+            tests/test_opportunity_intelligence.py \
+            tests/test_monetizeos.py \
+            tests/test_monetizeos_ha.py \
+            tests/test_monetizeos_daily.py
+      - name: Complete simulated daily cycle
+        run: |
+          python scripts/monetizeos_daily.py \
+            --simulate --repo-root . \
+            --timeout 180 \
+            --report reports/monetizeos-daily.json
+      - name: Evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monetizeos-contract-proof
+          path: reports/monetizeos-daily.json
+          retention-days: 30
+          if-no-files-found: warn
