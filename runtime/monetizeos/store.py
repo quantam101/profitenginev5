@@ -211,6 +211,8 @@ class Store:
     def acquire_director(self, project_id: str, holder: str, ttl_s: float = 60.0) -> int:
         """Acquire/renew the Director lease.  Returns the fencing token.
         Raises LeaseConflict if another live Director holds the lease."""
+        if ttl_s <= 0:
+            raise ValueError("Director lease TTL must be positive")
         now = _now()
         with self.tx() as c:
             row = c.execute("SELECT * FROM directors WHERE project_id=?", (project_id,)).fetchone()
@@ -232,15 +234,24 @@ class Store:
             )
             return fencing
 
-    def release_director(self, project_id: str, holder: str) -> bool:
-        """Clean shutdown: drop THIS holder's lease so a subsequent legitimate
-        invocation (e.g. the next CLI command) is not mistaken for a competing
-        Director.  Only the current holder may release its own lease."""
+    def release_director(self, project_id: str, holder: str,
+                         fencing: int | None = None) -> bool:
+        """Release only the exact holder and, when supplied, fencing epoch.
+
+        A delayed release from a previous epoch must never destroy a newer
+        lease, even when a process reuses an operator-selected holder ID.
+        """
         with self.tx() as c:
-            cur = c.execute(
-                "DELETE FROM directors WHERE project_id=? AND holder=?",
-                (project_id, holder),
-            )
+            if fencing is None:
+                cur = c.execute(
+                    "DELETE FROM directors WHERE project_id=? AND holder=?",
+                    (project_id, holder),
+                )
+            else:
+                cur = c.execute(
+                    "DELETE FROM directors WHERE project_id=? AND holder=? AND fencing=?",
+                    (project_id, holder, fencing),
+                )
             return cur.rowcount == 1
 
     def _check_fencing(self, c: sqlite3.Connection, project_id: str, fencing: int) -> None:
