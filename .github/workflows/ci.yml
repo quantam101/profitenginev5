@@ -80,6 +80,10 @@ jobs:
         run: npm run test:opportunity
         env:
           CI: "true"
+      - name: MonetizeOS relevance and failover tests
+        run: npm run test:monetizeos
+        env:
+          CI: "true"
       - name: Revenue OS tests
         run: npm run test:revenue-os
         env:
