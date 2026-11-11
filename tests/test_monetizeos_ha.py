@@ -49,13 +49,22 @@ def test_heartbeat_prevents_takeover_during_long_handler(tmp_path):
     d.delegate(c)
 
     def handler(contract, _ctx):
-        time.sleep(1.0)  # more than twice the Director lease TTL
+        time.sleep(0.75)  # outlives both Director and short worker TTLs
+        observer = Store(tmp_path / "heartbeat.db")
+        try:
+            assert observer.claim("heartbeat", "intruder") is None, (
+                "worker lease expired while the specialist was still running"
+            )
+        finally:
+            observer.close()
+        time.sleep(0.25)
         return CompletionReport(task_id=contract.task_id, status="completed",
                                 tests_run=[{"name": "slow", "command": "sleep",
                                             "result": "passed", "output": "completed"}])
 
     d.handlers["core_product_engineer"] = handler
-    assert d.run_once("primary-worker", {"repo_root": str(tmp_path)}) == "completed"
+    assert d.run_once("primary-worker", {"repo_root": str(tmp_path)},
+                      lease_ttl_s=0.4) == "completed"
     assert s.get_task("slow")["state"] == "completed"
     d.release()
     s.close()
@@ -122,6 +131,25 @@ def test_standby_started_first_does_not_seize_lease(tmp_path):
         assert s.status("no-primary")["director"] is None
     finally:
         s.close()
+
+
+def test_stale_director_epoch_cannot_claim_task(tmp_path):
+    s = Store(tmp_path / "claim-fence.db")
+    s.create_project("p", "p", {}, {})
+    old = Director(store=s, project_id="p", holder="old")
+    old.acquire()
+    contract = TaskContract(task_id="claimable", process_owner="repository_auditor",
+                            objective="check", business_purpose="proof",
+                            verification_method="verify")
+    old.delegate(contract)
+    s._conn.execute("UPDATE directors SET lease_expires_at=0 WHERE project_id='p'")
+    replacement = Director(store=s, project_id="p", holder="replacement")
+    replacement.acquire()
+    with pytest.raises(FencingStale):
+        s.claim("p", "old-worker", fencing=old.fencing)
+    assert s.claim("p", "new-worker", fencing=replacement.fencing) is not None
+    replacement.release()
+    s.close()
 
 
 def test_live_lease_rejects_competing_process_identity(tmp_path):
