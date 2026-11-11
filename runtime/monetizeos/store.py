@@ -385,10 +385,15 @@ class Store:
             (now, now),
         )
 
-    def claim(self, project_id: str, worker: str, ttl_s: float = 300.0) -> dict | None:
-        """Claim the highest-priority schedulable task.  One active lease per task."""
+    def claim(self, project_id: str, worker: str, ttl_s: float = 300.0,
+              fencing: int | None = None) -> dict | None:
+        """Claim one task; Director callers must provide their fencing epoch."""
+        if ttl_s <= 0:
+            raise ValueError("worker lease TTL must be positive")
         now = _now()
         with self.tx() as c:
+            if fencing is not None:
+                self._check_fencing(c, project_id, fencing)
             self._sweep(c)
             row = c.execute(
                 "SELECT * FROM tasks WHERE project_id=? AND state='ready' AND cancel_requested=0"
@@ -409,6 +414,30 @@ class Store:
                 (row["task_id"], row["attempt"] + 1, worker, now),
             )
             return self.get_task(row["task_id"])
+
+    def renew_task_lease(self, task_id: str, worker: str, ttl_s: float,
+                         fencing: int) -> None:
+        """Refresh a running worker lease only under the current Director epoch.
+
+        Prevents a long-running specialist from being reclaimed while its
+        Director is still alive and heartbeating.
+        """
+        if ttl_s <= 0:
+            raise ValueError("worker lease TTL must be positive")
+        now = _now()
+        with self.tx() as c:
+            row = c.execute("SELECT project_id FROM tasks WHERE task_id=?",
+                            (task_id,)).fetchone()
+            if row is None:
+                raise KeyError(task_id)
+            self._check_fencing(c, row["project_id"], fencing)
+            cur = c.execute(
+                "UPDATE tasks SET lease_expires_at=? WHERE task_id=? "
+                "AND state='running' AND lease_owner=? AND lease_expires_at>?",
+                (now + ttl_s, task_id, worker, now),
+            )
+            if cur.rowcount != 1:
+                raise LeaseConflict(f"task {task_id} no longer held by {worker}")
 
     def _transition(self, c: sqlite3.Connection, task_id: str, dst: str,
                     expected: tuple[str, ...] | None = None) -> None:
