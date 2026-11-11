@@ -187,7 +187,8 @@ class Director:
         submit the report, verify.  Returns 'idle'|'completed'|'failed'|'retry_wait'
         |'cancelled'|'no_handler'."""
         self.renew()
-        task = self.store.claim(self.project_id, worker, ttl_s=lease_ttl_s)
+        task = self.store.claim(self.project_id, worker, ttl_s=lease_ttl_s,
+                                fencing=self.fencing)
         if task is None:
             return "idle"
         task_id = task["task_id"]
@@ -211,10 +212,18 @@ class Director:
                 self.store.submit_report(task_id, worker,
                                          CompletionReport(task_id=task_id, status="blocked"))
                 return "cancelled"
+            def refresh_active_leases() -> None:
+                self.renew()
+                self.store.renew_task_lease(
+                    task_id, worker, lease_ttl_s, fencing=self.fencing,
+                )
+
             report = run_with_deadline(
                 handler, contract, ctx, float(contract.budget_seconds),
-                heartbeat=self.renew,
-                heartbeat_interval_s=min(5.0, max(0.1, self.lease_ttl_s / 3)),
+                heartbeat=refresh_active_leases,
+                heartbeat_interval_s=max(
+                    0.1, min(5.0, self.lease_ttl_s / 3, lease_ttl_s / 3)
+                ),
             )
             report.duration_seconds = time.monotonic() - started
             self.renew()  # refresh authority before any post-execution mutations
