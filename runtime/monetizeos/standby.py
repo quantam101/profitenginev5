@@ -52,10 +52,18 @@ def serve(*, db: str, project_id: str, mode: str = "standby",
 
     started = time.monotonic()
     had_lease = False
+    # A standby started before the primary must remain passive: it has to
+    # observe an incumbent lease before it is eligible to take over.
+    observed_incumbent = mode == "primary"
     try:
         while not shutdown:
             if run_seconds and time.monotonic() - started >= run_seconds:
                 break
+            if not observed_incumbent:
+                observed_incumbent = store.status(project_id)["director"] is not None
+                if not observed_incumbent:
+                    time.sleep(poll_s)
+                    continue
             try:
                 director.acquire()
                 had_lease = True
