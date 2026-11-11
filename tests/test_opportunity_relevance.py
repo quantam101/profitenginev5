@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from runtime.opportunity_relevance import assess_relevance
+from runtime.agent_impls.proposal_optimizer import stable_source_key
 from runtime.opportunity_intelligence import (
     OpportunityInput, OpportunityIntelligenceEngine, OpportunityStore,
 )
@@ -71,3 +72,10 @@ def test_repeated_terms_do_not_inflate_relevance():
     single = assess_relevance("network")
     repeated = assess_relevance("network " * 100)
     assert single.score == repeated.score
+
+
+def test_proposal_source_id_stable_across_calls_and_changes_with_input():
+    first = stable_source_key("network support", "Phoenix, AZ")
+    assert first == stable_source_key("network support", "Phoenix, AZ")
+    assert first != stable_source_key("printer support", "Phoenix, AZ")
+    assert len(first) == 24
