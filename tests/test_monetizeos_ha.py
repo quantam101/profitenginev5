@@ -107,6 +107,23 @@ def test_real_two_process_standby_waits_then_takes_over(tmp_path):
         s.close()
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="service integration targets Linux hosts")
+def test_standby_started_first_does_not_seize_lease(tmp_path):
+    db = tmp_path / "no-primary.db"
+    root = str(Path(__file__).resolve().parents[1])
+    env = dict(os.environ, PYTHONPATH=root)
+    cmd = [sys.executable, "-m", "runtime.monetizeos.standby", "--db", str(db),
+           "--project-id", "no-primary", "--mode", "standby", "--ttl", "0.8",
+           "--poll", "0.1", "--run-seconds", "0.5"]
+    result = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    s = Store(db)
+    try:
+        assert s.status("no-primary")["director"] is None
+    finally:
+        s.close()
+
+
 def test_live_lease_rejects_competing_process_identity(tmp_path):
     s = Store(tmp_path / "conflict.db")
     s.create_project("test", "test", {}, {})
