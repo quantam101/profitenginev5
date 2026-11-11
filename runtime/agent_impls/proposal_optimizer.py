@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from typing import List
 
 from runtime.agents import AgentExecution
 from runtime.opportunity_intelligence import OpportunityInput, OpportunityIntelligenceEngine
+
+
+def stable_source_key(objective: str, context: str) -> str:
+    """Stable ID across interpreter restarts; Python hash() is process-randomized."""
+    return hashlib.sha256(
+        (objective + "\0" + context).encode("utf-8")
+    ).hexdigest()[:24]
 
 
 class Agent:
@@ -15,7 +23,7 @@ class Agent:
         evaluation = engine.evaluate(
             OpportunityInput(
                 source_platform="local_authorized_feed",
-                source_url=f"agent://{self.id}/{abs(hash(objective + context))}",
+                source_url=f"agent://{self.id}/{stable_source_key(objective, context)}",
                 raw_text=f"{objective}\n{context}",
             )
         )
