@@ -19,13 +19,23 @@ class Agent:
                 raw_text=f"{objective}\n{context}",
             )
         )
-        payload = {
-            "strategic_angle": evaluation.pitch.strategic_angle,
-            "portfolio_alignment": evaluation.pitch.portfolio_alignment,
-            "cover_letter": evaluation.pitch.generated_cover_letter,
-            "counter_message": evaluation.pitch.counter_message,
-            "decision": evaluation.pitch.decision,
-        }
+        if evaluation.decision == "DISCARD":
+            payload = {
+                "decision": "DISCARD",
+                "reason": ", ".join(evaluation.risk_flags),
+                "score": evaluation.score,
+                "cover_letter": "",
+                "counter_message": "",
+            }
+        else:
+            payload = {
+                "strategic_angle": evaluation.pitch.strategic_angle,
+                "portfolio_alignment": evaluation.pitch.portfolio_alignment,
+                "cover_letter": evaluation.pitch.generated_cover_letter,
+                "counter_message": evaluation.pitch.counter_message,
+                "decision": evaluation.pitch.decision,
+                "score": evaluation.score,
+            }
         return AgentExecution(
             output="PROPOSAL_OPTIMIZER_RESULT\n" + json.dumps(payload, indent=2, sort_keys=True),
             metrics={"agent": self.id, "decision": evaluation.decision, "has_counter": str(bool(evaluation.pitch.counter_message))},
