@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: monetizeos-fast-pr
+  group: monetizeos-fast-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
