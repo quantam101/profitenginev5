@@ -1,0 +1,50 @@
+name: MonetizeOS Daily Study-Repair Simulation
+
+on:
+  schedule:
+    # 06:15 America/Phoenix every day (Arizona stays on UTC-7).
+    - cron: '15 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monetizeos-daily-simulation
+  cancel-in-progress: false
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependency
+        run: python -m pip install 'pytest>=8,<10'
+
+      - name: Study, Self-Repair simulation, status report
+        run: |
+          python scripts/monetizeos_daily.py \
+            --simulate \
+            --repo-root . \
+            --timeout 240 \
+            --report reports/monetizeos-daily.json
+
+      - name: Preserve report on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monetizeos-daily-report
+          path: reports/monetizeos-daily.json
+          if-no-files-found: error
+          retention-days: 30
