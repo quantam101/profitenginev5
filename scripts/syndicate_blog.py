@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Blog syndication — republishes alreadyherellc.com blog posts to Dev.to and
-Hashnode with canonical URLs pointing back to the site (SEO-safe backlinks).
+"""Blog syndication — republishes www.alreadyherellc.com/content/ posts to
+Dev.to and Hashnode with canonical URLs pointing back to the site (SEO-safe
+backlinks).
 
-Reads posts from a checkout of quantam101/already-here-llc (public repo) at
-BLOG_DIR, dedupes against what each platform already has, and publishes only
-what's missing. Fails soft per platform.
+Reads Jekyll posts from a checkout of quantam101/content (public repo) at
+BLOG_DIR (its `_posts/` directory, files named YYYY-MM-DD-<slug>.md with
+permalink /posts/:title/ under the /content baseurl), dedupes against what
+each platform already has, and publishes only what's missing. Fails soft per
+platform.
 
 Env:
-  BLOG_DIR            — path to content/blog (default: site/content/blog)
+  BLOG_DIR            — path to the content repo's _posts (default: content/_posts)
   DEVTO_API_KEY       — dev.to API key (optional; platform skipped if absent)
   HASHNODE_API_KEY    — Hashnode PAT (optional)
   HASHNODE_PUB_ID     — Hashnode publication id (required for Hashnode)
@@ -17,6 +20,7 @@ Usage:  python scripts/syndicate_blog.py [--dry-run]
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -26,17 +30,10 @@ import urllib.request
 from pathlib import Path
 
 SITE = "https://www.alreadyherellc.com"
+CONTENT_BASE = f"{SITE}/content"
+POST_FILENAME = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)$")
+POSTMAP_PATH = Path(os.getenv("SYNDICATE_POSTMAP", "data/syndication_postmap.json"))
 
-TAGS_BY_CATEGORY = {
-    "Field Operations": (["fieldservice", "msp", "datacenter", "business"],
-                         [{"slug": "field-service", "name": "Field Service"},
-                          {"slug": "msp", "name": "MSP"},
-                          {"slug": "business", "name": "Business"}]),
-    "AI Operations": (["ai", "automation", "business", "productivity"],
-                      [{"slug": "ai", "name": "AI"},
-                       {"slug": "automation", "name": "Automation"},
-                       {"slug": "business", "name": "Business"}]),
-}
 DEFAULT_TAGS = (["business", "technology"],
                 [{"slug": "business", "name": "Business"},
                  {"slug": "technology", "name": "Technology"}])
@@ -44,7 +41,9 @@ DEFAULT_TAGS = (["business", "technology"],
 
 def _api(url: str, headers: dict, body: dict | None = None,
          method: str | None = None) -> dict:
-    req = urllib.request.Request(
+    if not url.startswith("https://"):
+        raise ValueError(f"refusing non-https API url: {url}")
+    req = urllib.request.Request(  # noqa: S310 - https enforced above
         url, data=json.dumps(body).encode() if body is not None else None,
         method=method or ("POST" if body is not None else "GET"),
         headers={"Content-Type": "application/json", "Accept": "application/json",
@@ -53,7 +52,7 @@ def _api(url: str, headers: dict, body: dict | None = None,
                  "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                                 "Chrome/126.0 Safari/537.36"), **headers})
-    with urllib.request.urlopen(req, timeout=45) as r:
+    with urllib.request.urlopen(req, timeout=45) as r:  # noqa: S310 - https enforced above
         raw = r.read()
     try:
         return json.loads(raw)
@@ -61,60 +60,162 @@ def _api(url: str, headers: dict, body: dict | None = None,
         raise RuntimeError(f"non-JSON response ({raw[:120]!r})") from None
 
 
+def _content_hash(post: dict) -> str:
+    # Covers everything sent to dev.to — tags/description edits must hash
+    # differently so they update instead of skipping as "unchanged".
+    payload = "\n".join([
+        post["title"], post["body"], post.get("excerpt", ""),
+        ",".join(post.get("tags", {}).get("devto", [])),
+    ])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _load_postmap() -> dict:
+    """slug -> {platform -> {id/url/hash}} persisted publish state.
+
+    Platform listings can fail or lag; the postmap is the durable local
+    record that turns a re-run into an update-or-skip instead of a duplicate.
+    """
+    try:
+        data = json.loads(POSTMAP_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_postmap(postmap: dict) -> None:
+    POSTMAP_PATH.parent.mkdir(parents=True, exist_ok=True)
+    POSTMAP_PATH.write_text(json.dumps(postmap, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
+
+
+def _tag_sets(tags: list[str]) -> tuple[list[str], list[dict]]:
+    """Map front-matter tags to dev.to (≤4, [a-z0-9]) and Hashnode tag inputs."""
+    devto: list[str] = []
+    hashnode: list[dict] = []
+    for tag in tags:
+        slug = re.sub(r"[^a-z0-9]+", "-", tag.lower()).strip("-")
+        compact = slug.replace("-", "")[:20]  # dev.to tags: alnum only, max 20 chars
+        if slug and slug not in {h["slug"] for h in hashnode}:
+            hashnode.append({"slug": slug, "name": tag})
+        if not compact or compact in devto:
+            continue
+        devto.append(compact)
+        if len(devto) == 4:
+            break
+    if not devto and not hashnode:
+        return DEFAULT_TAGS
+    return devto, hashnode
+
+
+def parse_front_matter(block: str) -> dict:
+    """Minimal YAML subset: `key: value` scalars plus `key:` followed by `- item` lists."""
+    meta: dict = {}
+    current_list: str | None = None
+    for line in block.splitlines():
+        if not line.strip():
+            continue
+        if current_list and re.match(r"^\s+-\s*", line):
+            meta[current_list].append(line.split("-", 1)[1].strip().strip("\"'"))
+            continue
+        current_list = None
+        k, sep, v = line.partition(":")
+        if not sep:
+            continue
+        k, v = k.strip(), v.strip()
+        if v.startswith("[") and v.endswith("]"):
+            meta[k] = [x.strip().strip("\"'") for x in v[1:-1].split(",") if x.strip()]
+        elif v == "":
+            meta[k] = []
+            current_list = k
+        else:
+            meta[k] = v.strip("\"'")
+    return meta
+
+
 def parse_post(path: Path) -> dict | None:
     raw = path.read_text(encoding="utf-8")
     m = re.match(r"^---\n(.*?)\n---\n?(.*)$", raw, re.S)
     if not m:
         return None
-    meta = {}
-    for line in m.group(1).splitlines():
-        k, _, v = line.partition(":")
-        if _:
-            meta[k.strip()] = v.strip().strip("\"'")
-    slug = re.sub(r"[^a-zA-Z0-9_-]", "-", path.stem)
+    meta = parse_front_matter(m.group(1))
+    if str(meta.get("noindex", "false")).lower() == "true" or str(meta.get("published", "true")).lower() == "false":
+        return None
+    name = POST_FILENAME.match(path.stem)
+    date = name.group(1) if name else str(meta.get("date", "1970-01-01"))[:10]
+    title_slug = re.sub(r"[^a-zA-Z0-9_-]", "-", name.group(2) if name else path.stem)
     body = m.group(2).strip()
     # absolute-ify site-relative links for off-site readers
     body = re.sub(r"\]\((/[^)\s]*)\)", rf"]({SITE}\1)", body)
-    canonical = f"{SITE}/blog/{slug}"
+    canonical = f"{CONTENT_BASE}/posts/{title_slug}/"
     body += (f"\n\n---\n\n*Originally published at "
              f"[alreadyherellc.com]({canonical}). Arizona field coverage "
-             f"retainers and our 42-service fixed-price catalog: "
+             f"retainers and our fixed-price service catalog: "
              f"[{SITE.removeprefix('https://')}]({SITE}/arizona-field-coverage).*")
-    return {"slug": slug, "canonical": canonical, "body": body,
+    tags = meta.get("tags", [])
+    if isinstance(tags, str):
+        tags = [tags]
+    devto_tags, hashnode_tags = _tag_sets(tags)
+    return {"slug": title_slug, "canonical": canonical, "body": body,
             "title": meta.get("title", path.stem),
-            "date": meta.get("date", "1970-01-01"),
-            "excerpt": meta.get("excerpt", ""),
-            "category": meta.get("category", "")}
+            "date": date,
+            "excerpt": meta.get("description", meta.get("excerpt", "")),
+            "tags": {"devto": devto_tags, "hashnode": hashnode_tags}}
 
 
-def devto_publish(posts: list[dict], dry: bool) -> None:
+def devto_publish(posts: list[dict], dry: bool, postmap: dict) -> bool:
     key = os.getenv("DEVTO_API_KEY", "").strip()
     if not key:
         print("dev.to: no DEVTO_API_KEY — skipped")
-        return
+        return False
     try:
         mine = _api("https://dev.to/api/articles/me/all?per_page=200",
                     {"api-key": key})
         have = {a.get("canonical_url") for a in mine} | {a.get("title") for a in mine}
     except Exception as e:
         print(f"dev.to: listing failed ({str(e)[:120]}) — skipped")
-        return
+        return False
+    changed = False
     for p in posts:
+        prior = (postmap.get(p["slug"]) or {}).get("devto") or {}
+        content_hash = _content_hash(p)
+        tags = p["tags"]["devto"]
+        payload = {"article": {"title": p["title"], "published": True,
+                               "body_markdown": p["body"],
+                               "canonical_url": p["canonical"],
+                               "description": p["excerpt"][:150],
+                               "tags": tags}}
+        if prior.get("id") and prior.get("hash") == content_hash:
+            print(f"dev.to: unchanged — {p['slug']}")
+            continue
+        if prior.get("id") and prior.get("hash") != content_hash:
+            if dry:
+                print(f"dev.to: would update {p['slug']} (article {prior['id']})")
+                continue
+            try:
+                art = _api(f"https://dev.to/api/articles/{prior['id']}",
+                           {"api-key": key}, payload, method="PUT")
+                postmap.setdefault(p["slug"], {})["devto"] = {
+                    "id": prior["id"], "url": art.get("url") or prior.get("url"),
+                    "hash": content_hash}
+                changed = True
+                print(f"dev.to: updated {p['slug']} -> {art.get('url')}")
+            except Exception as e:
+                print(f"dev.to: update failed for {p['slug']} ({str(e)[:150]})")
+            time.sleep(35)
+            continue
         if p["canonical"] in have or p["title"] in have:
             print(f"dev.to: already there — {p['slug']}")
             continue
         if dry:
             print(f"dev.to: would publish {p['slug']}")
             continue
-        tags = TAGS_BY_CATEGORY.get(p["category"], DEFAULT_TAGS)[0]
-        payload = {"article": {"title": p["title"], "published": True,
-                               "body_markdown": p["body"],
-                               "canonical_url": p["canonical"],
-                               "description": p["excerpt"][:150],
-                               "tags": tags}}
         for attempt in (1, 2):
             try:
                 art = _api("https://dev.to/api/articles", {"api-key": key}, payload)
+                postmap.setdefault(p["slug"], {})["devto"] = {
+                    "id": art.get("id"), "url": art.get("url"), "hash": content_hash}
+                changed = True
                 print(f"dev.to: published {p['slug']} -> {art.get('url')}")
                 break
             except Exception as e:
@@ -125,14 +226,15 @@ def devto_publish(posts: list[dict], dry: bool) -> None:
                 print(f"dev.to: publish failed for {p['slug']} ({str(e)[:150]})")
                 break
         time.sleep(35)  # dev.to write limit is ~1 article per 30s
+    return changed
 
 
-def hashnode_publish(posts: list[dict], dry: bool) -> None:
+def hashnode_publish(posts: list[dict], dry: bool, postmap: dict) -> bool:
     key = os.getenv("HASHNODE_API_KEY", "").strip()
     pub = os.getenv("HASHNODE_PUB_ID", "").strip()
     if not (key and pub):
         print("hashnode: missing HASHNODE_API_KEY/HASHNODE_PUB_ID — skipped")
-        return
+        return False
     gql = "https://gql.hashnode.com"
     try:
         q = ("query($id: ObjectId!){ publication(id:$id){ "
@@ -150,17 +252,22 @@ def hashnode_publish(posts: list[dict], dry: bool) -> None:
                   "under the max_cost_usd:0 policy")
         else:
             print(f"hashnode: listing failed ({str(e)[:120]}) — skipped")
-        return
+        return False
     mut = ("mutation($input: PublishPostInput!){ publishPost(input:$input){ "
            "post{ url } } }")
+    changed = False
     for p in posts:
+        if (postmap.get(p["slug"]) or {}).get("hashnode"):
+            print(f"hashnode: already published — {p['slug']} "
+                  f"({postmap[p['slug']]['hashnode'].get('url')})")
+            continue
         if p["title"] in have:
             print(f"hashnode: already there — {p['slug']}")
             continue
         if dry:
             print(f"hashnode: would publish {p['slug']}")
             continue
-        tags = TAGS_BY_CATEGORY.get(p["category"], DEFAULT_TAGS)[1]
+        tags = p["tags"]["hashnode"]
         try:
             d = _api(gql, {"Authorization": key},
                      {"query": mut, "variables": {"input": {
@@ -172,24 +279,33 @@ def hashnode_publish(posts: list[dict], dry: bool) -> None:
                       f"({json.dumps(d['errors'])[:200]})")
             else:
                 url = d["data"]["publishPost"]["post"]["url"]
+                postmap.setdefault(p["slug"], {})["hashnode"] = {"url": url}
+                changed = True
                 print(f"hashnode: published {p['slug']} -> {url}")
         except Exception as e:
             print(f"hashnode: publish failed for {p['slug']} ({str(e)[:150]})")
         time.sleep(2)
+    return changed
 
 
 def main() -> None:
     dry = "--dry-run" in sys.argv
-    blog_dir = Path(os.getenv("BLOG_DIR", "site/content/blog"))
+    blog_dir = Path(os.getenv("BLOG_DIR", "content/_posts"))
     if not blog_dir.is_dir():
-        print(f"::error::blog dir not found: {blog_dir}")
+        print(f"::error::blog dir not found: {blog_dir} (expected a quantam101/content checkout)")
         sys.exit(1)
     posts = [p for p in (parse_post(f) for f in sorted(blog_dir.glob("*.md"))) if p]
+    if not posts:
+        print(f"::error::no publishable posts found under {blog_dir}")
+        sys.exit(1)
     limit = int(os.getenv("SYNDICATE_LIMIT", "6"))
     posts = sorted(posts, key=lambda p: p["date"], reverse=True)[:limit]
     print(f"{len(posts)} candidate post(s): {[p['slug'] for p in posts]}")
-    devto_publish(posts, dry)
-    hashnode_publish(posts, dry)
+    postmap = _load_postmap()
+    changed = devto_publish(posts, dry, postmap)
+    changed = hashnode_publish(posts, dry, postmap) or changed
+    if changed and not dry:
+        _save_postmap(postmap)
 
 
 if __name__ == "__main__":

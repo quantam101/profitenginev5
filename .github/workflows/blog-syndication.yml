@@ -11,7 +11,7 @@ on:
     - cron: '0 15 * * 2'   # Tuesday 15:00 UTC — after fresh posts land
 
 permissions:
-  contents: read
+  contents: write  # commit the syndication postmap back so re-runs update instead of duplicating
 
 jobs:
   syndicate:
@@ -21,11 +21,11 @@ jobs:
       - name: Checkout pipeline repo
         uses: actions/checkout@v4
 
-      - name: Checkout website repo (public)
+      - name: Checkout content repo (public Jekyll source of www.alreadyherellc.com/content/)
         uses: actions/checkout@v4
         with:
-          repository: quantam101/already-here-llc
-          path: site
+          repository: quantam101/content
+          path: content
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -38,9 +38,25 @@ jobs:
           HASHNODE_API_KEY: ${{ secrets.HASHNODE_API_KEY }}
           HASHNODE_PUB_ID: ${{ secrets.HASHNODE_PUB_ID }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          BLOG_DIR: content/_posts
         run: |
           if [ "$DRY_RUN" = "true" ]; then
             python scripts/syndicate_blog.py --dry-run
           else
             python scripts/syndicate_blog.py
+          fi
+
+      - name: Commit postmap state
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          # data/* is gitignored — -f is required or the map never lands.
+          if git status --porcelain --ignored data/syndication_postmap.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f data/syndication_postmap.json
+            git commit -m "chore(syndication): update postmap state [skip ci]"
+            # A concurrent main commit rejects the push; rebase and retry.
+            git push || (git pull --rebase && git push)
+          else
+            echo "postmap unchanged"
           fi

@@ -2,6 +2,7 @@
   "framework": "nextjs",
   "installCommand": "npm ci --include=dev",
   "buildCommand": "npm run build",
+  "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
   "headers": [

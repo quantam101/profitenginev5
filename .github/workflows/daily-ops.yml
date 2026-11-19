@@ -118,23 +118,30 @@ jobs:
 
       - name: Check all endpoints
         id: checks
+        env:
+          RUNTIME_BASE: ${{ secrets.RUNTIME_API_URL }}
         run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36 daily-ops"
           check() {
-            local name=$1 url=$2
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo "000")
+            local name=$1 url=$2 timeout=${3:-20}
+            local code
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$timeout" -A "$UA" "$url" || true)
+            code="${code:-000}"
             if [[ "$code" =~ ^2 ]]; then
               echo "OK|${name}|${code}|${url}"
             else
               echo "FAIL|${name}|${code}|${url}"
             fi
           }
+          runtime_base="${RUNTIME_BASE:-https://profitengine-runtime.onrender.com}"
           {
-            check "ProfitEngine Web"    "https://www.alreadyherellc.com/profitengine"
-            check "ProfitEngine API"    "https://www.alreadyherellc.com/api/health"
-            check "TokenForge Frontend" "https://forge.alreadyherellc.com"
-            check "Tradegate2"          "https://tradegate2-one.vercel.app"
-            check "Content Repo"        "https://quantam101.github.io/content/"
-            check "Runtime Health Probe" "${{ secrets.RUNTIME_API_URL }}/health"
+            check "ProfitEngine Web"      "https://app.alreadyherellc.com" 20
+            check "ProfitEngine Web API"  "https://app.alreadyherellc.com/api/health" 20
+            check "Render API"            "https://api.alreadyherellc.com/api/health" 90
+            check "TokenForge Frontend"   "https://forge.alreadyherellc.com" 20
+            check "Tradegate2"            "https://tradegate2-one.vercel.app" 20
+            check "Content Repo"          "https://quantam101.github.io/content/" 20
+            check "Runtime Health Probe"  "${runtime_base%/}/health" 90
           } | tee /tmp/health_results.txt
 
       - name: Build daily report

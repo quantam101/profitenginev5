@@ -1,1 +1,16 @@
 date,platform,client,work_order,description,amount_usd,status
+2026-08-17,WorkMarket,Iron Systems,J343292 J343293 J343294 J343298 J343299,Honeywell Tempe onsite tech Aug 17-21 (PROJ-113128); paid Sep 30,2200.00,paid
+2026-08-18,WorkMarket,Iron Systems,J340575 J340576 J340577 J340579 J340578,Honeywell Tempe troubleshoot/iLO connection (PROJ-113128); paid Sep 30,1800.00,paid
+2026-08-24,WorkMarket,Iron Systems,J345907 J345908 J345910 J345911 J345912,Honeywell Tempe onsite tech from Aug 24 (PROJ-113128); paid Sep 28,2200.00,paid
+2026-08-31,WorkMarket,Iron Systems,J348360,Honeywell Tempe tech Aug 31 (PROJ-113128); paid Sep 29,517.00,paid
+2026-09-01,WorkMarket,Iron Systems,J341829 J341830 J341833 J341831,Honeywell Tempe tech Sep 1-4 (PROJ-113128); paid Sep 30,1964.42,paid
+2026-09-08,WorkMarket,Iron Systems,J350570 J350569 J350571 J350572,Honeywell Tempe tech from Sep 8 (PROJ-113128); paid Oct 7,1760.00,paid
+2026-09-14,WorkMarket,Iron Systems,J351949 J351950 J351951 J351952 J351953,Honeywell Tempe tech from Sep 14 (PROJ-113128); paid Oct 30,2200.00,paid
+2026-09-21,WorkMarket,Iron Systems,J353025 J353026 J353126 J353027 J353028,Honeywell Tempe tech from Sep 21 (PROJ-113128); paid Oct 23,2196.33,paid
+2026-09-28,WorkMarket,Iron Systems,J354638 J354639 J354640,Honeywell Tempe troubleshoot/connectivity Sep 28-30 (PROJ-113128); paid Oct 26,1320.00,paid
+2026-10-01,WorkMarket,Iron Systems,J354854 J354855,Honeywell Tempe tech from Oct 1 (PROJ-113128); paid Oct 30,880.00,paid
+2026-10-05,WorkMarket,Iron Systems,J358131 J358130 J358128 J358129 J358127,Honeywell Tempe tech from Oct 5 (PROJ-113128); paid Oct 30,2200.00,paid
+2026-09-06,WorkMarket,Prime-Net,,"Toshiba Engage Go refresh, Walgreens 6501 E Greenway Pkwy Scottsdale; dated by FastFunds pay date Sep 6",144.33,paid
+2026-09-06,WorkMarket,Prime-Net,,"Digital Menu Board install, Starbucks 2824 N 44th St Phoenix; dated by FastFunds pay date Sep 6",400.00,paid
+2026-09-06,WorkMarket,Prime-Net,,Digital Menu Board install (address cut off in screenshot); dated by FastFunds pay date Sep 6,398.16,paid
+2026-09-22,WorkMarket,Prime-Net,,"Digital Menu Board install, Starbucks 4970 S Gilbert Rd Chandler; dated by FastFunds pay date Sep 22",400.00,paid

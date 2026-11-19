@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-10-30T13:41:43.833878",
+  "date": "2026-10-30",
+  "metrics": {
+    "field": {
+      "source_file": "data/field_income.csv",
+      "business_date": "2026-10-30",
+      "total_revenue": 0.0,
+      "last_24h": {
+        "revenue": 0.0
+      },
+      "month_to_date": 0.0,
+      "year_to_date": 0.0,
+      "jobs_month_to_date": 0,
+      "unpaid_total": 0.0,
+      "by_platform_mtd": {},
+      "by_client_mtd": {},
+      "ledger_rows": 0
+    },
+    "gumroad": {
+      "total_revenue": 0.0,
+      "total_sales": 0,
+      "products": {
+        "Dbdg_KwJVA2hcTVbnNOpwQ==": {
+          "id": "Dbdg_KwJVA2hcTVbnNOpwQ==",
+          "name": "Ops Automation Kit \u2014 Command Center Architecture for MSPs",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/dukpvj"
+        },
+        "pJzU2xAEHQdtNcjm1WD0gw==": {
+          "id": "pJzU2xAEHQdtNcjm1WD0gw==",
+          "name": "Smart Hands Half-Day Block \u2014 Phoenix (4 Hours On-Site)",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/iezxvf"
+        },
+        "CfrUa2RfalqmBC0ZRqsLWQ==": {
+          "id": "CfrUa2RfalqmBC0ZRqsLWQ==",
+          "name": "Arizona Infrastructure Assessment (Full Site, On-Site)",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/fyaryu"
+        },
+        "vhYiTam8hj60VNV2plckHw==": {
+          "id": "vhYiTam8hj60VNV2plckHw==",
+          "name": "Phoenix Network Health Assessment (On-Site)",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/rrnqyql"
+        },
+        "ZMf6us9-FxZr1HV7bpz7Ww==": {
+          "id": "ZMf6us9-FxZr1HV7bpz7Ww==",
+          "name": "Programmatic SEO Starter Kit",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/azdev"
+        },
+        "nkUr6au9ox0GD4Le-BjUdg==": {
+          "id": "nkUr6au9ox0GD4Le-BjUdg==",
+          "name": "POD Design Prompt Bundle",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/zwztrcc"
+        },
+        "czXiltBZj7xE7An4cPlJSg==": {
+          "id": "czXiltBZj7xE7An4cPlJSg==",
+          "name": "Social Media Content Engine",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/dyiyh"
+        },
+        "CuVMo1_UZ0X9y815ZkLFyQ==": {
+          "id": "CuVMo1_UZ0X9y815ZkLFyQ==",
+          "name": "Real Estate Copywriting Kit",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/bxwrdt"
+        },
+        "qUvEt-bfyTKzotWidcf2Uw==": {
+          "id": "qUvEt-bfyTKzotWidcf2Uw==",
+          "name": "AI Business Prompt Pack",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/grsiib"
+        },
+        "B4npFuWPuXvSQIMi3S8Exg==": {
+          "id": "B4npFuWPuXvSQIMi3S8Exg==",
+          "name": "Complete Automation Bundle - All 5 Tools",
+          "sales_count": 0,
+          "revenue_usd": 0.0,
+          "url": "https://alreadyhere.gumroad.com/l/fsbseb"
+        }
+      },
+      "sales_events": [],
+      "last_24h": {
+        "revenue": 0,
+        "sales": 0,
+        "new_customers": 0
+      }
+    },
+    "stripe": {
+      "total_revenue": 0,
+      "total_transactions": 0,
+      "successful_transactions": 0,
+      "failed_transactions": 0,
+      "refunds": 0,
+      "avg_transaction_value": 0
+    },
+    "email": {
+      "platform": "beehiiv",
+      "total_subscribers": 1,
+      "premium_subscribers": 0,
+      "avg_open_rate": 0.0,
+      "avg_click_rate": 0.0,
+      "total_sent": 0,
+      "total_clicks": 0,
+      "revenue_from_email": 0
+    }
+  },
+  "consolidated": {
+    "total_revenue_24h": 0.0,
+    "active_revenue_streams": 4,
+    "tracked_streams": 4,
+    "revenue_breakdown": {
+      "field": 0.0,
+      "gumroad": 0,
+      "stripe": 0,
+      "email": 0
+    },
+    "field_month_to_date": 0.0,
+    "field_year_to_date": 0.0,
+    "field_unpaid_total": 0.0
+  }
+}
