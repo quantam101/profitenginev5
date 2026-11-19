@@ -197,11 +197,10 @@ jobs:
         run: |
           nohup uvicorn backend.server:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &
           for i in {1..30}; do curl -fs http://127.0.0.1:8001/api/health && break; sleep 1; done
+      # Grafana's official setup action. The apt route (keyserver + dl.k6.io)
+      # fails on current runners with exit 100 and blocked every PR's Stage 4.
       - name: Install k6
-        run: |
-          sudo gpg -k && sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update && sudo apt-get install -y k6
+        uses: grafana/setup-k6-action@v1
       - name: Run k6 smoke
         env:
           BASE_URL: "http://127.0.0.1:8001"
