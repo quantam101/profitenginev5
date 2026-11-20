@@ -17,7 +17,7 @@ import os
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from runtime.monetizeos.contracts import CompletionReport, TaskContract
 from runtime.monetizeos.specialists import (
@@ -27,7 +27,7 @@ from runtime.monetizeos.specialists import (
     check_permissions,
     check_report_scope,
 )
-from runtime.monetizeos.store import FencingStale, Store
+from runtime.monetizeos.store import FencingStale, LeaseConflict, Store
 
 
 class Escalation(RuntimeError):
@@ -48,21 +48,39 @@ def _handler_child(handler: SpecialistHandler, contract: TaskContract,
 
 
 def run_with_deadline(handler: SpecialistHandler, contract: TaskContract,
-                      ctx: dict, deadline_s: float) -> CompletionReport:
-    """Execute a specialist handler in a killable child process bounded by the
-    contract's time budget.  A hung handler is terminated and its attempt
-    fails — cooperative timeouts alone cannot stop a deadlocked specialist."""
+                      ctx: dict, deadline_s: float,
+                      heartbeat: Callable[[], None] | None = None,
+                      heartbeat_interval_s: float = 5.0) -> CompletionReport:
+    """Killable handler with periodic parent-side Director lease renewal.
+
+    The handler cannot remain alive for an entire budget_seconds interval
+    without its supervising Director refreshing the lease.  On lease loss,
+    terminate the handler *before* propagating failure.  Downstream side
+    effects must still use idempotency/fencing where supported.
+    """
     mctx = mp.get_context("fork")
     q: Any = mctx.Queue()
     p = mctx.Process(target=_handler_child, args=(handler, contract, ctx, q), daemon=True)
     p.start()
-    p.join(max(1.0, deadline_s))
-    if p.is_alive():
-        p.terminate()
-        p.join(5)
+    deadline = time.monotonic() + max(1.0, deadline_s)
+    timed_out = False
+    try:
+        while p.is_alive():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
+                break
+            p.join(min(remaining, max(0.1, heartbeat_interval_s)))
+            if p.is_alive() and heartbeat is not None:
+                heartbeat()  # LeaseConflict/FencingStale => kill child in finally
+    finally:
         if p.is_alive():
-            p.kill()
-            p.join()
+            p.terminate()
+            p.join(5)
+            if p.is_alive():
+                p.kill()
+                p.join()
+    if timed_out:
         raise HandlerDeadlineExceeded(
             f"handler exceeded budget_seconds={deadline_s} and was terminated")
     status, payload = q.get() if not q.empty() else ("err", "handler died without reporting")
@@ -112,7 +130,7 @@ class Director:
         Without this, each short-lived invocation looks like a competing
         Director until the lease TTL expires."""
         if self.fencing:
-            self.store.release_director(self.project_id, self.holder)
+            self.store.release_director(self.project_id, self.holder, self.fencing)
             self.fencing = 0
 
     def _mutate_guard(self) -> None:
@@ -169,7 +187,8 @@ class Director:
         submit the report, verify.  Returns 'idle'|'completed'|'failed'|'retry_wait'
         |'cancelled'|'no_handler'."""
         self.renew()
-        task = self.store.claim(self.project_id, worker, ttl_s=lease_ttl_s)
+        task = self.store.claim(self.project_id, worker, ttl_s=lease_ttl_s,
+                                fencing=self.fencing)
         if task is None:
             return "idle"
         task_id = task["task_id"]
@@ -193,7 +212,19 @@ class Director:
                 self.store.submit_report(task_id, worker,
                                          CompletionReport(task_id=task_id, status="blocked"))
                 return "cancelled"
-            report = run_with_deadline(handler, contract, ctx, float(contract.budget_seconds))
+            def refresh_active_leases() -> None:
+                self.renew()
+                self.store.renew_task_lease(
+                    task_id, worker, lease_ttl_s, fencing=self.fencing,
+                )
+
+            report = run_with_deadline(
+                handler, contract, ctx, float(contract.budget_seconds),
+                heartbeat=refresh_active_leases,
+                heartbeat_interval_s=max(
+                    0.1, min(5.0, self.lease_ttl_s / 3, lease_ttl_s / 3)
+                ),
+            )
             report.duration_seconds = time.monotonic() - started
             self.renew()  # refresh authority before any post-execution mutations
             if snap_before is not None:
@@ -218,7 +249,7 @@ class Director:
                                           fencing=self.fencing)
                 return outcome
             return self.verify(task_id)
-        except (Escalation, FencingStale):
+        except (Escalation, FencingStale, LeaseConflict):
             raise
         except Exception as exc:  # specialist crashed → bounded retry
             outcome = self.store.fail(task_id, f"handler exception: {exc}",

@@ -15,6 +15,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable
 
+from runtime.opportunity_relevance import assess_relevance
+
 
 FIELD_SERVICE_KEYWORDS = {
     "it": 1.0,
@@ -428,10 +430,19 @@ class OpportunityIntelligenceEngine:
         effective = (pay / hours) if pay is not None else None
 
         lowered = context.lower()
+        # Exact token/phrase matches: "it" in "with", "ap" in "application",
+        # and "av" in "available" are not field-service evidence.
         matched_keywords = [
             keyword for keyword in FIELD_SERVICE_KEYWORDS
-            if keyword in lowered
+            if keyword not in {"it", "ap", "av", "tv", "pos"}
+            and re.search(r"(?<!\w)" + re.escape(keyword) + r"(?!\w)", lowered)
         ]
+        if re.search(r"\bit (?:support|technician|field service)\b", lowered):
+            matched_keywords.append("it")
+        if re.search(r"\b(?:pos terminal|pos system|point.of.sale)\b", lowered):
+            matched_keywords.append("pos")
+        relevance = assess_relevance(clean_text + " " + inferred.buyer_message,
+                                     inferred.work_type)
 
         risk_flags = sorted({
             flag for term, flag in HIGH_RISK_TERMS.items()
@@ -439,6 +450,9 @@ class OpportunityIntelligenceEngine:
         })
         if not inferred.work_type:
             risk_flags.append("scope_not_classified")
+        if not relevance.accepted:
+            risk_flags.append("off_topic_scope")
+            risk_flags.extend(f"topic:{reason}" for reason in relevance.reasons)
         if not inferred.location:
             risk_flags.append("location_missing")
         if pay is None:
@@ -452,8 +466,10 @@ class OpportunityIntelligenceEngine:
 
         minimum_total = self._minimum_total(inferred, risk_flags)
         score = self._score(inferred, matched_keywords, risk_flags, pay, effective)
-        grade = self._grade(score, risk_flags, pay)
-        decision = self._decision(grade, risk_flags, pay, minimum_total)
+        if not relevance.accepted:
+            score = min(score, 30.0)
+        grade = self._grade(score, risk_flags, pay) if relevance.accepted else "Avoid"
+        decision = self._decision(grade, risk_flags, pay, minimum_total) if relevance.accepted else "DISCARD"
         next_action = self._next_action(decision, minimum_total)
         pitch = self._pitch(inferred, risk_flags, minimum_total, decision, matched_keywords)
 
@@ -488,7 +504,11 @@ class OpportunityIntelligenceEngine:
         """Forward a persisted, non-discarded evaluation to the Daily Command
         approval queue. Fire-and-forget on a daemon thread so scoring latency is
         unaffected; the producer itself is fail-soft and no-ops when unwired."""
-        if evaluation.decision == "DISCARD":
+        # The durable store retains C-grade counters for analysis, but they
+        # must not flood the high-signal human approval queue.
+        if evaluation.decision == "DISCARD" or (
+            evaluation.grade not in {"A", "B"} and evaluation.decision != "HUMAN_APPROVAL"
+        ):
             return
         if not (os.environ.get("DC_WEBHOOK_URL", "").strip()
                 and os.environ.get("WEBHOOK_SECRET", "").strip()):
@@ -640,7 +660,7 @@ class OpportunityIntelligenceEngine:
         return PitchArtifact(
             strategic_angle=strategic_angle,
             portfolio_alignment=alignment if matched_keywords else alignment[:2],
-            generated_cover_letter=cover,
+            generated_cover_letter=cover if decision != "DISCARD" else "",
             counter_message=counter,
             decision=decision,
         )
