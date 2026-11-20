@@ -11,6 +11,7 @@ approval decisions, cycle events and distillation runs persist to Mongo.
 from __future__ import annotations
 
 import ast
+import asyncio
 import json
 import os
 import sys
@@ -43,17 +44,19 @@ from backend.services.enterprise_router import build_router as build_enterprise_
 from backend.services.proof_publisher import ProofPublisher  # noqa: E402
 
 
-MONGO_URL = os.environ["MONGO_URL"]
-DB_NAME = os.environ["DB_NAME"]
+MONGO_URL = os.environ.get("MONGO_URL", "").strip()
+DB_NAME = os.environ.get("DB_NAME", "profitengine")
 MONGO_BOOT_ERROR: str | None = None
 try:
     # mongodb+srv:// URIs resolve DNS eagerly here — a deleted Atlas
     # cluster must not prevent boot; db-backed endpoints degrade instead.
+    if not MONGO_URL:
+        raise ValueError("MONGO_URL is not configured")
     mongo_client = AsyncIOMotorClient(MONGO_URL)
 except Exception as _mongo_exc:
-    MONGO_BOOT_ERROR = str(_mongo_exc)
+    MONGO_BOOT_ERROR = type(_mongo_exc).__name__
     import logging as _mlog
-    _mlog.getLogger("server").error("Mongo unavailable at boot: %s", MONGO_BOOT_ERROR)
+    _mlog.getLogger("server").error("Mongo unavailable at boot (%s)", MONGO_BOOT_ERROR)
     mongo_client = AsyncIOMotorClient(
         "mongodb://mongo-unavailable.invalid:27017/?serverSelectionTimeoutMS=2000",
         connect=False,
@@ -260,8 +263,20 @@ except Exception as _gmaos_err:
 
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
+    """Process liveness plus an independently verified, bounded Mongo readiness probe.
+
+    Keep HTTP 200 for application liveness so a Mongo outage does not make Render
+    restart an otherwise functioning API. Consumers must inspect `mongo`.
+    """
+    mongo_state = "unavailable"
+    if MONGO_BOOT_ERROR is None:
+        try:
+            await asyncio.wait_for(db.command("ping"), timeout=3.0)
+            mongo_state = "ready"
+        except Exception:  # noqa: BLE001 -- failed ping degrades the dependency
+            mongo_state = "unavailable"
     return {"ok": True, "status": "ok", "service": "profitengine-v5",
-            "mongo": f"degraded: {MONGO_BOOT_ERROR}" if MONGO_BOOT_ERROR else "configured",
+            "mongo": mongo_state,
             "time": datetime.now(timezone.utc).isoformat()}
 
 
