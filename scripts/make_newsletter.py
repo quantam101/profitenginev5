@@ -13,20 +13,27 @@ Delivery:
   2. GitHub Pages issue page — permanent web archive, always attempted.
   3. newsletter.html artifact of record, always written.
 
-Usage: python scripts/make_newsletter.py [--no-page]
+Usage:
+  python scripts/make_newsletter.py compose [--out issue.json]
+      Build the issue and write a JSON payload (dataDate, opportunities,
+      signals, fingerprint, previous issue) for scripts/newsletter-guard.mjs.
+  python scripts/make_newsletter.py deliver --issue issue.json --decision send|brief [--no-page]
+      Send a guard-approved issue. Any other decision is refused.
+  python scripts/make_newsletter.py [--no-page]
+      Legacy one-shot compose + deliver (no guard).
 """
 from __future__ import annotations
 
+import argparse
 import base64
 import hashlib
 import html
 import json
 import os
+import re
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -37,6 +44,10 @@ from youtube_publication import verified_youtube_uploads  # noqa: E402
 
 CONTENT_REPO = "quantam101/content"
 FEATURED_INDEX = "newsletters/featured-products.json"
+LAST_ISSUE_INDEX = "newsletters/last-issue.json"
+SOURCE_RUNS_FILE = "source_runs.json"   # written by the workflow's sourcing step
+ISSUE_SCHEMA = "already-here-issue/1"
+SENDABLE_DECISIONS = ("send", "brief")
 PAGES_BASE = "https://quantam101.github.io/content"
 _UTM = "utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest"
 EBOOK_URL = f"{PAGES_BASE}/ebooks/zero-dollar-content-engine/?{_UTM}"
@@ -45,7 +56,7 @@ WEBSITE_URL = "https://www.alreadyherellc.com"
 AI_SERVICE_URL = f"{WEBSITE_URL}/ai-agent?{_UTM}"
 RFQ_URL = f"{WEBSITE_URL}/rfq?{_UTM}"
 DISPATCH_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
-GUMROAD_STORE_URL = f"https://alreadyhere.gumroad.com?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest&utm_content=store"
+GUMROAD_STORE_URL = "https://alreadyhere.gumroad.com?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest&utm_content=store"
 # no /autoworks page exists yet — route AutoWorks CTAs to the dispatch page
 AUTOWORKS_URL = f"{WEBSITE_URL}/dispatch?{_UTM}"
 
@@ -147,46 +158,76 @@ def _item_url(item: dict[str, Any], fallback: str) -> str:
     return url if url.startswith(("https://", "http://")) else fallback
 
 
+def _read_content_json(path: str) -> tuple[Any, str | None]:
+    """(parsed JSON, blob sha) for a file in the content repo; (None, None) if absent."""
+    try:
+        probe = subprocess.run(
+            ["gh", "api", f"repos/{CONTENT_REPO}/contents/{path}"],
+            capture_output=True, text=True, timeout=60)
+        if probe.returncode != 0:
+            return None, None
+        doc = json.loads(probe.stdout)
+        return json.loads(base64.b64decode(doc["content"]).decode()), doc.get("sha")
+    except Exception:
+        return None, None
+
+
+def _write_content_json(path: str, payload: Any, sha: str | None, message: str) -> bool:
+    encoded = base64.b64encode(json.dumps(payload, indent=2, sort_keys=True).encode()).decode()
+    args = ["gh", "api", "-X", "PUT", f"repos/{CONTENT_REPO}/contents/{path}",
+            "-f", f"message={message}", "-f", f"content={encoded}"]
+    if sha:
+        args += ["-f", f"sha={sha}"]
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        print(f"{path} update failed: {result.stderr[:200]}")
+    return result.returncode == 0
+
+
 def _featured_slugs() -> set[str]:
     """Slugs already featured in a prior issue, persisted in the content repo."""
-    try:
-        result = subprocess.run(
-            ["gh", "api", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}",
-             "--jq", ".content"],
-            capture_output=True, text=True, timeout=60)
-        if result.returncode != 0:
-            return set()
-        data = json.loads(base64.b64decode(result.stdout).decode())
-        return set(data if isinstance(data, list) else [])
-    except Exception:
-        return set()
+    data, _sha = _read_content_json(FEATURED_INDEX)
+    return set(data if isinstance(data, list) else [])
 
 
 def _record_featured(slugs: list[str]) -> None:
     """Append this issue's featured slugs to the persistent index."""
     if not slugs:
         return
-    probe = subprocess.run(
-        ["gh", "api", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}"],
-        capture_output=True, text=True, timeout=60)
-    prior: list[str] = []
-    sha = None
-    if probe.returncode == 0:
-        doc = json.loads(probe.stdout)
-        sha = doc.get("sha")
-        try:
-            prior = json.loads(base64.b64decode(doc["content"]).decode())
-        except Exception:
-            prior = []
-    merged = sorted(set(prior) | set(slugs))
-    args = ["gh", "api", "-X", "PUT", f"repos/{CONTENT_REPO}/contents/{FEATURED_INDEX}",
-            "-f", "message=newsletter: update featured product index",
-            "-f", f"content={base64.b64encode(json.dumps(merged).encode()).decode()}"]
-    if sha:
-        args += ["-f", f"sha={sha}"]
-    result = subprocess.run(args, capture_output=True, text=True, timeout=60)
-    if result.returncode != 0:
-        print(f"featured index update failed: {result.stderr[:200]}")
+    prior, sha = _read_content_json(FEATURED_INDEX)
+    merged = sorted(set(prior if isinstance(prior, list) else []) | set(slugs))
+    _write_content_json(FEATURED_INDEX, merged, sha,
+                        "newsletter: update featured product index")
+
+
+def _previous_issue() -> dict[str, Any]:
+    """Record of the last issue actually emailed (fingerprint, dataDate, sentAt)."""
+    data, _sha = _read_content_json(LAST_ISSUE_INDEX)
+    return data if isinstance(data, dict) else {}
+
+
+def _record_last_issue(record: dict[str, Any]) -> None:
+    _prior, sha = _read_content_json(LAST_ISSUE_INDEX)
+    _write_content_json(LAST_ISSUE_INDEX, record, sha,
+                        f"newsletter: last issue {record.get('dataDate', '')}")
+
+
+def _data_date() -> str | None:
+    """YYYY-MM-DD of the newest pipeline run the artifacts came from.
+
+    The workflow records every source run it downloaded in source_runs.json;
+    ISSUE_DATA_DATE overrides for manual runs. None means the issue has no
+    provable data date and the guard must refuse it.
+    """
+    dates: list[str] = []
+    for run in _as_items(_load_json(SOURCE_RUNS_FILE)):
+        created = str(run.get("created_at") or run.get("createdAt") or "")[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", created):
+            dates.append(created)
+    override = os.getenv("ISSUE_DATA_DATE", "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", override):
+        dates.append(override)
+    return max(dates) if dates else None
 
 
 def _product_items(limit: int = 3) -> list[dict[str, Any]]:
@@ -313,11 +354,16 @@ def _render_section(title: str, items: Iterable[dict[str, Any]]) -> str:
     return "\n".join(cards)
 
 
-def compose() -> tuple[str, str, str]:
+def compose(
+    sections: list[tuple[str, list[dict[str, Any]]]] | None = None,
+    insights: list[dict[str, Any]] | None = None,
+) -> tuple[str, str, str]:
     """Return (subject, HTML body, stable content fingerprint)."""
     issue_date = time.strftime("%B %d, %Y", time.gmtime())
-    sections = _collect_sections()
-    insights = _pipeline_insights()
+    if sections is None:
+        sections = _collect_sections()
+    if insights is None:
+        insights = _pipeline_insights()
     verified_count = sum(len(items) for _, items in sections)
     subject = f"Already Here Revenue Intelligence — {issue_date}"
 
@@ -366,14 +412,53 @@ def compose() -> tuple[str, str, str]:
         "may earn a commission at no additional cost to the purchaser.</em></p>"
     )
 
-    canonical = json.dumps({
-        "date": issue_date,
-        "sections": sections,
-        "insights": insights,
-    }, sort_keys=True, default=str)
-    fingerprint = hashlib.sha256(canonical.encode()).hexdigest()[:16]
+    fingerprint = _data_fingerprint(sections, insights)
     body.append(f"<!-- issue-fingerprint:{fingerprint} -->")
     return subject, "\n".join(body), fingerprint
+
+
+def _data_fingerprint(sections: Any, insights: Any) -> str:
+    """Fingerprint of the issue's *content* only.
+
+    Deliberately excludes the issue date: two issues built from the same
+    artifacts on different days are the same issue, and the guard must be able
+    to see that.
+    """
+    canonical = json.dumps({"sections": sections, "insights": insights},
+                           sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
+
+def build_issue() -> dict[str, Any]:
+    """Compose the issue and return the guard payload."""
+    sections = _collect_sections()
+    insights = _pipeline_insights()
+    subject, body, fingerprint = compose(sections, insights)
+    opportunities = [
+        {
+            "section": title,
+            "title": _item_title(item),
+            "url": _item_url(item, CTA_BY_SECTION[title][1]),
+        }
+        for title, items in sections for item in items
+    ]
+    signals = [{"title": i["title"], "url": i["url"]} for i in insights]
+    featured = [
+        i["_slug"] for title, items in sections
+        if title == "New digital products" for i in items if i.get("_slug")
+    ]
+    return {
+        "schema": ISSUE_SCHEMA,
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "dataDate": _data_date(),
+        "subject": subject,
+        "html": body,
+        "fingerprint": fingerprint,
+        "opportunities": opportunities,
+        "signals": signals,
+        "featuredSlugs": featured,
+        "previous": _previous_issue(),
+    }
 
 
 def try_resend(subject: str, body: str) -> bool:
@@ -414,9 +499,8 @@ def publish_page(html_page: str) -> None:
         print(f"page publish failed: {result.stderr[:200]}")
 
 
-def main() -> None:
-    subject, body, fingerprint = compose()
-    page = (
+def _page_html(subject: str, body: str) -> str:
+    return (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
         f"<title>{_escape(subject)}</title>"
@@ -425,19 +509,75 @@ def main() -> None:
         "h1,h2,h3{line-height:1.2}h2{margin-top:2rem}</style></head>"
         f"<body><h1>{_escape(subject)}</h1>{body}</body></html>"
     )
-    Path("newsletter.html").write_text(page, encoding="utf-8")
-    Path("newsletter_fingerprint.txt").write_text(fingerprint + "\n", encoding="utf-8")
+
+
+def deliver(issue: dict[str, Any], decision: str, *, page: bool = True) -> bool:
+    """Email a guard-approved issue; archive it; record what was sent.
+
+    Returns True only when the broadcast was actually sent. A refused decision
+    is a hard error — the guard, not the sender, decides what goes out.
+    """
+    if decision not in SENDABLE_DECISIONS:
+        raise SystemExit(f"refusing to deliver: decision={decision!r} is not one of "
+                         f"{SENDABLE_DECISIONS}")
+    if issue.get("schema") != ISSUE_SCHEMA or not issue.get("dataDate"):
+        raise SystemExit("refusing to deliver: issue payload is not a guard-validated "
+                         f"{ISSUE_SCHEMA} document with a dataDate")
+    subject, body = str(issue["subject"]), str(issue["html"])
+    html_page = _page_html(subject, body)
+    Path("newsletter.html").write_text(html_page, encoding="utf-8")
+    Path("newsletter_fingerprint.txt").write_text(str(issue["fingerprint"]) + "\n", encoding="utf-8")
     print(f"subject: {subject}")
-    print(f"fingerprint: {fingerprint}")
-    print("newsletter.html written")
+    print(f"decision: {decision}  dataDate: {issue['dataDate']}  fingerprint: {issue['fingerprint']}")
     sent = try_resend(subject, body)
-    if "--no-page" not in sys.argv:
-        publish_page(page)   # web archive, regardless of email outcome
-    featured = [i["_slug"] for _t, items in _collect_sections() if _t == "New digital products" for i in items if i.get("_slug")]
-    _record_featured(featured)
-    if not sent:
-        print("::warning::issue was NOT emailed — page archive only")
+    if page:
+        publish_page(html_page)   # web archive, regardless of email outcome
+    if sent:
+        _record_featured([s for s in issue.get("featuredSlugs", []) if isinstance(s, str)])
+        _record_last_issue({
+            "schema": ISSUE_SCHEMA,
+            "decision": decision,
+            "dataDate": issue["dataDate"],
+            "fingerprint": issue["fingerprint"],
+            "subject": subject,
+            "sentAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "opportunities": len(issue.get("opportunities", [])),
+            "signals": len(issue.get("signals", [])),
+        })
+    else:
+        print("::error::issue was NOT emailed — page archive only")
+    return sent
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--no-page", action="store_true", help="skip the web archive")
+    sub = parser.add_subparsers(dest="command")
+    p_compose = sub.add_parser("compose", help="write the guard payload")
+    p_compose.add_argument("--out", default="issue.json")
+    p_deliver = sub.add_parser("deliver", help="send a guard-approved issue")
+    p_deliver.add_argument("--issue", default="issue.json")
+    p_deliver.add_argument("--decision", required=True)
+    p_deliver.add_argument("--no-page", action="store_true", dest="no_page_sub")
+    args = parser.parse_args(argv)
+    no_page = args.no_page or getattr(args, "no_page_sub", False)
+
+    if args.command == "compose":
+        issue = build_issue()
+        Path(args.out).write_text(json.dumps(issue, indent=2, sort_keys=True), encoding="utf-8")
+        print(f"issue payload: {args.out}  dataDate={issue['dataDate']}  "
+              f"opportunities={len(issue['opportunities'])}  signals={len(issue['signals'])}  "
+              f"fingerprint={issue['fingerprint']}")
+        return 0
+    if args.command == "deliver":
+        issue = _load_json(args.issue)
+        if not isinstance(issue, dict):
+            raise SystemExit(f"refusing to deliver: {args.issue} is not a JSON object")
+        return 0 if deliver(issue, args.decision, page=not no_page) else 1
+    # legacy one-shot path (no guard)
+    issue = build_issue()
+    return 0 if deliver(issue, "send", page=not no_page) else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
