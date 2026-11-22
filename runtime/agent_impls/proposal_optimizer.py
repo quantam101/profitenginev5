@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from typing import List
 
 from runtime.agents import AgentExecution
 from runtime.opportunity_intelligence import OpportunityInput, OpportunityIntelligenceEngine
+
+
+def stable_source_key(objective: str, context: str) -> str:
+    """Stable ID across interpreter restarts; Python hash() is process-randomized."""
+    return hashlib.sha256(
+        (objective + "\0" + context).encode("utf-8")
+    ).hexdigest()[:24]
 
 
 class Agent:
@@ -15,17 +23,27 @@ class Agent:
         evaluation = engine.evaluate(
             OpportunityInput(
                 source_platform="local_authorized_feed",
-                source_url=f"agent://{self.id}/{abs(hash(objective + context))}",
+                source_url=f"agent://{self.id}/{stable_source_key(objective, context)}",
                 raw_text=f"{objective}\n{context}",
             )
         )
-        payload = {
-            "strategic_angle": evaluation.pitch.strategic_angle,
-            "portfolio_alignment": evaluation.pitch.portfolio_alignment,
-            "cover_letter": evaluation.pitch.generated_cover_letter,
-            "counter_message": evaluation.pitch.counter_message,
-            "decision": evaluation.pitch.decision,
-        }
+        if evaluation.decision == "DISCARD":
+            payload = {
+                "decision": "DISCARD",
+                "reason": ", ".join(evaluation.risk_flags),
+                "score": evaluation.score,
+                "cover_letter": "",
+                "counter_message": "",
+            }
+        else:
+            payload = {
+                "strategic_angle": evaluation.pitch.strategic_angle,
+                "portfolio_alignment": evaluation.pitch.portfolio_alignment,
+                "cover_letter": evaluation.pitch.generated_cover_letter,
+                "counter_message": evaluation.pitch.counter_message,
+                "decision": evaluation.pitch.decision,
+                "score": evaluation.score,
+            }
         return AgentExecution(
             output="PROPOSAL_OPTIMIZER_RESULT\n" + json.dumps(payload, indent=2, sort_keys=True),
             metrics={"agent": self.id, "decision": evaluation.decision, "has_counter": str(bool(evaluation.pitch.counter_message))},
