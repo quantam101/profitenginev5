@@ -37,6 +37,8 @@ Usage:
 """
 from __future__ import annotations
 
+import os
+
 from typing import Optional, Tuple
 
 from . import claude_gateway as _claude
@@ -76,6 +78,13 @@ _TIERS = [
 ]
 
 
+_PAID_TIERS = frozenset({"claude_api"})
+
+
+def _paid_enabled() -> bool:
+    return os.getenv("GMAOS_PAID_ADAPTERS_ENABLED", "false").lower() == "true"
+
+
 def _is_valid(result: Optional[str]) -> bool:
     if not result:
         return False
@@ -91,6 +100,7 @@ def infer(
     max_tokens: int = 1024,
     distill: bool = False,
     objective: str = "",
+    truncate: bool = True,
 ) -> Tuple[str, str]:
     """
     Try each inference tier in order, lowest cost first.
@@ -104,6 +114,10 @@ def infer(
                  Reduces input tokens by 20-60% on raw/verbose content.
     objective  : Passed to distill_prompt() for keyword-focused extraction.
                  Only used when distill=True.
+    truncate   : If False, a tier whose input budget the prompt exceeds is
+                 skipped instead of receiving a cut-off prompt.
+
+    Paid tiers are skipped unless GMAOS_PAID_ADAPTERS_ENABLED=true.
 
     Returns
     -------
@@ -121,8 +135,13 @@ def infer(
     # ── cascade ───────────────────────────────────────────────────────────
     last_error: str = "no_model_available"
     for fn, tier in _TIERS:
+        if tier in _PAID_TIERS and not _paid_enabled():
+            continue
         # Apply per-tier input budget (truncates to fit; no LLM call)
         tier_system, tier_prompt, _, _ = apply_input_budget(system, prompt, tier)
+        if not truncate and (tier_system, tier_prompt) != (system, prompt):
+            last_error = f"INPUT_EXCEEDS_TIER_BUDGET: {tier}"
+            continue
 
         # Clamp output tokens to tier's output budget
         tier_max_tokens = clamp_max_tokens(max_tokens, tier)

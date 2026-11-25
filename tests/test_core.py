@@ -112,6 +112,7 @@ def test_sovereign_orchestrator_ollama_first(monkeypatch):
 
 def test_sovereign_orchestrator_claude_fallback_when_ollama_absent(monkeypatch):
     """Orchestrator falls back to Claude when Ollama returns None."""
+    monkeypatch.setenv("GMAOS_PAID_ADAPTERS_ENABLED", "true")
     import runtime.ollama_gateway as og
     import runtime.claude_gateway as cg
     monkeypatch.setattr(og, "call_ollama", lambda s, m, max_tokens=512: None)
@@ -181,6 +182,7 @@ def test_sovereign_orchestrator_fallback_without_key(monkeypatch):
 
 def test_sovereign_orchestrator_with_mocked_claude(monkeypatch):
     """With a key present and Claude mocked, the orchestrator returns AI output."""
+    monkeypatch.setenv("GMAOS_PAID_ADAPTERS_ENABLED", "true")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test-key")
     import runtime.claude_gateway as gw
     monkeypatch.setattr(gw, "call_claude", lambda system, msg, max_tokens=1024: "Mocked plan: step 1, step 2.")
@@ -212,6 +214,7 @@ def test_lifelong_catch_correct_fallback_without_key(tmp_path, monkeypatch):
 
 def test_lifelong_catch_correct_records_with_mocked_claude(tmp_path, monkeypatch):
     """With Claude mocked, the LC&C agent records the improvement to disk."""
+    monkeypatch.setenv("GMAOS_PAID_ADAPTERS_ENABLED", "true")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-ci-test-key")
     monkeypatch.setenv("GMAOS_CORRECTIONS_PATH", str(tmp_path / "corrections.jsonl"))
     import runtime.claude_gateway as gw
