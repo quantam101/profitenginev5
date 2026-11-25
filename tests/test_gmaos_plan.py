@@ -165,6 +165,16 @@ def test_node_budget_is_enforced_without_retry():
     assert mesh.tasks[0].payload["max_tokens"] < 300
 
 
+def test_retry_output_cap_subtracts_first_attempt_spend():
+    mesh = FakeMesh({"writer": ["x" * 400, '{"summary":"ok"}']})
+    plan = Plan(nodes=(llm("b", 0, {"summary": "str"}, budget=400),),
+                max_tokens=1000, max_nodes=1)
+    result = run(plan, mesh)
+    assert result["status"] == "OK" and result["tokens"] <= 400
+    first, retry = (t.payload["max_tokens"] for t in mesh.tasks)
+    assert retry < first - 100
+
+
 def test_plan_limits_and_refs_are_checked_before_anything_runs():
     ran = []
 
@@ -247,3 +257,36 @@ def test_llm_node_runs_through_the_real_mesh(tmp_path, monkeypatch):
     assert result["artifacts"] == {"a": {"n": 3}, "b": {"summary": "three"}}
     assert 0 < result["tokens"] <= 400
     assert len(calls) == 1 and '"a.n":3' in calls[0][1] and calls[0][2] < 400
+
+
+def test_mesh_does_not_distill_plan_prompts(tmp_path, monkeypatch):
+    import runtime.inference_cascade as cascade
+    from runtime.gmaos.core import Mesh
+    from runtime.gmaos.store import StateStore
+
+    calls = []
+
+    def fake_infer(system, prompt, max_tokens=1024, **_):
+        calls.append(prompt)
+        return '{"summary":"ok"}', "groq"
+
+    monkeypatch.setattr(cascade, "infer", fake_infer)
+    url = "https://alreadyherellc.com/content/post"
+    long_text = "plain words " * 2000
+
+    async def go():
+        mesh = Mesh(store=StateStore(db_path=tmp_path / "m.db",
+                                     redis_url="redis://127.0.0.1:9999/99"))
+        await mesh.start()
+        try:
+            plan = Plan(nodes=(llm("b", 0, {"summary": "str"}, ["mission.url", "mission.doc"],
+                                   agent="plan_probe_agent", budget=20000),),
+                        max_tokens=20000, max_nodes=1,
+                        mission={"url": url, "doc": long_text})
+            return await PlanRunner(mesh).run(plan)
+        finally:
+            await mesh.stop()
+
+    assert asyncio.run(go())["status"] == "OK"
+    assert len(calls) == 1
+    assert json.loads(calls[0])["inputs"] == {"mission.url": url, "mission.doc": long_text}

@@ -88,14 +88,21 @@ async def execute_task(
     user_raw   = task.payload.get("prompt", str(task.payload))
     objective  = task.payload.get("objective", task.payload.get("title", agent))
 
-    dist_sys, dist_user, stage3, tok_in, tok_out = distill_task_input(
-        system    = system_raw,
-        user      = user_raw,
-        objective = objective,
-        agent_id  = agent,
-        store     = store,
-        task_id   = tid,
-    )
+    # Callers that budget and verify their own prompt (plan runner) opt out:
+    # distillation rewrites the prompt and may spend an extra LLM call.
+    distill = task.payload.get("distill", True) is not False
+    if distill:
+        dist_sys, dist_user, stage3, tok_in, tok_out = distill_task_input(
+            system    = system_raw,
+            user      = user_raw,
+            objective = objective,
+            agent_id  = agent,
+            store     = store,
+            task_id   = tid,
+        )
+    else:
+        dist_sys, dist_user, stage3 = system_raw, user_raw, False
+        tok_in = max(1, (len(system_raw) + len(user_raw)) // 4)
     if stage3:
         metrics.distill_stage3.inc()
     metrics.tokens_in_total.inc(tok_in)
@@ -120,7 +127,7 @@ async def execute_task(
         breakers.success(agent)
 
     # ── 7. output distillation + snapshot ─────────────────────────────────
-    snap_output = await loop.run_in_executor(
+    snap_output = output if not distill else await loop.run_in_executor(
         _thread_pool,
         functools.partial(distill_snapshot, output, agent),
     )

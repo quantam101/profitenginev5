@@ -245,7 +245,7 @@ class PlanRunner:
         error: Optional[str] = None
         for attempt in (0, 1):
             try:
-                out, tokens = await self._attempt(node, inputs, error)
+                out, tokens = await self._attempt(node, inputs, error, node.budget - spent)
             except NodeFailure as exc:
                 out, tokens, failure = {}, getattr(exc, "tokens", 0), str(exc)
             except Exception as exc:  # node code must never take the run down
@@ -277,7 +277,7 @@ class PlanRunner:
         return None
 
     async def _attempt(
-        self, node: PlanNode, inputs: dict, prior_error: Optional[str]
+        self, node: PlanNode, inputs: dict, prior_error: Optional[str], remaining: int
     ) -> tuple[dict, int]:
         if node.tier == "T0":
             assert node.fn is not None
@@ -292,14 +292,14 @@ class PlanRunner:
         system = _SYSTEM_PREFIX + minify(dict(node.out_schema))
         prompt = minify(body)
         tokens_in = estimate_tokens(system) + estimate_tokens(prompt)
-        max_out = node.budget - tokens_in
+        max_out = remaining - tokens_in
         if max_out <= 0:
-            raise NodeFailure(f"NODE_BUDGET_EXCEEDED: input {tokens_in} >= {node.budget}")
+            raise NodeFailure(f"NODE_BUDGET_EXCEEDED: input {tokens_in} >= remaining {remaining}")
 
         task = Task(
             agent=node.agent,
             payload={"system": system, "prompt": prompt, "objective": node.task,
-                     "max_tokens": max_out},
+                     "max_tokens": max_out, "distill": False},
             max_retries=0,
         )
         result = (await self._mesh.run([task]))[0]
