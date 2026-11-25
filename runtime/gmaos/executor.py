@@ -202,7 +202,8 @@ async def _invoke_agent(
         output, tier = await loop.run_in_executor(
             _thread_pool,
             functools.partial(infer, sys_p, prompt,
-                              max_tokens=task.payload.get("max_tokens", 1024)),
+                              max_tokens=task.payload.get("max_tokens", 1024),
+                              truncate=task.payload.get("distill", True) is not False),
         )
         tok_out = max(1, len(output) // 4)
         return output, tier, tok_out

@@ -290,3 +290,47 @@ def test_mesh_does_not_distill_plan_prompts(tmp_path, monkeypatch):
     assert asyncio.run(go())["status"] == "OK"
     assert len(calls) == 1
     assert json.loads(calls[0])["inputs"] == {"mission.url": url, "mission.doc": long_text}
+
+
+def _only_tiers(monkeypatch, cascade, replies):
+    """Replace every cascade tier with a recorder; replies maps tier -> reply."""
+    seen = []
+
+    def make(tier):
+        def call(system, prompt, max_tokens=1024):
+            seen.append((tier, prompt))
+            return replies.get(tier)
+        return call
+
+    monkeypatch.setattr(cascade, "_TIERS", [(make(t), t) for _, t in cascade._TIERS])
+    return seen
+
+
+def test_cascade_skips_paid_tier_unless_enabled(monkeypatch):
+    import runtime.inference_cascade as cascade
+
+    monkeypatch.delenv("GMAOS_PAID_ADAPTERS_ENABLED", raising=False)
+    seen = _only_tiers(monkeypatch, cascade, {"claude_api": "paid", "pollinations": "free"})
+    assert cascade.infer("s", "p") == ("free", "pollinations")
+    assert "claude_api" not in [t for t, _ in seen]
+
+    monkeypatch.setenv("GMAOS_PAID_ADAPTERS_ENABLED", "true")
+    assert cascade.infer("s", "p") == ("paid", "claude_api")
+
+
+def test_cascade_no_truncate_skips_tiers_that_would_cut_the_prompt(monkeypatch):
+    import runtime.inference_cascade as cascade
+    from runtime.token_budget import budget_for
+
+    monkeypatch.delenv("GMAOS_PAID_ADAPTERS_ENABLED", raising=False)
+    replies = {t: "ok" for _, t in cascade._TIERS}
+    seen = _only_tiers(monkeypatch, cascade, replies)
+    prompt = "word " * (budget_for("groq").max_input_chars // 5)  # fits gemini only
+    out, tier = cascade.infer("s", prompt, truncate=False)
+    assert (out, tier) == ("ok", "gemini") and seen == [("gemini", prompt)]
+
+    seen.clear()
+    huge = "word " * budget_for("claude_api").max_input_chars
+    out, tier = cascade.infer("s", huge, truncate=False)
+    assert tier == "deterministic_fallback" and seen == []
+    assert "INPUT_EXCEEDS_TIER_BUDGET" in out
