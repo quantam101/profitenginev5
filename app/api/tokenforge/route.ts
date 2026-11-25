@@ -4,6 +4,7 @@
  * Supports: groq, gemini, openrouter (free tier only)
  */
 import { NextRequest, NextResponse } from "next/server";
+import { clampMaxTokens } from "../../../lib/ai-gateway.mjs";
 
 const GROQ_KEY = process.env.GROQ_API_KEY ?? "";
 const GEMINI_KEY = process.env.GEMINI_API_KEY ?? "";
@@ -19,9 +20,13 @@ const PROVIDER_MODELS: Record<string, { url: string; defaultModel: string }> = {
   },
 };
 
+// Caller-supplied output budgets are clamped so one request cannot drain the free-tier quota.
+const MAX_TOKENS_LIMITS = { fallback: 512, ceiling: 2048 };
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { prompt, provider = "groq", model, max_tokens = 512, system } = body;
+  const { prompt, provider = "groq", model, system } = body;
+  const max_tokens = clampMaxTokens(body.max_tokens, MAX_TOKENS_LIMITS);
 
   if (!prompt) {
     return NextResponse.json({ error: "prompt is required" }, { status: 400 });

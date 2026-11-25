@@ -2,12 +2,38 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evaluatePromotionGate, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
+import { clampMaxTokens, evaluatePromotionGate, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
 
 const auditDir = await mkdtemp(join(tmpdir(), 'profitengine-ai-gateway-'));
 const auditPath = join(auditDir, 'audit.jsonl');
 
 try {
+  // law 6: caller-supplied output budgets are bounded before reaching a provider
+  assert.equal(clampMaxTokens(undefined), 700);
+  assert.equal(clampMaxTokens(1800), 1800);
+  assert.equal(clampMaxTokens(1_000_000), 4096);
+  assert.equal(clampMaxTokens(-5), 700);
+  assert.equal(clampMaxTokens('abc'), 700);
+  assert.equal(clampMaxTokens(1_000_000, { fallback: 512, ceiling: 2048 }), 2048);
+
+  let sentMaxTokens = null;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    sentMaxTokens = JSON.parse(init.body).max_tokens;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'looks fine' } }] }), { status: 200 });
+  };
+  let capped;
+  try {
+    capped = await routeAI(
+      { task: 'code_review', prompt: 'Review this function.', maxTokens: 1_000_000 },
+      { auditPath: join(auditDir, 'budget-audit.jsonl'), qwenEnabled: true, offlineMode: false, qwenToken: 'unit-key' }
+    );
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.equal(capped.ok, true);
+  assert.equal(sentMaxTokens, 4096);
+
   const policy = getAIGatewayPolicy();
   assert.ok(policy.allowedTasks.includes('code_review'));
   assert.ok(policy.blockedHighRiskTasks.includes('financial_trading_execution'));
