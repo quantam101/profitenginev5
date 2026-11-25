@@ -23,6 +23,7 @@ from .core import Mesh, get_mesh
 from .schema import Task, TaskPriority, MeshResult, AgentStatus
 from .metrics import metrics_text
 from .consensus import supermajority_vote, ConsensusResult
+from .plan import Plan, PlanNode, PlanRunner
 
 __all__ = [
     "Mesh",
@@ -34,4 +35,7 @@ __all__ = [
     "metrics_text",
     "supermajority_vote",
     "ConsensusResult",
+    "Plan",
+    "PlanNode",
+    "PlanRunner",
 ]
