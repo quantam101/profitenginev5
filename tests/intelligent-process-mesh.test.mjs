@@ -180,3 +180,23 @@ test('same run id and same inputs replay prior agent results instead of calling 
   assert.equal(first.events[0].replayed, false);
   assert.equal(second.events[0].replayed, true);
 });
+
+test('local Ollama specialist calls carry an explicit output-token budget', async () => {
+  const budgets = [];
+  const fetchImpl = async (_url, init) => {
+    budgets.push(JSON.parse(init.body).options.num_predict);
+    return { ok: true, json: async () => ({ message: { content: JSON.stringify(validEnvelope()) } }) };
+  };
+  await runIntelligentProcessMesh(
+    { runId: 'mesh-ollama-budget', context: { objective: 'produce revenue assets from verified inputs' } },
+    {
+      fetchImpl,
+      executionControl: executionFixture(),
+      config: { zeroSpend: true, maxDailyAiSpendUsd: 0 },
+      clock: () => new Date('2026-09-14T12:00:00.000Z'),
+      env: {},
+    },
+  );
+  assert.ok(budgets.length > 0);
+  assert.ok(budgets.every((value) => value === 1800));
+});
