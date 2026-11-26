@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 
-// The standalone /proxy/chat backend is paused; the live zero-cost proxy is the
-// tokenforge route on this app (or on the configured TOKENFORGE_API_URL host).
-const TF_BASE = (process.env.TOKENFORGE_API_URL || 'https://app.alreadyherellc.com').replace(/\/$/, '');
+// Status probe for the zero-cost TokenForge proxy. It calls the proxy's GET
+// status endpoint — never POST — so visitors cannot spend inference quota
+// through it. On previews it targets this deployment itself (VERCEL_URL),
+// falling back to the production app host.
+const TF_BASE = (
+  process.env.TOKENFORGE_API_URL
+  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://app.alreadyherellc.com')
+).replace(/\/$/, '');
 const TF_API = `${TF_BASE}/api/tokenforge`;
 
 export const revalidate = 3600;
@@ -13,22 +18,14 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'TOKENFORGE_API_KEY not set' }, { status: 503 });
   }
 
-  const prompt =
-    'You are a status reporter. Reply with ONLY a JSON object (no markdown, no code fences) containing exactly these keys: "status" (value: "TOKENFORGE_CONNECTED"), "service" (value: "profitengine-command-center"), "repo" (value: "quantam101/profitenginev5"), "message" (one sentence confirming the LLM proxy is live and saving tokens).';
-
   const started = Date.now();
   let tfResponse: Record<string, unknown> = {};
   let tfOk = false;
 
   try {
     const res = await fetch(TF_API, {
-      method: 'POST',
-      headers: { 'X-TF-Key': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        provider: 'auto',
-        max_tokens: 100,
-      }),
+      headers: { 'X-TF-Key': apiKey },
+      next: { revalidate: 0 },
     });
     tfResponse = await res.json();
     tfOk = res.ok;
@@ -39,13 +36,13 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: tfOk,
-      proof: 'tokenforge_api_live',
+      proof: 'tokenforge_status_live',
       latency_ms: Date.now() - started,
       connector: 'tokenforge_api',
       repository: 'quantam101/profitenginev5',
       cached_for_seconds: revalidate,
       timestamp: new Date().toISOString(),
-      tokenforge_response: tfResponse,
+      tokenforge_status: tfResponse,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=60' } },
   );
