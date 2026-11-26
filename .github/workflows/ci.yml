@@ -200,7 +200,7 @@ jobs:
       # Grafana's official setup action. The apt route (keyserver + dl.k6.io)
       # fails on current runners with exit 100 and blocked every PR's Stage 4.
       - name: Install k6
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@c47136d33d365efbeb9ae7266908b5dcf98cdece # v1.3.0
       - name: Run k6 smoke
         env:
           BASE_URL: "http://127.0.0.1:8001"
