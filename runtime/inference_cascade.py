@@ -48,7 +48,7 @@ from . import huggingface_gateway as _hf
 from . import lmstudio_gateway as _lmstudio
 from . import ollama_gateway as _ollama
 from . import pollinations_gateway as _pollinations
-from .token_budget import apply_input_budget, audit_budget, clamp_max_tokens
+from .token_budget import apply_input_budget, audit_budget, clamp_max_tokens, budget_for
 
 _ERROR_PREFIXES = (
     "OLLAMA_ERROR:",
@@ -78,11 +78,21 @@ _TIERS = [
 ]
 
 
+INPUT_TOO_LARGE = "INFERENCE_STUB\nINPUT_EXCEEDS_TIER_BUDGET"
+
 _PAID_TIERS = frozenset({"claude_api"})
 
 
 def _paid_enabled() -> bool:
-    return os.getenv("GMAOS_PAID_ADAPTERS_ENABLED", "false").lower() == "true"
+    """Paid tiers run only when CostGuard allows a paid route (fail closed)."""
+    from .cost_guard import CostGuard, CostGuardError, RouteDecision
+    try:
+        CostGuard().assert_allowed(
+            RouteDecision("claude_api", None, 0.0, "inference", paid=True)
+        )
+    except (CostGuardError, ValueError):
+        return False
+    return True
 
 
 def _is_valid(result: Optional[str]) -> bool:
@@ -117,7 +127,8 @@ def infer(
     truncate   : If False, a tier whose input budget the prompt exceeds is
                  skipped instead of receiving a cut-off prompt.
 
-    Paid tiers are skipped unless GMAOS_PAID_ADAPTERS_ENABLED=true.
+    Paid tiers are skipped unless CostGuard allows a paid route
+    (GMAOS_PAID_ADAPTERS_ENABLED=true and GMAOS_MODE is not strict_zero_spend).
 
     Returns
     -------
@@ -134,14 +145,18 @@ def infer(
 
     # ── cascade ───────────────────────────────────────────────────────────
     last_error: str = "no_model_available"
+    oversized = False   # a tier was skipped because the prompt did not fit
+    provider_failed = False
     for fn, tier in _TIERS:
         if tier in _PAID_TIERS and not _paid_enabled():
             continue
         # Apply per-tier input budget (truncates to fit; no LLM call)
         tier_system, tier_prompt, _, _ = apply_input_budget(system, prompt, tier)
-        if not truncate and (tier_system, tier_prompt) != (system, prompt):
-            last_error = f"INPUT_EXCEEDS_TIER_BUDGET: {tier}"
-            continue
+        if not truncate:
+            tier_system, tier_prompt = system, prompt
+            if len(system) + len(prompt) > budget_for(tier).max_input_chars:
+                oversized = True
+                continue
 
         # Clamp output tokens to tier's output budget
         tier_max_tokens = clamp_max_tokens(max_tokens, tier)
@@ -151,7 +166,15 @@ def infer(
             return result, tier  # type: ignore[return-value]
         if result:
             last_error = result
+            provider_failed = True
 
+    if oversized and not provider_failed:
+        # No provider was at fault: the caller sent more than any tier accepts.
+        return (
+            f"{INPUT_TOO_LARGE}: {len(system) + len(prompt)} chars fit no "
+            "configured tier",
+            "deterministic_fallback",
+        )
     return (
         f"INFERENCE_STUB\nNo AI model responded. Last error: {last_error}\n"
         "Configure at least one of:\n"
