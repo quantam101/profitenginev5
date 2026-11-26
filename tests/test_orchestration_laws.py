@@ -132,3 +132,16 @@ def test_sovereign_core_fails_closed_when_no_model_responds(tmp_path, monkeypatc
     assert result.output.startswith("inference_unavailable")
     assert "record_id" not in result.details
     assert core.cache.search(vector, namespace="default") is None
+
+
+def test_sovereign_core_accepts_draft_whose_objective_mentions_the_stub(tmp_path, monkeypatch):
+    monkeypatch.setenv("GMAOS_AUDIT_LOG", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
+    monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
+    monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
+    import runtime.agent_impls.sovereign_orchestrator as mod
+    monkeypatch.setattr(mod, "infer", lambda *a, **k: ("- explained the marker\nStatus: done", "groq"))
+    from runtime.sovereign_core import SovereignAutomationCore
+    objective = "Draft a note on INFERENCE_STUB\nNo AI model responded. handling"
+    result = SovereignAutomationCore().execute("system", "context", objective, [0.8, 0.8, 0.8, 0.8])
+    assert result.status == "ok"

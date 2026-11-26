@@ -28,6 +28,9 @@ class ExecutionResult:
     details: Dict[str, Any]
 
 
+_INFERENCE_STUB_MARKER = "INFERENCE_STUB\nNo AI model responded."
+
+
 class SovereignAutomationCore:
     """
     Local-first, no-spend EAOS execution primitive.
@@ -173,7 +176,9 @@ class SovereignAutomationCore:
             output = "Execution queued. No unsafe route executed."
             agent_metrics = {"agent": agent_id}
 
-        if "INFERENCE_STUB" in output:
+        # Agents echo the objective into their output, so match the cascade's own
+        # stub text and ignore anything the caller wrote in the objective.
+        if _INFERENCE_STUB_MARKER in output.replace(objective, ""):
             # No model answered: the stub is a failure notice, not a result.
             # Never commit it to verified memory, where cache hits would replay it.
             self.audit.blocked(actor, "inference_unavailable", {"agent_metrics": agent_metrics}, correlation_id)
