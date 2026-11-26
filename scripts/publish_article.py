@@ -429,26 +429,28 @@ def generate_article(topic: str) -> Dict[str, Any]:
     print(f"[AI] Generating article: {topic}")
     prompt = ARTICLE_PROMPT.format(topic=topic)
     # Try each Groq model in priority order, then fall back to Gemini
-    raw = ""
+    article: Dict[str, Any] | None = None
     if GROQ_KEY:
         for model in GROQ_MODELS:
             try:
-                raw = _call_groq(prompt, model=model)
+                article = _parse_article_json(_call_groq(prompt, model=model))
                 print(f"[AI] Provider: Groq ({model})")
                 break
             except Exception as e:
                 print(f"[AI] Groq/{model} failed ({e}), trying next...")
-    if not raw and GEMINI_KEY:
+    if article is None and GEMINI_KEY:
         for model in GEMINI_MODELS:
             try:
-                raw = _call_gemini(prompt, model=model)
+                article = _parse_article_json(_call_gemini(prompt, model=model))
                 print(f"[AI] Provider: Gemini ({model})")
                 break
             except Exception as e:
                 print(f"[AI] Gemini/{model} failed ({e}), trying next...")
-    if not raw:
-        sys.exit("❌ All LLM providers failed — check API keys and rate limits")
-    article = _parse_article_json(raw)
+    if article is None:
+        sys.exit(
+            "❌ All LLM providers failed or returned unverifiable output — "
+            "check API keys and rate limits"
+        )
     article["body"] = _normalize_tables(str(article.get("body") or ""))
 
     from scripts.seo_content_quality import (
@@ -551,8 +553,29 @@ ORIGINAL ARTICLE:
     return article
 
 
+class ArticleParseError(ValueError):
+    """LLM output could not be verified as an article object."""
+
+
+def _validate_article_shape(article: Any) -> Dict[str, Any]:
+    """Schema gate: nothing downstream reads an article that fails this."""
+    if not isinstance(article, dict):
+        raise ArticleParseError("LLM output is not a JSON object")
+    for field in ("title", "body"):
+        value = article.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ArticleParseError(f"article field '{field}' missing or not a string")
+    tags = article.get("tags", [])
+    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+        raise ArticleParseError("article field 'tags' is not a list of strings")
+    for field in ("slug", "meta_description"):
+        if not isinstance(article.get(field, ""), str):
+            raise ArticleParseError(f"article field '{field}' is not a string")
+    return article
+
+
 def _parse_article_json(raw: str) -> Dict[str, Any]:
-    """Parse LLM JSON output with multiple fallback strategies."""
+    """Parse LLM JSON output; raises ArticleParseError when it cannot be verified."""
     # 1. Strip markdown code fences
     cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
     cleaned = re.sub(r"\s*```$", "", cleaned)
@@ -560,12 +583,12 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
     cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", cleaned)
     # 3. Try strict parse
     try:
-        return json.loads(cleaned)
+        return _validate_article_shape(json.loads(cleaned))
     except json.JSONDecodeError:
         pass
     # 4. Lenient parse (accepts \n in strings)
     try:
-        return json.loads(cleaned, strict=False)
+        return _validate_article_shape(json.loads(cleaned, strict=False))
     except json.JSONDecodeError:
         pass
     # 5. Extract the outermost JSON object via regex (handles trailing junk)
@@ -573,22 +596,10 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
     if m:
         candidate = m.group(0)
         try:
-            return json.loads(candidate, strict=False)
+            return _validate_article_shape(json.loads(candidate, strict=False))
         except json.JSONDecodeError:
             pass
-    # 6. Last resort: synthesize a minimal article from the raw text
-    print("[WARN] JSON parse failed — synthesizing minimal article from raw text")
-    title_m = re.search(r'"title"\s*:\s*"([^"]+)"', raw)
-    slug_m = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
-    title = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
-    slug = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
-    return {
-        "title": title,
-        "slug": slug,
-        "meta_description": f"Discover {title}",
-        "tags": ["ai", "passiveincome", "automation"],
-        "body": raw[:8000],  # publish the raw output as-is if parsing fully fails
-    }
+    raise ArticleParseError("LLM output is not a JSON object")
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────

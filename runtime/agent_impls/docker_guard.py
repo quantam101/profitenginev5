@@ -105,5 +105,6 @@ class Agent:
                 "tokens_after":    after_tokens,
                 "reduction_pct":   reduction_pct,
                 "distilled_chars": len(distilled),
+                "inference_unavailable": tier == "deterministic_fallback",
             },
         )

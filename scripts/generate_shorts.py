@@ -230,7 +230,7 @@ _AI_PROVIDERS = [
     ("Gemini", "GEMINI_API_KEY",
      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
      lambda k: {"x-goog-api-key": k},
-     lambda p: {"contents": [{"parts": [{"text": p}]}], "generationConfig": {"temperature": 0.9}},
+     lambda p: {"contents": [{"parts": [{"text": p}]}], "generationConfig": {"temperature": 0.9, "maxOutputTokens": 250}},
      lambda d: d["candidates"][0]["content"]["parts"][0]["text"]),
 ]
 
