@@ -315,6 +315,9 @@ def test_cascade_skips_paid_tier_unless_enabled(monkeypatch):
     assert "claude_api" not in [t for t, _ in seen]
 
     monkeypatch.setenv("GMAOS_PAID_ADAPTERS_ENABLED", "true")
+    assert cascade.infer("s", "p") == ("free", "pollinations")  # strict_zero_spend still blocks
+
+    monkeypatch.setenv("GMAOS_MODE", "paid_allowed")
     assert cascade.infer("s", "p") == ("paid", "claude_api")
 
 
@@ -325,7 +328,13 @@ def test_cascade_no_truncate_skips_tiers_that_would_cut_the_prompt(monkeypatch):
     monkeypatch.delenv("GMAOS_PAID_ADAPTERS_ENABLED", raising=False)
     replies = {t: "ok" for _, t in cascade._TIERS}
     seen = _only_tiers(monkeypatch, cascade, replies)
-    prompt = "word " * (budget_for("groq").max_input_chars // 5)  # fits gemini only
+    # 90% of groq's input budget: over the 80% user share, but system+prompt fit
+    fits = "word " * (budget_for("groq").max_input_chars * 9 // 50)
+    assert cascade.infer("s", fits, truncate=False) == ("ok", "lmstudio")
+    assert seen == [("lmstudio", fits)]
+    seen.clear()
+
+    prompt = "word " * (budget_for("groq").max_input_chars // 5 + 1)  # fits gemini only
     out, tier = cascade.infer("s", prompt, truncate=False)
     assert (out, tier) == ("ok", "gemini") and seen == [("gemini", prompt)]
 
@@ -333,4 +342,36 @@ def test_cascade_no_truncate_skips_tiers_that_would_cut_the_prompt(monkeypatch):
     huge = "word " * budget_for("claude_api").max_input_chars
     out, tier = cascade.infer("s", huge, truncate=False)
     assert tier == "deterministic_fallback" and seen == []
-    assert "INPUT_EXCEEDS_TIER_BUDGET" in out
+    assert out.startswith(cascade.INPUT_TOO_LARGE)
+
+
+def test_oversized_plan_prompt_does_not_open_agent_circuit(tmp_path, monkeypatch):
+    import runtime.inference_cascade as cascade
+    from runtime.gmaos.core import Mesh
+    from runtime.gmaos.store import StateStore
+    from runtime.token_budget import budget_for
+
+    monkeypatch.delenv("GMAOS_PAID_ADAPTERS_ENABLED", raising=False)
+    seen = _only_tiers(monkeypatch, cascade, {"lmstudio": '{"summary":"ok"}'})
+    huge = "word " * budget_for("claude_api").max_input_chars
+
+    def plan(doc):
+        return Plan(nodes=(llm("b", 0, {"summary": "str"}, ["mission.doc"],
+                               agent="plan_probe_agent", budget=10**6),),
+                    max_tokens=10**7, max_nodes=1, mission={"doc": doc})
+
+    async def go():
+        mesh = Mesh(store=StateStore(db_path=tmp_path / "m.db",
+                                     redis_url="redis://127.0.0.1:9999/99"))
+        await mesh.start()
+        try:
+            runner = PlanRunner(mesh)
+            halted = [await runner.run(plan(huge)) for _ in range(3)]
+            return halted, await runner.run(plan("small"))
+        finally:
+            await mesh.stop()
+
+    halted, ok = asyncio.run(go())
+    assert all(h["status"] == "HALTED" and "INPUT_EXCEEDS_TIER_BUDGET" in h["blocker"]
+               for h in halted)
+    assert ok["status"] == "OK" and len(seen) == 1

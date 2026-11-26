@@ -26,6 +26,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import Any, Optional, TYPE_CHECKING
 
 from .schema import Task, MeshResult, TaskStatus
+from runtime.inference_cascade import INPUT_TOO_LARGE as _INPUT_TOO_LARGE
 from .distill_engine import distill_task_input, distill_snapshot
 
 if TYPE_CHECKING:
@@ -114,7 +115,10 @@ async def execute_task(
 
     # ── 6. circuit feedback ───────────────────────────────────────────────
     if output.startswith("AGENT_ERROR:") or output.startswith("INFERENCE_STUB"):
-        breakers.failure(agent)
+        # An oversized request is the caller's fault, not the agent's: it must
+        # not open the agent's circuit for other tasks.
+        if not output.startswith(_INPUT_TOO_LARGE):
+            breakers.failure(agent)
         snap = store.load_snapshot(agent)
         if snap:
             metrics.tasks_local.inc()
