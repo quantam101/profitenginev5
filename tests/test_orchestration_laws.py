@@ -141,7 +141,7 @@ def test_sovereign_core_accepts_draft_whose_objective_mentions_the_stub(tmp_path
     monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
     monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
     import runtime.agent_impls.sovereign_orchestrator as mod
-    monkeypatch.setattr(mod, "infer", lambda *a, **k: ("- explained the marker\nStatus: done", "groq"))
+    monkeypatch.setattr(mod, "infer", lambda *a, **k: ("INFERENCE_STUB is the marker the cascade emits.", "groq"))
     from runtime.sovereign_core import SovereignAutomationCore
     objective = "INFERENCE_STUB\nNo AI model responded."
     result = SovereignAutomationCore().execute("system", "context", objective, [0.8, 0.8, 0.8, 0.8])
