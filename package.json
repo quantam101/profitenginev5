@@ -13,7 +13,7 @@
     "autopublish:gate": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-09",
     "autopublish:gate:launch": "python scripts/autopublish_gate.py --campaign campaigns/referrals/acorns-2026-06-09.json --channel owned_website_news --as-of 2026-06-23 --strict",
     "newsletter:seed": "node scripts/newsletter_seed.mjs",
-    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:content-quality && npm run test:revenue-os && npm run test:daily-command-scan && npm run test:passive-income && npm run test:newsletter && npm run test:growth-experiments && npm run test:field-income",
+    "test": "npm run test:unit && npm run test:integration && npm run test:ai-gateway && npm run test:tokenforge && npm run test:skill-gateway && npm run test:opportunity && npm run test:content-factory && npm run test:autopublish-gate && npm run test:content-quality && npm run test:revenue-os && npm run test:daily-command-scan && npm run test:passive-income && npm run test:newsletter && npm run test:growth-experiments && npm run test:field-income",
     "test:field-income": "python -m pytest tests/test_field_income_ledger.py -q -p no:cacheprovider",
     "test:unit": "python -m pytest code_merger/tests/ -q",
     "test:integration": "node tests/health-contract.test.mjs && node tests/vercel-ignore-build.test.mjs",
@@ -52,7 +52,8 @@
     "healthcheck": "node scripts/agent-healthcheck.mjs",
     "eval:content": "python -m runtime.agent_evals --suite evals/content_gen.jsonl --baseline data/evals/content_gen.baseline.json --report data/evals/latest.json",
     "test:agent-evals": "python -m pytest tests/test_agent_evals.py -q",
-    "test:growth-experiments": "python -m pytest tests/test_growth_experiments.py -q"
+    "test:growth-experiments": "python -m pytest tests/test_growth_experiments.py -q",
+    "test:tokenforge": "node tests/tokenforge.test.mjs"
   },
   "dependencies": {
     "mongodb": "^7.2.0",
