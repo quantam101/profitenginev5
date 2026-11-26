@@ -88,6 +88,11 @@ class CircuitBreaker:
                 return True
             return False
 
+    def release_probe(self) -> None:
+        """Give back a HALF_OPEN probe whose call said nothing about agent health."""
+        with self._lock:
+            self._probe_sent = False
+
     def record_success(self) -> None:
         with self._lock:
             self._fail_streak = 0
@@ -175,6 +180,9 @@ class BreakerRegistry:
 
     def failure(self, agent_id: str) -> None:
         self.get(agent_id).record_failure()
+
+    def release_probe(self, agent_id: str) -> None:
+        self.get(agent_id).release_probe()
 
     def health_map(self) -> dict[str, str]:
         with self._lock:

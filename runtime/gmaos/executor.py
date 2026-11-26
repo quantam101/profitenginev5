@@ -52,6 +52,7 @@ async def execute_task(
 ) -> MeshResult:
     """Full execution pipeline for a single Task."""
     t0 = time.perf_counter()
+    deadline = time.monotonic() + task.timeout_sec
     agent = task.agent
     tid   = task.id
 
@@ -111,14 +112,16 @@ async def execute_task(
 
     # ── 5. agent invocation ───────────────────────────────────────────────
     output, tier, tokens_out = await _invoke_agent(
-        task, dist_sys, dist_user, objective, loop
+        task, dist_sys, dist_user, objective, loop, deadline
     )
 
     # ── 6. circuit feedback ───────────────────────────────────────────────
     if output.startswith("AGENT_ERROR:") or output.startswith("INFERENCE_STUB"):
         # An oversized request is the caller's fault, not the agent's: it must
         # not open the agent's circuit for other tasks.
-        if not output.startswith(_INPUT_TOO_LARGE):
+        if output.startswith(_INPUT_TOO_LARGE):
+            breakers.release_probe(agent)
+        else:
             breakers.failure(agent)
         snap = store.load_snapshot(agent)
         if snap:
@@ -175,6 +178,7 @@ async def _invoke_agent(
     user: str,
     objective: str,
     loop: asyncio.AbstractEventLoop,
+    deadline: float,
 ) -> tuple[str, str, int]:
     """
     Try agent_impls.<agent>.Agent().run() first.
@@ -191,7 +195,7 @@ async def _invoke_agent(
             agent_obj = await loop.run_in_executor(
                 _thread_pool,
                 functools.partial(call_in_process, _agent_impl_entry, agent,
-                                  task.payload, timeout=task.timeout_sec),
+                                  task.payload, deadline=deadline),
             )
             if agent_obj:
                 agent_obj = AgentExecution(output=agent_obj[0], metrics=agent_obj[1])
@@ -220,7 +224,7 @@ async def _invoke_agent(
         }
         if isolation_enabled():
             call = functools.partial(call_in_process, infer, sys_p, prompt,
-                                     timeout=task.timeout_sec, **infer_kwargs)
+                                     deadline=deadline, **infer_kwargs)
         else:
             call = functools.partial(infer, sys_p, prompt, **infer_kwargs)
         output, tier = await loop.run_in_executor(_thread_pool, call)

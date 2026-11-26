@@ -375,3 +375,37 @@ def test_oversized_plan_prompt_does_not_open_agent_circuit(tmp_path, monkeypatch
     assert all(h["status"] == "HALTED" and "INPUT_EXCEEDS_TIER_BUDGET" in h["blocker"]
                for h in halted)
     assert ok["status"] == "OK" and len(seen) == 1
+
+
+def test_oversized_plan_prompt_releases_the_recovery_probe(tmp_path, monkeypatch):
+    import runtime.inference_cascade as cascade
+    from runtime.gmaos.breaker import BreakerConfig, BreakerRegistry
+    from runtime.gmaos.core import Mesh
+    from runtime.gmaos.store import StateStore
+    from runtime.token_budget import budget_for
+
+    monkeypatch.delenv("GMAOS_PAID_ADAPTERS_ENABLED", raising=False)
+    _only_tiers(monkeypatch, cascade, {"lmstudio": '{"summary":"ok"}'})
+    huge = "word " * budget_for("claude_api").max_input_chars
+    breakers = BreakerRegistry(BreakerConfig(failure_threshold=1, base_open_sec=0))
+    breakers.failure("plan_probe_agent")  # OPEN, then HALF_OPEN at once
+
+    def plan(doc):
+        return Plan(nodes=(llm("b", 0, {"summary": "str"}, ["mission.doc"],
+                               agent="plan_probe_agent", budget=10**6),),
+                    max_tokens=10**7, max_nodes=1, mission={"doc": doc})
+
+    async def go():
+        mesh = Mesh(store=StateStore(db_path=tmp_path / "m.db",
+                                     redis_url="redis://127.0.0.1:9999/99"),
+                    breakers=breakers)
+        await mesh.start()
+        try:
+            runner = PlanRunner(mesh)
+            return await runner.run(plan(huge)), await runner.run(plan("small"))
+        finally:
+            await mesh.stop()
+
+    halted, ok = asyncio.run(go())
+    assert "INPUT_EXCEEDS_TIER_BUDGET" in halted["blocker"]
+    assert ok["status"] == "OK"
