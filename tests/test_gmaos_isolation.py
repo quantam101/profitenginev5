@@ -1,0 +1,107 @@
+"""One agent call per process: result, failure, crash and deadline kill."""
+import asyncio
+import operator
+import os
+import time
+
+import pytest
+
+from runtime.gmaos import Plan, PlanNode, PlanRunner
+from runtime.gmaos.isolation import IsolatedCallError, call_in_process, isolation_enabled
+
+
+def test_returns_result_from_another_process():
+    assert call_in_process(operator.add, 2, 3, deadline=time.monotonic() + 30) == 5
+    assert call_in_process(os.getpid, deadline=time.monotonic() + 30) != os.getpid()
+
+
+def test_child_exception_is_reported():
+    with pytest.raises(IsolatedCallError, match="ValueError"):
+        call_in_process(int, "not a number", deadline=time.monotonic() + 30)
+
+
+def test_child_crash_is_reported():
+    with pytest.raises(IsolatedCallError, match="CRASHED: exit code 7"):
+        call_in_process(os._exit, 7, deadline=time.monotonic() + 30)
+
+
+def test_hung_child_is_killed_at_deadline():
+    t0 = time.monotonic()
+    with pytest.raises(IsolatedCallError, match="TIMEOUT"):
+        call_in_process(time.sleep, 60, deadline=time.monotonic() + 1)
+    assert time.monotonic() - t0 < 15
+
+
+def test_expired_deadline_never_spawns_a_process(monkeypatch):
+    import runtime.gmaos.isolation as isolation
+
+    def no_spawn(*a, **k):
+        raise AssertionError("spawned a process after the deadline")
+
+    monkeypatch.setattr(isolation._CTX, "Process", no_spawn)
+    with pytest.raises(IsolatedCallError, match="TIMEOUT"):
+        call_in_process(os.getpid, deadline=time.monotonic() - 1)
+
+
+def test_process_startup_counts_against_the_deadline(monkeypatch):
+    import runtime.gmaos.isolation as isolation
+
+    real = isolation._CTX.Process
+
+    class SlowStart:
+        def __init__(self, *args, **kwargs):
+            self._proc = real(*args, **kwargs)
+
+        def start(self):
+            self._proc.start()
+            time.sleep(1.5)
+
+        def __getattr__(self, name):
+            return getattr(self._proc, name)
+
+    monkeypatch.setattr(isolation._CTX, "Process", SlowStart)
+    t0 = time.monotonic()
+    with pytest.raises(IsolatedCallError, match="TIMEOUT"):
+        call_in_process(time.sleep, 60, deadline=t0 + 1)
+    assert time.monotonic() - t0 < 2.4
+
+
+def test_isolation_is_opt_in(monkeypatch):
+    monkeypatch.delenv("GMAOS_AGENT_ISOLATION", raising=False)
+    assert not isolation_enabled()
+    monkeypatch.setenv("GMAOS_AGENT_ISOLATION", "process")
+    assert isolation_enabled()
+
+
+def test_mesh_runs_each_llm_call_in_its_own_process_when_enabled(tmp_path, monkeypatch):
+    import runtime.gmaos.executor as executor
+    import runtime.inference_cascade as cascade
+    from runtime.gmaos.core import Mesh
+    from runtime.gmaos.store import StateStore
+
+    monkeypatch.setenv("GMAOS_AGENT_ISOLATION", "process")
+    monkeypatch.setattr(cascade, "infer", lambda s, p, **_: ('{"summary":"ok"}', "groq"))
+    spawned = []
+
+    def fake_call_in_process(fn, *args, deadline, **kwargs):
+        spawned.append((fn.__name__, deadline - time.monotonic()))
+        return fn(*args, **kwargs)
+
+    monkeypatch.setattr(executor, "call_in_process", fake_call_in_process)
+
+    async def go():
+        mesh = Mesh(store=StateStore(db_path=tmp_path / "m.db",
+                                     redis_url="redis://127.0.0.1:9999/99"))
+        await mesh.start()
+        try:
+            nodes = tuple(
+                PlanNode(id=i, wave=0, tier="T1", out_schema={"summary": "str"},
+                         budget=2000, agent="plan_probe_agent", task="summarise")
+                for i in ("a", "b")
+            )
+            return await PlanRunner(mesh).run(Plan(nodes=nodes, max_tokens=4000, max_nodes=2))
+        finally:
+            await mesh.stop()
+
+    assert asyncio.run(go())["status"] == "OK"
+    assert len(spawned) == 2 and all(t > 0 for _, t in spawned)

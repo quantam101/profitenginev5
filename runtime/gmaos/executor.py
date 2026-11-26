@@ -26,6 +26,8 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import Any, Optional, TYPE_CHECKING
 
 from .schema import Task, MeshResult, TaskStatus
+from runtime.inference_cascade import INPUT_TOO_LARGE as _INPUT_TOO_LARGE
+from .isolation import call_in_process, isolation_enabled
 from .distill_engine import distill_task_input, distill_snapshot
 
 if TYPE_CHECKING:
@@ -50,6 +52,7 @@ async def execute_task(
 ) -> MeshResult:
     """Full execution pipeline for a single Task."""
     t0 = time.perf_counter()
+    deadline = time.monotonic() + task.timeout_sec
     agent = task.agent
     tid   = task.id
 
@@ -88,26 +91,38 @@ async def execute_task(
     user_raw   = task.payload.get("prompt", str(task.payload))
     objective  = task.payload.get("objective", task.payload.get("title", agent))
 
-    dist_sys, dist_user, stage3, tok_in, tok_out = distill_task_input(
-        system    = system_raw,
-        user      = user_raw,
-        objective = objective,
-        agent_id  = agent,
-        store     = store,
-        task_id   = tid,
-    )
+    # Callers that budget and verify their own prompt (plan runner) opt out:
+    # distillation rewrites the prompt and may spend an extra LLM call.
+    distill = task.payload.get("distill", True) is not False
+    if distill:
+        dist_sys, dist_user, stage3, tok_in, tok_out = distill_task_input(
+            system    = system_raw,
+            user      = user_raw,
+            objective = objective,
+            agent_id  = agent,
+            store     = store,
+            task_id   = tid,
+        )
+    else:
+        dist_sys, dist_user, stage3 = system_raw, user_raw, False
+        tok_in = max(1, (len(system_raw) + len(user_raw)) // 4)
     if stage3:
         metrics.distill_stage3.inc()
     metrics.tokens_in_total.inc(tok_in)
 
     # ── 5. agent invocation ───────────────────────────────────────────────
     output, tier, tokens_out = await _invoke_agent(
-        task, dist_sys, dist_user, objective, loop
+        task, dist_sys, dist_user, objective, loop, deadline
     )
 
     # ── 6. circuit feedback ───────────────────────────────────────────────
     if output.startswith("AGENT_ERROR:") or output.startswith("INFERENCE_STUB"):
-        breakers.failure(agent)
+        # An oversized request is the caller's fault, not the agent's: it must
+        # not open the agent's circuit for other tasks.
+        if output.startswith(_INPUT_TOO_LARGE):
+            breakers.release_probe(agent)
+        else:
+            breakers.failure(agent)
         snap = store.load_snapshot(agent)
         if snap:
             metrics.tasks_local.inc()
@@ -120,7 +135,7 @@ async def execute_task(
         breakers.success(agent)
 
     # ── 7. output distillation + snapshot ─────────────────────────────────
-    snap_output = await loop.run_in_executor(
+    snap_output = output if not distill else await loop.run_in_executor(
         _thread_pool,
         functools.partial(distill_snapshot, output, agent),
     )
@@ -163,6 +178,7 @@ async def _invoke_agent(
     user: str,
     objective: str,
     loop: asyncio.AbstractEventLoop,
+    deadline: float,
 ) -> tuple[str, str, int]:
     """
     Try agent_impls.<agent>.Agent().run() first.
@@ -174,11 +190,21 @@ async def _invoke_agent(
     # ── Try runtime.agent_impls first ────────────────────────────────────
     try:
         from runtime.agents import load_agent, AgentExecution
-        agent_obj = await loop.run_in_executor(
-            _thread_pool,
-            functools.partial(_run_agent_impl, agent_obj=load_agent(agent),
-                              payload=task.payload, system=system, user=user),
-        )
+        impl = load_agent(agent)
+        if isolation_enabled():
+            agent_obj = await loop.run_in_executor(
+                _thread_pool,
+                functools.partial(call_in_process, _agent_impl_entry, agent,
+                                  task.payload, deadline=deadline),
+            )
+            if agent_obj:
+                agent_obj = AgentExecution(output=agent_obj[0], metrics=agent_obj[1])
+        else:
+            agent_obj = await loop.run_in_executor(
+                _thread_pool,
+                functools.partial(_run_agent_impl, agent_obj=impl,
+                                  payload=task.payload, system=system, user=user),
+            )
         if agent_obj and not str(agent_obj.output).startswith("AGENT_ERROR:"):
             tok = int(agent_obj.metrics.get("tokens_out", 0))
             return agent_obj.output, agent_obj.metrics.get("tier", "agent_impl"), tok
@@ -192,15 +218,27 @@ async def _invoke_agent(
         from runtime.inference_cascade import infer
         prompt = user or objective or str(task.payload)
         sys_p  = system or f"You are the {agent} agent for ProfitEngine."
-        output, tier = await loop.run_in_executor(
-            _thread_pool,
-            functools.partial(infer, sys_p, prompt,
-                              max_tokens=task.payload.get("max_tokens", 1024)),
-        )
+        infer_kwargs = {
+            "max_tokens": task.payload.get("max_tokens", 1024),
+            "truncate": task.payload.get("distill", True) is not False,
+        }
+        if isolation_enabled():
+            call = functools.partial(call_in_process, infer, sys_p, prompt,
+                                     deadline=deadline, **infer_kwargs)
+        else:
+            call = functools.partial(infer, sys_p, prompt, **infer_kwargs)
+        output, tier = await loop.run_in_executor(_thread_pool, call)
         tok_out = max(1, len(output) // 4)
         return output, tier, tok_out
     except Exception as exc:
         return f"AGENT_ERROR: {exc}", "error", 0
+
+
+def _agent_impl_entry(agent: str, payload: dict) -> Any:
+    """Child-process entry: load the agent by id, run it, return picklable parts."""
+    from runtime.agents import load_agent
+    res = _run_agent_impl(load_agent(agent), payload, "", "")
+    return None if res is None else (str(res.output), dict(res.metrics))
 
 
 def _run_agent_impl(agent_obj: Any, payload: dict, system: str, user: str) -> Any:
