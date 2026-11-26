@@ -19,11 +19,14 @@ const TF_KEY = process.env.TOKENFORGE_API_KEY ?? "";
 
 const MAX_TOKENS_CAP = 1024;
 const MAX_TOKENS_DEFAULT = 256;
-const PROMPT_CHAR_CAP = 20000;
+// 16k is the Pollinations Classic input ceiling, the strictest provider in the chain.
+const PROMPT_CHAR_CAP = 16000;
 
-const GROQ_MODELS = ["llama-3.3-70b-versatile", "qwen-qwq-32b", "llama-3.1-8b-instant"];
+const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b"];
 const GEMINI_MODELS = ["gemini-2.5-flash"];
-const POLLINATIONS_MODELS = ["openai", "mistral", "llama"];
+// Verified against https://text.pollinations.ai/models: only "openai" exists on the
+// free Classic API (mistral/llama return 404). Free tier rate limit: 1 reply/45s/IP.
+const POLLINATIONS_MODELS = ["openai"];
 
 const FREE_PROVIDERS = ["auto", "groq", "gemini", "pollinations"];
 
@@ -133,8 +136,12 @@ export async function POST(req: NextRequest) {
   }
   const maxTokens = clampTokens(body.max_tokens);
 
+  // "auto" stays zero-cost regardless of operator keys: Groq's free tier hard-stops
+  // at quota (429, never a charge) and Pollinations is keyless. Gemini is excluded
+  // because a paid-tier key in GEMINI_API_KEY would silently bill; pin it explicitly
+  // only when the operator accepts that key's terms.
   const chain = provider === "auto"
-    ? (["groq", "gemini", "pollinations"] as const)
+    ? (["groq", "pollinations"] as const)
     : [provider as "groq" | "gemini" | "pollinations"];
 
   const errors: string[] = [];
@@ -165,7 +172,7 @@ export async function GET(req: NextRequest) {
     ok: true,
     service: "tokenforge-integrated",
     version: "3.0.0",
-    note: "Zero-cost LLM proxy: free providers only, key required.",
+    note: "Zero-cost LLM proxy: auto = groq free tier -> keyless pollinations. Gemini only when pinned explicitly (paid keys bill). Pollinations free tier: 1 reply/45s/IP.",
     providers: {
       groq: { configured: !!GROQ_KEY, models: GROQ_MODELS },
       gemini: { configured: !!GEMINI_KEY, models: GEMINI_MODELS },

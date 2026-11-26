@@ -52,7 +52,7 @@ const pollinationsOk = async (url, init) => ({
   const paid = await call(POST, authed({ prompt: 'hi', provider: 'anthropic' }));
   assert.equal(paid.status, 400);
   assert.match(paid.json.error, /Free providers only/);
-  const huge = await call(POST, authed({ prompt: 'x'.repeat(20001) }));
+  const huge = await call(POST, authed({ prompt: 'x'.repeat(16001) }));
   assert.equal(huge.status, 413);
 }
 // auto cascade lands on keyless pollinations when no keys are configured
