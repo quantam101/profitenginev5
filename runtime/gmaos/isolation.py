@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import multiprocessing as mp
 import os
+import time
 from typing import Any, Callable
 
 _CTX = mp.get_context("spawn")  # fork is unsafe in a multi-threaded mesh
@@ -32,20 +33,27 @@ def _child(conn, fn: Callable[..., Any], args: tuple, kwargs: dict) -> None:
 
 
 def call_in_process(
-    fn: Callable[..., Any], *args: Any, timeout: float, **kwargs: Any
+    fn: Callable[..., Any], *args: Any, deadline: float, **kwargs: Any
 ) -> Any:
-    """Run fn(*args, **kwargs) in its own process; kill it after `timeout` seconds.
+    """Run fn(*args, **kwargs) in its own process; kill it at `deadline`.
+
+    `deadline` is a time.monotonic() value fixed when the task started, so time
+    spent queued for a worker thread counts: a call whose deadline has already
+    passed never spawns a process.
 
     fn, its arguments and its result must be picklable. Blocking: call it from
     a worker thread, not from the event loop.
     """
+    timeout = deadline - time.monotonic()
+    if timeout <= 0:
+        raise IsolatedCallError("TIMEOUT: deadline passed before start")
     parent, child = _CTX.Pipe(duplex=False)
     proc = _CTX.Process(target=_child, args=(child, fn, args, kwargs), daemon=True)
     proc.start()
     child.close()
     try:
         if not parent.poll(timeout):
-            raise IsolatedCallError(f"TIMEOUT: killed after {timeout}s")
+            raise IsolatedCallError("TIMEOUT: killed at deadline")
         try:
             ok, value = parent.recv()
         except EOFError:

@@ -11,25 +11,36 @@ from runtime.gmaos.isolation import IsolatedCallError, call_in_process, isolatio
 
 
 def test_returns_result_from_another_process():
-    assert call_in_process(operator.add, 2, 3, timeout=30) == 5
-    assert call_in_process(os.getpid, timeout=30) != os.getpid()
+    assert call_in_process(operator.add, 2, 3, deadline=time.monotonic() + 30) == 5
+    assert call_in_process(os.getpid, deadline=time.monotonic() + 30) != os.getpid()
 
 
 def test_child_exception_is_reported():
     with pytest.raises(IsolatedCallError, match="ValueError"):
-        call_in_process(int, "not a number", timeout=30)
+        call_in_process(int, "not a number", deadline=time.monotonic() + 30)
 
 
 def test_child_crash_is_reported():
     with pytest.raises(IsolatedCallError, match="CRASHED: exit code 7"):
-        call_in_process(os._exit, 7, timeout=30)
+        call_in_process(os._exit, 7, deadline=time.monotonic() + 30)
 
 
 def test_hung_child_is_killed_at_deadline():
     t0 = time.monotonic()
     with pytest.raises(IsolatedCallError, match="TIMEOUT"):
-        call_in_process(time.sleep, 60, timeout=1)
+        call_in_process(time.sleep, 60, deadline=time.monotonic() + 1)
     assert time.monotonic() - t0 < 15
+
+
+def test_expired_deadline_never_spawns_a_process(monkeypatch):
+    import runtime.gmaos.isolation as isolation
+
+    def no_spawn(*a, **k):
+        raise AssertionError("spawned a process after the deadline")
+
+    monkeypatch.setattr(isolation._CTX, "Process", no_spawn)
+    with pytest.raises(IsolatedCallError, match="TIMEOUT"):
+        call_in_process(os.getpid, deadline=time.monotonic() - 1)
 
 
 def test_isolation_is_opt_in(monkeypatch):
@@ -49,8 +60,8 @@ def test_mesh_runs_each_llm_call_in_its_own_process_when_enabled(tmp_path, monke
     monkeypatch.setattr(cascade, "infer", lambda s, p, **_: ('{"summary":"ok"}', "groq"))
     spawned = []
 
-    def fake_call_in_process(fn, *args, timeout, **kwargs):
-        spawned.append((fn.__name__, timeout))
+    def fake_call_in_process(fn, *args, deadline, **kwargs):
+        spawned.append((fn.__name__, deadline - time.monotonic()))
         return fn(*args, **kwargs)
 
     monkeypatch.setattr(executor, "call_in_process", fake_call_in_process)
