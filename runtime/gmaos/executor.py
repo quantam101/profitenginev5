@@ -27,6 +27,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from .schema import Task, MeshResult, TaskStatus
 from runtime.inference_cascade import INPUT_TOO_LARGE as _INPUT_TOO_LARGE
+from .isolation import call_in_process, isolation_enabled
 from .distill_engine import distill_task_input, distill_snapshot
 
 if TYPE_CHECKING:
@@ -185,11 +186,21 @@ async def _invoke_agent(
     # ── Try runtime.agent_impls first ────────────────────────────────────
     try:
         from runtime.agents import load_agent, AgentExecution
-        agent_obj = await loop.run_in_executor(
-            _thread_pool,
-            functools.partial(_run_agent_impl, agent_obj=load_agent(agent),
-                              payload=task.payload, system=system, user=user),
-        )
+        impl = load_agent(agent)
+        if isolation_enabled():
+            agent_obj = await loop.run_in_executor(
+                _thread_pool,
+                functools.partial(call_in_process, _agent_impl_entry, agent,
+                                  task.payload, timeout=task.timeout_sec),
+            )
+            if agent_obj:
+                agent_obj = AgentExecution(output=agent_obj[0], metrics=agent_obj[1])
+        else:
+            agent_obj = await loop.run_in_executor(
+                _thread_pool,
+                functools.partial(_run_agent_impl, agent_obj=impl,
+                                  payload=task.payload, system=system, user=user),
+            )
         if agent_obj and not str(agent_obj.output).startswith("AGENT_ERROR:"):
             tok = int(agent_obj.metrics.get("tokens_out", 0))
             return agent_obj.output, agent_obj.metrics.get("tier", "agent_impl"), tok
@@ -203,16 +214,27 @@ async def _invoke_agent(
         from runtime.inference_cascade import infer
         prompt = user or objective or str(task.payload)
         sys_p  = system or f"You are the {agent} agent for ProfitEngine."
-        output, tier = await loop.run_in_executor(
-            _thread_pool,
-            functools.partial(infer, sys_p, prompt,
-                              max_tokens=task.payload.get("max_tokens", 1024),
-                              truncate=task.payload.get("distill", True) is not False),
-        )
+        infer_kwargs = {
+            "max_tokens": task.payload.get("max_tokens", 1024),
+            "truncate": task.payload.get("distill", True) is not False,
+        }
+        if isolation_enabled():
+            call = functools.partial(call_in_process, infer, sys_p, prompt,
+                                     timeout=task.timeout_sec, **infer_kwargs)
+        else:
+            call = functools.partial(infer, sys_p, prompt, **infer_kwargs)
+        output, tier = await loop.run_in_executor(_thread_pool, call)
         tok_out = max(1, len(output) // 4)
         return output, tier, tok_out
     except Exception as exc:
         return f"AGENT_ERROR: {exc}", "error", 0
+
+
+def _agent_impl_entry(agent: str, payload: dict) -> Any:
+    """Child-process entry: load the agent by id, run it, return picklable parts."""
+    from runtime.agents import load_agent
+    res = _run_agent_impl(load_agent(agent), payload, "", "")
+    return None if res is None else (str(res.output), dict(res.metrics))
 
 
 def _run_agent_impl(agent_obj: Any, payload: dict, system: str, user: str) -> Any:
