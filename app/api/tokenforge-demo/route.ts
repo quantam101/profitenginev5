@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
-const TF_BASE = (process.env.TOKENFORGE_API_URL || 'https://api.alreadyherellc.com').replace(/\/$/, '');
-const TF_API = `${TF_BASE}/proxy/chat`;
+// The standalone /proxy/chat backend is paused; the live zero-cost proxy is the
+// tokenforge route on this app (or on the configured TOKENFORGE_API_URL host).
+const TF_BASE = (process.env.TOKENFORGE_API_URL || 'https://app.alreadyherellc.com').replace(/\/$/, '');
+const TF_API = `${TF_BASE}/api/tokenforge`;
 
 export const revalidate = 3600;
 
@@ -24,8 +26,7 @@ export async function GET() {
       headers: { 'X-TF-Key': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt,
-        provider: 'anthropic',
-        model: 'claude-haiku-4-5-20251001',
+        provider: 'auto',
         max_tokens: 100,
       }),
     });
@@ -39,7 +40,6 @@ export async function GET() {
     {
       ok: tfOk,
       proof: 'tokenforge_api_live',
-      key_prefix: apiKey.slice(0, 12) + '...',
       latency_ms: Date.now() - started,
       connector: 'tokenforge_api',
       repository: 'quantam101/profitenginev5',
