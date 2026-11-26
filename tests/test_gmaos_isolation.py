@@ -43,6 +43,29 @@ def test_expired_deadline_never_spawns_a_process(monkeypatch):
         call_in_process(os.getpid, deadline=time.monotonic() - 1)
 
 
+def test_process_startup_counts_against_the_deadline(monkeypatch):
+    import runtime.gmaos.isolation as isolation
+
+    real = isolation._CTX.Process
+
+    class SlowStart:
+        def __init__(self, *args, **kwargs):
+            self._proc = real(*args, **kwargs)
+
+        def start(self):
+            self._proc.start()
+            time.sleep(1.5)
+
+        def __getattr__(self, name):
+            return getattr(self._proc, name)
+
+    monkeypatch.setattr(isolation._CTX, "Process", SlowStart)
+    t0 = time.monotonic()
+    with pytest.raises(IsolatedCallError, match="TIMEOUT"):
+        call_in_process(time.sleep, 60, deadline=t0 + 1)
+    assert time.monotonic() - t0 < 2.4
+
+
 def test_isolation_is_opt_in(monkeypatch):
     monkeypatch.delenv("GMAOS_AGENT_ISOLATION", raising=False)
     assert not isolation_enabled()

@@ -44,15 +44,15 @@ def call_in_process(
     fn, its arguments and its result must be picklable. Blocking: call it from
     a worker thread, not from the event loop.
     """
-    timeout = deadline - time.monotonic()
-    if timeout <= 0:
+    if deadline - time.monotonic() <= 0:
         raise IsolatedCallError("TIMEOUT: deadline passed before start")
     parent, child = _CTX.Pipe(duplex=False)
     proc = _CTX.Process(target=_child, args=(child, fn, args, kwargs), daemon=True)
     proc.start()
     child.close()
     try:
-        if not parent.poll(timeout):
+        # Measured after start(), so process startup counts against the deadline.
+        if not parent.poll(max(0.0, deadline - time.monotonic())):
             raise IsolatedCallError("TIMEOUT: killed at deadline")
         try:
             ok, value = parent.recv()
