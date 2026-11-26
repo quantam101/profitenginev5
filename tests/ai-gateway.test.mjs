@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evaluatePromotionGate, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
+import { clampMaxTokens, evaluatePromotionGate, getAIGatewayPolicy, routeAI } from '../lib/ai-gateway.mjs';
 
 const auditDir = await mkdtemp(join(tmpdir(), 'profitengine-ai-gateway-'));
 const auditPath = join(auditDir, 'audit.jsonl');
@@ -11,6 +11,30 @@ try {
   const policy = getAIGatewayPolicy();
   assert.ok(policy.allowedTasks.includes('code_review'));
   assert.ok(policy.blockedHighRiskTasks.includes('financial_trading_execution'));
+
+  assert.equal(clampMaxTokens(undefined), 700);
+  assert.equal(clampMaxTokens('not-a-number'), 700);
+  assert.equal(clampMaxTokens(-5), 700);
+  assert.equal(clampMaxTokens(1200), 1200);
+  assert.equal(clampMaxTokens(9_000_000), 4096);
+  assert.equal(clampMaxTokens(undefined, 512), 512);
+
+  const originalFetch = globalThis.fetch;
+  const sentBodies = [];
+  globalThis.fetch = async (_url, init) => {
+    sentBodies.push(JSON.parse(init.body));
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }], usage: {} }), { status: 200 });
+  };
+  try {
+    await routeAI(
+      { task: 'code_review', prompt: 'budget check', maxTokens: 9_000_000 },
+      { auditPath: join(auditDir, 'budget-audit.jsonl'), qwenEnabled: true, qwenToken: 'unit-fixture', promotionStage: 'internal_default_for_selected_tasks' }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(sentBodies.length, 1);
+  assert.equal(sentBodies[0].max_tokens, 4096);
 
   const fallback = await routeAI(
     {

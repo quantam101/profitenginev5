@@ -93,3 +93,24 @@ test('provider cannot report a cost above the amount reserved before invocation'
   assert.equal(result.ok, false);
   assert.match(result.reason, /exceeded reserved maximum call cost/);
 });
+
+test('local Ollama route sends an explicit capped output budget', async () => {
+  const { executionControl, clock } = fixture();
+  const bodies = [];
+  const fetchImpl = async (_url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return { ok: true, status: 200, json: async () => ({ message: { content: '{"ok":true}' } }) };
+  };
+  const route = createControlledAIRoute({
+    executionControl,
+    config: { zeroSpend: true, maxDailyAiSpendUsd: 0 },
+    env: { OLLAMA_BASE_URL: 'http://127.0.0.1:11434' },
+    fetchImpl,
+    clock,
+  });
+  await route({ task: 'test', prompt: 'test' });
+  await route({ task: 'test', prompt: 'test', maxTokens: 9_000_000 });
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[0].options.num_predict, 1800);
+  assert.equal(bodies[1].options.num_predict, 4096);
+});

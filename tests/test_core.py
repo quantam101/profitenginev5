@@ -13,6 +13,8 @@ def test_core_smoke(tmp_path, monkeypatch):
     monkeypatch.setenv("GMAOS_APPROVAL_DB", str(tmp_path / "approvals.json"))
     monkeypatch.setenv("GMAOS_VECTOR_CACHE", str(tmp_path / "vector.sqlite3"))
     monkeypatch.setenv("GMAOS_EMBEDDING_DIM", "4")
+    import runtime.pollinations_gateway as pg
+    monkeypatch.setattr(pg, "call_pollinations", lambda s, p, max_tokens=1024: "- drafted locally\nStatus: done")
     core = SovereignAutomationCore()
     result = core.execute("system", "context", "Create a local draft", [0.1, 0.1, 0.1, 0.1])
     assert result.status == "ok"

@@ -173,6 +173,17 @@ class SovereignAutomationCore:
             output = "Execution queued. No unsafe route executed."
             agent_metrics = {"agent": agent_id}
 
+        if "INFERENCE_STUB" in output:
+            # No model answered: the stub is a failure notice, not a result.
+            # Never commit it to verified memory, where cache hits would replay it.
+            self.audit.blocked(actor, "inference_unavailable", {"agent_metrics": agent_metrics}, correlation_id)
+            result = ExecutionResult(
+                "failed", route.decision.tier, "inference_unavailable: no model responded", False,
+                {"agent_metrics": agent_metrics, "complexity": complexity.__dict__},
+            )
+            self._log_cycle(correlation_id, agent_id, result, objective, started_at)
+            return result
+
         if agent_policy.verifier_required:
             verified = self.verifier.verify_text_output(output)
             if not verified.passed:
