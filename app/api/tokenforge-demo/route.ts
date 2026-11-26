@@ -27,10 +27,11 @@ export async function GET() {
       headers: { 'X-TF-Key': apiKey },
       next: { revalidate: 0 },
     });
-    tfResponse = await res.json();
+    await res.json();
     tfOk = res.ok;
+    tfResponse = { reachable: true };
   } catch (err) {
-    tfResponse = { error: String(err) };
+    tfResponse = { reachable: false };
   }
 
   return NextResponse.json(
