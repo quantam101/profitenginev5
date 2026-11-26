@@ -44,5 +44,6 @@ class Agent:
                 "tier":            tier,
                 "connector_count": len(connectors),
                 "distilled":       use_distill,
+                "inference_unavailable": result.startswith("INFERENCE_STUB"),
             },
         )

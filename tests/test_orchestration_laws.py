@@ -127,7 +127,8 @@ def test_sovereign_core_fails_closed_when_no_model_responds(tmp_path, monkeypatc
     from runtime.sovereign_core import SovereignAutomationCore
     core = SovereignAutomationCore()
     vector = [0.7, 0.7, 0.7, 0.7]
-    result = core.execute("system", "context", "Create a local draft", vector)
+    # "AI" is a substring of the stub text; the check must not depend on it
+    result = core.execute("system", "context", "AI", vector)
     assert result.status == "failed"
     assert result.output.startswith("inference_unavailable")
     assert "record_id" not in result.details
@@ -142,6 +143,6 @@ def test_sovereign_core_accepts_draft_whose_objective_mentions_the_stub(tmp_path
     import runtime.agent_impls.sovereign_orchestrator as mod
     monkeypatch.setattr(mod, "infer", lambda *a, **k: ("- explained the marker\nStatus: done", "groq"))
     from runtime.sovereign_core import SovereignAutomationCore
-    objective = "Draft a note on INFERENCE_STUB\nNo AI model responded. handling"
+    objective = "INFERENCE_STUB\nNo AI model responded."
     result = SovereignAutomationCore().execute("system", "context", objective, [0.8, 0.8, 0.8, 0.8])
     assert result.status == "ok"
