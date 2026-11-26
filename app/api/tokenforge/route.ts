@@ -96,7 +96,11 @@ async function callPollinations(prompt: string, system: string | undefined, mode
   return { text, model, usage: data?.usage };
 }
 
-const CALLERS: Record<string, typeof callGroq> = {
+type CallResult =
+  | { text: string; model: string; usage?: unknown }
+  | { error: string; status: number };
+
+const CALLERS: Record<string, (prompt: string, system: string | undefined, model: string, maxTokens: number) => Promise<CallResult>> = {
   groq: callGroq,
   gemini: callGemini,
   pollinations: callPollinations,
@@ -142,7 +146,7 @@ export async function POST(req: NextRequest) {
     }
     try {
       const out = await CALLERS[p](prompt, typeof system === "string" ? system : undefined, m, maxTokens);
-      if ("text" in out && out.text) {
+      if ("text" in out) {
         return NextResponse.json({ ok: true, provider: p, model: out.model, text: out.text, usage: out.usage });
       }
       errors.push(`${p}: ${out.error}`);
