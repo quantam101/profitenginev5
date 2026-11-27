@@ -430,25 +430,29 @@ def generate_article(topic: str) -> Dict[str, Any]:
     prompt = ARTICLE_PROMPT.format(topic=topic)
     # Try each Groq model in priority order, then fall back to Gemini
     raw = ""
+    article: Dict[str, Any] = {}
     if GROQ_KEY:
         for model in GROQ_MODELS:
             try:
                 raw = _call_groq(prompt, model=model)
+                article = _parse_article_json(raw)
                 print(f"[AI] Provider: Groq ({model})")
                 break
             except Exception as e:
+                raw = ""
                 print(f"[AI] Groq/{model} failed ({e}), trying next...")
     if not raw and GEMINI_KEY:
         for model in GEMINI_MODELS:
             try:
                 raw = _call_gemini(prompt, model=model)
+                article = _parse_article_json(raw)
                 print(f"[AI] Provider: Gemini ({model})")
                 break
             except Exception as e:
+                raw = ""
                 print(f"[AI] Gemini/{model} failed ({e}), trying next...")
     if not raw:
         sys.exit("❌ All LLM providers failed — check API keys and rate limits")
-    article = _parse_article_json(raw)
     article["body"] = _normalize_tables(str(article.get("body") or ""))
 
     from scripts.seo_content_quality import (
@@ -559,36 +563,27 @@ def _parse_article_json(raw: str) -> Dict[str, Any]:
     # 2. Remove invalid control characters (keep \n \r \t)
     cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", cleaned)
     # 3. Try strict parse
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-    # 4. Lenient parse (accepts \n in strings)
-    try:
-        return json.loads(cleaned, strict=False)
-    except json.JSONDecodeError:
-        pass
+    for strict in (True, False):  # 4. lenient parse accepts \n in strings
+        try:
+            parsed = json.loads(cleaned, strict=strict)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
     # 5. Extract the outermost JSON object via regex (handles trailing junk)
     m = re.search(r"\{[\s\S]*\}", cleaned)
     if m:
         candidate = m.group(0)
         try:
-            return json.loads(candidate, strict=False)
+            parsed = json.loads(candidate, strict=False)
         except json.JSONDecodeError:
-            pass
-    # 6. Last resort: synthesize a minimal article from the raw text
-    print("[WARN] JSON parse failed — synthesizing minimal article from raw text")
-    title_m = re.search(r'"title"\s*:\s*"([^"]+)"', raw)
-    slug_m = re.search(r'"slug"\s*:\s*"([^"]+)"', raw)
-    title = title_m.group(1) if title_m else "AI Tools for Passive Income 2026"
-    slug = slug_m.group(1) if slug_m else "ai-tools-passive-income-2026"
-    return {
-        "title": title,
-        "slug": slug,
-        "meta_description": f"Discover {title}",
-        "tags": ["ai", "passiveincome", "automation"],
-        "body": raw[:8000],  # publish the raw output as-is if parsing fully fails
-    }
+            parsed = None
+        if isinstance(parsed, dict):
+            return parsed
+    # 6. Unparseable output is a provider failure, never publishable content.
+    raise ValueError(
+        f"LLM output is not a parseable article JSON object ({len(raw)} chars)"
+    )
 
 
 # ── Affiliate link injection ────────────────────────────────────────────────────
